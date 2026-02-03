@@ -35,16 +35,12 @@ jobs:
           filters: |
             dotnet:
               - 'templates/dotnet/**'
-              - 'features/**'
             fullstack:
               - 'templates/fullstack/**'
-              - 'features/**'
             node-typescript:
               - 'templates/node-typescript/**'
-              - 'features/**'
             python-mkdocs:
               - 'templates/python-mkdocs/**'
-              - 'features/**'
             features:
               - 'features/**'
 
