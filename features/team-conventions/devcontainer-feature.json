@@ -1,0 +1,24 @@
+{
+  "id": "team-conventions",
+  "version": "1.0.0",
+  "name": "Team Conventions",
+  "description": "Shared code quality and style enforcement for teams",
+  "options": {
+    "preset": {
+      "type": "string",
+      "enum": ["airbnb", "standard", "google", "custom"],
+      "default": "airbnb",
+      "description": "Linting/formatting preset"
+    },
+    "enableCommitLint": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable commit message linting"
+    },
+    "enablePreCommit": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable pre-commit hooks"
+    }
+  }
+}
