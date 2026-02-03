@@ -1,32 +1,36 @@
-# .NET Web API Template
+# .NET Template
 
-Complete C# development environment for building ASP.NET Core Web APIs and microservices.
+Complete C# development environment for building .NET Core applications and microservices.
 
 ## What's Included
 
 ### Base Image
-- **Microsoft DevContainer**: `dotnet:1-8.0-bookworm`
-- .NET 8.0 SDK
-- ASP.NET Core runtime
-- C# compiler and tools
+- **Microsoft DevContainer**: `base:trixie` (Debian Trixie)
+- Minimal base image optimized for DevContainers
 
 ### Features (from containers.dev)
-- **Git**: Latest version with enhanced functionality
-- **Docker-in-Docker**: Build and run containers inside the devcontainer
-- **GitHub CLI**: Interact with GitHub from the terminal
-
-### Pre-installed Global Tools
-- **dotnet-ef**: Entity Framework Core CLI
-- **dotnet-outdated-tool**: Check for outdated packages
-- **dotnet-format**: Code formatter
+- **common-utils**: Zsh, Oh My Zsh, and common development utilities
+- **Git**: Latest version with PPA support
+- **.NET SDK**: Version 10.0
+- **apt-get-packages**: Essential development tools (bash-completion, xdg-utils, pass, sshpass, build-essential, curl, wget, netcat-traditional, iputils-ping, dnsutils, git-lfs, sqlite3, vim, less)
+- **jq-likes**: jq and yq for JSON/YAML processing
+- **GitHub CLI**: gh command-line tool
+- **Docker-outside-of-Docker**: Access host Docker daemon
 
 ### VS Code Extensions
-- **C#**: Official C# extension
-- **C# Dev Kit**: Enhanced C# development experience
-- **.NET Runtime**: Runtime support
-- **C# Extensions**: Quick class/interface creation
-- **NuGet Gallery**: Browse and install NuGet packages
-- **.NET Test Explorer**: Visual test runner
+- **C# Dev Kit**: Enhanced C# development experience with IntelliSense
+- **GUID Generator**: Generate GUIDs easily
+- **Markdown Lint**: Markdown file linting
+- **EditorConfig**: Maintain consistent coding styles
+- **Code Spell Checker**: Catch typos in code and comments
+- **Nuke Build**: Build automation support
+- **ESLint**: JavaScript/TypeScript linting
+- **GitHub Copilot & Copilot Chat**: AI-powered coding assistance
+- **YAML**: YAML language support
+- **GitHub Actions**: GitHub Actions workflow support
+- **Markdown Mermaid**: Diagram support in Markdown
+- **REST Client**: Test REST APIs directly in VS Code
+- **GitHub Pull Request**: Manage pull requests
 
 ### Ports
 Pre-configured port forwarding:
@@ -38,10 +42,10 @@ Pre-configured port forwarding:
 
 ### Copy to Your Project
 ```bash
-cp -r templates/dotnet-webapi/.devcontainer /path/to/your/project/
+cp -r templates/dotnet/.devcontainer /path/to/your/project/
 ```
 
-### Create New Web API Project
+### Create New Project
 
 ```bash
 # Create a new Web API
