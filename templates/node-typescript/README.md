@@ -6,7 +6,7 @@ Full-featured Node.js development environment with TypeScript, testing, and mode
 
 ### Base Image
 - **Microsoft DevContainer**: `typescript-node:1-20-bookworm`
-- Node.js 20 LTS
+- Node.js latest LTS
 - TypeScript pre-installed
 - Debian-based environment
 

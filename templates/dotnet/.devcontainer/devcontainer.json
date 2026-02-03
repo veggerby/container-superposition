@@ -80,9 +80,8 @@
   "postCreateCommand": {
     "install-script": "bash ${containerWorkspaceFolder}/.devcontainer/scripts/post_create.sh"
   },
-      "postStartCommand": {
-        "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
-    },
-
+  "postStartCommand": {
+    "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+  },
   "remoteUser": "vscode"
 }

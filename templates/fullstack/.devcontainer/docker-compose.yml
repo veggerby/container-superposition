@@ -1,0 +1,169 @@
+services:
+  # Main development container
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:${VARIANT:-trixie}
+    volumes:
+      # Forward the local Docker socket to the container
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount the workspace
+      - ../..:/workspaces:cached
+    networks:
+      - app-network
+    environment:
+      # Application environment
+      NODE_ENV: ${NODE_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+
+      # PostgreSQL connection
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
+      POSTGRES_USER: ${POSTGRES_USER:-appuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-appuser}:${POSTGRES_PASSWORD:-dev_password}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-appdb}
+
+      # Redis connection
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
+
+      # OpenTelemetry Configuration
+      OBSERVABILITY_ENABLED: ${OBSERVABILITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-fullstack-app}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-0.1.0}
+      OTEL_DEPLOYMENT_ENVIRONMENT: ${OTEL_DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-1.0}
+      OTEL_TRACES_ENABLED: ${OTEL_TRACES_ENABLED:-true}
+      OTEL_METRICS_ENABLED: ${OTEL_METRICS_ENABLED:-true}
+      OTEL_LOGS_ENABLED: ${OTEL_LOGS_ENABLED:-true}
+      OTEL_METRICS_EXPORT_INTERVAL: ${OTEL_METRICS_EXPORT_INTERVAL:-5000}
+
+    # Keep container alive
+    command: sleep infinity
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    expose:
+      - '5432'
+    networks:
+      - app-network
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
+      POSTGRES_USER: ${POSTGRES_USER:-appuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+      POSTGRES_INITDB_ARGS: -E UTF8 --locale=C
+      TZ: ${TZ:-UTC}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-appuser} -d ${POSTGRES_DB:-appdb}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis Cache/Session Store
+  redis:
+    image: redis:7-alpine
+    expose:
+      - '6379'
+    networks:
+      - app-network
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    networks:
+      - app-network
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    command: ['--config=/etc/otelcol-contrib/config.yaml']
+    restart: unless-stopped
+    depends_on:
+      - jaeger
+      - loki
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    networks:
+      - app-network
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+    restart: unless-stopped
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    networks:
+      - app-network
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-remote-write-receiver'
+    restart: unless-stopped
+    depends_on:
+      - otel-collector
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    networks:
+      - app-network
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: ${GRAFANA_ALLOW_SIGNUP:-false}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3100}
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - loki
+      - jaeger
+
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:latest
+    networks:
+      - app-network
+    volumes:
+      - loki-data:/loki
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  loki-data:
