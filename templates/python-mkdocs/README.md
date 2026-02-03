@@ -5,11 +5,12 @@ Complete documentation environment with MkDocs, Material theme, and modern docum
 ## What's Included
 
 ### Base Image
-- **Microsoft DevContainer**: `python:1-3.12-bookworm`
-- Python 3.12
-- pip package manager
+- **Microsoft DevContainer**: `base:trixie` (Debian Trixie)
+- Minimal base image optimized for DevContainers
 
 ### Features (from containers.dev)
+- **common-utils**: Zsh, Oh My Zsh, and common development utilities
+- **Python**: Version 3.12 with pip and development tools
 - **Git**: Latest version
 - **GitHub CLI**: gh command-line tool
 

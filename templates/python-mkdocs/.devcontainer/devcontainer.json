@@ -1,6 +1,7 @@
 {
   "name": "Python MkDocs Documentation",
   "image": "mcr.microsoft.com/devcontainers/base:${VARIANT:-trixie}",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
@@ -55,7 +56,13 @@
 
   "forwardPorts": [8000],
 
-  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postCreateCommand": {
+    "install-script": "bash ${containerWorkspaceFolder}/.devcontainer/scripts/post-create.sh"
+  },
+
+  "postStartCommand": {
+    "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+  },
 
   "remoteUser": "vscode",
 
