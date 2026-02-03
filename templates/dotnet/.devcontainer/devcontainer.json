@@ -1,6 +1,6 @@
 {
   "name": ".NET Development",
-  "image": "mcr.microsoft.com/devcontainers/base:${VARIANT:-trixie}",
+  "image": "mcr.microsoft.com/devcontainers/base:trixie",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {

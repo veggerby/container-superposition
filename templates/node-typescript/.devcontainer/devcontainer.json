@@ -1,6 +1,6 @@
 {
   "name": "Node.js TypeScript Development",
-  "image": "mcr.microsoft.com/devcontainers/base:${VARIANT:-trixie}",
+  "image": "mcr.microsoft.com/devcontainers/base:trixie",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
@@ -19,10 +19,6 @@
     "ghcr.io/devcontainers/features/git:1": {
       "ppa": true,
       "version": "latest"
-    },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "version": "latest",
-      "dockerDashComposeVersion": "v2"
     },
     "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {
       "jq": "latest",
