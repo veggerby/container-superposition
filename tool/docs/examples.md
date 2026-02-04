@@ -97,12 +97,14 @@ import { composeDevContainer } from './tool/questionnaire/composer.js';
 
 await composeDevContainer({
   stack: 'compose',
-  language: 'dotnet',
+  baseImage: 'bookworm',
+  language: ['dotnet'],
   needsDocker: true,
   database: 'postgres',
   playwright: false,
   observability: ['otel-collector', 'jaeger', 'prometheus', 'grafana'],
   cloudTools: ['aws-cli'],
+  devTools: [],
   outputPath: './.devcontainer',
 });
 ```
@@ -193,7 +195,7 @@ npm run init -- \
   --stack compose \
   --language nodejs \
   --redis \
-  --playwright
+  --dev-tools playwright
 ```
 
 ### Backend API with Metrics Only

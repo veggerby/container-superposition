@@ -14,7 +14,7 @@ Devcontainer with docker-compose for multi-service development environments.
 This template is designed to be extended with service overlays:
 
 ```bash
-npm run init -- --stack compose --db postgres,redis --observability jaeger
+npm run init -- --stack compose --language nodejs --db postgres+redis --observability otel-collector,jaeger,prometheus,grafana
 ```
 
 Overlays will add their services to the docker-compose.yml file.

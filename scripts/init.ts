@@ -333,6 +333,7 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .option('--observability <list>', 'Comma-separated: otel-collector, jaeger, prometheus, grafana, loki')
     .option('--playwright', 'Include Playwright browser automation')
     .option('--cloud-tools <list>', 'Comma-separated: aws-cli, azure-cli, kubectl-helm')
+    .option('--dev-tools <list>', 'Comma-separated: docker-in-docker, docker-sock, playwright, codex')
     .option('--port-offset <number>', 'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)')
     .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
     .parse(process.argv);
@@ -359,6 +360,9 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
   if (options.playwright) config.playwright = true;
   if (options.cloudTools) {
     config.cloudTools = options.cloudTools.split(',').map((t: string) => t.trim()) as CloudTool[];
+  }
+  if (options.devTools) {
+    config.devTools = options.devTools.split(',').map((t: string) => t.trim()) as DevTool[];
   }
   if (options.portOffset) {
     config.portOffset = parseInt(options.portOffset, 10);

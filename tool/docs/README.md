@@ -72,7 +72,7 @@ npm run init -- --stack <name> [options]
 - `--stack` - Base template
 - `--db` - Database (postgres, redis, postgres+redis, none)
 - `--postgres` / `--redis` - Shorthand database options
-- `--playwright` - Browser automation
+- `--dev-tools <list>` - Development tools: docker-in-docker, docker-sock, playwright, codex
 - `--cloud-tools` - Cloud tools (azure-cli, kubectl-helm)
 - `--docker` / `--dind` - Docker-in-Docker
 - `-o` / `--output` - Output path

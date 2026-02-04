@@ -85,8 +85,11 @@ Overlays are modular configuration fragments organized by category:
 - grafana (Visualization)
 - loki (Log aggregation)
 
-**Development Tools:**
-- aws-cli, azure-cli, kubectl-helm, playwright
+**Cloud Tools:**
+- aws-cli, azure-cli, kubectl-helm
+
+**Dev Tools:**
+- docker-in-docker, docker-sock, playwright, codex
 
 Each overlay includes:
 - `devcontainer.patch.json` - Configuration to merge
@@ -138,7 +141,7 @@ npm run init -- --stack compose --language dotnet --db postgres+redis --observab
 npm run init -- --stack plain --language mkdocs
 
 # Full-stack with everything
-npm run init -- --stack compose --language nodejs --db postgres+redis --playwright --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm
+npm run init -- --stack compose --language nodejs --db postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm --dev-tools playwright,docker-in-docker
 
 # Running multiple instances? Add port offset to avoid conflicts
 npm run init -- --stack compose --language nodejs --db postgres --observability jaeger,grafana --port-offset 100
