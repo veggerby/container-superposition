@@ -233,3 +233,80 @@ dev_tool_overlays:
     conflicts: []
     tags: [dev, package-manager]
     ports: []
+    
+  - id: git-helpers
+    name: Git Helpers
+    description: Git LFS, GitHub CLI, GPG/SSH support for secure Git operations
+    category: dev
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [dev, git, security, ssh, gpg]
+    ports: []
+    
+  - id: pre-commit
+    name: Pre-commit Framework
+    description: Automated code quality gates with pre-commit hooks
+    category: dev
+    supports: []
+    requires: []
+    suggests: [commitlint]
+    conflicts: []
+    tags: [dev, git, quality, hooks]
+    ports: []
+    
+  - id: commitlint
+    name: Commitlint
+    description: Conventional commits validation for automated releases
+    category: dev
+    supports: []
+    requires: []
+    suggests: [pre-commit]
+    conflicts: []
+    tags: [dev, git, commits, semantic-release]
+    ports: []
+    
+  - id: just
+    name: Just Task Runner
+    description: Fast, simple command runner (Rust-based alternative to Make)
+    category: dev
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [dev, automation, tasks]
+    ports: []
+    
+  - id: direnv
+    name: direnv
+    description: Per-directory environment variable management
+    category: dev
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [dev, environment, automation]
+    ports: []
+    
+  - id: modern-cli-tools
+    name: Modern CLI Tools
+    description: jq, yq, ripgrep, fd, bat - Essential modern command-line tools
+    category: dev
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [dev, cli, productivity]
+    ports: []
+    
+  - id: ngrok
+    name: ngrok
+    description: Secure tunneling for webhook testing and external access
+    category: dev
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [dev, tunneling, webhooks]
+    ports: [4040]
