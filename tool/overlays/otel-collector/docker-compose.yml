@@ -20,4 +20,3 @@ services:
 
 networks:
   devnet:
-    external: true

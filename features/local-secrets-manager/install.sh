@@ -66,6 +66,9 @@ node_modules/
 GITIGNORE
 fi
 
+# Create scripts directory before writing validation script
+mkdir -p scripts
+
 # Create secrets validation script
 cat > scripts/validate-secrets.sh << 'VALIDATE'
 #!/bin/bash
@@ -88,7 +91,6 @@ fi
 echo "✅ Secrets validation passed"
 VALIDATE
 
-mkdir -p scripts
 chmod +x scripts/validate-secrets.sh
 
 echo "✅ Local secrets management initialized!"

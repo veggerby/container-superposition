@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  db:
+  postgres:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
     restart: unless-stopped
     volumes:
@@ -12,6 +12,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - devnet
 
 volumes:
   postgres-data:
+
+networks:
+  devnet:

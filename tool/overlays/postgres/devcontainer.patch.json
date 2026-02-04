@@ -14,7 +14,7 @@
     }
   },
   "remoteEnv": {
-    "POSTGRES_HOST": "localhost",
+    "POSTGRES_HOST": "postgres",
     "POSTGRES_PORT": "5432",
     "POSTGRES_DB": "devdb",
     "POSTGRES_USER": "postgres",

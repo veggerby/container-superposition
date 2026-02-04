@@ -4,7 +4,18 @@ import chalk from 'chalk';
 import * as yaml from 'js-yaml';
 import type { QuestionnaireAnswers, DevContainer, CloudTool } from '../schema/types';
 
-const REPO_ROOT = path.join(__dirname, '..', '..');
+// Resolve REPO_ROOT that works in both source and compiled output
+// When running from TypeScript sources (e.g. ts-node), __dirname is "<root>/tool/questionnaire"
+// When running from compiled JS in "dist/tool/questionnaire", __dirname is "<root>/dist/tool/questionnaire"
+const REPO_ROOT_CANDIDATES = [
+  path.join(__dirname, '..', '..'),          // From source: tool/questionnaire -> root
+  path.join(__dirname, '..', '..', '..'),    // From dist: dist/tool/questionnaire -> root
+];
+const REPO_ROOT = REPO_ROOT_CANDIDATES.find(candidate => 
+  fs.existsSync(path.join(candidate, 'templates')) && 
+  fs.existsSync(path.join(candidate, 'tool', 'overlays'))
+) ?? REPO_ROOT_CANDIDATES[0];
+
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
 const OVERLAYS_DIR = path.join(REPO_ROOT, 'tool', 'overlays');
 
@@ -75,7 +86,10 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
     baseConfig.features[featureKey] = { packages };
   } else {
     const existing = baseConfig.features[featureKey].packages || '';
-    const merged = [...new Set([...existing.split(' '), ...packages.split(' ')])].join(' ');
+    // Filter out empty tokens from split to avoid leading spaces
+    const existingPackages = existing.split(' ').filter(p => p);
+    const newPackages = packages.split(' ').filter(p => p);
+    const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
     baseConfig.features[featureKey].packages = merged;
   }
   
@@ -702,29 +716,5 @@ function mergeRunServices(config: DevContainer, overlays: string[]): void {
   
   if (uniqueServices.length > 0) {
     config.runServices = uniqueServices;
-  }
-}
-
-/**
- * Update dockerComposeFile references
- */
-function updateDockerComposeReferences(config: DevContainer, outputPath: string, overlays: string[]): void {
-  const composeFiles: string[] = [];
-  
-  // Check for base docker-compose.yml
-  if (fs.existsSync(path.join(outputPath, 'docker-compose.yml'))) {
-    composeFiles.push('docker-compose.yml');
-  }
-  
-  // Add overlay compose files
-  for (const overlay of overlays) {
-    const overlayComposePath = path.join(outputPath, `docker-compose.${overlay}.yml`);
-    if (fs.existsSync(overlayComposePath)) {
-      composeFiles.push(`docker-compose.${overlay}.yml`);
-    }
-  }
-  
-  if (composeFiles.length > 0) {
-    config.dockerComposeFile = composeFiles;
   }
 }

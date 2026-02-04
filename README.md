@@ -21,7 +21,7 @@ This tool is **opinionated by design**, providing carefully curated configuratio
 - **⚠️ With Great Power...** - Custom images may introduce conflicts with overlays; test thoroughly
 - **📝 Editable Output** - Generated configurations are plain JSON/YAML you can modify post-generation
 
-**Default Base Image**: `mcr.microsoft.com/devcontainers/base:debian` (Bookworm)
+**Default Base Image**: `mcr.microsoft.com/devcontainers/base:bookworm` (Debian Bookworm)
 - Well-maintained by Microsoft
 - Broad compatibility with devcontainer features
 - Regular security updates
@@ -129,19 +129,19 @@ The questionnaire guides you through:
 
 ```bash
 # Node.js API with PostgreSQL and observability
-npm run init -- --stack compose --language nodejs --database postgres --observability otel-collector,jaeger,prometheus,grafana
+npm run init -- --stack compose --language nodejs --db postgres --observability otel-collector,jaeger,prometheus,grafana
 
 # .NET microservice with full observability stack
-npm run init -- --stack compose --language dotnet --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
+npm run init -- --stack compose --language dotnet --db postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
 
 # Python documentation site
 npm run init -- --stack plain --language mkdocs
 
 # Full-stack with everything
-npm run init -- --stack compose --language nodejs --database postgres+redis --playwright --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm
+npm run init -- --stack compose --language nodejs --db postgres+redis --playwright --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm
 
 # Running multiple instances? Add port offset to avoid conflicts
-npm run init -- --stack compose --language nodejs --postgres --observability jaeger,grafana --port-offset 100
+npm run init -- --stack compose --language nodejs --db postgres --observability jaeger,grafana --port-offset 100
 # This shifts all ports by 100: Grafana becomes 3100, Jaeger UI becomes 16786, etc.
 ```
 

@@ -3,11 +3,14 @@
 
 set -e
 
+# Extract overlay name from script filename (setup-<overlay>.sh -> <overlay>)
+OVERLAY_NAME=$(basename "$0" | sed 's/setup-//;s/\.sh$//')
+
 echo "🔧 Installing .NET global tools..."
 
 # Read tools from configuration file if it exists
-if [ -f ".devcontainer/global-tools-dotnet.txt" ]; then
-    echo "📦 Installing tools from global-tools-dotnet.txt..."
+if [ -f ".devcontainer/global-tools-${OVERLAY_NAME}.txt" ]; then
+    echo "📦 Installing tools from global-tools-${OVERLAY_NAME}.txt..."
     
     while IFS= read -r line || [ -n "$line" ]; do
         # Skip comments and empty lines
