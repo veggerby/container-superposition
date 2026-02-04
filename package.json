@@ -10,7 +10,10 @@
     "build": "tsc",
     "init": "tsx scripts/init.ts",
     "init:build": "npm run build && node dist/scripts/init.js",
-    "test": "bash scripts/test.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:smoke": "bash scripts/test.sh",
+    "docs:generate": "tsx tool/docs/generate-docs.ts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
@@ -49,8 +52,10 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.0",
+    "@vitest/ui": "^4.0.18",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=18.0.0"
