@@ -91,12 +91,16 @@ After running the tool, you'll have:
 
 ```
 .devcontainer/
-├── devcontainer.json          # Main configuration (editable!)
+├── devcontainer.json            # Main configuration (editable!)
+├── .env.example                 # Environment variables from selected overlays
 ├── scripts/
-│   └── post_create.sh         # Post-creation scripts
+│   └── post_create.sh           # Post-creation scripts
 ├── docker-compose.postgres.yml  # (if you chose postgres)
-└── docker-compose.redis.yml     # (if you chose redis)
+├── docker-compose.redis.yml     # (if you chose redis)
+└── [additional overlay files]   # e.g., otel-collector.yml, config/
 ```
+
+All `.env.example` files from selected overlays are automatically merged into a single file with all relevant environment variables.
 
 ## Available Templates
 
@@ -117,15 +121,23 @@ Overlays add specific capabilities to your base template:
 
 ## How Overlays Work
 
-Each overlay is a tiny JSON patch + optional Docker Compose service:
+Each overlay is a composable package that can include:
 
 ```
 tool/overlays/postgres/
-├── devcontainer.patch.json    # Features, env vars, ports
-└── docker-compose.yml         # PostgreSQL service definition
+├── devcontainer.patch.json    # Features, env vars, ports (merged into devcontainer.json)
+├── docker-compose.yml         # Service definition (copied as docker-compose.{overlay}.yml)
+├── .env.example               # Environment variables (merged into combined .env.example)
+└── [additional files]         # Config files, scripts, directories (copied as-is)
 ```
 
-The tool **deep-merges** these into your base template, concatenating arrays (like `forwardPorts`) and combining features intelligently.
+The tool intelligently handles each file type:
+- **devcontainer.patch.json** - Deep-merged into devcontainer.json (arrays concatenated, objects merged)
+- **docker-compose.yml** - Copied as `docker-compose.{overlay}.yml` and referenced in devcontainer.json
+- **.env.example** - Content merged into combined `.env.example` in output
+- **Other files/directories** - Copied as-is to output (e.g., `otel-collector.yml`, `config/redis.conf`)
+
+This allows overlays to provide complete, self-contained configurations including any necessary config files.
 
 ## Guardrails
 
@@ -169,9 +181,13 @@ Want to add a new overlay or template?
 1. **Template**: Add to `templates/<name>/.devcontainer/`
 2. **Overlay**: Add to `tool/overlays/<name>/`
    - Required: `devcontainer.patch.json`
-   - Optional: `docker-compose.yml`, scripts, etc.
+   - Optional: `docker-compose.yml` for services
+   - Optional: `.env.example` for environment variables
+   - Optional: Any additional config files or directories
 3. **Update questionnaire**: Edit `scripts/init.ts` to offer the new option
 4. **Test**: Run `npm run init` and verify the output
+
+All files in an overlay directory (except `devcontainer.patch.json` and `.env.example`) will be copied to the output. This allows you to include configuration files like `otel-collector.yml`, config directories, or any other files your overlay needs.
 
 ## Philosophy in Practice
 

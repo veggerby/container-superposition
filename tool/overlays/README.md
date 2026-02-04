@@ -8,7 +8,8 @@ Each overlay directory contains:
 
 - `devcontainer.patch.json` - Partial devcontainer configuration to merge
 - `docker-compose.yml` (optional) - Service definitions for Docker Compose
-- Additional scripts or files as needed
+- `.env.example` (optional) - Environment variables for this overlay
+- Additional configuration files as needed (e.g., `otel-collector.yml`, config directories)
 
 ## Available Overlays
 
@@ -25,7 +26,7 @@ Each overlay directory contains:
 
 ## Environment Variables
 
-Docker Compose services support customization via `.env` file in your project root:
+Each overlay can provide its own `.env.example` file with relevant environment variables. The init tool automatically merges all `.env.example` files from selected overlays into a single `.env.example` in your project.
 
 ### PostgreSQL Variables
 - `POSTGRES_VERSION` - PostgreSQL version (default: 16)
@@ -41,9 +42,10 @@ Docker Compose services support customization via `.env` file in your project ro
 
 ### Using .env
 
-1. Copy `.env.example` to your project root as `.env`
-2. Customize values as needed
-3. Restart your dev container
+1. Run the init tool to generate `.env.example` with your selected overlays
+2. Copy `.env.example` to `.env` in your project root
+3. Customize values as needed
+4. Restart your dev container
 
 Example `.env`:
 ```bash
@@ -52,17 +54,25 @@ REDIS_PASSWORD=another-secure-password
 POSTGRES_VERSION=15
 ```
 
-The `.env` file is automatically ignored by git (add to `.gitignore`).
+The `.env` file should be added to `.gitignore` to keep secrets out of version control.
 
 ## How Overlays Work
 
 The init tool merges overlay configurations with your base template:
 
-1. Features are deep-merged (package lists concatenated)
-2. Environment variables are added
-3. Ports are appended to forwardPorts
-4. Port attributes are merged for labeled ports
-5. Docker Compose files are merged or referenced
+1. **JSON Merging**: Features are deep-merged (package lists concatenated)
+2. **Environment Variables**: Added to devcontainer configuration
+3. **Port Configuration**: Ports appended to forwardPorts, attributes merged for labeled ports
+4. **Docker Compose**: Service files copied as `docker-compose.{overlay}.yml`
+5. **Additional Files**: Any extra files (configs, scripts) are copied to output directory
+6. **Environment Examples**: All `.env.example` files merged into single file
+
+### File Handling
+
+- `devcontainer.patch.json` - Merged into devcontainer.json
+- `docker-compose.yml` - Copied as `docker-compose.{overlay}.yml`
+- `.env.example` - Merged into combined `.env.example`
+- Other files/directories - Copied as-is to output (e.g., `otel-collector.yml`, config folders)
 
 ## Adding New Overlays
 
@@ -71,4 +81,8 @@ To add a new overlay:
 1. Create a directory under `tool/overlays/`
 2. Add `devcontainer.patch.json` with the partial configuration
 3. Optionally add `docker-compose.yml` for services
-4. Update the questionnaire in `scripts/init.ts` to offer the option
+4. Optionally add `.env.example` with environment variables
+5. Add any additional config files (e.g., `otel-collector.yml`, config directories)
+6. Update the questionnaire in `scripts/init.ts` to offer the option
+
+All files except `devcontainer.patch.json` and `.env.example` will be copied to the output directory.

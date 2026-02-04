@@ -55,9 +55,10 @@ scripts/
 
 1. **Load base template** from `templates/<stack>/.devcontainer/`
 2. **Apply overlays** sequentially using deep merge
-3. **Copy additional files** (scripts, etc.) from base template
-4. **Write merged configuration** to output path
-5. **Copy Docker Compose files** for services
+3. **Copy template files** (scripts, etc.) from base template
+4. **Copy overlay files** (config files, docker-compose, etc.)
+5. **Merge .env.example** files from all selected overlays
+6. **Write merged configuration** to output path
 
 ### Deep Merge Logic
 
@@ -80,6 +81,18 @@ Special handling:
 - **apt-get packages**: Merge space-separated lists
 - **Features**: Deep merge feature configs
 - **Environment variables**: Merge key-value pairs
+- **Port attributes**: Merge labeled port configurations
+
+### File Handling per Overlay
+
+Each overlay can contain multiple file types:
+
+- **devcontainer.patch.json** - Merged into devcontainer.json (not copied)
+- **.env.example** - Merged into combined .env.example (not copied separately)
+- **docker-compose.yml** - Copied as `docker-compose.{overlay}.yml`
+- **Other files/directories** - Copied as-is to output
+
+This allows overlays to provide complete configurations with config files, scripts, and directories.
 
 ## Workflow
 
@@ -95,8 +108,10 @@ QuestionnaireAnswers
 Composer Engine
     ├── Load base template
     ├── Select overlays
-    ├── Deep merge configs
+    ├── Deep merge devcontainer configs
     ├── Copy template files
+    ├── Copy overlay files (docker-compose, configs, etc.)
+    ├── Merge .env.example files
     └── Write output
     ↓
 .devcontainer/ folder
@@ -104,12 +119,14 @@ Composer Engine
 
 ## Overlay System
 
-Each overlay is a minimal JSON patch plus optional service definition:
+Each overlay is a composable package that can include multiple files:
 
 ```
 overlay-name/
-├── devcontainer.patch.json   # Partial config to merge
-└── docker-compose.yml         # Optional service
+├── devcontainer.patch.json   # Partial config to merge (required)
+├── docker-compose.yml        # Service definition (optional)
+├── .env.example              # Environment variables (optional)
+└── [additional files/dirs]   # Config files, scripts, etc. (optional)
 ```
 
 Overlays can add:
