@@ -29,36 +29,33 @@
 
 ## Interactive Overlay Selection
 
-When running the questionnaire interactively, overlays use a **searchable interface with category shortcuts**:
+When running the questionnaire interactively, overlays are presented in a **categorized multi-select with dependency tracking**:
 
 **Features**:
-- 🔍 **Type to filter** - Instantly find overlays by name or description
-- ⚡ **Category shortcuts** - Select all overlays in a category at once
-- 🔄 **Iterative selection** - Add as many as you need, one at a time or by category
-- ✓ **Visual progress** - See what you've selected after each choice
-- 📋 **Smart organization** - Categories show `○` (none selected) or `◐` (some selected)
+- 📋 **Categorized view** - Overlays grouped by category with visual separators
+- ⚡ **Dependency auto-resolution** - Required dependencies automatically added
+- ⚠️ **Conflict detection** - Post-selection conflict resolution UI
+- 🔍 **Space to toggle** - Select/deselect individual overlays
+- ✓ **Visual indicators** - Required dependencies marked with `(required)` in yellow
+- 📊 **Stack compatibility** - Only shows overlays compatible with selected stack
 
 **Keyboard workflow**:
-- Type to search
-- `↑/↓` - Navigate results
-- `Enter` - Select current item
-- Choose "Done" when finished
+- `↑/↓` - Navigate overlays
+- `Space` - Toggle selection
+- `Enter` - Confirm selection
 
-**Example - Individual selections**:
-1. Type "node" → Filter to Node.js
-2. Press `Enter` → ✓ Added: Node.js
-3. Type "post" → Filter to PostgreSQL  
-4. Press `Enter` → ✓ Added: PostgreSQL
-5. Type "done" and select → Finished!
+**Dependency Resolution**:
+- **Automatic**: Select Grafana → Prometheus auto-added (marked as required)
+- **Recursive**: Dependencies of dependencies also auto-added
+- **Post-selection**: Conflicts (e.g., docker-in-docker ↔ docker-sock) resolved after selection
 
-**Example - Category shortcuts**:
-1. Select `○ All Language (3 items)`
-2. → ✓ Added all Language: nodejs, dotnet, python
-3. Type "done" and select → Finished!
+**Example workflow**:
+1. Select Node.js, PostgreSQL, Grafana
+2. System auto-adds Prometheus (required by Grafana)
+3. No conflicts → Configuration complete
+4. If conflicts exist → Resolve conflicts UI appears
 
-**Mix and match**: Use category shortcuts for bulk additions, then search for specific individual overlays!
-
-This makes it fast to build your stack from large catalogs.
+This ensures valid configurations without manual dependency tracking!
 
 ## Language Overlays
 
@@ -80,10 +77,10 @@ This makes it fast to build your stack from large catalogs.
 
 | Overlay | Purpose | Ports | Dependencies |
 |---------|---------|-------|--------------|
-| **otel-collector** | Telemetry pipeline | 4317, 4318, 8889 | jaeger, prometheus, loki |
-| **jaeger** | Distributed tracing | 16686, 4317, 4318 | - |
+| **otel-collector** | Telemetry pipeline | 4317 (gRPC), 4318 (HTTP), 8889 (Prometheus) | - |
+| **jaeger** | Distributed tracing | 16686 (UI), 14250 (model.proto) | - |
 | **prometheus** | Metrics collection | 9090 | - |
-| **grafana** | Visualization | 3000 | prometheus, loki, jaeger |
+| **grafana** | Visualization | 3000 | prometheus (required) |
 | **loki** | Log aggregation | 3100 | - |
 
 ### Observability Stack Combinations
@@ -105,9 +102,12 @@ This makes it fast to build your stack from large catalogs.
 
 ## Development Tool Overlays
 
-| Overlay | Purpose | Contents |
-|---------|---------|----------|
-| **playwright** | Browser testing | Playwright, Chromium |
+| Overlay | Purpose | Contents | Conflicts |
+|---------|---------|----------|-----------|
+| **docker-in-docker** | Docker daemon inside container | Docker CLI, daemon | docker-sock |
+| **docker-sock** | Docker socket mounting | Docker CLI, socket access | docker-in-docker |
+| **playwright** | Browser testing | Playwright, Chromium | - |
+| **codex** | AI code assistant | Codex tools and integrations | - |
 
 ## Service Startup Order
 

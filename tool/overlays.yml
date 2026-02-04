@@ -32,24 +32,44 @@ language_overlays:
     description: .NET 10 SDK with C# DevKit
     category: language
     supports: [] # Empty = all templates
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, dotnet, csharp]
+    ports: []
     
   - id: nodejs
     name: Node.js
     description: Node.js LTS with TypeScript and tooling
     category: language
     supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, nodejs, javascript, typescript]
+    ports: []
     
   - id: python
     name: Python
     description: Python 3.12 with linting and formatting
     category: language
     supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, python]
+    ports: []
     
   - id: mkdocs
     name: MkDocs
     description: Python with MkDocs for documentation
     category: language
     supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, documentation, python]
+    ports: []
 
 database_overlays:
   - id: postgres
@@ -57,12 +77,22 @@ database_overlays:
     description: PostgreSQL 16 database
     category: database
     supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [database, sql, postgres]
+    ports: [5432]
     
   - id: redis
     name: Redis
     description: Redis 7 cache
     category: database
     supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [database, cache, redis]
+    ports: [6379]
 
 observability_overlays:
   - id: otel-collector
@@ -71,6 +101,11 @@ observability_overlays:
     category: observability
     order: 2
     supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: [jaeger, prometheus]
+    conflicts: []
+    tags: [observability, telemetry, opentelemetry]
+    ports: [4317, 4318, 8888, 8889]
     
   - id: jaeger
     name: Jaeger
@@ -78,6 +113,11 @@ observability_overlays:
     category: observability
     order: 1
     supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [observability, tracing, jaeger]
+    ports: [16686, 14250, 14268]
     
   - id: prometheus
     name: Prometheus
@@ -85,6 +125,11 @@ observability_overlays:
     category: observability
     order: 1
     supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [observability, metrics, prometheus]
+    ports: [9090]
     
   - id: grafana
     name: Grafana
@@ -92,6 +137,11 @@ observability_overlays:
     category: observability
     order: 3
     supports: [compose] # Requires docker-compose
+    requires: [prometheus]
+    suggests: [loki, jaeger]
+    conflicts: []
+    tags: [observability, ui, visualization]
+    ports: [3000]
     
   - id: loki
     name: Loki
@@ -99,6 +149,11 @@ observability_overlays:
     category: observability
     order: 1
     supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [observability, logs, loki]
+    ports: [3100]
 
 cloud_tool_overlays:
   - id: aws-cli
@@ -106,18 +161,33 @@ cloud_tool_overlays:
     description: Amazon Web Services command-line tools
     category: cloud
     supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [cloud, aws, cli]
+    ports: []
     
   - id: azure-cli
     name: Azure CLI
     description: Microsoft Azure command-line tools
     category: cloud
     supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [cloud, azure, cli]
+    ports: []
     
   - id: kubectl-helm
     name: kubectl + Helm
     description: Kubernetes CLI and Helm package manager
     category: cloud
     supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [cloud, kubernetes, helm]
+    ports: []
 
 dev_tool_overlays:
   - id: docker-in-docker
@@ -125,21 +195,41 @@ dev_tool_overlays:
     description: Isolated Docker daemon inside container (portable, works in Codespaces)
     category: dev
     supports: []
+    requires: []
+    suggests: []
+    conflicts: [docker-sock]
+    tags: [dev, docker]
+    ports: []
     
   - id: docker-sock
     name: Docker (host socket)
     description: Access host Docker daemon via socket mount (fast, local-only)
     category: dev
-    supports: [compose] # Requires docker-compose
+    supports: [] 
+    requires: []
+    suggests: []
+    conflicts: [docker-in-docker]
+    tags: [dev, docker]
+    ports: []
     
   - id: playwright
     name: Playwright
     description: Browser automation and testing framework
     category: dev
     supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [dev, testing, browser]
+    ports: []
     
   - id: codex
     name: Codex
     description: pnpm CLI with mounted .codex folder
     category: dev
     supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [dev, package-manager]
+    ports: []

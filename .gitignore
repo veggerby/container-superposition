@@ -25,6 +25,7 @@ Thumbs.db
 
 # Testing
 coverage/
+tmp/
 
 # Environment
 .env

@@ -33,12 +33,18 @@ Each overlay directory contains:
 - **grafana** - Grafana for visualization with pre-configured data sources
 - **loki** - Loki for log aggregation and querying
 
-### Development Tools
+### Cloud Tools
 
-- **playwright** - Browser automation with Chromium installed
-- **azure-cli** - Azure command-line tools
 - **aws-cli** - AWS command-line tools
+- **azure-cli** - Azure command-line tools
 - **kubectl-helm** - Kubernetes CLI and Helm package manager
+
+### Dev Tools
+
+- **docker-in-docker** - Docker daemon inside container (conflicts with docker-sock)
+- **docker-sock** - Docker socket mounting (conflicts with docker-in-docker)
+- **playwright** - Browser automation with Chromium installed
+- **codex** - AI-powered code assistant
 
 ## Environment Variables
 

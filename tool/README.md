@@ -42,15 +42,18 @@ We make deliberate choices about base images, tool versions, and configurations 
 npm run init
 ```
 
-You'll be greeted with a beautiful, color-coded interface that guides you through 5–8 questions:
+You'll be greeted with a beautiful, color-coded interface that guides you through:
 
 1. **Base Template**: plain (simple image) or compose (docker-compose based)
-2. **Language/Framework**: .NET, Node.js, Python, MkDocs, or none
-3. **Database**: PostgreSQL, Redis, both, or none
-4. **Observability**: OpenTelemetry Collector, Jaeger, Prometheus, Grafana, Loki
-5. **Browser Automation**: Playwright for end-to-end testing
-6. **Cloud Tools**: AWS CLI, Azure CLI, kubectl/helm
-7. **Output Path**: Where to write the configuration (default: `./.devcontainer`)
+2. **Base Image**: Debian Bookworm (recommended), Trixie, or custom
+3. **Overlays**: Single categorized multi-select with:
+   - **Languages**: .NET, Node.js, Python, MkDocs
+   - **Databases**: PostgreSQL, Redis
+   - **Observability**: OpenTelemetry Collector, Jaeger, Prometheus, Grafana, Loki
+   - **Cloud Tools**: AWS CLI, Azure CLI, kubectl/helm
+   - **Dev Tools**: docker-in-docker, docker-sock, Playwright, Codex
+4. **Output Path**: Where to write the configuration (default: `./.devcontainer`)
+5. **Port Offset**: Optional offset for running multiple instances
 
 The tool features:
 - 🎨 Color-coded prompts with chalk
@@ -58,6 +61,9 @@ The tool features:
 - ⏳ Progress spinners with ora
 - ✅ Visual confirmation of selections
 - 🎯 Clear configuration summary before generation
+- 🔗 Automatic dependency resolution (required overlays auto-selected)
+- ⚠️ Conflict detection and resolution (e.g., docker-in-docker ↔ docker-sock)
+- 🎚️ Port offset support for running multiple instances
 
 ### Non-Interactive Mode (For Automation)
 
@@ -96,6 +102,8 @@ This makes the questionnaire more engaging and the output easier to scan.
 | `--observability <list>` | Observability tools: `otel-collector`, `jaeger`, `prometheus`, `grafana`, `loki` | `--observability jaeger,prometheus,grafana` |
 | `--playwright` | Include Playwright browser automation | `--playwright` |
 | `--cloud-tools <list>` | Cloud tools: `aws-cli`, `azure-cli`, `kubectl-helm` | `--cloud-tools aws-cli,kubectl-helm` |
+| `--dev-tools <list>` | Development tools: `docker-in-docker`, `docker-sock`, `playwright`, `codex` | `--dev-tools docker-in-docker,playwright` |
+| `--port-offset <number>` | Add offset to all exposed ports (e.g., 100 makes Grafana 3100) | `--port-offset 100` |
 | `-o`, `--output <path>` | Output directory (default: `./.devcontainer`) | `-o ./custom-path` |
 | `-h`, `--help` | Show help | `--help` |
 
@@ -144,10 +152,33 @@ All `.env.example` files from selected overlays are automatically merged into a 
 
 Overlays add specific capabilities to your base template:
 
+**Language & Framework:**
+- **dotnet**: .NET 10 SDK with C# DevKit
+- **nodejs**: Node.js LTS with TypeScript and tooling
+- **python**: Python 3 with pip and development tools
+- **mkdocs**: MkDocs documentation framework
+
+**Databases:**
 - **postgres**: PostgreSQL 16 + client tools
 - **redis**: Redis 7 + redis-tools
-- **playwright**: Browser automation with Chromium
+
+**Observability:**
+- **otel-collector**: OpenTelemetry Collector for trace/metric collection
+- **jaeger**: Distributed tracing UI and storage
+- **prometheus**: Metrics collection and alerting
+- **grafana**: Visualization and dashboards (requires prometheus)
+- **loki**: Log aggregation and querying
+
+**Cloud Tools:**
+- **aws-cli**: AWS command-line tools
 - **azure-cli**: Azure command-line tools
+- **kubectl-helm**: Kubernetes kubectl and Helm
+
+**Dev Tools:**
+- **docker-in-docker**: Docker daemon inside container (conflicts with docker-sock)
+- **docker-sock**: Docker socket mounting (conflicts with docker-in-docker)
+- **playwright**: Browser automation with Chromium
+- **codex**: AI-powered code assistant
 - **kubectl-helm**: Kubernetes CLI + Helm
 
 ## How Overlays Work

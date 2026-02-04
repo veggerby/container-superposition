@@ -15,5 +15,7 @@ Minimal devcontainer with Debian base image and essential tools.
 This template provides a clean starting point. Add language/framework overlays as needed:
 
 ```bash
-npm run init -- --stack plain --language dotnet,nodejs
+npm run init -- --stack plain --language nodejs
 ```
+
+Note: Plain template supports single language overlay. For multiple languages, use the compose template.

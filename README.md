@@ -85,8 +85,11 @@ Overlays are modular configuration fragments organized by category:
 - grafana (Visualization)
 - loki (Log aggregation)
 
-**Development Tools:**
-- aws-cli, azure-cli, kubectl-helm, playwright
+**Cloud Tools:**
+- aws-cli, azure-cli, kubectl-helm
+
+**Dev Tools:**
+- docker-in-docker, docker-sock, playwright, codex
 
 Each overlay includes:
 - `devcontainer.patch.json` - Configuration to merge
@@ -138,7 +141,7 @@ npm run init -- --stack compose --language dotnet --db postgres+redis --observab
 npm run init -- --stack plain --language mkdocs
 
 # Full-stack with everything
-npm run init -- --stack compose --language nodejs --db postgres+redis --playwright --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm
+npm run init -- --stack compose --language nodejs --db postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm --dev-tools playwright,docker-in-docker
 
 # Running multiple instances? Add port offset to avoid conflicts
 npm run init -- --stack compose --language nodejs --db postgres --observability jaeger,grafana --port-offset 100
@@ -223,9 +226,69 @@ observability_overlays:
 
 See [tool/docs/questionnaire-updates.md](tool/docs/questionnaire-updates.md) for details.
 
-### Dependency Management
+### Dependency Management & Auto-Resolution
 
-The composer intelligently manages service dependencies:
+Container Superposition includes an intelligent dependency model that automatically resolves required dependencies:
+
+**Dependency Types:**
+- **`requires`** - Hard dependencies that are automatically added
+- **`suggests`** - Soft dependencies that work well together
+- **`conflicts`** - Mutually exclusive overlays
+
+**Auto-Resolution Example:**
+```bash
+# Select grafana, and prometheus is automatically added
+npm run init -- --stack compose --observability grafana
+
+# Output includes both:
+# ✅ grafana
+# ✅ prometheus (auto-resolved, required by grafana)
+```
+
+**Explicit Metadata in overlays.yml:**
+```yaml
+observability_overlays:
+  - id: grafana
+    name: Grafana
+    requires: [prometheus]  # Auto-add prometheus
+    suggests: [loki, jaeger]  # Could work well together
+    conflicts: []
+    tags: [observability, ui]
+    ports: [3000]  # Explicit port declarations
+```
+
+**Benefits:**
+- ✅ Predictable behavior - no hidden "if overlay == ..." logic
+- ✅ Automatic dependency resolution
+- ✅ Clear conflict detection
+- ✅ Port-offset becomes data-driven
+
+**Superposition Manifest:**
+
+Every generated configuration includes a `superposition.json` manifest for debugging:
+
+```json
+{
+  "version": "0.1.0",
+  "generated": "2026-02-04T10:30:00Z",
+  "baseTemplate": "compose",
+  "baseImage": "bookworm",
+  "overlays": ["dotnet", "postgres", "prometheus", "grafana"],
+  "portOffset": 100,
+  "autoResolved": {
+    "added": ["prometheus"],
+    "reason": "prometheus (required by grafana)"
+  }
+}
+```
+
+This manifest answers "why is this here?" without reading generated configs.
+
+See [tool/docs/overlays.md](tool/docs/overlays.md) for complete overlay reference.
+
+### Service Dependency Management
+
+The composer intelligently manages docker-compose service dependencies:
 
 1. **Filters docker-compose** - Removes `depends_on` references to unselected services
 2. **Orders services** - Uses `_serviceOrder` field (0=infra, 1=backends, 2=middleware, 3=UI)
@@ -271,6 +334,63 @@ Start with one template and enhance it:
 - Add features from containers.dev
 - Include custom features from this repo
 - Copy useful scripts from other templates
+
+## 🧪 Testing & Verification
+
+### Golden Tests
+
+The project includes comprehensive test coverage for composition logic:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run smoke tests
+npm run test:smoke
+```
+
+**Test Coverage:**
+- ✅ Dependency resolution logic
+- ✅ devcontainer.json merging
+- ✅ docker-compose.yml merging
+- ✅ Port offset application
+- ✅ Environment variable merging
+- ✅ Manifest generation
+
+### Overlay Verification Scripts
+
+Each overlay includes a `verify.sh` script for validation:
+
+```bash
+# Inside a devcontainer, run verification scripts
+bash ./verify-postgres.sh
+bash ./verify-redis.sh
+bash ./verify-grafana.sh
+```
+
+**Verification scripts check:**
+- ✅ Tool/service is installed
+- ✅ Version information
+- ✅ Service connectivity (for compose overlays)
+- ✅ Port accessibility
+
+Example output:
+```
+🔍 Verifying PostgreSQL overlay...
+
+1️⃣ Checking psql client...
+psql (PostgreSQL) 16.1
+   ✅ psql client found
+
+2️⃣ Checking PostgreSQL service...
+   ✅ PostgreSQL service is ready
+postgres:5432 - accepting connections
+
+✅ PostgreSQL overlay verification complete
+```
 
 ## 📦 Design Principles
 

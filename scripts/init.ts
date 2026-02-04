@@ -2,14 +2,19 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
-import { select, input, search } from '@inquirer/prompts';
+import { select, checkbox, input } from '@inquirer/prompts';
 import yaml from 'js-yaml';
-import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types';
-import { composeDevContainer } from '../tool/questionnaire/composer';
+import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types.js';
+import { composeDevContainer } from '../tool/questionnaire/composer.js';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface OverlayMetadata {
   id: string;
@@ -18,6 +23,12 @@ interface OverlayMetadata {
   category: string;
   order?: number;
   image?: string | null;
+  supports?: string[];
+  requires?: string[];
+  suggests?: string[];
+  conflicts?: string[];
+  tags?: string[];
+  ports?: number[];
 }
 
 interface OverlaysConfig {
@@ -111,99 +122,129 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       console.log(chalk.dim('   Test thoroughly and adjust configurations as needed.\n'));
     }
 
-    // Question 3: All overlays with search
-    console.log(chalk.dim('\n💡 Tip: Type to filter, select to add/remove, choose Done when finished\n'));
+    // Question 3: Categorized multi-select overlays with dependency tracking
+    console.log(chalk.dim('\n💡 Select overlays: Space to toggle, ↑/↓ to navigate, Enter to confirm\n'));
     
-    // Build categorized overlays
-    const categories = {
-      Language: config.language_overlays.filter((o: any) => 
-        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
-      ),
-      Database: config.database_overlays.filter((o: any) => 
-        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
-      ),
-      Observability: config.observability_overlays.filter((o: any) => 
-        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
-      ),
-      Cloud: config.cloud_tool_overlays.filter((o: any) => 
-        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
-      ),
-      DevTool: config.dev_tool_overlays.filter((o: any) => 
-        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
-      ),
-    };
+    // Build categorized overlays with separators
+    const categoryList = [
+      { name: 'Language', overlays: config.language_overlays },
+      { name: 'Database', overlays: config.database_overlays },
+      { name: 'Observability', overlays: config.observability_overlays },
+      { name: 'Cloud', overlays: config.cloud_tool_overlays },
+      { name: 'DevTool', overlays: config.dev_tool_overlays },
+    ];
     
-    const selectedOverlays: string[] = [];
-    let selecting = true;
+    // Create a map of all overlays for dependency lookup
+    const allOverlaysMap = new Map<string, OverlayMetadata>();
+    categoryList.forEach(cat => {
+      cat.overlays.forEach((o: any) => allOverlaysMap.set(o.id, o));
+    });
     
-    while (selecting) {
-      // Build choices with selected/unselected state
-      const choices: any[] = [];
+    // Initial selection
+    const choices: any[] = [];
+    
+    categoryList.forEach(category => {
+      const filtered = category.overlays.filter((o: any) => 
+        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+      );
       
-      // Done/Skip option (always first)
-      choices.push({
-        name: selectedOverlays.length > 0 
-          ? `✓ Done (${selectedOverlays.length} selected)` 
-          : '✓ Skip overlays',
-        value: '__DONE__',
-        description: selectedOverlays.length > 0
-          ? `Finish with: ${selectedOverlays.join(', ')}`
-          : 'Continue without overlays'
-      });
-      
-      // Add all overlays (both selected and unselected) by category
-      Object.entries(categories).forEach(([categoryName, overlays]) => {
-        overlays.forEach((overlay: any) => {
-          const isSelected = selectedOverlays.includes(overlay.id);
+      if (filtered.length > 0) {
+        // Add category separator
+        choices.push({
+          type: 'separator',
+          separator: chalk.cyan(`──── ${category.name} ────`)
+        });
+        
+        // Add overlays in this category
+        filtered.forEach((overlay: any) => {
           choices.push({
-            name: isSelected 
-              ? `✓ ${overlay.name} [${categoryName}]`
-              : `  ${overlay.name} [${categoryName}]`,
+            name: overlay.name,
             value: overlay.id,
-            description: isSelected
-              ? `${overlay.description} (selected - choose to remove)`
-              : overlay.description
+            description: overlay.description
           });
         });
-      });
+      }
+    });
+    
+    const userSelection = await checkbox({
+      message: 'Select overlays to include:',
+      choices,
+      pageSize: 15,
+      loop: false
+    });
+    
+    // Add all required dependencies
+    const withDependencies = new Set<string>(userSelection as string[]);
+    const toProcess = [...userSelection] as string[];
+    
+    while (toProcess.length > 0) {
+      const current = toProcess.pop()!;
+      const overlay = allOverlaysMap.get(current);
       
-      const choice = await search({
-        message: selectedOverlays.length > 0
-          ? `Add/remove overlays or select Done (${selectedOverlays.length} selected):`
-          : 'Search and select overlays (or skip):',
-        source: async (term) => {
-          if (!term) return choices;
-          
-          const searchTerm = term.toLowerCase();
-          return choices.filter(item => 
-            item.name.toLowerCase().includes(searchTerm) ||
-            item.description.toLowerCase().includes(searchTerm) ||
-            item.value.toLowerCase().includes(searchTerm)
-          );
-        },
-        pageSize: 12
-      });
+      if (overlay?.requires) {
+        overlay.requires.forEach(req => {
+          if (!withDependencies.has(req)) {
+            withDependencies.add(req);
+            toProcess.push(req);
+          }
+        });
+      }
+    }
+    
+    let selectedOverlays = Array.from(withDependencies);
+    
+    // Check for conflicts and resolve
+    let hasConflicts = true;
+    while (hasConflicts) {
+      const conflicts = new Map<string, string[]>();
       
-      if (choice === '__DONE__') {
-        selecting = false;
-      } else {
-        const allOverlays = Object.values(categories).flat();
-        const overlay = allOverlays.find((o: any) => o.id === choice);
-        
-        if (selectedOverlays.includes(choice as string)) {
-          // Remove from selection
-          const index = selectedOverlays.indexOf(choice as string);
-          selectedOverlays.splice(index, 1);
-          if (overlay) {
-            console.log(chalk.yellow(`  ✗ Removed: ${(overlay as any).name}`));
-          }
-        } else {
-          // Add to selection
-          selectedOverlays.push(choice as string);
-          if (overlay) {
-            console.log(chalk.green(`  ✓ Added: ${(overlay as any).name}`));
-          }
+      // Find all conflicts
+      selectedOverlays.forEach(selectedId => {
+        const overlay = allOverlaysMap.get(selectedId);
+        if (overlay?.conflicts) {
+          overlay.conflicts.forEach(conflictId => {
+            if (selectedOverlays.includes(conflictId)) {
+              if (!conflicts.has(selectedId)) {
+                conflicts.set(selectedId, []);
+              }
+              conflicts.get(selectedId)!.push(conflictId);
+            }
+          });
         }
+      });
+      
+      if (conflicts.size === 0) {
+        hasConflicts = false;
+      } else {
+        // Show conflict resolution UI
+        console.log(chalk.yellow('\n⚠️  Conflicts detected in selection:\n'));
+        
+        const conflictChoices: any[] = [];
+        conflicts.forEach((conflictingWith, overlayId) => {
+          const overlay = allOverlaysMap.get(overlayId)!;
+          const conflictNames = conflictingWith.map(id => allOverlaysMap.get(id)?.name).join(', ');
+          
+          conflictChoices.push({
+            name: `Remove ${overlay.name}`,
+            value: overlayId,
+            description: `Conflicts with: ${conflictNames}`
+          });
+        });
+        
+        const toRemove = await checkbox({
+          message: 'Select overlays to remove to resolve conflicts:',
+          choices: conflictChoices,
+          pageSize: 15,
+          loop: false
+        });
+        
+        if ((toRemove as string[]).length === 0) {
+          console.log(chalk.red('\n❌ You must remove at least one conflicting overlay'));
+          continue;
+        }
+        
+        // Remove selected overlays
+        selectedOverlays = selectedOverlays.filter(id => !(toRemove as string[]).includes(id));
       }
     }
 
@@ -292,6 +333,7 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .option('--observability <list>', 'Comma-separated: otel-collector, jaeger, prometheus, grafana, loki')
     .option('--playwright', 'Include Playwright browser automation')
     .option('--cloud-tools <list>', 'Comma-separated: aws-cli, azure-cli, kubectl-helm')
+    .option('--dev-tools <list>', 'Comma-separated: docker-in-docker, docker-sock, playwright, codex')
     .option('--port-offset <number>', 'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)')
     .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
     .parse(process.argv);
@@ -318,6 +360,9 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
   if (options.playwright) config.playwright = true;
   if (options.cloudTools) {
     config.cloudTools = options.cloudTools.split(',').map((t: string) => t.trim()) as CloudTool[];
+  }
+  if (options.devTools) {
+    config.devTools = options.devTools.split(',').map((t: string) => t.trim()) as DevTool[];
   }
   if (options.portOffset) {
     config.portOffset = parseInt(options.portOffset, 10);
