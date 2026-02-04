@@ -9,6 +9,8 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
     command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass "$REDIS_PASSWORD"}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     networks:
       - devnet
 

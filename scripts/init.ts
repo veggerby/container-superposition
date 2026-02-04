@@ -6,7 +6,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
-import { select, checkbox, input } from '@inquirer/prompts';
+import { select, input, search } from '@inquirer/prompts';
 import yaml from 'js-yaml';
 import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types';
 import { composeDevContainer } from '../tool/questionnaire/composer';
@@ -111,26 +111,101 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       console.log(chalk.dim('   Test thoroughly and adjust configurations as needed.\n'));
     }
 
-    // Question 3: All overlays in one multi-select (filtered by stack compatibility)
-    const allOverlays = [
-      ...config.language_overlays.map(o => ({ ...o, category: 'Language' })),
-      ...config.database_overlays.map(o => ({ ...o, category: 'Database' })),
-      ...config.observability_overlays.map(o => ({ ...o, category: 'Observability' })),
-      ...config.cloud_tool_overlays.map(o => ({ ...o, category: 'Cloud Tools' })),
-      ...config.dev_tool_overlays.map(o => ({ ...o, category: 'Dev Tools' })),
-    ].filter((overlay: any) => {
-      // Filter by supports field: empty array = all templates, otherwise must include selected stack
-      return !overlay.supports || overlay.supports.length === 0 || overlay.supports.includes(stack);
-    });
-
-    const selectedOverlays = await checkbox({
-      message: 'Select overlays to include (optional):',
-      choices: allOverlays.map(overlay => ({
-        name: `[${overlay.category}] ${overlay.name}`,
-        value: overlay.id,
-        description: overlay.description
-      }))
-    });
+    // Question 3: All overlays with search
+    console.log(chalk.dim('\n💡 Tip: Type to filter, select to add/remove, choose Done when finished\n'));
+    
+    // Build categorized overlays
+    const categories = {
+      Language: config.language_overlays.filter((o: any) => 
+        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+      ),
+      Database: config.database_overlays.filter((o: any) => 
+        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+      ),
+      Observability: config.observability_overlays.filter((o: any) => 
+        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+      ),
+      Cloud: config.cloud_tool_overlays.filter((o: any) => 
+        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+      ),
+      DevTool: config.dev_tool_overlays.filter((o: any) => 
+        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+      ),
+    };
+    
+    const selectedOverlays: string[] = [];
+    let selecting = true;
+    
+    while (selecting) {
+      // Build choices with selected/unselected state
+      const choices: any[] = [];
+      
+      // Done/Skip option (always first)
+      choices.push({
+        name: selectedOverlays.length > 0 
+          ? `✓ Done (${selectedOverlays.length} selected)` 
+          : '✓ Skip overlays',
+        value: '__DONE__',
+        description: selectedOverlays.length > 0
+          ? `Finish with: ${selectedOverlays.join(', ')}`
+          : 'Continue without overlays'
+      });
+      
+      // Add all overlays (both selected and unselected) by category
+      Object.entries(categories).forEach(([categoryName, overlays]) => {
+        overlays.forEach((overlay: any) => {
+          const isSelected = selectedOverlays.includes(overlay.id);
+          choices.push({
+            name: isSelected 
+              ? `✓ ${overlay.name} [${categoryName}]`
+              : `  ${overlay.name} [${categoryName}]`,
+            value: overlay.id,
+            description: isSelected
+              ? `${overlay.description} (selected - choose to remove)`
+              : overlay.description
+          });
+        });
+      });
+      
+      const choice = await search({
+        message: selectedOverlays.length > 0
+          ? `Add/remove overlays or select Done (${selectedOverlays.length} selected):`
+          : 'Search and select overlays (or skip):',
+        source: async (term) => {
+          if (!term) return choices;
+          
+          const searchTerm = term.toLowerCase();
+          return choices.filter(item => 
+            item.name.toLowerCase().includes(searchTerm) ||
+            item.description.toLowerCase().includes(searchTerm) ||
+            item.value.toLowerCase().includes(searchTerm)
+          );
+        },
+        pageSize: 12
+      });
+      
+      if (choice === '__DONE__') {
+        selecting = false;
+      } else {
+        const allOverlays = Object.values(categories).flat();
+        const overlay = allOverlays.find((o: any) => o.id === choice);
+        
+        if (selectedOverlays.includes(choice as string)) {
+          // Remove from selection
+          const index = selectedOverlays.indexOf(choice as string);
+          selectedOverlays.splice(index, 1);
+          if (overlay) {
+            console.log(chalk.yellow(`  ✗ Removed: ${(overlay as any).name}`));
+          }
+        } else {
+          // Add to selection
+          selectedOverlays.push(choice as string);
+          if (overlay) {
+            console.log(chalk.green(`  ✓ Added: ${(overlay as any).name}`));
+          }
+        }
+      }
+    }
 
     // Question 4: Output path
     const outputPath = await input({

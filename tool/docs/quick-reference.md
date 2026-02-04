@@ -27,6 +27,39 @@
 | **plain** | Simple projects | Minimal Debian image, git, zsh, basic tools |
 | **compose** | Multi-service apps | Docker Compose, devcontainer service, devnet network |
 
+## Interactive Overlay Selection
+
+When running the questionnaire interactively, overlays use a **searchable interface with category shortcuts**:
+
+**Features**:
+- 🔍 **Type to filter** - Instantly find overlays by name or description
+- ⚡ **Category shortcuts** - Select all overlays in a category at once
+- 🔄 **Iterative selection** - Add as many as you need, one at a time or by category
+- ✓ **Visual progress** - See what you've selected after each choice
+- 📋 **Smart organization** - Categories show `○` (none selected) or `◐` (some selected)
+
+**Keyboard workflow**:
+- Type to search
+- `↑/↓` - Navigate results
+- `Enter` - Select current item
+- Choose "Done" when finished
+
+**Example - Individual selections**:
+1. Type "node" → Filter to Node.js
+2. Press `Enter` → ✓ Added: Node.js
+3. Type "post" → Filter to PostgreSQL  
+4. Press `Enter` → ✓ Added: PostgreSQL
+5. Type "done" and select → Finished!
+
+**Example - Category shortcuts**:
+1. Select `○ All Language (3 items)`
+2. → ✓ Added all Language: nodejs, dotnet, python
+3. Type "done" and select → Finished!
+
+**Mix and match**: Use category shortcuts for bulk additions, then search for specific individual overlays!
+
+This makes it fast to build your stack from large catalogs.
+
 ## Language Overlays
 
 | Overlay | Version | Key Features | Extensions |
