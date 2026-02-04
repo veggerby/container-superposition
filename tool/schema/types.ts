@@ -103,3 +103,58 @@ export interface DevContainer {
   workspaceFolder?: string;
   [key: string]: any;
 }
+
+/**
+ * Overlay metadata from overlays.yml
+ */
+export interface OverlayMetadata {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  supports?: string[];
+  requires?: string[];
+  suggests?: string[];
+  conflicts?: string[];
+  tags?: string[];
+  ports?: number[];
+  order?: number;
+}
+
+/**
+ * Overlays configuration structure
+ */
+export interface OverlaysConfig {
+  base_images: Array<{
+    id: string;
+    name: string;
+    description: string;
+    image: string | null;
+  }>;
+  base_templates: Array<{
+    id: string;
+    name: string;
+    description: string;
+  }>;
+  language_overlays: OverlayMetadata[];
+  database_overlays: OverlayMetadata[];
+  observability_overlays: OverlayMetadata[];
+  cloud_tool_overlays: OverlayMetadata[];
+  dev_tool_overlays: OverlayMetadata[];
+}
+
+/**
+ * Superposition manifest generated alongside devcontainer.json
+ */
+export interface SuperpositionManifest {
+  version: string;
+  generated: string;
+  baseTemplate: Stack;
+  baseImage: string;
+  overlays: string[];
+  portOffset?: number;
+  autoResolved?: {
+    added: string[];
+    reason: string;
+  };
+}

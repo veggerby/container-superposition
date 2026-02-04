@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
 import * as yaml from 'js-yaml';
-import type { QuestionnaireAnswers, DevContainer, CloudTool } from '../schema/types';
+import type { QuestionnaireAnswers, DevContainer, CloudTool, OverlayMetadata, OverlaysConfig, SuperpositionManifest } from '../schema/types';
 
 // Resolve REPO_ROOT that works in both source and compiled output
 // When running from TypeScript sources (e.g. ts-node), __dirname is "<root>/tool/questionnaire"
@@ -102,6 +102,132 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
 function loadJson<T = any>(filePath: string): T {
   const content = fs.readFileSync(filePath, 'utf-8');
   return JSON.parse(content);
+}
+
+/**
+ * Load overlay metadata from overlays.yml
+ */
+function loadOverlaysConfig(): OverlaysConfig {
+  const overlaysConfigPath = path.join(REPO_ROOT, 'tool', 'overlays.yml');
+  return yaml.load(fs.readFileSync(overlaysConfigPath, 'utf-8')) as OverlaysConfig;
+}
+
+/**
+ * Get all overlay definitions as a flat array
+ */
+function getAllOverlayDefs(config: OverlaysConfig): OverlayMetadata[] {
+  return [
+    ...config.language_overlays,
+    ...config.database_overlays,
+    ...config.observability_overlays,
+    ...config.cloud_tool_overlays,
+    ...config.dev_tool_overlays,
+  ];
+}
+
+/**
+ * Resolve dependencies for a set of overlays
+ * Returns the expanded list with dependencies and metadata about what was added
+ */
+function resolveDependencies(
+  requestedOverlays: string[],
+  allOverlayDefs: OverlayMetadata[]
+): { overlays: string[]; autoResolved: { added: string[]; reason: string } } {
+  const overlayMap = new Map<string, OverlayMetadata>();
+  allOverlayDefs.forEach(def => overlayMap.set(def.id, def));
+  
+  const resolved = new Set<string>(requestedOverlays);
+  const autoAdded: string[] = [];
+  const resolutionReasons: string[] = [];
+  
+  // Resolve dependencies recursively
+  const toProcess = [...requestedOverlays];
+  const processed = new Set<string>();
+  
+  while (toProcess.length > 0) {
+    const current = toProcess.shift()!;
+    if (processed.has(current)) continue;
+    processed.add(current);
+    
+    const overlayDef = overlayMap.get(current);
+    if (!overlayDef || !overlayDef.requires || overlayDef.requires.length === 0) {
+      continue;
+    }
+    
+    // Add required dependencies
+    for (const required of overlayDef.requires) {
+      if (!resolved.has(required)) {
+        resolved.add(required);
+        autoAdded.push(required);
+        resolutionReasons.push(`${required} (required by ${current})`);
+        toProcess.push(required);
+      }
+    }
+  }
+  
+  // Check for conflicts
+  const conflicts: string[] = [];
+  for (const overlayId of resolved) {
+    const overlayDef = overlayMap.get(overlayId);
+    if (!overlayDef || !overlayDef.conflicts) continue;
+    
+    for (const conflict of overlayDef.conflicts) {
+      if (resolved.has(conflict)) {
+        conflicts.push(`${overlayId} conflicts with ${conflict}`);
+      }
+    }
+  }
+  
+  if (conflicts.length > 0) {
+    console.log(chalk.yellow(`\n⚠️  Warning: Conflicts detected:`));
+    conflicts.forEach(c => console.log(chalk.yellow(`   • ${c}`)));
+    console.log(chalk.yellow(`\nPlease resolve these conflicts manually.\n`));
+  }
+  
+  const reason = autoAdded.length > 0 
+    ? resolutionReasons.join(', ')
+    : '';
+  
+  return {
+    overlays: Array.from(resolved),
+    autoResolved: {
+      added: autoAdded,
+      reason
+    }
+  };
+}
+
+/**
+ * Generate superposition.json manifest
+ */
+function generateManifest(
+  outputPath: string,
+  answers: QuestionnaireAnswers,
+  overlays: string[],
+  autoResolved: { added: string[]; reason: string }
+): void {
+  const manifest: SuperpositionManifest = {
+    version: '0.1.0',
+    generated: new Date().toISOString(),
+    baseTemplate: answers.stack,
+    baseImage: answers.baseImage === 'custom' && answers.customImage 
+      ? answers.customImage 
+      : answers.baseImage,
+    overlays,
+    portOffset: answers.portOffset,
+  };
+  
+  if (autoResolved.added.length > 0) {
+    manifest.autoResolved = autoResolved;
+  }
+  
+  const manifestPath = path.join(outputPath, 'superposition.json');
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+  console.log(chalk.dim(`   📋 Generated superposition.json manifest`));
+  
+  if (autoResolved.added.length > 0) {
+    console.log(chalk.cyan(`   ℹ️  Auto-resolved dependencies: ${autoResolved.added.join(', ')}`));
+  }
 }
 
 /**
@@ -359,18 +485,11 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
  * Main composition logic
  */
 export async function composeDevContainer(answers: QuestionnaireAnswers): Promise<void> {
-  // 1. Validate overlay compatibility with selected stack
-  const overlaysConfigPath = path.join(REPO_ROOT, 'tool', 'overlays.yml');
-  const overlaysConfig = yaml.load(fs.readFileSync(overlaysConfigPath, 'utf-8')) as any;
+  // 1. Load overlay configuration
+  const overlaysConfig = loadOverlaysConfig();
   
   // Collect all overlay definitions
-  const allOverlayDefs = [
-    ...overlaysConfig.language_overlays,
-    ...overlaysConfig.database_overlays,
-    ...overlaysConfig.observability_overlays,
-    ...overlaysConfig.cloud_tool_overlays,
-    ...overlaysConfig.dev_tool_overlays,
-  ];
+  const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
   
   // Build list of requested overlays
   const requestedOverlays: string[] = [];
@@ -380,6 +499,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   if (answers.observability) requestedOverlays.push(...answers.observability);
   if (answers.playwright) requestedOverlays.push('playwright');
   if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
+  if (answers.devTools) requestedOverlays.push(...answers.devTools);
   
   // Check compatibility
   const incompatible: string[] = [];
@@ -413,20 +533,33 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
         !incompatible.some(i => i.startsWith(o))
       ) as any;
     }
+    
+    // Update requestedOverlays after filtering
+    requestedOverlays.length = 0;
+    if (answers.language && answers.language.length > 0) requestedOverlays.push(...answers.language);
+    if (answers.database?.includes('postgres')) requestedOverlays.push('postgres');
+    if (answers.database?.includes('redis')) requestedOverlays.push('redis');
+    if (answers.observability) requestedOverlays.push(...answers.observability);
+    if (answers.playwright) requestedOverlays.push('playwright');
+    if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
+    if (answers.devTools) requestedOverlays.push(...answers.devTools);
   }
   
-  // 2. Determine base template path
+  // 2. Resolve dependencies
+  const { overlays: resolvedOverlays, autoResolved } = resolveDependencies(requestedOverlays, allOverlayDefs);
+  
+  // 3. Determine base template path
   const templatePath = path.join(TEMPLATES_DIR, answers.stack, '.devcontainer');
   
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template not found: ${answers.stack}`);
   }
   
-  // 3. Load base devcontainer.json
+  // 4. Load base devcontainer.json
   const baseConfigPath = path.join(templatePath, 'devcontainer.json');
   let config = loadJson<DevContainer>(baseConfigPath);
   
-  // 3a. Apply base image selection
+  // 4a. Apply base image selection
   const imageMap: Record<string, string> = {
     'bookworm': 'mcr.microsoft.com/devcontainers/base:bookworm',
     'trixie': 'mcr.microsoft.com/devcontainers/base:trixie',
@@ -452,50 +585,28 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     console.log(chalk.dim(`   🖼️  Using base image: ${chalk.cyan(answers.baseImage)}`));
   }
   
-  // 4. Determine which overlays to apply
-  const overlays: string[] = [];
-  
-  // Language overlays
-  if (answers.language && answers.language.length > 0) {
-    overlays.push(...answers.language);
-  }
-  
-  // Database overlays
-  if (answers.database === 'postgres' || answers.database === 'postgres+redis') {
-    overlays.push('postgres');
-  }
-  if (answers.database === 'redis' || answers.database === 'postgres+redis') {
-    overlays.push('redis');
-  }
-  
+  // 5. Order overlays for proper dependency resolution
   // Observability overlays (in dependency order)
-  if (answers.observability && answers.observability.length > 0) {
-    // Order matters: backends before middleware before UI
-    const orderedObservability = [
-      'jaeger', 'prometheus', 'loki',  // Backends (order 1)
-      'otel-collector',                 // Middleware (order 2)
-      'grafana'                         // UI (order 3)
-    ].filter(o => answers.observability!.includes(o as any));
-    
-    overlays.push(...orderedObservability);
+  const orderedOverlays: string[] = [];
+  const observabilityOrder = ['jaeger', 'prometheus', 'loki', 'otel-collector', 'grafana'];
+  
+  // Add observability overlays in order
+  for (const obs of observabilityOrder) {
+    if (resolvedOverlays.includes(obs)) {
+      orderedOverlays.push(obs);
+    }
   }
   
-  // Playwright
-  if (answers.playwright) {
-    overlays.push('playwright');
+  // Add remaining overlays
+  for (const overlay of resolvedOverlays) {
+    if (!orderedOverlays.includes(overlay)) {
+      orderedOverlays.push(overlay);
+    }
   }
   
-  // Cloud tools
-  if (answers.cloudTools && answers.cloudTools.length > 0) {
-    overlays.push(...answers.cloudTools);
-  }
+  const overlays = orderedOverlays;
   
-  // Dev tools
-  if (answers.devTools && answers.devTools.length > 0) {
-    overlays.push(...answers.devTools);
-  }
-  
-  // 4. Apply overlays
+  // 6. Apply overlays
   for (const overlay of overlays) {
     console.log(chalk.dim(`   🔧 Applying overlay: ${chalk.cyan(overlay)}`));
     config = applyOverlay(config, overlay);
@@ -564,7 +675,10 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
   console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
   
-  // 13. Merge .env.example files from overlays
+  // 13. Generate superposition.json manifest
+  generateManifest(outputPath, answers, overlays, autoResolved);
+  
+  // 14. Merge .env.example files from overlays
   mergeEnvExamples(outputPath, overlays, answers.portOffset);
 }
 
