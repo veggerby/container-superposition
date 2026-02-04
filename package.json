@@ -1,0 +1,58 @@
+{
+  "name": "container-superposition",
+  "version": "0.1.0",
+  "description": "Solution-ready devcontainer templates and features with guided initialization",
+  "main": "dist/scripts/init.js",
+  "bin": {
+    "container-superposition": "./dist/scripts/init.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "init": "tsx scripts/init.ts",
+    "init:build": "npm run build && node dist/scripts/init.js",
+    "test": "bash scripts/test.sh",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "devcontainer",
+    "development-containers",
+    "docker",
+    "vscode",
+    "codespaces",
+    "templates",
+    "scaffolding"
+  ],
+  "author": "veggerby",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/veggerby/container-superposition.git"
+  },
+  "files": [
+    "dist/",
+    "templates/",
+    "features/",
+    "tool/",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@inquirer/checkbox": "^5.0.4",
+    "@inquirer/prompts": "^8.2.0",
+    "boxen": "^7.1.1",
+    "chalk": "^5.6.2",
+    "commander": "^12.1.0",
+    "js-yaml": "^4.1.1",
+    "ora": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

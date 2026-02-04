@@ -1,0 +1,18 @@
+{
+  "id": "local-secrets-manager",
+  "version": "1.0.0",
+  "name": "Local Secrets Manager",
+  "description": "Safe local development secrets management (never committed)",
+  "options": {
+    "autoLoadEnv": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically load .env.local files"
+    },
+    "validateSecrets": {
+      "type": "boolean",
+      "default": true,
+      "description": "Validate required secrets are present"
+    }
+  }
+}

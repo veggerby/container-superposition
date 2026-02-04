@@ -1,2 +1,328 @@
 # container-superposition
+
 Composable devcontainer scaffolds that collapse into working environments.
+
+## 🎯 Purpose
+
+Container Superposition provides a **modular, overlay-based system** for building devcontainer configurations. Start with a minimal base template, then compose it with language frameworks, databases, observability tools, and cloud utilities to create your ideal development environment.
+
+**Key Principles:**
+- **Leverage, Don't Duplicate** - Use official images and features from containers.dev
+- **Minimal Base + Composable Overlays** - Start simple, add what you need
+- **Copy-Paste Ready** - Works immediately, customize as needed
+- **Observability First-Class** - Full OpenTelemetry stack available as overlays
+
+## 📋 Philosophy: Opinionated with Battle-Tested Defaults
+
+This tool is **opinionated by design**, providing carefully curated configurations that have been tested in real-world development scenarios:
+
+- **🎯 Battle-Tested Defaults** - Base images and configurations are chosen based on proven stability and broad compatibility
+- **🔧 Customization Available** - While we provide sensible defaults, you can customize base images and configurations
+- **⚠️ With Great Power...** - Custom images may introduce conflicts with overlays; test thoroughly
+- **📝 Editable Output** - Generated configurations are plain JSON/YAML you can modify post-generation
+
+**Default Base Image**: `mcr.microsoft.com/devcontainers/base:bookworm` (Debian Bookworm)
+- Well-maintained by Microsoft
+- Broad compatibility with devcontainer features
+- Regular security updates
+- Proven stability across diverse projects
+
+**Alternative Options**:
+- **Debian Trixie**: `mcr.microsoft.com/devcontainers/base:trixie` - Newer packages, testing stability
+- **Custom Images**: Specify your own, but be aware of potential overlay conflicts
+
+## 📁 Structure
+
+```
+container-superposition/
+├── templates/          # Minimal base templates (plain, compose)
+│   ├── plain/          # Simple image-based devcontainer
+│   └── compose/        # Docker Compose-based devcontainer
+├── tool/
+│   └── overlays/       # Composable capability overlays
+│       ├── dotnet/     # Language/framework overlays
+│       ├── nodejs/
+│       ├── python/
+│       ├── mkdocs/
+│       ├── postgres/   # Database overlays
+│       ├── redis/
+│       ├── otel-collector/  # Observability overlays
+│       ├── jaeger/
+│       ├── prometheus/
+│       ├── grafana/
+│       ├── loki/
+│       ├── aws-cli/    # Cloud/dev tool overlays
+│       ├── azure-cli/
+│       ├── kubectl-helm/
+│       └── playwright/
+├── features/           # Custom devcontainer features
+└── scripts/            # CLI entry points
+```
+
+### `/templates` - Minimal Base Templates
+
+Two foundational templates that serve as starting points:
+
+- **plain** - Simple image-based devcontainer with essential tools
+- **compose** - Docker Compose-based for multi-service environments
+
+Each template is minimal by design. Capabilities are added via overlays.
+
+### `/tool/overlays` - Composable Capabilities
+
+Overlays are modular configuration fragments organized by category:
+
+**Language & Framework:**
+- dotnet, nodejs, python, mkdocs
+
+**Databases:**
+- postgres, redis
+
+**Observability:**
+- otel-collector (OpenTelemetry Collector)
+- jaeger (Distributed tracing)
+- prometheus (Metrics)
+- grafana (Visualization)
+- loki (Log aggregation)
+
+**Development Tools:**
+- aws-cli, azure-cli, kubectl-helm, playwright
+
+Each overlay includes:
+- `devcontainer.patch.json` - Configuration to merge
+- `docker-compose.yml` (if needed) - Service definitions
+- `.env.example` - Environment variables
+- Configuration files (e.g., `otel-collector-config.yaml`)
+- README with usage instructions
+
+### `/features` - Custom Building Blocks
+
+Custom devcontainer features that add value beyond containers.dev:
+- **project-scaffolder** - Interactive project initialization
+- **team-conventions** - Shared linting, formatting, commit standards
+- **local-secrets-manager** - Safe local development secrets
+
+## 🚀 Quick Start
+
+### Option 1: Use the Init Tool (Recommended)
+
+The guided initialization tool helps you compose your perfect environment:
+
+```bash
+# Clone the repository
+git clone https://github.com/veggerby/container-superposition.git
+cd container-superposition
+
+# Install dependencies
+npm install
+
+# Run the interactive setup
+npm run init
+```
+
+The questionnaire guides you through:
+1. **Base template** - plain or compose?
+2. **Overlays** - All available overlays in one multi-select (language, databases, observability, cloud tools, dev tools)
+3. **Output path** - Where to generate the configuration
+
+**Example compositions:**
+
+```bash
+# Node.js API with PostgreSQL and observability
+npm run init -- --stack compose --language nodejs --db postgres --observability otel-collector,jaeger,prometheus,grafana
+
+# .NET microservice with full observability stack
+npm run init -- --stack compose --language dotnet --db postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
+
+# Python documentation site
+npm run init -- --stack plain --language mkdocs
+
+# Full-stack with everything
+npm run init -- --stack compose --language nodejs --db postgres+redis --playwright --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm
+
+# Running multiple instances? Add port offset to avoid conflicts
+npm run init -- --stack compose --language nodejs --db postgres --observability jaeger,grafana --port-offset 100
+# This shifts all ports by 100: Grafana becomes 3100, Jaeger UI becomes 16786, etc.
+```
+
+**Port Offset for Multiple Instances:**
+
+If you're running multiple devcontainer instances simultaneously (e.g., multiple microservices), use `--port-offset` to avoid port conflicts:
+
+```bash
+# Service 1 (default ports)
+npm run init -- --stack compose --language nodejs --postgres --output ./service1
+
+# Service 2 (ports shifted by 100)
+npm run init -- --stack compose --language nodejs --postgres --port-offset 100 --output ./service2
+
+# Service 3 (ports shifted by 200)
+npm run init -- --stack compose --language nodejs --postgres --port-offset 200 --output ./service3
+```
+
+This automatically adjusts all exposed ports in docker-compose.yml and documents the offset in .env.example.
+
+See [tool/README.md](tool/README.md) for full documentation.
+
+### Option 2: Manual Composition
+
+1. **Copy a base template:**
+   ```bash
+   cp -r templates/compose/.devcontainer /path/to/your/project/
+   ```
+
+2. **Add overlay configurations:**
+   ```bash
+   # Merge devcontainer.patch.json files
+   # Copy docker-compose.yml files as docker-compose.{overlay}.yml
+   # Merge .env.example files
+   ```
+
+3. **Open in VS Code** and reopen in container
+
+## 🔧 Architecture
+
+- **Questionnaire**: 5–8 questions to understand your needs
+- **Composition**: Merges base templates with lightweight overlays
+- **Output**: Plain `.devcontainer/` folder — fully editable, no lock-in
+- **Overlays**: Add-ons for databases (Postgres, Redis), Playwright, cloud tools, etc.
+
+**Key Design Decisions:**
+- ✅ Generate once, edit forever (no "sync" or "update")
+- ✅ Output is standard JSON — no proprietary formats
+- ✅ Tool is optional — templates work standalone
+- ✅ Cross-platform via Node.js/TypeScript
+- ✅ Metadata-driven overlays (no hardcoded menus)
+
+### Metadata-Driven Overlays
+
+All overlays are defined in [tool/overlays.yml](tool/overlays.yml):
+
+```yaml
+observability_overlays:
+  - id: otel-collector
+    name: OpenTelemetry Collector
+    description: Telemetry collection pipeline
+    category: observability
+    order: 2  # Start after backends
+```
+
+**Benefits:**
+- Add new overlays without code changes
+- Consistent naming and descriptions
+- Control display order and categorization
+- Easy maintenance and documentation
+
+**Overlay Categories:**
+- `base_templates` - plain, compose
+- `language_overlays` - dotnet, nodejs, python, mkdocs
+- `database_overlays` - postgres, redis
+- `observability_overlays` - otel-collector, jaeger, prometheus, grafana, loki
+- `cloud_tool_overlays` - aws-cli, azure-cli, kubectl-helm
+- `dev_tool_overlays` - playwright
+
+See [tool/docs/questionnaire-updates.md](tool/docs/questionnaire-updates.md) for details.
+
+### Dependency Management
+
+The composer intelligently manages service dependencies:
+
+1. **Filters docker-compose** - Removes `depends_on` references to unselected services
+2. **Orders services** - Uses `_serviceOrder` field (0=infra, 1=backends, 2=middleware, 3=UI)
+3. **Merges runServices** - Creates ordered startup sequence
+4. **Validates overlays** - Ensures compatible combinations
+
+Example: If you select `grafana` without `prometheus`, the `depends_on: [prometheus]` is automatically removed.
+
+See [tool/README.md](tool/README.md) for architecture details.
+
+## 🔧 Customization
+
+### Using Official Features
+
+All templates use official features from [containers.dev/features](https://containers.dev/features). Add more by editing `devcontainer.json`:
+
+```json
+{
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
+}
+```
+
+### Adding Custom Features
+
+Use our custom features for specialized needs:
+
+```json
+{
+  "features": {
+    "./features/project-scaffolder": {"template": "express-api"},
+    "./features/team-conventions": {"preset": "airbnb"}
+  }
+}
+```
+
+### Mixing Templates
+
+Start with one template and enhance it:
+- Add features from containers.dev
+- Include custom features from this repo
+- Copy useful scripts from other templates
+
+## 📦 Design Principles
+
+- **Copy-Paste First** - Templates should work immediately without modification
+- **Fast Builds** - Optimized Dockerfiles with layer caching
+- **Composability** - Features can be mixed and matched
+- **Minimal Bloat** - Only include what's needed
+- **No Lock-In** - Standard devcontainer format, works anywhere
+
+## 🏗️ Building Your Own Template
+
+Create a custom template for your team or project:
+
+1. **Start with an official base** from [containers.dev/images](https://containers.dev/images)
+2. **Add official features** from [containers.dev/features](https://containers.dev/features)
+3. **Include custom features** from this repo for specialized needs
+4. **Add project scripts** for your specific workflow
+5. **Test thoroughly** - build and verify all tools work
+6. **Document** - explain what's included and why
+
+Example `devcontainer.json` structure:
+```json
+{
+  "name": "My Custom Template",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "./features/team-conventions": {}
+  },
+  "postCreateCommand": "npm install && npm run setup",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}
+```
+
+## 📚 Learn More
+
+- [VS Code Dev Containers Documentation](https://code.visualstudio.com/docs/devcontainers/containers)
+- [Dev Container Specification](https://containers.dev/)
+- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
+
+## 🤝 Contributing
+
+Have a useful template or feature? Contributions welcome! Keep it:
+- Minimal and focused
+- Well-documented
+- Fast to build
+- Easy to understand
+
+## 📄 License
+
+MIT License - use freely in your projects.

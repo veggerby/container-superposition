@@ -1,0 +1,122 @@
+name: Build DevContainers
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'templates/**'
+      - 'tool/overlays/**'
+      - 'features/**'
+      - 'scripts/**'
+      - '.github/workflows/build-devcontainers.yml'
+  pull_request:
+    paths:
+      - 'templates/**'
+      - 'tool/overlays/**'
+      - 'features/**'
+      - 'scripts/**'
+      - '.github/workflows/build-devcontainers.yml'
+
+jobs:
+  test-overlay-combinations:
+    name: Test ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Base templates only
+          - name: "Plain base"
+            stack: plain
+            overlays: ""
+            
+          - name: "Compose base"
+            stack: compose
+            overlays: ""
+          
+          # Single language overlays
+          - name: "Plain + .NET"
+            stack: plain
+            overlays: "--language dotnet"
+            
+          - name: "Plain + Node.js"
+            stack: plain
+            overlays: "--language nodejs"
+            
+          - name: "Plain + Python"
+            stack: plain
+            overlays: "--language python"
+          
+          # Multi-language
+          - name: "Plain + .NET + Node.js + Python"
+            stack: plain
+            overlays: "--language dotnet,nodejs,python"
+          
+          # Compose with databases
+          - name: "Compose + PostgreSQL"
+            stack: compose
+            overlays: "--db postgres"
+            
+          - name: "Compose + Node.js + PostgreSQL"
+            stack: compose
+            overlays: "--language nodejs --db postgres"
+          
+          # Compose with observability
+          - name: "Compose + Full observability"
+            stack: compose
+            overlays: "--language nodejs --db postgres --observability prometheus,grafana,jaeger,otel-collector,loki"
+          
+          # Docker overlays
+          - name: "Plain + Docker-in-Docker"
+            stack: plain
+            overlays: "--dev-tools docker-in-docker"
+            
+          - name: "Compose + Docker socket"
+            stack: compose
+            overlays: "--dev-tools docker-sock"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Generate DevContainer - ${{ matrix.name }}
+        run: |
+          mkdir -p /tmp/test-workspace-${{ strategy.job-index }}
+          npm run init -- \
+            --stack ${{ matrix.stack }} \
+            ${{ matrix.overlays }} \
+            -o /tmp/test-workspace-${{ strategy.job-index }}/.devcontainer
+
+      - name: Install DevContainer CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Build DevContainer - ${{ matrix.name }}
+        run: |
+          devcontainer build \
+            --workspace-folder /tmp/test-workspace-${{ strategy.job-index }} \
+            --image-name devcontainer-test-${{ strategy.job-index }}:test
+        env:
+          DOCKER_BUILDKIT: 1
+
+      - name: Verify container
+        run: |
+          echo "Successfully built ${{ matrix.name }}"
+          docker images | grep devcontainer-test-${{ strategy.job-index }} || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rmi devcontainer-test-${{ strategy.job-index }}:test || true
+          rm -rf /tmp/test-workspace-${{ strategy.job-index }} || true

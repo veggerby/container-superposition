@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+
+# Environment
+.env
+.env.local
+
+# Tool-generated examples (keep these out of repo)
+.devcontainer/
+examples/.devcontainer/
+
+# Keep these
+!templates/**/*
+!features/**/*
+!tool/**/*
+!scripts/**/*

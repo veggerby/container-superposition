@@ -1,0 +1,145 @@
+# Overlay Metadata
+# This file defines all available overlays and their properties for the questionnaire
+
+base_images:
+  - id: bookworm
+    name: Debian Bookworm (Recommended)
+    description: Stable, battle-tested base with broad compatibility
+    image: mcr.microsoft.com/devcontainers/base:bookworm
+    
+  - id: trixie
+    name: Debian Trixie
+    description: Newer packages, testing stability
+    image: mcr.microsoft.com/devcontainers/base:trixie
+    
+  - id: custom
+    name: Custom Image
+    description: Specify your own (may conflict with overlays)
+    image: null  # User will provide
+
+base_templates:
+  - id: plain
+    name: Plain (Image-based)
+    description: Minimal Debian image for simple projects
+    
+  - id: compose
+    name: Compose (Multi-service)
+    description: Docker Compose infrastructure for complex applications
+
+language_overlays:
+  - id: dotnet
+    name: .NET
+    description: .NET 10 SDK with C# DevKit
+    category: language
+    supports: [] # Empty = all templates
+    
+  - id: nodejs
+    name: Node.js
+    description: Node.js LTS with TypeScript and tooling
+    category: language
+    supports: []
+    
+  - id: python
+    name: Python
+    description: Python 3.12 with linting and formatting
+    category: language
+    supports: []
+    
+  - id: mkdocs
+    name: MkDocs
+    description: Python with MkDocs for documentation
+    category: language
+    supports: []
+
+database_overlays:
+  - id: postgres
+    name: PostgreSQL
+    description: PostgreSQL 16 database
+    category: database
+    supports: [compose] # Requires docker-compose
+    
+  - id: redis
+    name: Redis
+    description: Redis 7 cache
+    category: database
+    supports: [compose] # Requires docker-compose
+
+observability_overlays:
+  - id: otel-collector
+    name: OpenTelemetry Collector
+    description: Telemetry collection pipeline
+    category: observability
+    order: 2
+    supports: [compose] # Requires docker-compose
+    
+  - id: jaeger
+    name: Jaeger
+    description: Distributed tracing backend
+    category: observability
+    order: 1
+    supports: [compose] # Requires docker-compose
+    
+  - id: prometheus
+    name: Prometheus
+    description: Metrics collection and monitoring
+    category: observability
+    order: 1
+    supports: [compose] # Requires docker-compose
+    
+  - id: grafana
+    name: Grafana
+    description: Observability visualization dashboard
+    category: observability
+    order: 3
+    supports: [compose] # Requires docker-compose
+    
+  - id: loki
+    name: Loki
+    description: Log aggregation system
+    category: observability
+    order: 1
+    supports: [compose] # Requires docker-compose
+
+cloud_tool_overlays:
+  - id: aws-cli
+    name: AWS CLI
+    description: Amazon Web Services command-line tools
+    category: cloud
+    supports: []
+    
+  - id: azure-cli
+    name: Azure CLI
+    description: Microsoft Azure command-line tools
+    category: cloud
+    supports: []
+    
+  - id: kubectl-helm
+    name: kubectl + Helm
+    description: Kubernetes CLI and Helm package manager
+    category: cloud
+    supports: []
+
+dev_tool_overlays:
+  - id: docker-in-docker
+    name: Docker-in-Docker
+    description: Isolated Docker daemon inside container (portable, works in Codespaces)
+    category: dev
+    supports: []
+    
+  - id: docker-sock
+    name: Docker (host socket)
+    description: Access host Docker daemon via socket mount (fast, local-only)
+    category: dev
+    supports: [compose] # Requires docker-compose
+    
+  - id: playwright
+    name: Playwright
+    description: Browser automation and testing framework
+    category: dev
+    supports: []
+    
+  - id: codex
+    name: Codex
+    description: pnpm CLI with mounted .codex folder
+    category: dev
+    supports: []

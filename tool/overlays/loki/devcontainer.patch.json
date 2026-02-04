@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "runServices": ["loki"],
+  "_serviceOrder": 1,
+  "forwardPorts": [3100],
+  "portsAttributes": {
+    "3100": {
+      "label": "Loki",
+      "onAutoForward": "silent"
+    }
+  }
+}
