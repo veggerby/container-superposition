@@ -1,9 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
   "features": {
-    "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
-      "packages": "postgresql-client"
-    }
+    "ghcr.io/robbert229/devcontainer-features/postgresql-client:1": {}
   },
   "runServices": ["postgres"],
   "forwardPorts": [5432],

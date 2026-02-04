@@ -62,14 +62,14 @@ language_overlays:
     
   - id: mkdocs
     name: MkDocs
-    description: Python with MkDocs for documentation
+    description: Material for MkDocs - professional documentation generator
     category: language
     supports: []
-    requires: []
+    requires: [python]
     suggests: []
     conflicts: []
-    tags: [language, documentation, python]
-    ports: []
+    tags: [documentation, mkdocs, python]
+    ports: [8000]
 
 database_overlays:
   - id: postgres

@@ -36,5 +36,8 @@
     "remoteEnv": {
         "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
     },
+    "postStartCommand": {
+        "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+    },
     "remoteUser": "vscode"
 }

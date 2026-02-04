@@ -1,51 +1,43 @@
 # MkDocs Overlay
 
-Adds Python 3.12 with MkDocs and Material theme for documentation websites.
+Material for MkDocs - professional documentation generator.
 
 ## Features
 
-- **Python 3.12** with pip
-- **MkDocs** with Material theme
+- **MkDocs** with Material theme (via official devcontainers-extra feature)
 - **Common MkDocs plugins:**
+  - mkdocs-material
   - mkdocs-minify-plugin
   - mkdocs-redirects
   - pymdown-extensions
+- **Python dependency:** Automatically includes Python overlay (required)
 - **VS Code Extensions:**
-  - Python
   - Markdown All in One
   - Markdown Lint
   - Markdown Mermaid
 - **Port forwarding:** 8000 (MkDocs dev server, auto-opens in browser)
 
-## Automatic Setup
+## Dependencies
 
-The overlay automatically installs on container creation:
-
-1. ✅ MkDocs packages from `.devcontainer/requirements-overlay.txt`
-2. ✅ Additional dependencies from `requirements.txt` (if referenced in mkdocs.yml)
-3. ✅ Upgrades pip, setuptools, and wheel
+This overlay requires the **Python** overlay, which is automatically selected through the dependency model.
 
 ## Customizing MkDocs Plugins
 
-The overlay includes a customizable `requirements-overlay.txt` file in `.devcontainer/`:
+To add more MkDocs plugins, you can install them via pip in your project's container:
 
-**`.devcontainer/requirements-overlay.txt`:**
+```bash
+# In devcontainer terminal
+pip install mkdocs-git-revision-date-localized-plugin
+pip install mkdocs-awesome-pages-plugin
+pip install mkdocs-macros-plugin
 ```
-# MkDocs overlay packages
-# Customize this file to add or remove MkDocs plugins and extensions
 
-# Core MkDocs
-mkdocs>=1.5.0
-mkdocs-material>=9.0.0
+Or add them to your project's `requirements.txt`:
 
-# Common plugins
-mkdocs-minify-plugin>=0.7.0
-mkdocs-redirects>=1.2.0
-pymdown-extensions>=10.0.0
-
-# Add additional plugins here
+```plaintext
 mkdocs-git-revision-date-localized-plugin>=1.2.0
 mkdocs-awesome-pages-plugin>=2.9.0
+mkdocs-macros-plugin>=1.0.0
 ```
 
 **Rebuild container** after editing to install new plugins.

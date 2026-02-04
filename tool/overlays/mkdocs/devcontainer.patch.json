@@ -1,22 +1,17 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
   "features": {
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.12",
-      "installTools": true
+    "ghcr.io/devcontainers-extra/features/mkdocs:2": {
+      "plugins": "mkdocs-material mkdocs-minify-plugin mkdocs-redirects pymdown-extensions"
     }
   },
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-python.python",
         "yzhang.markdown-all-in-one",
         "DavidAnson.vscode-markdownlint",
         "bierner.markdown-mermaid"
-      ],
-      "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python"
-      }
+      ]
     }
   },
   "forwardPorts": [8000],
