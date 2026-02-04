@@ -134,10 +134,10 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
     });
     const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
 
-    // Parse selected overlays
-    const language = selectedOverlays.find(o => 
+    // Parse selected overlays into categories
+    const language = selectedOverlays.filter(o => 
       config.language_overlays.some(l => l.id === o)
-    ) as LanguageOverlay | undefined;
+    ) as LanguageOverlay[];
 
     const observability = selectedOverlays.filter(o =>
       config.observability_overlays.some(obs => obs.id === o)
@@ -194,7 +194,7 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .description('Initialize a devcontainer with guided questions or CLI flags')
     .version('0.1.0')
     .option('--stack <type>', 'Base template: plain, compose')
-    .option('--language <type>', 'Language overlay: dotnet, nodejs, python, mkdocs')
+    .option('--language <list>', 'Comma-separated language overlays: dotnet, nodejs, python, mkdocs')
     .option('--db <type>', 'Database: postgres, redis, postgres+redis, none')
     .option('--postgres', 'Shorthand for --db postgres')
     .option('--redis', 'Shorthand for --db redis')
@@ -215,7 +215,9 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
   const config: Partial<QuestionnaireAnswers> = {};
 
   if (options.stack) config.stack = options.stack as Stack;
-  if (options.language) config.language = options.language as LanguageOverlay;
+  if (options.language) {
+    config.language = options.language.split(',').map((l: string) => l.trim()) as LanguageOverlay[];
+  }
   if (options.postgres) config.database = 'postgres';
   if (options.redis) config.database = 'redis';
   if (options.db) config.database = options.db as Database;
@@ -270,8 +272,8 @@ async function main() {
       chalk.cyan('Base:            ') + chalk.white(answers.stack),
     ];
 
-    if (answers.language) {
-      summaryLines.push(chalk.cyan('Language:        ') + chalk.white(answers.language));
+    if (answers.language && answers.language.length > 0) {
+      summaryLines.push(chalk.cyan('Languages:       ') + chalk.white(answers.language.join(', ')));
     }
 
     summaryLines.push(

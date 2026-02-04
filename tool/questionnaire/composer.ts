@@ -21,10 +21,39 @@ function deepMerge(target: any, source: any): any {
         output[key] = Array.isArray(target[key])
           ? [...new Set([...target[key], ...source[key]])]
           : source[key];
+      } else if (key === 'remoteEnv') {
+        // Special handling for remoteEnv to merge PATH variables intelligently
+        output[key] = mergeRemoteEnv(target[key], source[key]);
       } else {
         output[key] = deepMerge(target[key], source[key]);
       }
     } else {
+      output[key] = source[key];
+    }
+  }
+  
+  return output;
+}
+
+/**
+ * Merge remoteEnv objects, with special handling for PATH variables
+ */
+function mergeRemoteEnv(target: Record<string, string>, source: Record<string, string>): Record<string, string> {
+  const output = { ...target };
+  
+  for (const key in source) {
+    if (key === 'PATH' && target[key]) {
+      // Collect PATH components from both target and source
+      const targetPaths = target[key].split(':').filter(p => p && p !== '${PATH}');
+      const sourcePaths = source[key].split(':').filter(p => p && p !== '${PATH}');
+      
+      // Combine and deduplicate paths, preserving order
+      const allPaths = [...new Set([...targetPaths, ...sourcePaths])];
+      
+      // Rebuild PATH with original ${PATH} at the end
+      output[key] = [...allPaths, '${PATH}'].join(':');
+    } else {
+      // For non-PATH variables, source overwrites target
       output[key] = source[key];
     }
   }
@@ -132,13 +161,17 @@ function copyOverlayFiles(outputPath: string, overlayName: string): void {
     const stat = fs.statSync(srcPath);
     
     if (stat.isFile()) {
-      // Copy other files (config files, etc.)
-      const destPath = path.join(outputPath, entry);
+      // Copy config files with overlay prefix to avoid conflicts
+      // e.g., global-tools.txt -> global-tools-dotnet.txt
+      const basename = path.basename(entry, path.extname(entry));
+      const ext = path.extname(entry);
+      const destFilename = `${basename}-${overlayName}${ext}`;
+      const destPath = path.join(outputPath, destFilename);
       fs.copyFileSync(srcPath, destPath);
       copiedFiles++;
     } else if (stat.isDirectory()) {
-      // Copy directories recursively (for config folders, etc.)
-      const destPath = path.join(outputPath, entry);
+      // Copy directories recursively with overlay prefix
+      const destPath = path.join(outputPath, `${entry}-${overlayName}`);
       copyDir(srcPath, destPath);
       copiedFiles++;
     }
@@ -322,7 +355,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   
   // Build list of requested overlays
   const requestedOverlays: string[] = [];
-  if (answers.language) requestedOverlays.push(answers.language);
+  if (answers.language && answers.language.length > 0) requestedOverlays.push(...answers.language);
   if (answers.database?.includes('postgres')) requestedOverlays.push('postgres');
   if (answers.database?.includes('redis')) requestedOverlays.push('redis');
   if (answers.observability) requestedOverlays.push(...answers.observability);
@@ -403,9 +436,9 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // 4. Determine which overlays to apply
   const overlays: string[] = [];
   
-  // Language overlay
-  if (answers.language) {
-    overlays.push(answers.language);
+  // Language overlays
+  if (answers.language && answers.language.length > 0) {
+    overlays.push(...answers.language);
   }
   
   // Database overlays
@@ -546,17 +579,23 @@ function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): vo
 function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath: string): void {
   const setupScripts: string[] = [];
   
+  // Create scripts subfolder
+  const scriptsDir = path.join(outputPath, 'scripts');
+  if (!fs.existsSync(scriptsDir)) {
+    fs.mkdirSync(scriptsDir, { recursive: true });
+  }
+  
   for (const overlay of overlays) {
     const setupPath = path.join(OVERLAYS_DIR, overlay, 'setup.sh');
     if (fs.existsSync(setupPath)) {
-      // Copy setup script to output directory
-      const destPath = path.join(outputPath, `setup-${overlay}.sh`);
+      // Copy setup script to scripts subdirectory
+      const destPath = path.join(scriptsDir, `setup-${overlay}.sh`);
       fs.copyFileSync(setupPath, destPath);
       
       // Make it executable
       fs.chmodSync(destPath, 0o755);
       
-      setupScripts.push(`bash .devcontainer/setup-${overlay}.sh`);
+      setupScripts.push(`bash .devcontainer/scripts/setup-${overlay}.sh`);
     }
   }
   

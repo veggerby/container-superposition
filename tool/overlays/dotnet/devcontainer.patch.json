@@ -44,9 +44,7 @@
     }
   },
   "remoteEnv": {
+    "PATH": "/home/vscode/.dotnet/tools:${PATH}",
     "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
-  },
-  "postCreateCommand": {
-    "dotnet-restore": "dotnet restore || true"
   }
 }

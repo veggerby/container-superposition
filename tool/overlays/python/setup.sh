@@ -3,12 +3,15 @@
 
 set -e
 
+# Extract overlay name from script filename (setup-<overlay>.sh -> <overlay>)
+OVERLAY_NAME=$(basename "$0" | sed 's/setup-//;s/\.sh$//')
+
 echo "🐍 Setting up Python environment..."
 
 # Install overlay-specific packages (if requirements-overlay.txt exists)
-if [ -f ".devcontainer/requirements-overlay.txt" ]; then
-    echo "📦 Installing overlay packages from requirements-overlay.txt..."
-    pip install --user -r .devcontainer/requirements-overlay.txt
+if [ -f ".devcontainer/requirements-overlay-${OVERLAY_NAME}.txt" ]; then
+    echo "📦 Installing overlay packages from requirements-overlay-${OVERLAY_NAME}.txt..."
+    pip install --user -r .devcontainer/requirements-overlay-${OVERLAY_NAME}.txt
     echo "✓ Overlay packages installed"
 fi
 

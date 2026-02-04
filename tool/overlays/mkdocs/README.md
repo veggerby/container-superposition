@@ -21,10 +21,34 @@ Adds Python 3.12 with MkDocs and Material theme for documentation websites.
 
 The overlay automatically installs on container creation:
 
-1. ✅ MkDocs and Material theme
-2. ✅ Common plugins (minify, redirects, pymdown-extensions)
-3. ✅ Additional dependencies from `requirements.txt` (if referenced in mkdocs.yml)
-4. ✅ Upgrades pip, setuptools, and wheel
+1. ✅ MkDocs packages from `.devcontainer/requirements-overlay.txt`
+2. ✅ Additional dependencies from `requirements.txt` (if referenced in mkdocs.yml)
+3. ✅ Upgrades pip, setuptools, and wheel
+
+## Customizing MkDocs Plugins
+
+The overlay includes a customizable `requirements-overlay.txt` file in `.devcontainer/`:
+
+**`.devcontainer/requirements-overlay.txt`:**
+```
+# MkDocs overlay packages
+# Customize this file to add or remove MkDocs plugins and extensions
+
+# Core MkDocs
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+
+# Common plugins
+mkdocs-minify-plugin>=0.7.0
+mkdocs-redirects>=1.2.0
+pymdown-extensions>=10.0.0
+
+# Add additional plugins here
+mkdocs-git-revision-date-localized-plugin>=1.2.0
+mkdocs-awesome-pages-plugin>=2.9.0
+```
+
+**Rebuild container** after editing to install new plugins.
 
 ## Quick Start
 
@@ -108,16 +132,31 @@ my-docs/
 
 ## Additional Dependencies
 
-If you need extra Python packages for MkDocs plugins:
+If you need extra Python packages for MkDocs plugins, you have two options:
 
-**requirements.txt:**
+### Option 1: Edit requirements-overlay.txt (Recommended)
+
+Edit `.devcontainer/requirements-overlay.txt`:
+```
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+mkdocs-git-revision-date-localized-plugin>=1.2.0
+mkdocs-awesome-pages-plugin>=2.9.0
+mkdocs-macros-plugin>=1.0.0
+```
+
+Rebuild the container to install.
+
+### Option 2: Project requirements.txt
+
+Create `requirements.txt` in your project root:
 ```
 mkdocs-git-revision-date-localized-plugin
 mkdocs-awesome-pages-plugin
 mkdocs-macros-plugin
 ```
 
-The setup script will install these automatically if referenced in `mkdocs.yml`.
+This is useful if you want to version control plugin dependencies separately.
 
 ## Common Workflows
 

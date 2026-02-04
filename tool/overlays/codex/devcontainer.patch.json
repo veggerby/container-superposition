@@ -4,6 +4,7 @@
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
   ],
   "remoteEnv": {
+    "PATH": "/home/vscode/.local/share/pnpm:${PATH}",
     "CODEX_HOME": "/home/vscode/.codex"
   }
 }

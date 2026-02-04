@@ -120,6 +120,18 @@ cloud_tool_overlays:
     supports: []
 
 dev_tool_overlays:
+  - id: docker-in-docker
+    name: Docker-in-Docker
+    description: Isolated Docker daemon inside container (portable, works in Codespaces)
+    category: dev
+    supports: []
+    
+  - id: docker-sock
+    name: Docker (host socket)
+    description: Access host Docker daemon via socket mount (fast, local-only)
+    category: dev
+    supports: [compose] # Requires docker-compose
+    
   - id: playwright
     name: Playwright
     description: Browser automation and testing framework

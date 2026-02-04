@@ -57,11 +57,36 @@ Then update VS Code settings:
 
 The overlay automatically runs on container creation:
 
-1. ✅ Checks for `requirements.txt` → installs with pip
-2. ✅ Checks for `requirements-dev.txt` → installs dev dependencies
-3. ✅ Checks for `pyproject.toml` → installs project in editable mode
-4. ✅ Checks for `setup.py` → installs legacy projects
-5. ✅ Upgrades pip, setuptools, and wheel to latest
+1. ✅ Installs overlay packages from `.devcontainer/requirements-overlay.txt`
+2. ✅ Checks for `requirements.txt` → installs with pip
+3. ✅ Checks for `requirements-dev.txt` → installs dev dependencies
+4. ✅ Checks for `pyproject.toml` → installs project in editable mode
+5. ✅ Checks for `setup.py` → installs legacy projects
+6. ✅ Upgrades pip, setuptools, and wheel to latest
+
+## Customizing Overlay Packages
+
+The overlay includes a `requirements-overlay.txt` file in `.devcontainer/` that you can customize:
+
+**`.devcontainer/requirements-overlay.txt`:**
+```
+# Python overlay default packages
+# Customize this file to add or remove packages for your project
+
+# Add your project dependencies here
+# Example:
+requests>=2.31.0
+pytest>=7.4.0
+black>=23.0.0
+jupyter>=1.0.0
+```
+
+**When to use:**
+- Add common development tools you always want
+- Install packages needed across all environments
+- Pre-install heavy dependencies (pandas, numpy, etc.)
+
+**Rebuild container** after editing to install new packages.
 
 ## Project Structures Supported
 

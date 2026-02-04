@@ -53,7 +53,7 @@ export interface QuestionnaireAnswers {
   stack: Stack;
   baseImage: BaseImage;
   customImage?: string; // Only used when baseImage is 'custom'
-  language?: LanguageOverlay;
+  language?: LanguageOverlay[]; // Support multiple language overlays
   needsDocker: boolean;
   database: Database;
   playwright: boolean;

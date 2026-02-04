@@ -34,6 +34,7 @@
     }
   },
   "remoteEnv": {
+    "PATH": "/home/vscode/.local/bin:${PATH}",
     "PYTHONPATH": "${containerWorkspaceFolder}"
   }
 }
