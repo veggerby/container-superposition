@@ -123,8 +123,8 @@ function copyOverlayFiles(outputPath: string, overlayName: string): void {
   let copiedFiles = 0;
   
   for (const entry of entries) {
-    // Skip devcontainer.patch.json, .env.example, and docker-compose.yml (handled separately)
-    if (entry === 'devcontainer.patch.json' || entry === '.env.example' || entry === 'docker-compose.yml') {
+    // Skip devcontainer.patch.json, .env.example, docker-compose.yml, and setup.sh (handled separately)
+    if (entry === 'devcontainer.patch.json' || entry === '.env.example' || entry === 'docker-compose.yml' || entry === 'setup.sh' || entry === 'README.md') {
       continue;
     }
     
@@ -460,6 +460,9 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     applyPortOffsetToDevcontainer(config, answers.portOffset);
   }
   
+  // Merge setup scripts from overlays into postCreateCommand
+  mergeSetupScripts(config, overlays, outputPath);
+  
   // Remove internal fields (those starting with _)
   Object.keys(config).forEach(key => {
     if (key.startsWith('_')) {
@@ -502,6 +505,50 @@ function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): vo
       }
     }
     config.portsAttributes = newPortsAttributes;
+  }
+}
+
+/**
+ * Merge setup scripts from overlays into postCreateCommand
+ */
+function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath: string): void {
+  const setupScripts: string[] = [];
+  
+  for (const overlay of overlays) {
+    const setupPath = path.join(OVERLAYS_DIR, overlay, 'setup.sh');
+    if (fs.existsSync(setupPath)) {
+      // Copy setup script to output directory
+      const destPath = path.join(outputPath, `setup-${overlay}.sh`);
+      fs.copyFileSync(setupPath, destPath);
+      
+      // Make it executable
+      fs.chmodSync(destPath, 0o755);
+      
+      setupScripts.push(`bash .devcontainer/setup-${overlay}.sh`);
+    }
+  }
+  
+  if (setupScripts.length > 0) {
+    // Initialize postCreateCommand if it doesn't exist
+    if (!config.postCreateCommand) {
+      config.postCreateCommand = {};
+    }
+    
+    // If postCreateCommand is a string, convert to object
+    if (typeof config.postCreateCommand === 'string') {
+      config.postCreateCommand = { 'default': config.postCreateCommand };
+    }
+    
+    // Add setup scripts
+    for (let i = 0; i < setupScripts.length; i++) {
+      const overlay = overlays.filter(o => {
+        const setupPath = path.join(OVERLAYS_DIR, o, 'setup.sh');
+        return fs.existsSync(setupPath);
+      })[i];
+      config.postCreateCommand[`setup-${overlay}`] = setupScripts[i];
+    }
+    
+    console.log(chalk.dim(`   🔧 Added ${setupScripts.length} setup script(s)`));
   }
 }
 

@@ -109,3 +109,9 @@ dev_tool_overlays:
     description: Browser automation and testing framework
     category: dev
     supports: []
+    
+  - id: codex
+    name: Codex
+    description: pnpm CLI with mounted .codex folder
+    category: dev
+    supports: []

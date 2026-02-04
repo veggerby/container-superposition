@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
+  ],
+  "remoteEnv": {
+    "CODEX_HOME": "/home/vscode/.codex"
+  }
+}
