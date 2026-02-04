@@ -10,9 +10,29 @@ This tool is designed to:
 - ✅ **Output boring, editable `.devcontainer/` folders** — not proprietary formats
 - ✅ **Stay humble** — generate once, then get out of your way
 - ✅ **Compose solution-ready templates** with lightweight overlays
+- ✅ **Provide battle-tested defaults** — opinionated choices that work in production
 - ❌ **NOT** become a framework you have to learn
 - ❌ **NOT** require the tool for manual edits or updates
 - ❌ **NOT** generate mysterious black-box configurations
+
+### Opinionated Defaults
+
+We make deliberate choices about base images, tool versions, and configurations based on real-world usage:
+
+- **Default Base Image**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:debian`)
+  - Stable, well-maintained, broad compatibility
+  - Microsoft's recommended base for general development
+  - Regular security updates and long-term support
+
+- **Why Opinionated?**
+  - Reduces decision fatigue for common use cases
+  - Configurations have been validated in production environments
+  - Predictable behavior across teams and projects
+
+- **Customization Available**
+  - Select alternative base images (Trixie for newer packages)
+  - Provide custom images (⚠️ may conflict with overlays)
+  - All generated files are editable post-generation
 
 ## Quick Start
 

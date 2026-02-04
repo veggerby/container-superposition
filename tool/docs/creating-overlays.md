@@ -2,6 +2,50 @@
 
 A comprehensive guide to creating overlays for container-superposition.
 
+## Base Images
+
+Container Superposition provides **opinionated, battle-tested base image defaults** while allowing customization when needed.
+
+### Default Base Image
+
+**Debian Bookworm** (`mcr.microsoft.com/devcontainers/base:debian`)
+
+This is the recommended default base image:
+- ✅ **Stable**: Long-term support with regular security updates
+- ✅ **Well-maintained**: Microsoft's official devcontainer base
+- ✅ **Broad compatibility**: Works with all overlays
+- ✅ **Battle-tested**: Proven in production environments
+
+### Alternative Base Images
+
+During interactive initialization, you can choose from:
+
+1. **Debian Bookworm (Recommended)** - `mcr.microsoft.com/devcontainers/base:debian`
+   - Default choice, best compatibility
+
+2. **Debian Trixie** - `mcr.microsoft.com/devcontainers/base:trixie`
+   - Newer packages, testing stability
+   - Use if you need more recent software versions
+
+3. **Custom Image**
+   - Specify any Docker image (e.g., `ubuntu:22.04`, `alpine:latest`)
+   - ⚠️ **Warning**: May conflict with overlays
+   - Test thoroughly and adjust configurations as needed
+   - Not all overlays may work correctly with custom bases
+
+### When to Use Custom Images
+
+Consider custom images when:
+- You have specific compliance requirements
+- You need a particular base OS (Ubuntu, Alpine, etc.)
+- Your organization has standardized base images
+
+**Important**: Custom images may require:
+- Adjusting overlay configurations
+- Installing missing dependencies
+- Modifying setup scripts
+- Testing each overlay individually
+
 ## Overlay Types
 
 Overlays fall into several categories:
@@ -10,7 +54,7 @@ Overlays fall into several categories:
 2. **Database** - postgres, redis
 3. **Observability** - otel-collector, jaeger, prometheus, grafana, loki
 4. **Cloud/DevOps** - aws-cli, azure-cli, kubectl-helm
-5. **Development Tools** - playwright, etc.
+5. **Development Tools** - playwright, codex, etc.
 
 ## Basic Overlay Structure
 

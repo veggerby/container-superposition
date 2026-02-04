@@ -8,7 +8,7 @@ import boxen from 'boxen';
 import ora from 'ora';
 import { select, checkbox, confirm, input } from '@inquirer/prompts';
 import yaml from 'js-yaml';
-import type { QuestionnaireAnswers, Stack, LanguageOverlay, Database, CloudTool, ObservabilityTool } from '../tool/schema/types';
+import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, ObservabilityTool } from '../tool/schema/types';
 import { composeDevContainer } from '../tool/questionnaire/composer';
 
 interface OverlayMetadata {
@@ -17,9 +17,11 @@ interface OverlayMetadata {
   description: string;
   category: string;
   order?: number;
+  image?: string | null;
 }
 
 interface OverlaysConfig {
+  base_images: OverlayMetadata[];
   base_templates: OverlayMetadata[];
   language_overlays: OverlayMetadata[];
   database_overlays: OverlayMetadata[];
@@ -71,7 +73,34 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       }))
     }) as Stack;
 
-    // Question 2: All overlays in one multi-select (filtered by stack compatibility)
+    // Question 2: Base image selection
+    const baseImage = await select({
+      message: 'Select base image:',
+      choices: config.base_images.map(img => ({
+        name: img.name,
+        value: img.id,
+        description: img.description
+      }))
+    }) as BaseImage;
+
+    // Question 2a: If custom, ask for image name
+    let customImage: string | undefined;
+    if (baseImage === 'custom') {
+      customImage = await input({
+        message: 'Enter custom Docker image (e.g., ubuntu:22.04):',
+        validate: (value) => {
+          if (!value || value.trim() === '') {
+            return 'Image name is required';
+          }
+          return true;
+        }
+      });
+      
+      console.log(chalk.yellow('\n⚠️  Warning: Custom images may conflict with overlays.'));
+      console.log(chalk.dim('   Test thoroughly and adjust configurations as needed.\n'));
+    }
+
+    // Question 3: All overlays in one multi-select (filtered by stack compatibility)
     const allOverlays = [
       ...config.language_overlays.map(o => ({ ...o, category: 'Language' })),
       ...config.database_overlays.map(o => ({ ...o, category: 'Database' })),
@@ -92,13 +121,13 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       }))
     });
 
-    // Question 3: Output path
+    // Question 4: Output path
     const outputPath = await input({
       message: 'Output path:',
       default: './.devcontainer'
     });
 
-    // Question 4: Port offset (optional, for running multiple instances)
+    // Question 5: Port offset (optional, for running multiple instances)
     const portOffsetInput = await input({
       message: 'Port offset (leave empty for default ports, e.g., 100 to avoid conflicts):',
       default: ''
@@ -134,6 +163,8 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
 
     return {
       stack,
+      baseImage,
+      customImage,
       language,
       needsDocker: stack === 'compose', // Compose template includes docker-outside-of-docker
       database,
@@ -213,6 +244,7 @@ async function main() {
       // Non-interactive mode
       answers = {
         stack: cliConfig.stack,
+        baseImage: 'bookworm', // Default to bookworm in non-interactive mode
         language: cliConfig.language,
         needsDocker: cliConfig.stack === 'compose',
         database: cliConfig.database ?? 'none',

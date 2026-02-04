@@ -1,5 +1,25 @@
 # Quick Reference
 
+## Base Images
+
+| Image | ID | Use Case | Stability |
+|-------|-------|----------|-----------|
+| **Debian Bookworm** ⭐ | `bookworm` | Production-ready, recommended default | Stable (LTS) |
+| **Debian Trixie** | `trixie` | Newer packages for testing | Testing |
+| **Custom Image** ⚠️ | `custom` | Specific requirements, may conflict | Varies |
+
+**Default**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:debian`)
+- Battle-tested in production
+- Broad compatibility with all overlays
+- Regular security updates
+
+**When to use custom images**:
+- Specific compliance requirements
+- Organization-standardized base images
+- Need for particular base OS (Ubuntu, Alpine, etc.)
+
+⚠️ **Caution**: Custom images may require overlay configuration adjustments and thorough testing.
+
 ## Base Templates
 
 | Template | Use Case | Contents |

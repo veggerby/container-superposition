@@ -12,6 +12,25 @@ Container Superposition provides a **modular, overlay-based system** for buildin
 - **Copy-Paste Ready** - Works immediately, customize as needed
 - **Observability First-Class** - Full OpenTelemetry stack available as overlays
 
+## 📋 Philosophy: Opinionated with Battle-Tested Defaults
+
+This tool is **opinionated by design**, providing carefully curated configurations that have been tested in real-world development scenarios:
+
+- **🎯 Battle-Tested Defaults** - Base images and configurations are chosen based on proven stability and broad compatibility
+- **🔧 Customization Available** - While we provide sensible defaults, you can customize base images and configurations
+- **⚠️ With Great Power...** - Custom images may introduce conflicts with overlays; test thoroughly
+- **📝 Editable Output** - Generated configurations are plain JSON/YAML you can modify post-generation
+
+**Default Base Image**: `mcr.microsoft.com/devcontainers/base:debian` (Bookworm)
+- Well-maintained by Microsoft
+- Broad compatibility with devcontainer features
+- Regular security updates
+- Proven stability across diverse projects
+
+**Alternative Options**:
+- **Debian Trixie**: `mcr.microsoft.com/devcontainers/base:trixie` - Newer packages, testing stability
+- **Custom Images**: Specify your own, but be aware of potential overlay conflicts
+
 ## 📁 Structure
 
 ```

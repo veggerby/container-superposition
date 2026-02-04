@@ -3,6 +3,7 @@
  */
 
 export type Stack = 'plain' | 'compose';
+export type BaseImage = 'bookworm' | 'trixie' | 'custom';
 export type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs';
 export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
 export type CloudTool = 'azure-cli' | 'aws-cli' | 'kubectl-helm';
@@ -50,6 +51,8 @@ export interface DevContainerConfig {
  */
 export interface QuestionnaireAnswers {
   stack: Stack;
+  baseImage: BaseImage;
+  customImage?: string; // Only used when baseImage is 'custom'
   language?: LanguageOverlay;
   needsDocker: boolean;
   database: Database;

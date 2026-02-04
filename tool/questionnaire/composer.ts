@@ -226,7 +226,7 @@ function applyPortOffsetToEnv(envContent: string, offset: number): string {
 /**
  * Merge docker-compose.yml files from base and overlays into a single file
  */
-function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays: string[], portOffset?: number): void {
+function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays: string[], portOffset?: number, customImage?: string): void {
   const composeFiles: string[] = [];
   
   // Add base docker-compose if exists
@@ -268,6 +268,11 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
     if (compose.networks) {
       merged.networks = { ...merged.networks, ...compose.networks };
     }
+  }
+  
+  // Apply custom base image if specified
+  if (customImage && merged.services.devcontainer) {
+    merged.services.devcontainer.image = customImage;
   }
   
   // Filter depends_on to only include services that exist
@@ -369,6 +374,32 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   const baseConfigPath = path.join(templatePath, 'devcontainer.json');
   let config = loadJson<DevContainer>(baseConfigPath);
   
+  // 3a. Apply base image selection
+  const imageMap: Record<string, string> = {
+    'bookworm': 'mcr.microsoft.com/devcontainers/base:debian',
+    'trixie': 'mcr.microsoft.com/devcontainers/base:trixie',
+  };
+  
+  if (answers.baseImage === 'custom' && answers.customImage) {
+    // Use custom image provided by user
+    if (answers.stack === 'plain') {
+      config.image = answers.customImage;
+    } else if (answers.stack === 'compose') {
+      // For compose, we'll need to update docker-compose.yml later
+      config._customImage = answers.customImage; // Temporary marker
+    }
+    console.log(chalk.yellow(`   ⚠️  Using custom image: ${answers.customImage}`));
+  } else if (answers.baseImage !== 'bookworm') {
+    // Apply non-default base image (bookworm is default, no change needed)
+    const selectedImage = imageMap[answers.baseImage];
+    if (answers.stack === 'plain') {
+      config.image = selectedImage;
+    } else if (answers.stack === 'compose') {
+      config._customImage = selectedImage; // Temporary marker
+    }
+    console.log(chalk.dim(`   🖼️  Using base image: ${chalk.cyan(answers.baseImage)}`));
+  }
+  
   // 4. Determine which overlays to apply
   const overlays: string[] = [];
   
@@ -448,7 +479,8 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   
   // 11. Merge docker-compose files into single combined file
   if (answers.stack === 'compose') {
-    mergeDockerComposeFiles(outputPath, answers.stack, overlays, answers.portOffset);
+    const customImage = config._customImage as string | undefined;
+    mergeDockerComposeFiles(outputPath, answers.stack, overlays, answers.portOffset, customImage);
     // Update devcontainer.json to reference the combined file
     if (config.dockerComposeFile) {
       config.dockerComposeFile = 'docker-compose.yml';
@@ -485,12 +517,12 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
 function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): void {
   // Offset forwardPorts
   if (config.forwardPorts && Array.isArray(config.forwardPorts)) {
-    config.forwardPorts = config.forwardPorts.map((port: number | string) => {
+    config.forwardPorts = config.forwardPorts.map((port: number | string): number | string => {
       if (typeof port === 'number') {
         return port + offset;
       }
       return port;
-    });
+    }) as number[];
   }
   
   // Offset portsAttributes keys
