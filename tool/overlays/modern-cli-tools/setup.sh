@@ -22,17 +22,31 @@ fi
 echo "📦 Installing yq..."
 YQ_VERSION="4.40.5"
 ARCH=$(uname -m)
+
+# SHA256 checksums for yq v4.40.5
 if [ "$ARCH" = "x86_64" ]; then
     YQ_ARCH="amd64"
-elif [ "$ARCH" = "aarch64" ]; then
+    YQ_CHECKSUM="2f716d6628cfa0e0368ee4196826032b1f39d780d9c3ccc44d61a54146f91e2c"
+elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
     YQ_ARCH="arm64"
+    YQ_CHECKSUM="c4e2bb82249b67b83b531a07c48d698e0f0ba8e5da69907f9e6f1f7d158d525e"
 else
     echo "⚠️  Unsupported architecture: $ARCH, defaulting to amd64"
     YQ_ARCH="amd64"
+    YQ_CHECKSUM="2f716d6628cfa0e0368ee4196826032b1f39d780d9c3ccc44d61a54146f91e2c"
 fi
 
 curl -L "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${YQ_ARCH}" \
     -o /tmp/yq
+
+# Verify checksum
+echo "🔐 Verifying yq checksum..."
+echo "${YQ_CHECKSUM}  /tmp/yq" | sha256sum -c - || {
+    echo "✗ yq checksum verification failed"
+    rm /tmp/yq
+    exit 1
+}
+
 sudo mv /tmp/yq /usr/local/bin/yq
 sudo chmod +x /usr/local/bin/yq
 

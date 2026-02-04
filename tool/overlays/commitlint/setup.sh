@@ -192,7 +192,7 @@ if [ ! -f .commitlintrc.json ] && [ ! -f commitlint.config.js ]; then
         "revert"
       ]
     ],
-    "subject-case": [2, "always", "sentence-case"],
+    "subject-case": [2, "always", "lower-case"],
     "subject-max-length": [2, "always", 100]
   }
 }

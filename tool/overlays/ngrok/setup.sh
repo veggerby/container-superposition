@@ -5,26 +5,19 @@ set -e
 
 echo "🌐 Setting up ngrok..."
 
-# Detect architecture
-ARCH=$(uname -m)
-if [ "$ARCH" = "x86_64" ]; then
-    NGROK_ARCH="amd64"
-elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-    NGROK_ARCH="arm64"
-else
-    echo "⚠️  Unsupported architecture: $ARCH, defaulting to amd64"
-    NGROK_ARCH="amd64"
-fi
+# Install ngrok using official apt repository (provides signed packages)
+echo "📦 Installing ngrok from official repository..."
 
-# Download and install ngrok
-echo "📦 Downloading ngrok for ${NGROK_ARCH}..."
-curl -sSL "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${NGROK_ARCH}.tgz" \
-    -o /tmp/ngrok.tgz
+# Add ngrok's GPG key and repository
+curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+    | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
 
-tar -xzf /tmp/ngrok.tgz -C /tmp
-sudo mv /tmp/ngrok /usr/local/bin/
-sudo chmod +x /usr/local/bin/ngrok
-rm /tmp/ngrok.tgz
+echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+    | sudo tee /etc/apt/sources.list.d/ngrok.list
+
+# Update and install
+sudo apt-get update -qq
+sudo apt-get install -y ngrok
 
 # Verify installation
 if command -v ngrok &> /dev/null; then
