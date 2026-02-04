@@ -19,8 +19,8 @@ else
     exit 1
 fi
 
-# Create sample .pre-commit-config.yaml if it doesn't exist
-if [ ! -f .pre-commit-config.yaml ]; then
+# Create sample .pre-commit-config.yaml if no config exists
+if [ ! -f .pre-commit-config.yaml ] && [ ! -f .pre-commit-config.yml ] && [ ! -f .pre-commit-config.json ]; then
     cat > .pre-commit-config.yaml << 'EOF'
 # Pre-commit configuration
 # See https://pre-commit.com for more information

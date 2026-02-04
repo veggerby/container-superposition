@@ -37,22 +37,22 @@ Enforce conventional commit messages for automated releases and changelogs.
 
 Component or module affected by the change:
 ```
-feat(auth): Add OAuth2 support
-fix(api): Handle null responses
+feat(auth): add OAuth2 support
+fix(api): handle null responses
 ```
 
 ### Subject (required)
 
 Short description (≤100 chars):
-- Use imperative mood ("Add" not "Added")
+- Use imperative mood ("add" not "added")
 - No period at the end
-- Sentence case
+- Lowercase (conventional commits standard)
 
 ### Body (optional)
 
 Detailed explanation of the change:
 ```
-feat(auth): Add OAuth2 authentication
+feat(auth): add OAuth2 authentication
 
 Implements OAuth2 flow with support for GitHub, Google, and custom
 providers. Includes token refresh and automatic retry logic.
@@ -62,7 +62,7 @@ providers. Includes token refresh and automatic retry logic.
 
 Breaking changes or issue references:
 ```
-feat(api): Redesign authentication API
+feat(api): redesign authentication API
 
 BREAKING CHANGE: Auth endpoints now require OAuth2 tokens instead of
 API keys. Update client code to use new authentication flow.
@@ -90,7 +90,7 @@ git commit -m "Added new feature"
 Before committing:
 
 ```bash
-echo "feat(auth): Add OAuth2" | commitlint
+echo "feat(auth): add OAuth2" | commitlint
 # ✓ Valid
 
 echo "Added OAuth2" | commitlint
@@ -226,25 +226,25 @@ repos:
 ### Good Commit Messages
 
 ```
-feat(auth): Add Google OAuth2 provider
+feat(auth): add Google OAuth2 provider
 
-fix(api): Handle null responses in user endpoint
+fix(api): handle null responses in user endpoint
 Fixes #123
 
-docs: Update installation guide
+docs: update installation guide
 
-refactor(core): Simplify error handling
+refactor(core): simplify error handling
 
-perf(query): Optimize database queries
+perf(query): optimize database queries
 Reduces query time by 50%
 
-test(api): Add integration tests for auth endpoints
+test(api): add integration tests for auth endpoints
 
-build(deps): Bump axios to v1.6.0
+build(deps): bump axios to v1.6.0
 
-ci: Add automated release workflow
+ci: add automated release workflow
 
-chore: Update .gitignore
+chore: update .gitignore
 ```
 
 ### Bad Commit Messages
@@ -254,12 +254,12 @@ Added OAuth2
 ❌ Missing type
 
 feat: added oauth2
-❌ Wrong tense (should be "Add")
+❌ Wrong tense (should be "add")
 
-Feat(Auth): Add OAuth2
+Feat(Auth): add OAuth2
 ❌ Type should be lowercase, scope should be lowercase
 
-feat(auth): Add OAuth2.
+feat(auth): add OAuth2.
 ❌ Subject should not end with period
 
 feat(auth): added oauth2 support for google and github providers

@@ -2,6 +2,8 @@
 
 Automatic environment variable management for project-specific configurations.
 
+**⚠️ Security Note:** The sample `.envrc` file is automatically allowed during setup for convenience in the devcontainer environment. `.envrc` files can execute arbitrary code, so always review the contents before using in production or with untrusted repositories. Run `direnv deny` to disable if needed.
+
 ## What's Included
 
 - **direnv** - Per-directory environment variable loader

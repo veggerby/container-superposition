@@ -73,9 +73,11 @@ log_status "✓ Environment loaded for $PROJECT_NAME"
 EOF
     echo "✓ Sample .envrc created"
     
-    # Auto-allow .envrc in devcontainer context
+    # Note: Auto-allowing .envrc in devcontainer context
+    # WARNING: .envrc can execute arbitrary code. Review before allowing in production.
+    echo "⚠️  Auto-allowing .envrc for devcontainer (review contents before use)"
     direnv allow .envrc 2>/dev/null || true
-    echo "✓ .envrc pre-allowed for this workspace"
+    echo "✓ .envrc pre-allowed (run 'direnv deny' to disable)"
 fi
 
 # Create sample .env file if it doesn't exist

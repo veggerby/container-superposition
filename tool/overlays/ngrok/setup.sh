@@ -102,7 +102,9 @@ EOF
 fi
 
 # Create sample helper scripts
-cat > /home/vscode/.local/bin/ngrok-web 2>/dev/null || cat > /tmp/ngrok-web << 'EOF'
+mkdir -p /home/vscode/.local/bin 2>/dev/null || true
+
+cat > /home/vscode/.local/bin/ngrok-web << 'EOF'
 #!/bin/bash
 # Quick script to expose local web server
 
@@ -111,10 +113,7 @@ echo "🌐 Exposing localhost:${PORT} via ngrok..."
 ngrok http ${PORT}
 EOF
 
-if [ -d /home/vscode/.local/bin ]; then
-    mv /tmp/ngrok-web /home/vscode/.local/bin/ngrok-web 2>/dev/null || true
-    chmod +x /home/vscode/.local/bin/ngrok-web 2>/dev/null || true
-fi
+chmod +x /home/vscode/.local/bin/ngrok-web 2>/dev/null || true
 
 echo "✓ ngrok setup complete"
 echo ""
