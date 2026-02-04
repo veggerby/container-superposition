@@ -72,7 +72,7 @@ npm run test:smoke
 npm run docs:generate
 
 # Clean build artifacts
-npm clean
+npm run clean
 ```
 
 ### Path Resolution Strategy
@@ -118,7 +118,7 @@ npm run test:smoke
 
 ### Test File Locations
 
-- Unit tests: `tool/**/*.spec.ts`
+- Unit tests: `tool/__tests__/**/*.test.ts`
 - Test configuration: `vitest.config.ts`
 - Smoke test script: `scripts/test.sh`
 

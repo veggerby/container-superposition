@@ -22,17 +22,21 @@ echo ""
 echo "2️⃣ Checking PostgreSQL service..."
 if command -v pg_isready &> /dev/null; then
     # Wait up to 10 seconds for postgres to be ready
+    POSTGRES_READY=false
     for i in {1..10}; do
         if pg_isready -h postgres -p 5432 &> /dev/null; then
             echo "   ✅ PostgreSQL service is ready"
             pg_isready -h postgres -p 5432
+            POSTGRES_READY=true
             break
-        fi
-        if [ $i -eq 10 ]; then
-            echo "   ⚠️  PostgreSQL service not ready yet (may still be starting)"
         fi
         sleep 1
     done
+    
+    if [ "$POSTGRES_READY" = false ]; then
+        echo "   ❌ PostgreSQL service not ready after 10 seconds"
+        exit 1
+    fi
 else
     echo "   ⚠️  pg_isready not found, skipping service check"
 fi

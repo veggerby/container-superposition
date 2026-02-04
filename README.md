@@ -366,9 +366,9 @@ Each overlay includes a `verify.sh` script for validation:
 
 ```bash
 # Inside a devcontainer, run verification scripts
-bash .devcontainer/scripts/verify-postgres.sh
-bash .devcontainer/scripts/verify-redis.sh
-bash .devcontainer/scripts/verify-grafana.sh
+bash ./verify-postgres.sh
+bash ./verify-redis.sh
+bash ./verify-grafana.sh
 ```
 
 **Verification scripts check:**

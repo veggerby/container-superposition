@@ -14,7 +14,19 @@ import type { OverlaysConfig, OverlayMetadata } from '../schema/types.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const REPO_ROOT = path.join(__dirname, '..', '..');
+// Resolve REPO_ROOT that works in both source and compiled output
+// When running from TypeScript sources (e.g. tsx), __dirname is "<root>/tool/docs"
+// When running from compiled JS in "dist/tool/docs", __dirname is "<root>/dist/tool/docs"
+const REPO_ROOT_CANDIDATES = [
+  path.join(__dirname, '..', '..'),          // From source: tool/docs -> root
+  path.join(__dirname, '..', '..', '..'),    // From dist: dist/tool/docs -> root
+];
+
+const REPO_ROOT = REPO_ROOT_CANDIDATES.find(candidate => 
+  fs.existsSync(path.join(candidate, 'templates')) && 
+  fs.existsSync(path.join(candidate, 'tool', 'overlays'))
+) ?? REPO_ROOT_CANDIDATES[0];
+
 const OVERLAYS_CONFIG_PATH = path.join(REPO_ROOT, 'tool', 'overlays.yml');
 const OUTPUT_PATH = path.join(REPO_ROOT, 'tool', 'docs', 'overlays.md');
 

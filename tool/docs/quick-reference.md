@@ -102,15 +102,15 @@ This ensures valid configurations without manual dependency tracking!
 
 ## Development Tool Overlays
 
-| Overlay | Purpose | Contents |
-|---------|---------|----------|
-| **playwright** | Browser testing | Playwright, Chromium |
- Conflicts |
+| Overlay | Purpose | Contents | Conflicts |
 |---------|---------|----------|-----------|
 | **docker-in-docker** | Docker daemon inside container | Docker CLI, daemon | docker-sock |
 | **docker-sock** | Docker socket mounting | Docker CLI, socket access | docker-in-docker |
 | **playwright** | Browser testing | Playwright, Chromium | - |
-| **codex** | AI code assistant | Codex tools and integrations | -
+| **codex** | AI code assistant | Codex tools and integrations | - |
+
+## Service Startup Order
+
 Services start in this order (controlled by `_serviceOrder`):
 
 1. **Order 0** - Infrastructure: postgres, redis

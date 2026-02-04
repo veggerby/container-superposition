@@ -21,17 +21,21 @@ fi
 echo ""
 echo "2️⃣ Checking Redis service..."
 # Wait up to 10 seconds for redis to be ready
+REDIS_READY=false
 for i in {1..10}; do
     if redis-cli -h redis ping &> /dev/null; then
         echo "   ✅ Redis service is ready"
         redis-cli -h redis ping
+        REDIS_READY=true
         break
-    fi
-    if [ $i -eq 10 ]; then
-        echo "   ⚠️  Redis service not ready yet (may still be starting)"
     fi
     sleep 1
 done
+
+if [ "$REDIS_READY" = false ]; then
+    echo "   ❌ Redis service not ready after 10 seconds"
+    exit 1
+fi
 
 echo ""
 echo "✅ Redis overlay verification complete"
