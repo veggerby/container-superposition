@@ -19,7 +19,7 @@ This tool is designed to:
 
 We make deliberate choices about base images, tool versions, and configurations based on real-world usage:
 
-- **Default Base Image**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:debian`)
+- **Default Base Image**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:bookworm`)
   - Stable, well-maintained, broad compatibility
   - Microsoft's recommended base for general development
   - Regular security updates and long-term support
@@ -62,9 +62,9 @@ The tool features:
 ### Non-Interactive Mode (For Automation)
 
 ```bash
-npm run init -- --stack dotnet --postgres --docker
-npm run init -- --stack node-typescript --playwright --cloud-tools azure-cli,kubectl-helm
-npm run init -- --stack fullstack --db postgres+redis --output ./my-project/.devcontainer
+npm run init -- --stack compose --language dotnet --db postgres
+npm run init -- --stack plain --language nodejs --playwright --cloud-tools azure-cli,kubectl-helm
+npm run init -- --stack compose --language nodejs --db postgres+redis --output ./my-project/.devcontainer
 ```
 
 ### Via npx (Once Published)

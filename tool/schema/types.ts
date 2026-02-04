@@ -7,6 +7,7 @@ export type BaseImage = 'bookworm' | 'trixie' | 'custom';
 export type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs';
 export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
 export type CloudTool = 'azure-cli' | 'aws-cli' | 'kubectl-helm';
+export type DevTool = 'docker-in-docker' | 'docker-sock' | 'codex' | 'playwright';
 export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'prometheus' | 'grafana' | 'loki';
 
 export interface DevContainerConfig {
@@ -58,6 +59,7 @@ export interface QuestionnaireAnswers {
   database: Database;
   playwright: boolean;
   cloudTools: CloudTool[];
+  devTools: DevTool[];
   observability: ObservabilityTool[];
   outputPath: string;
   portOffset?: number; // Optional port offset for running multiple instances

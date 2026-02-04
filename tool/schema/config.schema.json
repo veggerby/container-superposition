@@ -6,8 +6,27 @@
   "properties": {
     "stack": {
       "type": "string",
-      "enum": ["dotnet", "node-typescript", "python-mkdocs", "fullstack"],
-      "description": "The base template/stack to use"
+      "enum": ["plain", "compose"],
+      "description": "The base template to use (plain or compose)"
+    },
+    "baseImage": {
+      "type": "string",
+      "enum": ["bookworm", "trixie", "custom"],
+      "default": "bookworm",
+      "description": "Base Debian image version"
+    },
+    "customImage": {
+      "type": "string",
+      "description": "Custom base image (only when baseImage is 'custom')"
+    },
+    "language": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["dotnet", "nodejs", "python", "mkdocs"]
+      },
+      "default": [],
+      "description": "Language/framework overlays"
     },
     "database": {
       "type": "string",
@@ -24,10 +43,23 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["azure-cli", "kubectl-helm"]
+        "enum": ["azure-cli", "aws-cli", "kubectl-helm", "docker-in-docker", "docker-sock"]
       },
       "default": [],
       "description": "Cloud/orchestration tools to include"
+    },
+    "observability": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["otel-collector", "jaeger", "prometheus", "grafana", "loki"]
+      },
+      "default": [],
+      "description": "Observability tools to include"
+    },
+    "portOffset": {
+      "type": "number",
+      "description": "Port offset for running multiple instances"
     },
     "outputPath": {
       "type": "string",

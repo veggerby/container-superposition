@@ -8,7 +8,7 @@ Container Superposition provides **opinionated, battle-tested base image default
 
 ### Default Base Image
 
-**Debian Bookworm** (`mcr.microsoft.com/devcontainers/base:debian`)
+**Debian Bookworm** (`mcr.microsoft.com/devcontainers/base:bookworm`)
 
 This is the recommended default base image:
 - ✅ **Stable**: Long-term support with regular security updates
@@ -20,7 +20,7 @@ This is the recommended default base image:
 
 During interactive initialization, you can choose from:
 
-1. **Debian Bookworm (Recommended)** - `mcr.microsoft.com/devcontainers/base:debian`
+1. **Debian Bookworm (Recommended)** - `mcr.microsoft.com/devcontainers/base:bookworm`
    - Default choice, best compatibility
 
 2. **Debian Trixie** - `mcr.microsoft.com/devcontainers/base:trixie`

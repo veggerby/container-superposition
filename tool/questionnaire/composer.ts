@@ -87,7 +87,7 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
   } else {
     const existing = baseConfig.features[featureKey].packages || '';
     // Filter out empty tokens from split to avoid leading spaces
-    const existingPackages = existing.split(' ').filter(p => p);
+    const existingPackages = existing.split(' ').filter((p: string) => p);
     const newPackages = packages.split(' ').filter(p => p);
     const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
     baseConfig.features[featureKey].packages = merged;
@@ -323,7 +323,7 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
       merged.services.devcontainer.image = customImage;
     } else if (!merged.services.devcontainer.image) {
       // Fallback to default if no image is set
-      merged.services.devcontainer.image = 'mcr.microsoft.com/devcontainers/base:debian';
+      merged.services.devcontainer.image = 'mcr.microsoft.com/devcontainers/base:bookworm';
     }
   }
   
@@ -428,7 +428,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   
   // 3a. Apply base image selection
   const imageMap: Record<string, string> = {
-    'bookworm': 'mcr.microsoft.com/devcontainers/base:debian',
+    'bookworm': 'mcr.microsoft.com/devcontainers/base:bookworm',
     'trixie': 'mcr.microsoft.com/devcontainers/base:trixie',
   };
   
@@ -488,6 +488,11 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // Cloud tools
   if (answers.cloudTools && answers.cloudTools.length > 0) {
     overlays.push(...answers.cloudTools);
+  }
+  
+  // Dev tools
+  if (answers.devTools && answers.devTools.length > 0) {
+    overlays.push(...answers.devTools);
   }
   
   // 4. Apply overlays

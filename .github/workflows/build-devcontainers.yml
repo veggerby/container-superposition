@@ -70,11 +70,11 @@ jobs:
           # Docker overlays
           - name: "Plain + Docker-in-Docker"
             stack: plain
-            overlays: "--cloud-tools docker-in-docker"
+            overlays: "--dev-tools docker-in-docker"
             
           - name: "Compose + Docker socket"
             stack: compose
-            overlays: "--cloud-tools docker-sock"
+            overlays: "--dev-tools docker-sock"
 
     steps:
       - name: Checkout repository

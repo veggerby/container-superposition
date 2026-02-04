@@ -107,9 +107,18 @@ chmod +x /usr/local/bin/init-secrets
 cat >> /etc/bash.bashrc << 'BASHRC'
 
 # Auto-load .env.local if present
-if [ -f /workspace/.env.local ]; then
+# Detect workspace path (supports both /workspace and /workspaces/<repo>)
+if [ -n "$VSCODE_WORKSPACE_FOLDER" ]; then
+    WORKSPACE_PATH="$VSCODE_WORKSPACE_FOLDER"
+elif [ -d "/workspaces" ]; then
+    WORKSPACE_PATH=$(find /workspaces -mindepth 1 -maxdepth 1 -type d | head -n 1)
+elif [ -d "/workspace" ]; then
+    WORKSPACE_PATH="/workspace"
+fi
+
+if [ -n "$WORKSPACE_PATH" ] && [ -f "$WORKSPACE_PATH/.env.local" ]; then
     set -a
-    source /workspace/.env.local
+    source "$WORKSPACE_PATH/.env.local"
     set +a
 fi
 BASHRC

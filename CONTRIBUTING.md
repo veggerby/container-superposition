@@ -201,7 +201,7 @@ mkdir -p templates/my-stack/.devcontainer/scripts
 ```jsonc
 {
   "name": "My Stack Development",
-  "image": "mcr.microsoft.com/devcontainers/base:debian",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
   "features": {
     // Add features from containers.dev
   },

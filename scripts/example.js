@@ -12,11 +12,14 @@ import { composeDevContainer } from '../tool/questionnaire/composer.js';
 // Example 1: Basic .NET setup with PostgreSQL
 async function example1() {
   await composeDevContainer({
-    stack: 'dotnet',
-    needsDocker: true,
+    stack: 'compose',
+    baseImage: 'bookworm',
+    language: ['dotnet'],
+    needsDocker: false,
     database: 'postgres',
     playwright: false,
     cloudTools: [],
+    observability: [],
     outputPath: './examples/dotnet-postgres/.devcontainer',
   });
   console.log('✅ Created: examples/dotnet-postgres/.devcontainer/');
@@ -25,11 +28,14 @@ async function example1() {
 // Example 2: Full-stack with all the things
 async function example2() {
   await composeDevContainer({
-    stack: 'fullstack',
-    needsDocker: true,
+    stack: 'compose',
+    baseImage: 'bookworm',
+    language: ['nodejs'],
+    needsDocker: false,
     database: 'postgres+redis',
     playwright: true,
     cloudTools: ['azure-cli', 'kubectl-helm'],
+    observability: ['otel-collector', 'jaeger', 'prometheus', 'grafana'],
     outputPath: './examples/fullstack-kitchen-sink/.devcontainer',
   });
   console.log('✅ Created: examples/fullstack-kitchen-sink/.devcontainer/');
@@ -38,11 +44,14 @@ async function example2() {
 // Example 3: Minimal Node.js
 async function example3() {
   await composeDevContainer({
-    stack: 'node-typescript',
+    stack: 'plain',
+    baseImage: 'bookworm',
+    language: ['nodejs'],
     needsDocker: false,
     database: 'none',
     playwright: false,
     cloudTools: [],
+    observability: [],
     outputPath: './examples/minimal-node/.devcontainer',
   });
   console.log('✅ Created: examples/minimal-node/.devcontainer/');

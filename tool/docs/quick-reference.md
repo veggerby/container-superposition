@@ -8,7 +8,7 @@
 | **Debian Trixie** | `trixie` | Newer packages for testing | Testing |
 | **Custom Image** ⚠️ | `custom` | Specific requirements, may conflict | Varies |
 
-**Default**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:debian`)
+**Default**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:bookworm`)
 - Battle-tested in production
 - Broad compatibility with all overlays
 - Regular security updates

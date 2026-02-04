@@ -40,7 +40,7 @@ echo "   ✅ All overlays present"
 # Test 4: Check templates exist
 echo ""
 echo "4️⃣  Checking base templates..."
-for template in dotnet node-typescript python-mkdocs fullstack; do
+for template in plain compose; do
   if [ ! -f "templates/$template/.devcontainer/devcontainer.json" ]; then
     echo "   ❌ Template $template not found"
     exit 1
@@ -69,5 +69,5 @@ echo "✅ All smoke tests passed!"
 echo ""
 echo "Try running the tool:"
 echo "  npm run init -- --help"
-echo "  npm run init -- --stack dotnet --postgres"
+echo "  npm run init -- --stack compose --language dotnet --db postgres"
 echo ""

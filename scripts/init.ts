@@ -6,9 +6,9 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
-import { select, checkbox, confirm, input } from '@inquirer/prompts';
+import { select, checkbox, input } from '@inquirer/prompts';
 import yaml from 'js-yaml';
-import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, ObservabilityTool } from '../tool/schema/types';
+import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types';
 import { composeDevContainer } from '../tool/questionnaire/composer';
 
 interface OverlayMetadata {
@@ -30,7 +30,18 @@ interface OverlaysConfig {
   dev_tool_overlays: OverlayMetadata[];
 }
 
-const OVERLAYS_CONFIG_PATH = path.join(__dirname, '..', 'tool', 'overlays.yml');
+const OVERLAYS_CONFIG_CANDIDATES = [
+  // When running from TypeScript sources (e.g. ts-node), __dirname is "<root>/scripts"
+  // and "../tool/overlays.yml" resolves to "<root>/tool/overlays.yml".
+  path.join(__dirname, '..', 'tool', 'overlays.yml'),
+  // When running from compiled JS in "dist/scripts", __dirname is "<root>/dist/scripts"
+  // and "../../tool/overlays.yml" resolves to "<root>/tool/overlays.yml".
+  path.join(__dirname, '..', '..', 'tool', 'overlays.yml'),
+];
+
+const OVERLAYS_CONFIG_PATH =
+  OVERLAYS_CONFIG_CANDIDATES.find((candidate) => fs.existsSync(candidate)) ??
+  OVERLAYS_CONFIG_CANDIDATES[0];
 
 /**
  * Load overlay metadata from YAML file
@@ -147,6 +158,10 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       config.cloud_tool_overlays.some(ct => ct.id === o)
     ) as CloudTool[];
 
+    const devTools = selectedOverlays.filter(o =>
+      config.dev_tool_overlays.some(dt => dt.id === o)
+    ) as DevTool[];
+
     // Database handling
     const hasPostgres = selectedOverlays.includes('postgres');
     const hasRedis = selectedOverlays.includes('redis');
@@ -170,6 +185,7 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       database,
       playwright,
       cloudTools,
+      devTools,
       observability,
       outputPath,
       portOffset,
@@ -252,6 +268,7 @@ async function main() {
         database: cliConfig.database ?? 'none',
         playwright: cliConfig.playwright ?? false,
         cloudTools: cliConfig.cloudTools ?? [],
+        devTools: cliConfig.devTools ?? [],
         observability: cliConfig.observability ?? [],
         outputPath: cliConfig.outputPath ?? './.devcontainer',
         portOffset: cliConfig.portOffset,
