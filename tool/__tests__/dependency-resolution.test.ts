@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as yaml from 'js-yaml';
-import type { OverlaysConfig, OverlayMetadata } from '../schema/types';
+import type { OverlaysConfig, OverlayMetadata } from '../schema/types.js';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const OVERLAYS_CONFIG_PATH = path.join(REPO_ROOT, 'tool', 'overlays.yml');

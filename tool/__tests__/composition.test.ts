@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as yaml from 'js-yaml';
-import { composeDevContainer } from '../questionnaire/composer';
-import type { QuestionnaireAnswers } from '../schema/types';
+import { composeDevContainer } from '../questionnaire/composer.js';
+import type { QuestionnaireAnswers } from '../schema/types.js';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const TEST_OUTPUT_DIR = path.join(REPO_ROOT, 'tmp', 'test-output');

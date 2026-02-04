@@ -2,14 +2,19 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
 import { select, input, search } from '@inquirer/prompts';
 import yaml from 'js-yaml';
-import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types';
-import { composeDevContainer } from '../tool/questionnaire/composer';
+import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types.js';
+import { composeDevContainer } from '../tool/questionnaire/composer.js';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface OverlayMetadata {
   id: string;

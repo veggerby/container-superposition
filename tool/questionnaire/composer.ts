@@ -1,8 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import * as yaml from 'js-yaml';
-import type { QuestionnaireAnswers, DevContainer, CloudTool, OverlayMetadata, OverlaysConfig, SuperpositionManifest } from '../schema/types';
+import type { QuestionnaireAnswers, DevContainer, CloudTool, OverlayMetadata, OverlaysConfig, SuperpositionManifest } from '../schema/types.js';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Resolve REPO_ROOT that works in both source and compiled output
 // When running from TypeScript sources (e.g. ts-node), __dirname is "<root>/tool/questionnaire"
