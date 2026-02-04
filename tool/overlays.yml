@@ -205,7 +205,7 @@ dev_tool_overlays:
     name: Docker (host socket)
     description: Access host Docker daemon via socket mount (fast, local-only)
     category: dev
-    supports: [compose] # Requires docker-compose
+    supports: [] 
     requires: []
     suggests: []
     conflicts: [docker-in-docker]
