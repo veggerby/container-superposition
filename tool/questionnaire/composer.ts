@@ -193,6 +193,34 @@ function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: n
   fs.writeFileSync(envOutputPath, combined + '\n');
   
   console.log(chalk.dim(`   🔐 Created .env.example with ${overlays.length} overlay(s)`));
+  
+  // If port offset is specified, create a .env file with offset values
+  if (portOffset) {
+    const envContent = applyPortOffsetToEnv(combined, portOffset);
+    const envFilePath = path.join(outputPath, '.env');
+    fs.writeFileSync(envFilePath, envContent);
+    console.log(chalk.dim(`   🔧 Created .env with port offset of ${portOffset}`));
+  }
+}
+
+/**
+ * Apply port offset to environment variables in .env content
+ */
+function applyPortOffsetToEnv(envContent: string, offset: number): string {
+  const lines = envContent.split('\n');
+  const portVarPattern = /^([A-Z_]*PORT[A-Z_]*)=(\d+)$/;
+  
+  const modifiedLines = lines.map(line => {
+    const match = line.match(portVarPattern);
+    if (match) {
+      const [, varName, portValue] = match;
+      const newPort = parseInt(portValue, 10) + offset;
+      return `${varName}=${newPort}`;
+    }
+    return line;
+  });
+  
+  return modifiedLines.join('\n');
 }
 
 /**
@@ -252,30 +280,6 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
         delete service.depends_on;
       }
     }
-    
-    // Apply port offset if specified
-    if (portOffset && service.ports && Array.isArray(service.ports)) {
-      service.ports = service.ports.map((portMapping: string) => {
-        // Parse port mapping like "3000:3000" or "${GRAFANA_PORT:-3000}:3000"
-        const match = portMapping.match(/^(.+):(\d+)$/);
-        if (match) {
-          const [, hostPart, containerPort] = match;
-          // If hostPart contains env var like "${GRAFANA_PORT:-3000}"
-          const envMatch = hostPart.match(/\$\{([^:}]+):-(\d+)\}/);
-          if (envMatch) {
-            const [, envVar, defaultPort] = envMatch;
-            const newPort = parseInt(defaultPort, 10) + portOffset;
-            return `\${${envVar}:-${newPort}}:${containerPort}`;
-          }
-          // Plain port like "3000:3000"
-          const hostPort = parseInt(hostPart, 10);
-          if (!isNaN(hostPort)) {
-            return `${hostPort + portOffset}:${containerPort}`;
-          }
-        }
-        return portMapping;
-      });
-    }
   }
   
   // Remove empty sections
@@ -298,18 +302,74 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
  * Main composition logic
  */
 export async function composeDevContainer(answers: QuestionnaireAnswers): Promise<void> {
-  // 1. Determine base template path
+  // 1. Validate overlay compatibility with selected stack
+  const overlaysConfigPath = path.join(REPO_ROOT, 'tool', 'overlays.yml');
+  const overlaysConfig = yaml.load(fs.readFileSync(overlaysConfigPath, 'utf-8')) as any;
+  
+  // Collect all overlay definitions
+  const allOverlayDefs = [
+    ...overlaysConfig.language_overlays,
+    ...overlaysConfig.database_overlays,
+    ...overlaysConfig.observability_overlays,
+    ...overlaysConfig.cloud_tool_overlays,
+    ...overlaysConfig.dev_tool_overlays,
+  ];
+  
+  // Build list of requested overlays
+  const requestedOverlays: string[] = [];
+  if (answers.language) requestedOverlays.push(answers.language);
+  if (answers.database?.includes('postgres')) requestedOverlays.push('postgres');
+  if (answers.database?.includes('redis')) requestedOverlays.push('redis');
+  if (answers.observability) requestedOverlays.push(...answers.observability);
+  if (answers.playwright) requestedOverlays.push('playwright');
+  if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
+  
+  // Check compatibility
+  const incompatible: string[] = [];
+  for (const overlayId of requestedOverlays) {
+    const overlayDef = allOverlayDefs.find(o => o.id === overlayId);
+    if (overlayDef?.supports && overlayDef.supports.length > 0) {
+      if (!overlayDef.supports.includes(answers.stack)) {
+        incompatible.push(`${overlayId} (requires: ${overlayDef.supports.join(', ')})`);
+      }
+    }
+  }
+  
+  if (incompatible.length > 0) {
+    console.log(chalk.yellow(`\n⚠️  Warning: Some overlays are not compatible with '${answers.stack}' template:`));
+    incompatible.forEach(overlay => {
+      console.log(chalk.yellow(`   • ${overlay}`));
+    });
+    console.log(chalk.yellow(`\nThese overlays will be skipped.\n`));
+    
+    // Filter out incompatible overlays
+    if (answers.database?.includes('postgres') && incompatible.some(i => i.startsWith('postgres'))) {
+      answers.database = answers.database.replace('postgres', '').replace('+', '').trim() as any;
+      if (!answers.database) answers.database = 'none';
+    }
+    if (answers.database?.includes('redis') && incompatible.some(i => i.startsWith('redis'))) {
+      answers.database = answers.database.replace('redis', '').replace('+', '').trim() as any;
+      if (!answers.database) answers.database = 'none';
+    }
+    if (answers.observability) {
+      answers.observability = answers.observability.filter(o => 
+        !incompatible.some(i => i.startsWith(o))
+      ) as any;
+    }
+  }
+  
+  // 2. Determine base template path
   const templatePath = path.join(TEMPLATES_DIR, answers.stack, '.devcontainer');
   
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template not found: ${answers.stack}`);
   }
   
-  // 2. Load base devcontainer.json
+  // 3. Load base devcontainer.json
   const baseConfigPath = path.join(templatePath, 'devcontainer.json');
   let config = loadJson<DevContainer>(baseConfigPath);
   
-  // 3. Determine which overlays to apply
+  // 4. Determine which overlays to apply
   const overlays: string[] = [];
   
   // Language overlay
@@ -359,7 +419,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     fs.mkdirSync(outputPath, { recursive: true });
   }
   
-  // 6. Copy template files (docker-compose, scripts, etc.)
+  // 7. Copy template files (docker-compose, scripts, etc.)
   const entries = fs.readdirSync(templatePath);
   for (const entry of entries) {
     if (entry === 'devcontainer.json') continue; // We'll write this separately
@@ -375,7 +435,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     }
   }
   
-  // 7. Copy overlay files (docker-compose, configs, etc.)
+  // 8. Copy overlay files (docker-compose, configs, etc.)
   for (const overlay of overlays) {
     copyOverlayFiles(outputPath, overlay);
   }
@@ -386,7 +446,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // 9. Merge runServices array in correct order
   mergeRunServices(config, overlays);
   
-  // 10. Merge docker-compose files into single combined file
+  // 11. Merge docker-compose files into single combined file
   if (answers.stack === 'compose') {
     mergeDockerComposeFiles(outputPath, answers.stack, overlays, answers.portOffset);
     // Update devcontainer.json to reference the combined file
@@ -395,13 +455,54 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     }
   }
   
-  // 11. Write merged devcontainer.json
+  // Apply port offset to devcontainer.json if specified
+  if (answers.portOffset) {
+    applyPortOffsetToDevcontainer(config, answers.portOffset);
+  }
+  
+  // Remove internal fields (those starting with _)
+  Object.keys(config).forEach(key => {
+    if (key.startsWith('_')) {
+      delete (config as any)[key];
+    }
+  });
+  
+  // 12. Write merged devcontainer.json
   const configPath = path.join(outputPath, 'devcontainer.json');
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
   console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
   
-  // 12. Merge .env.example files from overlays
+  // 13. Merge .env.example files from overlays
   mergeEnvExamples(outputPath, overlays, answers.portOffset);
+}
+
+/**
+ * Apply port offset to devcontainer.json forwardPorts and portsAttributes
+ */
+function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): void {
+  // Offset forwardPorts
+  if (config.forwardPorts && Array.isArray(config.forwardPorts)) {
+    config.forwardPorts = config.forwardPorts.map((port: number | string) => {
+      if (typeof port === 'number') {
+        return port + offset;
+      }
+      return port;
+    });
+  }
+  
+  // Offset portsAttributes keys
+  if (config.portsAttributes) {
+    const newPortsAttributes: any = {};
+    for (const [port, attrs] of Object.entries(config.portsAttributes)) {
+      const portNum = parseInt(port, 10);
+      if (!isNaN(portNum)) {
+        newPortsAttributes[portNum + offset] = attrs;
+      } else {
+        newPortsAttributes[port] = attrs;
+      }
+    }
+    config.portsAttributes = newPortsAttributes;
+  }
 }
 
 /**

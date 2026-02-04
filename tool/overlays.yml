@@ -15,32 +15,38 @@ language_overlays:
     name: .NET
     description: .NET 10 SDK with C# DevKit
     category: language
+    supports: [] # Empty = all templates
     
   - id: nodejs
     name: Node.js
     description: Node.js LTS with TypeScript and tooling
     category: language
+    supports: []
     
   - id: python
     name: Python
     description: Python 3.12 with linting and formatting
     category: language
+    supports: []
     
   - id: mkdocs
     name: MkDocs
     description: Python with MkDocs for documentation
     category: language
+    supports: []
 
 database_overlays:
   - id: postgres
     name: PostgreSQL
     description: PostgreSQL 16 database
     category: database
+    supports: [compose] # Requires docker-compose
     
   - id: redis
     name: Redis
     description: Redis 7 cache
     category: database
+    supports: [compose] # Requires docker-compose
 
 observability_overlays:
   - id: otel-collector
@@ -48,49 +54,58 @@ observability_overlays:
     description: Telemetry collection pipeline
     category: observability
     order: 2
+    supports: [compose] # Requires docker-compose
     
   - id: jaeger
     name: Jaeger
     description: Distributed tracing backend
     category: observability
     order: 1
+    supports: [compose] # Requires docker-compose
     
   - id: prometheus
     name: Prometheus
     description: Metrics collection and monitoring
     category: observability
     order: 1
+    supports: [compose] # Requires docker-compose
     
   - id: grafana
     name: Grafana
     description: Observability visualization dashboard
     category: observability
     order: 3
+    supports: [compose] # Requires docker-compose
     
   - id: loki
     name: Loki
     description: Log aggregation system
     category: observability
     order: 1
+    supports: [compose] # Requires docker-compose
 
 cloud_tool_overlays:
   - id: aws-cli
     name: AWS CLI
     description: Amazon Web Services command-line tools
     category: cloud
+    supports: []
     
   - id: azure-cli
     name: Azure CLI
     description: Microsoft Azure command-line tools
     category: cloud
+    supports: []
     
   - id: kubectl-helm
     name: kubectl + Helm
     description: Kubernetes CLI and Helm package manager
     category: cloud
+    supports: []
 
 dev_tool_overlays:
   - id: playwright
     name: Playwright
-    description: Browser automation and testing
-    category: devtool
+    description: Browser automation and testing framework
+    category: dev
+    supports: []

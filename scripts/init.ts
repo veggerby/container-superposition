@@ -71,14 +71,17 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       }))
     }) as Stack;
 
-    // Question 2: All overlays in one multi-select
+    // Question 2: All overlays in one multi-select (filtered by stack compatibility)
     const allOverlays = [
       ...config.language_overlays.map(o => ({ ...o, category: 'Language' })),
       ...config.database_overlays.map(o => ({ ...o, category: 'Database' })),
       ...config.observability_overlays.map(o => ({ ...o, category: 'Observability' })),
       ...config.cloud_tool_overlays.map(o => ({ ...o, category: 'Cloud Tools' })),
       ...config.dev_tool_overlays.map(o => ({ ...o, category: 'Dev Tools' })),
-    ];
+    ].filter((overlay: any) => {
+      // Filter by supports field: empty array = all templates, otherwise must include selected stack
+      return !overlay.supports || overlay.supports.length === 0 || overlay.supports.includes(stack);
+    });
 
     const selectedOverlays = await checkbox({
       message: 'Select overlays to include (optional):',
