@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Container Superposition Configuration",
+  "description": "Configuration for initializing a devcontainer with container-superposition",
+  "properties": {
+    "stack": {
+      "type": "string",
+      "enum": ["dotnet", "node-typescript", "python-mkdocs", "fullstack"],
+      "description": "The base template/stack to use"
+    },
+    "database": {
+      "type": "string",
+      "enum": ["none", "postgres", "redis", "postgres+redis"],
+      "default": "none",
+      "description": "Database requirements"
+    },
+    "playwright": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include Playwright for browser automation"
+    },
+    "cloudTools": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["azure-cli", "kubectl-helm"]
+      },
+      "default": [],
+      "description": "Cloud/orchestration tools to include"
+    },
+    "outputPath": {
+      "type": "string",
+      "default": "./.devcontainer",
+      "description": "Where to write the devcontainer configuration"
+    }
+  },
+  "required": ["stack"]
+}

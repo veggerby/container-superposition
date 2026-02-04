@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
+      "packages": "postgresql-client"
+    }
+  },
+  "forwardPorts": [5432],
+  "portsAttributes": {
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "notify"
+    }
+  },
+  "remoteEnv": {
+    "POSTGRES_HOST": "localhost",
+    "POSTGRES_PORT": "5432",
+    "POSTGRES_DB": "devdb",
+    "POSTGRES_USER": "postgres",
+    "POSTGRES_PASSWORD": "postgres"
+  }
+}

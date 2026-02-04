@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
+      "packages": "redis-tools"
+    }
+  },
+  "forwardPorts": [6379],
+  "portsAttributes": {
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "notify"
+    }
+  },
+  "remoteEnv": {
+    "REDIS_HOST": "localhost",
+    "REDIS_PORT": "6379"
+  }
+}

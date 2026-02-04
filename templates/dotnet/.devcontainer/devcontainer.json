@@ -69,6 +69,20 @@
     5001,
     8080
   ],
+  "portsAttributes": {
+    "5000": {
+      "label": "HTTP",
+      "onAutoForward": "notify"
+    },
+    "5001": {
+      "label": "HTTPS",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Web App",
+      "onAutoForward": "openBrowser"
+    }
+  },
   "mounts": [
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readOnly=true"
   ],
