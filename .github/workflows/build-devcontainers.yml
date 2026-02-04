@@ -93,19 +93,19 @@ jobs:
 
       - name: Generate DevContainer - ${{ matrix.name }}
         run: |
+          mkdir -p /tmp/test-workspace-${{ strategy.job-index }}
           npm run init -- \
             --stack ${{ matrix.stack }} \
             ${{ matrix.overlays }} \
-            -o /tmp/test-devcontainer-${{ strategy.job-index }}
+            -o /tmp/test-workspace-${{ strategy.job-index }}/.devcontainer
 
       - name: Install DevContainer CLI
         run: npm install -g @devcontainers/cli
 
       - name: Build DevContainer - ${{ matrix.name }}
         run: |
-          cd /tmp/test-devcontainer-${{ strategy.job-index }}
           devcontainer build \
-            --workspace-folder . \
+            --workspace-folder /tmp/test-workspace-${{ strategy.job-index }} \
             --image-name devcontainer-test-${{ strategy.job-index }}:test
         env:
           DOCKER_BUILDKIT: 1
@@ -119,4 +119,4 @@ jobs:
         if: always()
         run: |
           docker rmi devcontainer-test-${{ strategy.job-index }}:test || true
-          rm -rf /tmp/test-devcontainer-${{ strategy.job-index }} || true
+          rm -rf /tmp/test-workspace-${{ strategy.job-index }} || true
