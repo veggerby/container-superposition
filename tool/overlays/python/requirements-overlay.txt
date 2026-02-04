@@ -1,0 +1,13 @@
+# Python overlay default packages
+# Customize this file to add or remove packages for your project
+
+# Core development tools (already installed, listed for reference)
+# pip
+# setuptools
+# wheel
+
+# Add your project dependencies here
+# Example:
+# requests>=2.31.0
+# pytest>=7.4.0
+# black>=23.0.0

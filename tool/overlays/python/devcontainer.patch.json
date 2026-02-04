@@ -35,8 +35,5 @@
   },
   "remoteEnv": {
     "PYTHONPATH": "${containerWorkspaceFolder}"
-  },
-  "postCreateCommand": {
-    "pip-install": "pip install --user -e . || true"
   }
 }

@@ -25,8 +25,5 @@
       "label": "MkDocs Server",
       "onAutoForward": "openBrowser"
     }
-  },
-  "postCreateCommand": {
-    "pip-install-mkdocs": "pip install --user mkdocs mkdocs-material || true"
   }
 }
