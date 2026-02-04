@@ -1,0 +1,96 @@
+# Overlay Metadata
+# This file defines all available overlays and their properties for the questionnaire
+
+base_templates:
+  - id: plain
+    name: Plain (Image-based)
+    description: Minimal Debian image for simple projects
+    
+  - id: compose
+    name: Compose (Multi-service)
+    description: Docker Compose infrastructure for complex applications
+
+language_overlays:
+  - id: dotnet
+    name: .NET
+    description: .NET 10 SDK with C# DevKit
+    category: language
+    
+  - id: nodejs
+    name: Node.js
+    description: Node.js LTS with TypeScript and tooling
+    category: language
+    
+  - id: python
+    name: Python
+    description: Python 3.12 with linting and formatting
+    category: language
+    
+  - id: mkdocs
+    name: MkDocs
+    description: Python with MkDocs for documentation
+    category: language
+
+database_overlays:
+  - id: postgres
+    name: PostgreSQL
+    description: PostgreSQL 16 database
+    category: database
+    
+  - id: redis
+    name: Redis
+    description: Redis 7 cache
+    category: database
+
+observability_overlays:
+  - id: otel-collector
+    name: OpenTelemetry Collector
+    description: Telemetry collection pipeline
+    category: observability
+    order: 2
+    
+  - id: jaeger
+    name: Jaeger
+    description: Distributed tracing backend
+    category: observability
+    order: 1
+    
+  - id: prometheus
+    name: Prometheus
+    description: Metrics collection and monitoring
+    category: observability
+    order: 1
+    
+  - id: grafana
+    name: Grafana
+    description: Observability visualization dashboard
+    category: observability
+    order: 3
+    
+  - id: loki
+    name: Loki
+    description: Log aggregation system
+    category: observability
+    order: 1
+
+cloud_tool_overlays:
+  - id: aws-cli
+    name: AWS CLI
+    description: Amazon Web Services command-line tools
+    category: cloud
+    
+  - id: azure-cli
+    name: Azure CLI
+    description: Microsoft Azure command-line tools
+    category: cloud
+    
+  - id: kubectl-helm
+    name: kubectl + Helm
+    description: Kubernetes CLI and Helm package manager
+    category: cloud
+
+dev_tool_overlays:
+  - id: playwright
+    name: Playwright
+    description: Browser automation and testing
+    category: devtool

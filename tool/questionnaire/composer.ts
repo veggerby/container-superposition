@@ -205,12 +205,9 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // 3. Determine which overlays to apply
   const overlays: string[] = [];
   
-  // Docker-in-Docker is already in base templates, so we note if it's NOT needed
-  if (!answers.needsDocker) {
-    // Remove docker-outside-of-docker feature if present
-    if (config.features?.['ghcr.io/devcontainers/features/docker-outside-of-docker:1']) {
-      delete config.features['ghcr.io/devcontainers/features/docker-outside-of-docker:1'];
-    }
+  // Language overlay
+  if (answers.language) {
+    overlays.push(answers.language);
   }
   
   // Database overlays
@@ -221,13 +218,25 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     overlays.push('redis');
   }
   
+  // Observability overlays (in dependency order)
+  if (answers.observability && answers.observability.length > 0) {
+    // Order matters: backends before middleware before UI
+    const orderedObservability = [
+      'jaeger', 'prometheus', 'loki',  // Backends (order 1)
+      'otel-collector',                 // Middleware (order 2)
+      'grafana'                         // UI (order 3)
+    ].filter(o => answers.observability!.includes(o as any));
+    
+    overlays.push(...orderedObservability);
+  }
+  
   // Playwright
   if (answers.playwright) {
     overlays.push('playwright');
   }
   
   // Cloud tools
-  if (answers.cloudTools) {
+  if (answers.cloudTools && answers.cloudTools.length > 0) {
     overlays.push(...answers.cloudTools);
   }
   
@@ -243,7 +252,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     fs.mkdirSync(outputPath, { recursive: true });
   }
   
-  // 6. Copy template files (scripts, etc.)
+  // 6. Copy template files (docker-compose, scripts, etc.)
   const entries = fs.readdirSync(templatePath);
   for (const entry of entries) {
     if (entry === 'devcontainer.json') continue; // We'll write this separately
@@ -259,29 +268,126 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     }
   }
   
-  // 7. Write merged devcontainer.json
-  const configPath = path.join(outputPath, 'devcontainer.json');
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
-  console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
-  
-  // 8. Copy overlay files (docker-compose, configs, etc.)
+  // 7. Copy overlay files (docker-compose, configs, etc.)
   for (const overlay of overlays) {
     copyOverlayFiles(outputPath, overlay);
   }
   
-  // 9. Merge .env.example files from overlays
+  // 8. Filter docker-compose dependencies based on selected overlays
+  filterDockerComposeDependencies(outputPath, overlays);
+  
+  // 9. Merge runServices array in correct order
+  mergeRunServices(config, overlays);
+  
+  // 10. Update docker-compose file references in devcontainer.json
+  updateDockerComposeReferences(config, outputPath, overlays);
+  
+  // 11. Write merged devcontainer.json
+  const configPath = path.join(outputPath, 'devcontainer.json');
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+  console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
+  
+  // 12. Merge .env.example files from overlays
   mergeEnvExamples(outputPath, overlays);
+}
+
+/**
+ * Filter depends_on in docker-compose files to only include selected services
+ */
+function filterDockerComposeDependencies(outputPath: string, selectedOverlays: string[]): void {
+  const selectedServices = new Set(selectedOverlays);
+  const composeFiles = fs.readdirSync(outputPath).filter(f => f.startsWith('docker-compose.') && f.endsWith('.yml'));
   
-  // 10. Update docker-compose reference in devcontainer.json if needed
-  const hasCompose = overlays.some(o => 
-    fs.existsSync(path.join(OVERLAYS_DIR, o, 'docker-compose.yml'))
-  );
-  
-  if (hasCompose) {
-    config.dockerComposeFile = overlays
-      .filter(o => fs.existsSync(path.join(OVERLAYS_DIR, o, 'docker-compose.yml')))
-      .map(o => `docker-compose.${o}.yml`);
+  for (const composeFile of composeFiles) {
+    const composePath = path.join(outputPath, composeFile);
+    let content = fs.readFileSync(composePath, 'utf-8');
     
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+    // Parse YAML manually for simple depends_on filtering
+    // This is a simplified approach - for production, use a proper YAML parser
+    const lines = content.split('\n');
+    const filtered: string[] = [];
+    let inDependsOn = false;
+    let dependsOnIndent = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const indent = line.search(/\S/);
+      
+      if (line.trim().startsWith('depends_on:')) {
+        inDependsOn = true;
+        dependsOnIndent = indent;
+        filtered.push(line);
+        continue;
+      }
+      
+      if (inDependsOn) {
+        if (indent <= dependsOnIndent && line.trim() !== '') {
+          inDependsOn = false;
+        } else if (line.trim().startsWith('-')) {
+          // Extract service name
+          const service = line.trim().substring(1).trim();
+          if (selectedServices.has(service)) {
+            filtered.push(line);
+          }
+          continue;
+        }
+      }
+      
+      filtered.push(line);
+    }
+    
+    fs.writeFileSync(composePath, filtered.join('\n'));
+  }
+}
+
+/**
+ * Merge runServices from all overlays in correct order
+ */
+function mergeRunServices(config: DevContainer, overlays: string[]): void {
+  const services: Array<{ name: string; order: number }> = [];
+  
+  for (const overlay of overlays) {
+    const overlayPath = path.join(OVERLAYS_DIR, overlay, 'devcontainer.patch.json');
+    if (fs.existsSync(overlayPath)) {
+      const overlayConfig = loadJson<any>(overlayPath);
+      if (overlayConfig.runServices) {
+        const order = overlayConfig._serviceOrder || 0;
+        for (const service of overlayConfig.runServices) {
+          services.push({ name: service, order });
+        }
+      }
+    }
+  }
+  
+  // Sort by order, then merge
+  services.sort((a, b) => a.order - b.order);
+  const uniqueServices = [...new Set(services.map(s => s.name))];
+  
+  if (uniqueServices.length > 0) {
+    config.runServices = uniqueServices;
+  }
+}
+
+/**
+ * Update dockerComposeFile references
+ */
+function updateDockerComposeReferences(config: DevContainer, outputPath: string, overlays: string[]): void {
+  const composeFiles: string[] = [];
+  
+  // Check for base docker-compose.yml
+  if (fs.existsSync(path.join(outputPath, 'docker-compose.yml'))) {
+    composeFiles.push('docker-compose.yml');
+  }
+  
+  // Add overlay compose files
+  for (const overlay of overlays) {
+    const overlayComposePath = path.join(outputPath, `docker-compose.${overlay}.yml`);
+    if (fs.existsSync(overlayComposePath)) {
+      composeFiles.push(`docker-compose.${overlay}.yml`);
+    }
+  }
+  
+  if (composeFiles.length > 0) {
+    config.dockerComposeFile = composeFiles;
   }
 }

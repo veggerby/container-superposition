@@ -2,32 +2,47 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as readline from 'readline';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
-import type { QuestionnaireAnswers, Stack, Database, CloudTool } from '../tool/schema/types';
+import { select, checkbox, confirm, input } from '@inquirer/prompts';
+import yaml from 'js-yaml';
+import type { QuestionnaireAnswers, Stack, LanguageOverlay, Database, CloudTool, ObservabilityTool } from '../tool/schema/types';
 import { composeDevContainer } from '../tool/questionnaire/composer';
 
-const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
-
-/**
- * CLI questionnaire using readline with colored prompts
- */
-async function ask(question: string, rl: readline.Interface): Promise<string> {
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      resolve(answer.trim());
-    });
-  });
+interface OverlayMetadata {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  order?: number;
 }
 
+interface OverlaysConfig {
+  base_templates: OverlayMetadata[];
+  language_overlays: OverlayMetadata[];
+  database_overlays: OverlayMetadata[];
+  observability_overlays: OverlayMetadata[];
+  cloud_tool_overlays: OverlayMetadata[];
+  dev_tool_overlays: OverlayMetadata[];
+}
+
+const OVERLAYS_CONFIG_PATH = path.join(__dirname, '..', 'tool', 'overlays.yml');
+
+/**
+ * Load overlay metadata from YAML file
+ */
+function loadOverlaysConfig(): OverlaysConfig {
+  const content = fs.readFileSync(OVERLAYS_CONFIG_PATH, 'utf8');
+  return yaml.load(content) as OverlaysConfig;
+}
+
+/**
+ * Interactive questionnaire with modern checkbox selections
+ */
 async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+  const config = loadOverlaysConfig();
 
   // Pretty banner
   console.log('\n' + boxen(
@@ -42,87 +57,93 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
     }
   ));
   
-  console.log(chalk.dim('This tool will guide you through creating a devcontainer.'));
-  console.log(chalk.dim('Answer 5-8 quick questions to get a working setup.\n'));
+  console.log(chalk.dim('Compose your ideal devcontainer from modular overlays.'));
+  console.log(chalk.dim('Use ') + chalk.cyan('space') + chalk.dim(' to select, ') + chalk.cyan('enter') + chalk.dim(' to confirm.\n'));
 
   try {
-    // Question 1: Stack/Language
-    console.log(chalk.bold.cyan('1️⃣  Which stack/language are you using?'));
-    console.log(chalk.gray('   1)') + ' .NET');
-    console.log(chalk.gray('   2)') + ' Node.js + TypeScript');
-    console.log(chalk.gray('   3)') + ' Python (MkDocs)');
-    console.log(chalk.gray('   4)') + ' Fullstack');
-    const stackChoice = await ask(chalk.yellow('   Choice [1-4]: '), rl);
-    
-    const stackMap: Record<string, Stack> = {
-      '1': 'dotnet',
-      '2': 'node-typescript',
-      '3': 'python-mkdocs',
-      '4': 'fullstack',
-    };
-    const stack = stackMap[stackChoice] || 'dotnet';
-    console.log(chalk.green('   ✓') + chalk.dim(` Selected: ${stack}\n`));
+    // Question 1: Base template
+    const stack = await select({
+      message: 'Select base template:',
+      choices: config.base_templates.map(t => ({
+        name: t.name,
+        value: t.id,
+        description: t.description
+      }))
+    }) as Stack;
 
-    // Question 2: Docker-in-Docker
-    const dockerAnswer = await ask(chalk.bold.cyan('2️⃣  Do you need Docker-in-Docker') + chalk.dim(' (build containers from inside)?') + chalk.yellow(' [y/N]: '), rl);
-    const needsDocker = dockerAnswer.toLowerCase() === 'y' || dockerAnswer.toLowerCase() === 'yes';
-    console.log(chalk.green('   ✓') + chalk.dim(` ${needsDocker ? 'Enabled' : 'Disabled'}\n`));
+    // Question 2: All overlays in one multi-select
+    const allOverlays = [
+      ...config.language_overlays.map(o => ({ ...o, category: 'Language' })),
+      ...config.database_overlays.map(o => ({ ...o, category: 'Database' })),
+      ...config.observability_overlays.map(o => ({ ...o, category: 'Observability' })),
+      ...config.cloud_tool_overlays.map(o => ({ ...o, category: 'Cloud Tools' })),
+      ...config.dev_tool_overlays.map(o => ({ ...o, category: 'Dev Tools' })),
+    ];
 
-    // Question 3: Database
-    console.log(chalk.bold.cyan('3️⃣  Do you need a database?'));
-    console.log(chalk.gray('   1)') + ' None');
-    console.log(chalk.gray('   2)') + ' PostgreSQL');
-    console.log(chalk.gray('   3)') + ' Redis');
-    console.log(chalk.gray('   4)') + ' PostgreSQL + Redis');
-    const dbChoice = await ask(chalk.yellow('   Choice [1-4]: '), rl);
-    
-    const dbMap: Record<string, Database> = {
-      '1': 'none',
-      '2': 'postgres',
-      '3': 'redis',
-      '4': 'postgres+redis',
-    };
-    const database = dbMap[dbChoice] || 'none';
-    console.log(chalk.green('   ✓') + chalk.dim(` Selected: ${database}\n`));
+    const selectedOverlays = await checkbox({
+      message: 'Select overlays to include (optional):',
+      choices: allOverlays.map(overlay => ({
+        name: `[${overlay.category}] ${overlay.name}`,
+        value: overlay.id,
+        description: overlay.description
+      }))
+    });
 
-    // Question 4: Playwright
-    const playwrightAnswer = await ask(chalk.bold.cyan('4️⃣  Do you need browser automation') + chalk.dim(' (Playwright)?') + chalk.yellow(' [y/N]: '), rl);
-    const playwright = playwrightAnswer.toLowerCase() === 'y' || playwrightAnswer.toLowerCase() === 'yes';
-    console.log(chalk.green('   ✓') + chalk.dim(` ${playwright ? 'Enabled' : 'Disabled'}\n`));
+    // Question 3: Output path
+    const outputPath = await input({
+      message: 'Output path:',
+      default: './.devcontainer'
+    });
 
-    // Question 5: Cloud tools
-    console.log(chalk.bold.cyan('5️⃣  Which cloud/orchestration tools do you need?') + chalk.dim(' (comma-separated)'));
-    console.log(chalk.gray('   -') + ' azure-cli');
-    console.log(chalk.gray('   -') + ' kubectl-helm');
-    console.log(chalk.gray('   -') + chalk.dim(' (leave empty for none)'));
-    const toolsAnswer = await ask(chalk.yellow('   Tools: '), rl);
-    const cloudTools: CloudTool[] = toolsAnswer
-      .split(',')
-      .map(t => t.trim())
-      .filter(t => t === 'azure-cli' || t === 'kubectl-helm') as CloudTool[];
-    console.log(chalk.green('   ✓') + chalk.dim(` ${cloudTools.length > 0 ? cloudTools.join(', ') : 'None'}\n`));
+    // Parse selected overlays
+    const language = selectedOverlays.find(o => 
+      config.language_overlays.some(l => l.id === o)
+    ) as LanguageOverlay | undefined;
 
-    // Question 6: Output path
-    const outputAnswer = await ask(chalk.bold.cyan('6️⃣  Output path') + chalk.dim(' [./.devcontainer]: '), rl);
-    const outputPath = outputAnswer || './.devcontainer';
-    console.log(chalk.green('   ✓') + chalk.dim(` ${outputPath}\n`));
+    const observability = selectedOverlays.filter(o =>
+      config.observability_overlays.some(obs => obs.id === o)
+    ) as ObservabilityTool[];
 
-    rl.close();
+    const cloudTools = selectedOverlays.filter(o =>
+      config.cloud_tool_overlays.some(ct => ct.id === o)
+    ) as CloudTool[];
+
+    // Database handling
+    const hasPostgres = selectedOverlays.includes('postgres');
+    const hasRedis = selectedOverlays.includes('redis');
+    let database: Database = 'none';
+    if (hasPostgres && hasRedis) {
+      database = 'postgres+redis';
+    } else if (hasPostgres) {
+      database = 'postgres';
+    } else if (hasRedis) {
+      database = 'redis';
+    }
+
+    const playwright = selectedOverlays.includes('playwright');
 
     return {
       stack,
-      needsDocker,
+      language,
+      needsDocker: stack === 'compose', // Compose template includes docker-outside-of-docker
       database,
       playwright,
       cloudTools,
+      observability,
       outputPath,
     };
   } catch (error) {
-    rl.close();
+    if ((error as any).name === 'ExitPromptError') {
+      console.log('\n' + chalk.yellow('Cancelled by user'));
+      process.exit(0);
+    }
     throw error;
   }
 }
 
+/**
+ * Parse CLI arguments
+ */
 async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
   const program = new Command();
   
@@ -130,13 +151,14 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .name('container-superposition')
     .description('Initialize a devcontainer with guided questions or CLI flags')
     .version('0.1.0')
-    .option('--stack <type>', 'Base template: dotnet, node-typescript, python-mkdocs, fullstack')
-    .option('--dind, --docker', 'Enable Docker-in-Docker')
+    .option('--stack <type>', 'Base template: plain, compose')
+    .option('--language <type>', 'Language overlay: dotnet, nodejs, python, mkdocs')
     .option('--db <type>', 'Database: postgres, redis, postgres+redis, none')
     .option('--postgres', 'Shorthand for --db postgres')
     .option('--redis', 'Shorthand for --db redis')
+    .option('--observability <list>', 'Comma-separated: otel-collector, jaeger, prometheus, grafana, loki')
     .option('--playwright', 'Include Playwright browser automation')
-    .option('--cloud-tools <list>', 'Comma-separated: azure-cli, kubectl-helm')
+    .option('--cloud-tools <list>', 'Comma-separated: aws-cli, azure-cli, kubectl-helm')
     .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
     .parse(process.argv);
 
@@ -150,10 +172,13 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
   const config: Partial<QuestionnaireAnswers> = {};
 
   if (options.stack) config.stack = options.stack as Stack;
-  if (options.dind || options.docker) config.needsDocker = true;
+  if (options.language) config.language = options.language as LanguageOverlay;
   if (options.postgres) config.database = 'postgres';
   if (options.redis) config.database = 'redis';
   if (options.db) config.database = options.db as Database;
+  if (options.observability) {
+    config.observability = options.observability.split(',').map((t: string) => t.trim()) as ObservabilityTool[];
+  }
   if (options.playwright) config.playwright = true;
   if (options.cloudTools) {
     config.cloudTools = options.cloudTools.split(',').map((t: string) => t.trim()) as CloudTool[];
@@ -173,10 +198,12 @@ async function main() {
       // Non-interactive mode
       answers = {
         stack: cliConfig.stack,
-        needsDocker: cliConfig.needsDocker ?? false,
+        language: cliConfig.language,
+        needsDocker: cliConfig.stack === 'compose',
         database: cliConfig.database ?? 'none',
         playwright: cliConfig.playwright ?? false,
         cloudTools: cliConfig.cloudTools ?? [],
+        observability: cliConfig.observability ?? [],
         outputPath: cliConfig.outputPath ?? './.devcontainer',
       };
       
@@ -190,14 +217,36 @@ async function main() {
     }
 
     // Show configuration summary
+    const summaryLines = [
+      chalk.bold.white('Configuration Summary\n'),
+      chalk.cyan('Base:            ') + chalk.white(answers.stack),
+    ];
+
+    if (answers.language) {
+      summaryLines.push(chalk.cyan('Language:        ') + chalk.white(answers.language));
+    }
+
+    summaryLines.push(
+      chalk.cyan('Database:        ') + chalk.white(answers.database),
+      chalk.cyan('Playwright:      ') + chalk.white(answers.playwright ? 'Yes' : 'No')
+    );
+
+    if (answers.observability && answers.observability.length > 0) {
+      summaryLines.push(
+        chalk.cyan('Observability:   ') + chalk.white(answers.observability.join(', '))
+      );
+    }
+
+    if (answers.cloudTools.length > 0) {
+      summaryLines.push(
+        chalk.cyan('Cloud tools:     ') + chalk.white(answers.cloudTools.join(', '))
+      );
+    }
+
+    summaryLines.push(chalk.cyan('Output:          ') + chalk.white(answers.outputPath));
+
     console.log('\n' + boxen(
-      chalk.bold.white('Configuration Summary\n\n') +
-      chalk.cyan('Stack:           ') + chalk.white(answers.stack) + '\n' +
-      chalk.cyan('Docker-in-Docker: ') + chalk.white(answers.needsDocker ? 'Yes' : 'No') + '\n' +
-      chalk.cyan('Database:        ') + chalk.white(answers.database) + '\n' +
-      chalk.cyan('Playwright:      ') + chalk.white(answers.playwright ? 'Yes' : 'No') + '\n' +
-      chalk.cyan('Cloud tools:     ') + chalk.white(answers.cloudTools.length > 0 ? answers.cloudTools.join(', ') : 'None') + '\n' +
-      chalk.cyan('Output:          ') + chalk.white(answers.outputPath),
+      summaryLines.join('\n'),
       { padding: 1, borderColor: 'green', borderStyle: 'round', margin: { top: 0, bottom: 1 } }
     ));
 
@@ -221,8 +270,8 @@ async function main() {
       chalk.white('Next steps:\n') +
       chalk.gray('  1. Review the generated .devcontainer/ folder\n') +
       chalk.gray('  2. Customize as needed (it\'s just normal JSON!)\n') +
-      chalk.gray('  3. Rebuild container: ') + chalk.cyan('Cmd/Ctrl+Shift+P') + chalk.gray(' → "Dev Containers: Rebuild"\n\n') +
-      chalk.dim('The generated configuration is fully editable and not tied to this tool.'),
+      chalk.gray('  3. Open in VS Code and rebuild container\n\n') +
+      chalk.dim('The generated configuration is fully editable and independent of this tool.'),
       { padding: 1, borderColor: 'green', borderStyle: 'double', margin: 1 }
     ));
 

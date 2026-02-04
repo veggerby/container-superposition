@@ -103,10 +103,8 @@ npm run init
 
 The questionnaire guides you through:
 1. **Base template** - plain or compose?
-2. **Language/framework** - dotnet, nodejs, python, mkdocs?
-3. **Databases** - postgres, redis?
-4. **Observability** - otel-collector, jaeger, prometheus, grafana, loki?
-5. **Cloud/dev tools** - aws-cli, azure-cli, kubectl-helm, playwright?
+2. **Overlays** - All available overlays in one multi-select (language, databases, observability, cloud tools, dev tools)
+3. **Output path** - Where to generate the configuration
 
 **Example compositions:**
 
@@ -154,6 +152,47 @@ See [tool/README.md](tool/README.md) for full documentation.
 - ✅ Output is standard JSON — no proprietary formats
 - ✅ Tool is optional — templates work standalone
 - ✅ Cross-platform via Node.js/TypeScript
+- ✅ Metadata-driven overlays (no hardcoded menus)
+
+### Metadata-Driven Overlays
+
+All overlays are defined in [tool/overlays.yml](tool/overlays.yml):
+
+```yaml
+observability_overlays:
+  - id: otel-collector
+    name: OpenTelemetry Collector
+    description: Telemetry collection pipeline
+    category: observability
+    order: 2  # Start after backends
+```
+
+**Benefits:**
+- Add new overlays without code changes
+- Consistent naming and descriptions
+- Control display order and categorization
+- Easy maintenance and documentation
+
+**Overlay Categories:**
+- `base_templates` - plain, compose
+- `language_overlays` - dotnet, nodejs, python, mkdocs
+- `database_overlays` - postgres, redis
+- `observability_overlays` - otel-collector, jaeger, prometheus, grafana, loki
+- `cloud_tool_overlays` - aws-cli, azure-cli, kubectl-helm
+- `dev_tool_overlays` - playwright
+
+See [tool/docs/questionnaire-updates.md](tool/docs/questionnaire-updates.md) for details.
+
+### Dependency Management
+
+The composer intelligently manages service dependencies:
+
+1. **Filters docker-compose** - Removes `depends_on` references to unselected services
+2. **Orders services** - Uses `_serviceOrder` field (0=infra, 1=backends, 2=middleware, 3=UI)
+3. **Merges runServices** - Creates ordered startup sequence
+4. **Validates overlays** - Ensures compatible combinations
+
+Example: If you select `grafana` without `prometheus`, the `depends_on: [prometheus]` is automatically removed.
 
 See [tool/README.md](tool/README.md) for architecture details.
 
