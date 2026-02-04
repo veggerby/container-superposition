@@ -32,7 +32,7 @@ if command -v pg_isready &> /dev/null; then
         fi
         sleep 1
     done
-    
+
     if [ "$POSTGRES_READY" = false ]; then
         echo "   ❌ PostgreSQL service not ready after 10 seconds"
         exit 1
