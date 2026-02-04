@@ -7,7 +7,7 @@ services:
       - ./loki-config.yaml:/etc/loki/loki-config.yaml
       - loki_data:/loki
     ports:
-      - "3100:3100"
+      - "${LOKI_PORT:-3100}:3100"
     networks:
       - devnet
 

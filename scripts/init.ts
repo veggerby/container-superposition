@@ -95,6 +95,13 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       default: './.devcontainer'
     });
 
+    // Question 4: Port offset (optional, for running multiple instances)
+    const portOffsetInput = await input({
+      message: 'Port offset (leave empty for default ports, e.g., 100 to avoid conflicts):',
+      default: ''
+    });
+    const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
+
     // Parse selected overlays
     const language = selectedOverlays.find(o => 
       config.language_overlays.some(l => l.id === o)
@@ -131,6 +138,7 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       cloudTools,
       observability,
       outputPath,
+      portOffset,
     };
   } catch (error) {
     if ((error as any).name === 'ExitPromptError') {
@@ -159,6 +167,7 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .option('--observability <list>', 'Comma-separated: otel-collector, jaeger, prometheus, grafana, loki')
     .option('--playwright', 'Include Playwright browser automation')
     .option('--cloud-tools <list>', 'Comma-separated: aws-cli, azure-cli, kubectl-helm')
+    .option('--port-offset <number>', 'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)')
     .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
     .parse(process.argv);
 
@@ -183,6 +192,9 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
   if (options.cloudTools) {
     config.cloudTools = options.cloudTools.split(',').map((t: string) => t.trim()) as CloudTool[];
   }
+  if (options.portOffset) {
+    config.portOffset = parseInt(options.portOffset, 10);
+  }
   if (options.output) config.outputPath = options.output;
 
   return config;
@@ -205,6 +217,7 @@ async function main() {
         cloudTools: cliConfig.cloudTools ?? [],
         observability: cliConfig.observability ?? [],
         outputPath: cliConfig.outputPath ?? './.devcontainer',
+        portOffset: cliConfig.portOffset,
       };
       
       console.log('\n' + boxen(

@@ -57,6 +57,7 @@ export interface QuestionnaireAnswers {
   cloudTools: CloudTool[];
   observability: ObservabilityTool[];
   outputPath: string;
+  portOffset?: number; // Optional port offset for running multiple instances
 }
 
 /**

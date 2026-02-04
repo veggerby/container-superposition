@@ -120,7 +120,28 @@ npm run init -- --stack plain --language mkdocs
 
 # Full-stack with everything
 npm run init -- --stack compose --language nodejs --database postgres+redis --playwright --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm
+
+# Running multiple instances? Add port offset to avoid conflicts
+npm run init -- --stack compose --language nodejs --postgres --observability jaeger,grafana --port-offset 100
+# This shifts all ports by 100: Grafana becomes 3100, Jaeger UI becomes 16786, etc.
 ```
+
+**Port Offset for Multiple Instances:**
+
+If you're running multiple devcontainer instances simultaneously (e.g., multiple microservices), use `--port-offset` to avoid port conflicts:
+
+```bash
+# Service 1 (default ports)
+npm run init -- --stack compose --language nodejs --postgres --output ./service1
+
+# Service 2 (ports shifted by 100)
+npm run init -- --stack compose --language nodejs --postgres --port-offset 100 --output ./service2
+
+# Service 3 (ports shifted by 200)
+npm run init -- --stack compose --language nodejs --postgres --port-offset 200 --output ./service3
+```
+
+This automatically adjusts all exposed ports in docker-compose.yml and documents the offset in .env.example.
 
 See [tool/README.md](tool/README.md) for full documentation.
 
