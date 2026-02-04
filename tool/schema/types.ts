@@ -2,15 +2,22 @@
  * Configuration schema for container-superposition initialization
  */
 
-export type Stack = 'dotnet' | 'node-typescript' | 'python-mkdocs' | 'fullstack';
+export type Stack = 'plain' | 'compose';
+export type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs';
 export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
-export type CloudTool = 'azure-cli' | 'kubectl-helm';
+export type CloudTool = 'azure-cli' | 'aws-cli' | 'kubectl-helm';
+export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'prometheus' | 'grafana' | 'loki';
 
 export interface DevContainerConfig {
   /**
-   * The base template/stack to use
+   * The base template to use (plain or compose)
    */
   stack: Stack;
+
+  /**
+   * Language/framework overlay
+   */
+  language?: LanguageOverlay;
 
   /**
    * Database requirements
@@ -28,6 +35,11 @@ export interface DevContainerConfig {
   cloudTools?: CloudTool[];
 
   /**
+   * Observability tools to include
+   */
+  observability?: ObservabilityTool[];
+
+  /**
    * Where to write the devcontainer configuration
    */
   outputPath?: string;
@@ -38,10 +50,12 @@ export interface DevContainerConfig {
  */
 export interface QuestionnaireAnswers {
   stack: Stack;
+  language?: LanguageOverlay;
   needsDocker: boolean;
   database: Database;
   playwright: boolean;
   cloudTools: CloudTool[];
+  observability: ObservabilityTool[];
   outputPath: string;
 }
 

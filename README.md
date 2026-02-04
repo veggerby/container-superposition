@@ -4,59 +4,90 @@ Composable devcontainer scaffolds that collapse into working environments.
 
 ## 🎯 Purpose
 
-Container Superposition provides ready-to-copy devcontainer scaffolds that "collapse" into fully functional development environments. These templates leverage official [containers.dev](https://containers.dev) images and features while providing opinionated, solution-ready configurations for common development scenarios.
+Container Superposition provides a **modular, overlay-based system** for building devcontainer configurations. Start with a minimal base template, then compose it with language frameworks, databases, observability tools, and cloud utilities to create your ideal development environment.
 
 **Key Principles:**
 - **Leverage, Don't Duplicate** - Use official images and features from containers.dev
-- **Opinionated Templates** - Pre-configured for specific use cases
+- **Minimal Base + Composable Overlays** - Start simple, add what you need
 - **Copy-Paste Ready** - Works immediately, customize as needed
-- **Composable** - Mix and match custom features with official ones
+- **Observability First-Class** - Full OpenTelemetry stack available as overlays
 
 ## 📁 Structure
 
 ```
 container-superposition/
-├── templates/          # Complete, solution-ready devcontainer setups
-├── features/           # Custom features not available on containers.dev
-├── tool/               # Guided initialization tool
+├── templates/          # Minimal base templates (plain, compose)
+│   ├── plain/          # Simple image-based devcontainer
+│   └── compose/        # Docker Compose-based devcontainer
+├── tool/
+│   └── overlays/       # Composable capability overlays
+│       ├── dotnet/     # Language/framework overlays
+│       ├── nodejs/
+│       ├── python/
+│       ├── mkdocs/
+│       ├── postgres/   # Database overlays
+│       ├── redis/
+│       ├── otel-collector/  # Observability overlays
+│       ├── jaeger/
+│       ├── prometheus/
+│       ├── grafana/
+│       ├── loki/
+│       ├── aws-cli/    # Cloud/dev tool overlays
+│       ├── azure-cli/
+│       ├── kubectl-helm/
+│       └── playwright/
+├── features/           # Custom devcontainer features
 └── scripts/            # CLI entry points
 ```
 
-### `/templates` - Solution-Ready Scaffolds
+### `/templates` - Minimal Base Templates
 
-Complete `.devcontainer` configurations that work out of the box. Each template includes:
-- `devcontainer.json` - Uses official base images with curated features
-- `Dockerfile` (when needed) - Only for unique customizations
-- Scripts for project-specific setup and workflows
-- README with usage instructions and customization guide
+Two foundational templates that serve as starting points:
 
-### `/tool` - Initialization Tool
+- **plain** - Simple image-based devcontainer with essential tools
+- **compose** - Docker Compose-based for multi-service environments
 
-A **humble "purpose picker"** that guides you through creating your first devcontainer:
-- Interactive questionnaire (5–8 questions)
-- Composes base templates with overlays
-- Outputs plain, editable `.devcontainer/` folders
-- Gets out of your way afterward
+Each template is minimal by design. Capabilities are added via overlays.
 
-**Philosophy**: Generate once, edit forever. No framework lock-in.
+### `/tool/overlays` - Composable Capabilities
 
-Available templates:
-- **node-typescript** - Node.js with TypeScript, testing, and modern tooling
-- **dotnet-webapi** - C# ASP.NET Core Web API development
-- **python-mkdocs** - Documentation with MkDocs and Material theme
+Overlays are modular configuration fragments organized by category:
+
+**Language & Framework:**
+- dotnet, nodejs, python, mkdocs
+
+**Databases:**
+- postgres, redis
+
+**Observability:**
+- otel-collector (OpenTelemetry Collector)
+- jaeger (Distributed tracing)
+- prometheus (Metrics)
+- grafana (Visualization)
+- loki (Log aggregation)
+
+**Development Tools:**
+- aws-cli, azure-cli, kubectl-helm, playwright
+
+Each overlay includes:
+- `devcontainer.patch.json` - Configuration to merge
+- `docker-compose.yml` (if needed) - Service definitions
+- `.env.example` - Environment variables
+- Configuration files (e.g., `otel-collector-config.yaml`)
+- README with usage instructions
 
 ### `/features` - Custom Building Blocks
 
-**Only** custom features that add value beyond what's available on containers.dev:
-- **project-scaffolder** - Interactive project initialization scripts
+Custom devcontainer features that add value beyond containers.dev:
+- **project-scaffolder** - Interactive project initialization
 - **team-conventions** - Shared linting, formatting, commit standards
-- **local-secrets-manager** - Safe local development secrets (never committed)
+- **local-secrets-manager** - Safe local development secrets
 
 ## 🚀 Quick Start
 
 ### Option 1: Use the Init Tool (Recommended)
 
-The guided initialization tool helps you pick the right template and compose additional features with a beautiful, interactive experience:
+The guided initialization tool helps you compose your perfect environment:
 
 ```bash
 # Clone the repository
@@ -70,34 +101,48 @@ npm install
 npm run init
 ```
 
-You'll be greeted with a color-coded, visually enhanced questionnaire featuring:
-- 🎨 Beautiful boxed headers and summaries
-- ⏳ Animated progress spinners
-- ✅ Visual confirmation of selections
-- 🎯 Clear configuration summary
+The questionnaire guides you through:
+1. **Base template** - plain or compose?
+2. **Language/framework** - dotnet, nodejs, python, mkdocs?
+3. **Databases** - postgres, redis?
+4. **Observability** - otel-collector, jaeger, prometheus, grafana, loki?
+5. **Cloud/dev tools** - aws-cli, azure-cli, kubectl-helm, playwright?
 
-**Non-interactive mode:**
+**Example compositions:**
+
 ```bash
-npm run init -- --stack dotnet --postgres --docker
-npm run init -- --stack node-typescript --playwright --cloud-tools azure-cli
-npm run init -- --help  # Professional help text
+# Node.js API with PostgreSQL and observability
+npm run init -- --stack compose --language nodejs --database postgres --observability otel-collector,jaeger,prometheus,grafana
+
+# .NET microservice with full observability stack
+npm run init -- --stack compose --language dotnet --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
+
+# Python documentation site
+npm run init -- --stack plain --language mkdocs
+
+# Full-stack with everything
+npm run init -- --stack compose --language nodejs --database postgres+redis --playwright --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm
 ```
 
-See [tool/README.md](tool/README.md) for full documentation and [tool/docs/ux.md](tool/docs/ux.md) for visual examples.
+See [tool/README.md](tool/README.md) for full documentation.
 
-### Option 2: Manual Copy (For Direct Control)
+### Option 2: Manual Composition
 
-1. **Browse templates** in the `/templates` directory
-2. **Copy a template** to your project:
+1. **Copy a base template:**
    ```bash
-   cp -r templates/node-typescript/.devcontainer /path/to/your/project/
+   cp -r templates/compose/.devcontainer /path/to/your/project/
    ```
-3. **Open in VS Code** with the Dev Containers extension
-4. **Reopen in Container** - your environment is ready!
 
-## 🔧 Tool Architecture
+2. **Add overlay configurations:**
+   ```bash
+   # Merge devcontainer.patch.json files
+   # Copy docker-compose.yml files as docker-compose.{overlay}.yml
+   # Merge .env.example files
+   ```
 
-The initialization tool follows the **thin picker** philosophy:
+3. **Open in VS Code** and reopen in container
+
+## 🔧 Architecture
 
 - **Questionnaire**: 5–8 questions to understand your needs
 - **Composition**: Merges base templates with lightweight overlays

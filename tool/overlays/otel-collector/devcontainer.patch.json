@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "runServices": ["otel-collector"],
+  "_serviceOrder": 2,
+  "forwardPorts": [4317, 4318, 8888, 8889, 13133],
+  "portsAttributes": {
+    "4317": {
+      "label": "OTLP gRPC",
+      "onAutoForward": "silent"
+    },
+    "4318": {
+      "label": "OTLP HTTP",
+      "onAutoForward": "silent"
+    },
+    "8888": {
+      "label": "Collector Metrics",
+      "onAutoForward": "silent"
+    },
+    "8889": {
+      "label": "Prometheus Exporter",
+      "onAutoForward": "silent"
+    },
+    "13133": {
+      "label": "Health Check",
+      "onAutoForward": "silent"
+    }
+  }
+}

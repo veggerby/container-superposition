@@ -15,56 +15,80 @@ Follow the prompts to select your stack, database, tools, and output location.
 ### .NET with PostgreSQL
 
 ```bash
-npm run init -- --stack dotnet --postgres --output ./.devcontainer
+npm run init -- --stack compose --language dotnet --postgres --output ./.devcontainer
 ```
 
 Creates:
-- .NET 10 base configuration
+- Docker Compose base template
+- .NET 10 SDK and C# DevKit
 - PostgreSQL 16 service
 - Database client tools
 - Environment variables for connection
 
-### Node.js with Full Stack
+### Node.js API with Observability
 
 ```bash
 npm run init -- \
-  --stack node-typescript \
-  --playwright \
-  --cloud-tools azure-cli,kubectl-helm
+  --stack compose \
+  --language nodejs \
+  --postgres \
+  --observability otel-collector,jaeger,prometheus,grafana
 ```
 
 Creates:
+- Docker Compose infrastructure
 - Node.js LTS with TypeScript
-- Playwright with Chromium
-- Azure CLI tools
-- kubectl + Helm
+- PostgreSQL database
+- OpenTelemetry Collector pipeline
+- Jaeger for distributed tracing
+- Prometheus for metrics
+- Grafana for visualization
 
-### Fullstack with Everything
+### Full Observability Stack
 
 ```bash
 npm run init -- \
-  --stack fullstack \
+  --stack compose \
+  --language dotnet \
   --db postgres+redis \
-  --playwright \
-  --docker
+  --observability otel-collector,jaeger,prometheus,grafana,loki \
+  --cloud-tools aws-cli,kubectl-helm
 ```
 
 Creates:
-- Polyglot base (Node + Python)
-- PostgreSQL and Redis services
-- Playwright browser testing
-- Docker-in-Docker enabled
+- Docker Compose infrastructure
+- .NET microservice setup
+- PostgreSQL and Redis
+- Complete observability stack (traces, metrics, logs)
+- AWS CLI and Kubernetes tools
 
-### Minimal Python
+### Minimal Documentation Site
 
 ```bash
-npm run init -- --stack python-mkdocs --output ./my-docs/.devcontainer
+npm run init -- --stack plain --language mkdocs --output ./my-docs/.devcontainer
 ```
 
 Creates:
-- Python 3 with MkDocs
+- Simple image-based devcontainer
+- Python with MkDocs
 - Documentation tools
 - Minimal configuration
+
+### Multi-Cloud Python Development
+
+```bash
+npm run init -- \
+  --stack compose \
+  --language python \
+  --postgres \
+  --cloud-tools aws-cli,azure-cli,kubectl-helm
+```
+
+Creates:
+- Docker Compose base
+- Python 3.12 with linting
+- PostgreSQL database
+- AWS, Azure, and Kubernetes CLIs
 
 ## Programmatic Usage
 
@@ -72,11 +96,13 @@ Creates:
 import { composeDevContainer } from './tool/questionnaire/composer.js';
 
 await composeDevContainer({
-  stack: 'dotnet',
+  stack: 'compose',
+  language: 'dotnet',
   needsDocker: true,
   database: 'postgres',
   playwright: false,
-  cloudTools: [],
+  observability: ['otel-collector', 'jaeger', 'prometheus', 'grafana'],
+  cloudTools: ['aws-cli'],
   outputPath: './.devcontainer',
 });
 ```
@@ -87,11 +113,22 @@ All examples produce:
 
 ```
 .devcontainer/
-├── devcontainer.json              # Merged configuration
+├── devcontainer.json                  # Merged configuration
+├── docker-compose.yml                 # Base compose (if compose template)
+├── .env.example                       # Combined environment variables
 ├── scripts/
-│   └── post_create.sh             # Setup scripts
-├── docker-compose.postgres.yml    # If postgres selected
-└── docker-compose.redis.yml       # If redis selected
+│   └── post_create.sh                 # Setup scripts
+├── docker-compose.postgres.yml        # If postgres selected
+├── docker-compose.redis.yml           # If redis selected
+├── docker-compose.otel-collector.yml  # If otel-collector selected
+├── docker-compose.jaeger.yml          # If jaeger selected
+├── docker-compose.prometheus.yml      # If prometheus selected
+├── docker-compose.grafana.yml         # If grafana selected
+├── docker-compose.loki.yml            # If loki selected
+├── otel-collector-config.yaml         # Observability configs
+├── prometheus.yml
+├── grafana-datasources.yml
+└── loki-config.yaml
 ```
 
 ## Customization After Generation
@@ -127,28 +164,60 @@ npm run init -- --version
 
 ## Common Patterns
 
-### Development with Database
+### Microservice with Full Observability
 
-Most common pattern for backend services:
+Production-ready microservice with complete observability:
 
 ```bash
-npm run init -- --stack dotnet --postgres --docker
+npm run init -- \
+  --stack compose \
+  --language dotnet \
+  --postgres \
+  --observability otel-collector,jaeger,prometheus,grafana,loki \
+  --cloud-tools kubectl-helm
 ```
 
-### Frontend with Testing
+This creates:
+- .NET microservice with Docker Compose
+- PostgreSQL database
+- OpenTelemetry pipeline (collector → jaeger/prometheus/loki → grafana)
+- Kubernetes deployment tools
+- Complete local development environment matching production
+
+### Frontend Application with Testing
 
 Common for frontend applications:
 
 ```bash
-npm run init -- --stack node-typescript --playwright
+npm run init -- \
+  --stack compose \
+  --language nodejs \
+  --redis \
+  --playwright
 ```
 
-### Cloud-Native Development
+### Backend API with Metrics Only
 
-For Kubernetes/cloud development:
+Lightweight observability for REST APIs:
 
 ```bash
-npm run init -- --stack dotnet --db redis --cloud-tools kubectl-helm,azure-cli
+npm run init -- \
+  --stack compose \
+  --language nodejs \
+  --postgres \
+  --observability prometheus,grafana
+```
+
+### Distributed Tracing Setup
+
+Focus on distributed tracing without full observability:
+
+```bash
+npm run init -- \
+  --stack compose \
+  --language dotnet \
+  --db postgres+redis \
+  --observability otel-collector,jaeger
 ```
 
 ### Documentation Sites
@@ -156,8 +225,75 @@ npm run init -- --stack dotnet --db redis --cloud-tools kubectl-helm,azure-cli
 For documentation projects:
 
 ```bash
-npm run init -- --stack python-mkdocs
+npm run init -- --stack plain --language mkdocs
 ```
+
+### Multi-Cloud Python Development
+
+For Python projects targeting multiple clouds:
+
+```bash
+npm run init -- \
+  --stack compose \
+  --language python \
+  --postgres \
+  --cloud-tools aws-cli,azure-cli,kubectl-helm
+```
+
+## Observability Stack Combinations
+
+### Minimal (Traces Only)
+```bash
+--observability jaeger
+```
+Direct tracing without collector.
+
+### Minimal (Metrics Only)
+```bash
+--observability prometheus,grafana
+```
+Metrics collection and visualization.
+
+### Standard (Traces + Metrics)
+```bash
+--observability otel-collector,jaeger,prometheus,grafana
+```
+Complete telemetry pipeline for traces and metrics.
+
+### Complete (Traces + Metrics + Logs)
+```bash
+--observability otel-collector,jaeger,prometheus,grafana,loki
+```
+Full observability stack with centralized logging.
+
+## Service Dependencies
+
+The system handles dependencies automatically. For example, if you select:
+
+```bash
+--observability otel-collector,prometheus,grafana
+```
+
+The generated `docker-compose.yml` will include:
+```yaml
+services:
+  prometheus:
+    # starts first
+  
+  otel-collector:
+    depends_on:
+      - prometheus  # waits for prometheus
+  
+  grafana:
+    depends_on:
+      - prometheus  # waits for prometheus
+  
+  devcontainer:
+    depends_on:
+      - otel-collector  # waits for otel-collector
+```
+
+Services start in the correct order automatically!
 
 ## Adding Custom Configuration Files
 

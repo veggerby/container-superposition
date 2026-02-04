@@ -5,6 +5,7 @@
       "packages": "postgresql-client"
     }
   },
+  "runServices": ["postgres"],
   "forwardPorts": [5432],
   "portsAttributes": {
     "5432": {

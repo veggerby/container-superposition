@@ -24,12 +24,13 @@ npm run init
 
 You'll be greeted with a beautiful, color-coded interface that guides you through 5–8 questions:
 
-1. **Stack/Language**: .NET, Node.js, Python, or Fullstack
-2. **Docker-in-Docker**: Do you need to build containers inside your devcontainer?
+1. **Base Template**: plain (simple image) or compose (docker-compose based)
+2. **Language/Framework**: .NET, Node.js, Python, MkDocs, or none
 3. **Database**: PostgreSQL, Redis, both, or none
-4. **Browser Automation**: Playwright for end-to-end testing
-5. **Cloud Tools**: Azure CLI, kubectl/helm, or none
-6. **Output Path**: Where to write the configuration (default: `./.devcontainer`)
+4. **Observability**: OpenTelemetry Collector, Jaeger, Prometheus, Grafana, Loki
+5. **Browser Automation**: Playwright for end-to-end testing
+6. **Cloud Tools**: AWS CLI, Azure CLI, kubectl/helm
+7. **Output Path**: Where to write the configuration (default: `./.devcontainer`)
 
 The tool features:
 - 🎨 Color-coded prompts with chalk
@@ -67,13 +68,14 @@ This makes the questionnaire more engaging and the output easier to scan.
 
 | Option | Description | Example |
 |--------|-------------|---------|
-| `--stack <name>` | Base template: `dotnet`, `node-typescript`, `python-mkdocs`, `fullstack` | `--stack dotnet` |
-| `--dind`, `--docker` | Enable Docker-in-Docker | `--docker` |
+| `--stack <name>` | Base template: `plain`, `compose` | `--stack compose` |
+| `--language <name>` | Language/framework: `dotnet`, `nodejs`, `python`, `mkdocs` | `--language dotnet` |
 | `--db <type>` | Database: `postgres`, `redis`, `postgres+redis`, `none` | `--db postgres` |
 | `--postgres` | Shorthand for `--db postgres` | `--postgres` |
 | `--redis` | Shorthand for `--db redis` | `--redis` |
+| `--observability <list>` | Observability tools: `otel-collector`, `jaeger`, `prometheus`, `grafana`, `loki` | `--observability jaeger,prometheus,grafana` |
 | `--playwright` | Include Playwright browser automation | `--playwright` |
-| `--cloud-tools <list>` | Comma-separated cloud tools: `azure-cli`, `kubectl-helm` | `--cloud-tools azure-cli` |
+| `--cloud-tools <list>` | Cloud tools: `aws-cli`, `azure-cli`, `kubectl-helm` | `--cloud-tools aws-cli,kubectl-helm` |
 | `-o`, `--output <path>` | Output directory (default: `./.devcontainer`) | `-o ./custom-path` |
 | `-h`, `--help` | Show help | `--help` |
 
@@ -91,13 +93,22 @@ After running the tool, you'll have:
 
 ```
 .devcontainer/
-├── devcontainer.json            # Main configuration (editable!)
-├── .env.example                 # Environment variables from selected overlays
+├── devcontainer.json                  # Main configuration (editable!)
+├── docker-compose.yml                 # Base compose file (if using compose template)
+├── .env.example                       # Environment variables from selected overlays
 ├── scripts/
-│   └── post_create.sh           # Post-creation scripts
-├── docker-compose.postgres.yml  # (if you chose postgres)
-├── docker-compose.redis.yml     # (if you chose redis)
-└── [additional overlay files]   # e.g., otel-collector.yml, config/
+│   └── post_create.sh                 # Post-creation scripts
+├── docker-compose.postgres.yml        # (if postgres selected)
+├── docker-compose.redis.yml           # (if redis selected)
+├── docker-compose.otel-collector.yml  # (if otel-collector selected)
+├── docker-compose.jaeger.yml          # (if jaeger selected)
+├── docker-compose.prometheus.yml      # (if prometheus selected)
+├── docker-compose.grafana.yml         # (if grafana selected)
+├── docker-compose.loki.yml            # (if loki selected)
+├── otel-collector-config.yaml         # (if otel-collector selected)
+├── prometheus.yml                     # (if prometheus selected)
+├── grafana-datasources.yml            # (if grafana selected)
+└── loki-config.yaml                   # (if loki selected)
 ```
 
 All `.env.example` files from selected overlays are automatically merged into a single file with all relevant environment variables.

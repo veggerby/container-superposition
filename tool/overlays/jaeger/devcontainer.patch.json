@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "runServices": ["jaeger"],
+  "_serviceOrder": 1,
+  "forwardPorts": [16686, 4317, 4318],
+  "portsAttributes": {
+    "16686": {
+      "label": "Jaeger UI",
+      "onAutoForward": "openBrowser"
+    },
+    "4317": {
+      "label": "OTLP gRPC",
+      "onAutoForward": "silent"
+    },
+    "4318": {
+      "label": "OTLP HTTP",
+      "onAutoForward": "silent"
+    }
+  }
+}

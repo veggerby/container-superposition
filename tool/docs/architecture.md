@@ -26,11 +26,25 @@ Templates in `templates/` work standalone. The init tool is a convenience wrappe
 tool/
 ├── docs/              # Architecture and design documentation
 ├── overlays/          # Composable feature add-ons
-│   ├── postgres/      # PostgreSQL overlay
-│   ├── redis/         # Redis overlay
-│   ├── playwright/    # Browser automation
-│   ├── azure-cli/     # Azure tools
-│   └── kubectl-helm/  # Kubernetes tools
+│   ├── Language/Framework
+│   │   ├── dotnet/           # .NET overlay
+│   │   ├── nodejs/           # Node.js overlay
+│   │   ├── python/           # Python overlay
+│   │   └── mkdocs/           # MkDocs overlay
+│   ├── Databases
+│   │   ├── postgres/         # PostgreSQL overlay
+│   │   └── redis/            # Redis overlay
+│   ├── Observability
+│   │   ├── otel-collector/   # OpenTelemetry Collector
+│   │   ├── jaeger/           # Distributed tracing
+│   │   ├── prometheus/       # Metrics collection
+│   │   ├── grafana/          # Visualization
+│   │   └── loki/             # Log aggregation
+│   ├── Development Tools
+│   │   ├── playwright/       # Browser automation
+│   │   ├── aws-cli/          # AWS tools
+│   │   ├── azure-cli/        # Azure tools
+│   │   └── kubectl-helm/     # Kubernetes tools
 ├── questionnaire/     # Composition logic
 │   └── composer.ts    # Deep merge engine
 └── schema/            # Type definitions

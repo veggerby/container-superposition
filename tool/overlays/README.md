@@ -13,15 +13,31 @@ Each overlay directory contains:
 
 ## Available Overlays
 
+### Language & Framework
+
+- **dotnet** - .NET 10 SDK with C# DevKit, testing tools, and build essentials
+- **nodejs** - Node.js LTS with TypeScript, ESLint, Prettier, and npm tools
+- **python** - Python 3.12 with Pylance, Black formatter, and Ruff linter
+- **mkdocs** - Python with MkDocs and Material theme for documentation
+
 ### Databases
 
 - **postgres** - PostgreSQL 16 with client tools and environment variables
 - **redis** - Redis 7 with redis-tools and persistence
 
+### Observability
+
+- **otel-collector** - OpenTelemetry Collector for traces, metrics, and logs
+- **jaeger** - Jaeger all-in-one for distributed tracing with OTLP support
+- **prometheus** - Prometheus for metrics collection and monitoring
+- **grafana** - Grafana for visualization with pre-configured data sources
+- **loki** - Loki for log aggregation and querying
+
 ### Development Tools
 
 - **playwright** - Browser automation with Chromium installed
 - **azure-cli** - Azure command-line tools
+- **aws-cli** - AWS command-line tools
 - **kubectl-helm** - Kubernetes CLI and Helm package manager
 
 ## Environment Variables
@@ -39,6 +55,25 @@ Each overlay can provide its own `.env.example` file with relevant environment v
 - `REDIS_VERSION` - Redis version (default: 7)
 - `REDIS_PORT` - Port mapping (default: 6379)
 - `REDIS_PASSWORD` - Optional password for Redis authentication
+
+### Observability Variables
+
+#### OpenTelemetry Collector
+- `OTEL_COLLECTOR_VERSION` - Collector version (default: latest)
+
+#### Jaeger
+- `JAEGER_VERSION` - Jaeger version (default: latest)
+
+#### Prometheus
+- `PROMETHEUS_VERSION` - Prometheus version (default: latest)
+
+#### Grafana
+- `GRAFANA_VERSION` - Grafana version (default: latest)
+- `GRAFANA_ADMIN_USER` - Admin username (default: admin)
+- `GRAFANA_ADMIN_PASSWORD` - Admin password (default: admin)
+
+#### Loki
+- `LOKI_VERSION` - Loki version (default: latest)
 
 ### Using .env
 

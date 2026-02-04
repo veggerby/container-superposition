@@ -1,102 +1,110 @@
 # Templates
 
-Solution-ready devcontainer configurations for common development scenarios.
+Minimal base templates for devcontainer configurations. These are designed to be **composed with overlays** to create your ideal development environment.
 
 ## Philosophy
 
-These templates are **opinionated, batteries-included** setups that:
+These templates provide a **clean foundation** that:
+- ✅ Start minimal - add only what you need via overlays
 - ✅ Use official images and features from [containers.dev](https://containers.dev)
-- ✅ Work immediately after copying (no configuration required)
-- ✅ Include pre-configured VS Code extensions and settings
+- ✅ Support both simple (image-based) and complex (docker-compose) scenarios
+- ✅ Enable composability through overlay system
 - ✅ Optimize for fast builds with proper caching
-- ✅ Provide helpful post-create scripts
-- ✅ Include comprehensive documentation
 
 We **DO NOT** duplicate what's already available. We **COMPOSE** existing tools into complete solutions.
 
 ## Available Templates
 
-### 🟢 node-typescript
-**Full-stack Node.js development with TypeScript**
+### 🟢 plain
+**Minimal image-based devcontainer**
 
-Ideal for: Express APIs, React apps, Next.js, Vite projects, SPAs
+Ideal for: Simple projects that don't need additional services
 
 Includes:
-- Node.js 20 LTS with TypeScript
-- ESLint, Prettier, Jest
-- Docker-in-Docker for containerization
-- GitHub CLI
-- Hot reload ready
-- npm, pnpm, yarn support
+- Debian base image
+- Common utilities (git, zsh, curl, wget, vim)
+- Basic shell enhancements
+- Minimal footprint
 
-**Use when:** Building modern JavaScript/TypeScript web applications and APIs
+**Use when:** Building single-service applications without external dependencies
+
+**Compose with:**
+- Language overlays (dotnet, nodejs, python, mkdocs)
+- Development tools (playwright, aws-cli, azure-cli)
 
 ---
 
-### 🔵 dotnet-webapi
-**C# ASP.NET Core Web API development**
+### 🔵 compose
+**Docker Compose-based devcontainer**
 
-Ideal for: REST APIs, microservices, enterprise applications
+Ideal for: Multi-service applications requiring databases, observability, etc.
 
 Includes:
-- .NET 8.0 SDK
-- C# Dev Kit and extensions
-- Entity Framework Core tools
-- Docker-in-Docker
-- dotnet-format, dotnet-ef
-- Test explorer
+- Docker Compose infrastructure
+- Devcontainer service on shared network
+- Docker-outside-of-Docker support
+- Ready for service composition
 
-**Use when:** Building high-performance C# backend services and APIs
+**Use when:** Building applications that need databases, caching, observability stack, or multiple services
+
+**Compose with:**
+- Language overlays (dotnet, nodejs, python, mkdocs)
+- Databases (postgres, redis)
+- Observability (otel-collector, jaeger, prometheus, grafana, loki)
+- Cloud tools (aws-cli, azure-cli, kubectl-helm)
 
 ---
 
-### 📚 python-mkdocs
-**Documentation with MkDocs and Material theme**
+## Composing with Overlays
 
-Ideal for: Project documentation, technical writing, knowledge bases
+Templates are designed to work with the overlay system. Common combinations:
 
-Includes:
-- Python 3.12
-- MkDocs with Material theme
-- Markdown extensions and plugins
-- Mermaid diagrams
-- Live reload server
-- GitHub Pages deployment
+### Web API with Database
+```bash
+# compose + nodejs + postgres + redis
+```
 
-**Use when:** Creating beautiful, searchable documentation websites
+### Microservice with Observability
+```bash
+# compose + dotnet + postgres + otel-collector + jaeger + prometheus + grafana
+```
+
+### Documentation Site
+```bash
+# plain + mkdocs
+```
+
+### Fullstack Application
+```bash
+# compose + nodejs + python + postgres + redis + otel-collector + jaeger + grafana + loki
+```
 
 ## Quick Start
 
-### 1. Choose a Template
-
-Browse the templates and find one that matches your project type.
-
-### 2. Copy to Your Project
+### Using the Init Tool (Recommended)
 
 ```bash
-# Copy the entire .devcontainer folder
-cp -r templates/<template-name>/.devcontainer /path/to/your/project/
-
-# Example:
-cp -r templates/node-typescript/.devcontainer /path/to/my-project/
+cd /path/to/your/project
+npx @veggerby/container-superposition init
 ```
 
-### 3. Open in VS Code
+The tool will guide you through:
+1. Selecting a base template (plain or compose)
+2. Choosing language/framework
+3. Adding databases
+4. Adding observability tools
+5. Adding cloud/dev tools
 
+### Manual Setup
+
+1. Copy a template:
 ```bash
-cd /path/to/my-project
-code .
+cp -r templates/compose/.devcontainer /path/to/my-project/
 ```
 
-### 4. Reopen in Container
-
-When prompted, click **"Reopen in Container"**
-
-Or manually: `Cmd/Ctrl + Shift + P` → "Dev Containers: Reopen in Container"
-
-### 5. Wait for Setup
-
-First build takes a few minutes. Subsequent builds are faster due to caching.
+2. Add overlay configurations manually
+3. Merge docker-compose files
+4. Update devcontainer.json
 
 The `postCreateCommand` script will:
 - Install global tools

@@ -45,39 +45,134 @@ services:
       - "8080:8080"
     volumes:
       - my-data:/data
+    depends_on:
+      - other-service  # Only if dependency exists
+    networks:
+      - devnet
 
 volumes:
   my-data:
+
+networks:
+  devnet:
+    external: true
 ```
 
-### 4. Update the Questionnaire
+**Important:** 
+- Include `depends_on` for services your overlay depends on
+- The composer will filter out dependencies not selected by the user
+- Use `networks: - devnet` to connect to the shared network
+
+### 4. Add Environment Variables (Optional)
+
+Create `tool/overlays/my-feature/.env.example`:
+
+```bash
+# My Feature Configuration
+MY_FEATURE_VERSION=latest
+MY_FEATURE_PORT=8080
+```
+
+This will be automatically merged into the combined `.env.example` file.
+
+### 5. Add Configuration Files (Optional)
+
+Add any config files your service needs:
+
+```bash
+tool/overlays/my-feature/
+├── devcontainer.patch.json
+├── docker-compose.yml
+├── .env.example
+├── my-feature-config.yaml
+└── config/
+    └── additional-config.json
+```
+
+All files except `devcontainer.patch.json` and `.env.example` will be copied to the output directory.
+
+### 6. Update runServices and Service Order
+
+In `devcontainer.patch.json`, specify which services to run and their startup order:
+
+```jsonc
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "runServices": ["my-service"],
+  "_serviceOrder": 1,  // 0=infrastructure, 1=backends, 2=middleware, 3=UI
+  "features": {
+    // ...
+  }
+}
+```
+
+### 7. Update the Questionnaire
+
+### 7. Update the Questionnaire
 
 Edit `scripts/init.ts` to add your overlay as an option:
 
 ```typescript
-// In the questionnaire section
-console.log('   - my-feature');
-
-// In the overlay selection logic
-if (answers.myFeature) {
-  overlays.push('my-feature');
-}
+// Add to the appropriate category in the questionnaire
+const observabilityTools = await checkbox({
+  message: 'Select observability tools:',
+  choices: [
+    { name: 'OpenTelemetry Collector', value: 'otel-collector' },
+    { name: 'Jaeger (Tracing)', value: 'jaeger' },
+    { name: 'My Feature', value: 'my-feature' },  // Add here
+  ],
+});
 ```
 
-### 5. Update Types (if needed)
+### 8. Update Types
 
-If adding a new category, update `tool/schema/types.ts`:
+Update `tool/schema/types.ts` if adding to a new or existing category:
 
 ```typescript
-export type MyCategory = 'option1' | 'option2';
+// If adding to observability
+export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'my-feature';
 
-export interface QuestionnaireAnswers {
-  // ... existing fields
-  myFeature?: boolean;
-}
+// Or create a new category
+export type NewCategory = 'option1' | 'my-feature';
+
+### 9. Document It
+
+Add to the appropriate section in `tool/overlays/README.md`:
+
+```markdown
+### My Category
+
+- **my-feature** - Description of what it does, ports, and key features
 ```
 
-### 6. Document It
+If the overlay is complex, create `tool/overlays/my-feature/README.md`:
+
+```markdown
+# My Feature Overlay
+
+## What's Included
+
+- Service description
+- Ports and endpoints
+- Configuration options
+
+## Usage
+
+How to use the feature in your application.
+
+## Environment Variables
+
+- `MY_FEATURE_VERSION` - Version (default: latest)
+- `MY_FEATURE_PORT` - Port (default: 8080)
+
+## Dependencies
+
+Works best with: other-overlay-1, other-overlay-2
+```
+
+Update architecture docs in `tool/docs/` if the overlay introduces new concepts.
+
+### 10. Document It
 
 Add to `tool/overlays/README.md`:
 

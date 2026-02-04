@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:debian
+    volumes:
+      - ../..:/workspaces:cached
+    command: sleep infinity
+    depends_on:
+      - postgres
+      - redis
+      - otel-collector
+    networks:
+      - devnet
+
+networks:
+  devnet:

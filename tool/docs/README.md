@@ -10,20 +10,38 @@ The init tool is a command-line utility that generates devcontainer configuratio
 
 ### Base Templates
 
-Located in `templates/`, each provides a complete `.devcontainer/` setup for a specific stack:
-- **dotnet** - .NET development
-- **node-typescript** - Node.js with TypeScript
-- **python-mkdocs** - Python documentation
-- **fullstack** - Polyglot setup
+Located in `templates/`, each provides a minimal foundation:
+- **plain** - Simple image-based devcontainer
+- **compose** - Docker Compose-based for multi-service environments
 
 ### Overlays
 
-Located in `tool/overlays/`, each adds specific capabilities:
-- **postgres** - PostgreSQL database
+Located in `tool/overlays/`, organized by category:
+
+**Language/Framework:**
+- **dotnet** - .NET 10 SDK
+- **nodejs** - Node.js LTS with TypeScript
+- **python** - Python 3.12
+- **mkdocs** - Python with MkDocs
+
+**Databases:**
+- **postgres** - PostgreSQL
 - **redis** - Redis cache
-- **playwright** - Browser automation
+
+**Observability:**
+- **otel-collector** - OpenTelemetry Collector
+- **jaeger** - Distributed tracing
+- **prometheus** - Metrics collection
+- **grafana** - Visualization
+- **loki** - Log aggregation
+
+**Cloud/DevOps:**
+- **aws-cli** - AWS tools
 - **azure-cli** - Azure tools
 - **kubectl-helm** - Kubernetes tools
+
+**Development:**
+- **playwright** - Browser automation
 
 ### Composition
 
@@ -31,9 +49,12 @@ The tool uses deep merge to combine base templates with selected overlays, produ
 
 ## Documentation Files
 
-- **[architecture.md](architecture.md)** - Design principles, composition algorithm, extension points
+- **[quick-reference.md](quick-reference.md)** - Quick lookup for templates, overlays, ports, commands
+- **[architecture.md](architecture.md)** - Design principles, composition algorithm, deep merge logic
+- **[dependencies.md](dependencies.md)** - Service dependencies, startup order, runServices configuration
+- **[creating-overlays.md](creating-overlays.md)** - Complete guide to creating new overlays
 - **[ux.md](ux.md)** - Visual design, CLI enhancements, accessibility
-- **[examples.md](examples.md)** - Common usage patterns and customization
+- **[examples.md](examples.md)** - Common usage patterns, observability stacks, customization
 
 ## Quick Reference
 
