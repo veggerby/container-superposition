@@ -282,7 +282,6 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
   
   // Merge all compose files
   let merged: any = {
-    version: '3.8',
     services: {},
     volumes: {},
     networks: {}
@@ -303,9 +302,15 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
     }
   }
   
-  // Apply custom base image if specified
-  if (customImage && merged.services.devcontainer) {
-    merged.services.devcontainer.image = customImage;
+  // Ensure devcontainer service has an image
+  if (merged.services.devcontainer) {
+    if (customImage) {
+      // Apply custom base image if specified
+      merged.services.devcontainer.image = customImage;
+    } else if (!merged.services.devcontainer.image) {
+      // Fallback to default if no image is set
+      merged.services.devcontainer.image = 'mcr.microsoft.com/devcontainers/base:debian';
+    }
   }
   
   // Filter depends_on to only include services that exist
