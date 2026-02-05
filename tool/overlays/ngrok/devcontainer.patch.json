@@ -1,4 +1,4 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "postCreateCommand": "bash .devcontainer/ngrok-setup.sh"
+  "postCreateCommand": "bash .devcontainer/scripts/setup-ngrok.sh"
 }
