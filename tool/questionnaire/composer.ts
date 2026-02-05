@@ -699,8 +699,22 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   for (const overlay of overlays) {
     copyOverlayFiles(outputPath, overlay);
   }
-  
-  // 8. Filter docker-compose dependencies based on selected overlays
+    // 8.5. Copy cross-distro-packages feature if used
+  if (config.features?.['../features/cross-distro-packages']) {
+    const featuresDir = path.join(outputPath, 'features', 'cross-distro-packages');
+    const sourceFeatureDir = path.join(REPO_ROOT, 'features', 'cross-distro-packages');
+    
+    if (fs.existsSync(sourceFeatureDir)) {
+      copyDir(sourceFeatureDir, featuresDir);
+      console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));
+      
+      // Update path reference from ../features/ to ./features/
+      const featureConfig = config.features['../features/cross-distro-packages'];
+      delete config.features['../features/cross-distro-packages'];
+      config.features['./features/cross-distro-packages'] = featureConfig;
+    }
+  }
+    // 8. Filter docker-compose dependencies based on selected overlays
   filterDockerComposeDependencies(outputPath, overlays);
   
   // 9. Merge runServices array in correct order

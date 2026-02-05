@@ -10,6 +10,8 @@
 - Simple API: specify packages per distribution in devcontainer.patch.json
 - Eliminates duplicated distro detection code across overlays
 - Proper cache cleanup to minimize image size
+- **Feature is copied to `.devcontainer/features/`** - generated devcontainers are fully portable
+- Composer automatically updates path from `../features/` to `./features/` during generation
 
 ### 🌐 Multi-Distribution Support
 Refactored nodejs, python, redis, dotnet overlays to use new `cross-distro-packages` feature
@@ -29,7 +31,14 @@ Refactored nodejs, python, redis, dotnet overlays to use new `cross-distro-packa
 - redis: Redis CLI tools (redis-tools/redis)
 - dotnet: 9 system packages including xdg-utils, pass, sshpass, git-lfs, sqlite3
 
-### 📚 Documentation Improvements
+### � Improvements
+
+**Base Templates:**
+- Replaced `apt-get-packages` feature with `cross-distro-packages` in both plain and compose templates
+- Base utilities now work on Alpine and Ubuntu, not just Debian
+- Templates reference `./features/cross-distro-packages` for portability
+
+### �📚 Documentation Improvements
 
 **Created Publishing Guide:**
 - Comprehensive npm publishing guide at `docs/publishing.md`

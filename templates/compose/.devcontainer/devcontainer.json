@@ -19,8 +19,9 @@
     "ghcr.io/devcontainers/features/git:1": {
       "version": "os-provided"
     },
-    "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
-      "packages": "bash-completion curl wget vim less"
+    "./features/cross-distro-packages": {
+      "apt": "bash-completion curl wget vim less",
+      "apk": "bash-completion curl wget vim less"
     },
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
       "moby": false
