@@ -27,9 +27,8 @@
       }
     }
   },
-  "mounts": [
-    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readOnly=true",
-    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gnupg,target=/home/vscode/.gnupg,type=bind,consistency=cached"
-  ],
+  "postStartCommand": {
+    "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+  },
   "postCreateCommand": "bash .devcontainer/scripts/setup-git-helpers.sh"
 }

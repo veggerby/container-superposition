@@ -16,22 +16,47 @@ Comprehensive Git tooling with GPG/SSH support, Git LFS, and GitHub CLI.
 
 ## Configuration
 
-### SSH Keys
+### SSH Keys (Optional Mount)
 
-Your SSH keys from `~/.ssh` are automatically mounted (read-only) into the container. This allows you to:
+To use your host SSH keys in the container, add this mount to your `devcontainer.json`:
+
+```json
+"mounts": [
+  "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readOnly=true"
+]
+```
+
+This allows you to:
 - Push/pull from Git repositories using SSH
 - Use SSH agent forwarding
 - Maintain existing SSH configurations
 
 **Note**: Keys are mounted read-only for security. Generate new keys inside the container if needed.
 
+### GPG Keys (Optional Mount)
+
+To use your host GPG keys in the container, add this mount to your `devcontainer.json`:
+
+```json
+"mounts": [
+  "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gnupg,target=/home/vscode/.gnupg,type=bind,consistency=cached"
+]
+```
+
+**Important**: Only add this mount if you have a `~/.gnupg` directory on your host machine. Otherwise, the container may fail to start.
+
 ### GPG Commit Signing
 
-Your GPG keys from `~/.gnupg` are mounted into the container. To enable commit signing:
+GPG commit signing is supported but requires manual setup:
 
-1. List your GPG keys inside the container:
+1. Import your GPG keys into the container, or generate new ones:
    ```bash
-   gpg --list-secret-keys --keyid-format LONG
+   # Generate a new key
+   gpg --full-generate-key
+   
+   # Or import from your host (copy your key ID first on host with: gpg --list-secret-keys)
+   # On host: gpg --export-secret-keys YOUR_KEY_ID > key.gpg
+   # In container: gpg --import key.gpg
    ```
 
 2. Configure Git to use your signing key:
@@ -41,12 +66,7 @@ Your GPG keys from `~/.gnupg` are mounted into the container. To enable commit s
    git config --global tag.gpgsign true
    ```
 
-3. Enable in VS Code settings (already configured):
-   ```json
-   {
-     "git.enableCommitSigning": true
-   }
-   ```
+**Note**: GPG keys are not automatically mounted to avoid container startup failures when `~/.gnupg` doesn't exist on the host.
 
 ### GitHub CLI Authentication
 
