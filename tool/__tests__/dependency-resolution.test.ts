@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
-const OVERLAYS_CONFIG_PATH = path.join(REPO_ROOT, 'tool', 'overlays.yml');
+const OVERLAYS_CONFIG_PATH = path.join(REPO_ROOT, 'overlays', 'index.yml');
 
 /**
  * Load overlay metadata from overlays.yml
