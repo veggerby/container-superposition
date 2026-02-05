@@ -509,8 +509,8 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
       // Apply custom base image if specified
       merged.services.devcontainer.image = customImage;
     } else if (!merged.services.devcontainer.image) {
-      // Fallback to default if no image is set
-      merged.services.devcontainer.image = 'mcr.microsoft.com/devcontainers/base:bookworm';
+      // Fallback to default if no image is set (shouldn't happen in normal flow)
+      console.warn(chalk.yellow('⚠️  No image specified, this should not happen'));
     }
   }
   
@@ -621,10 +621,16 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   let config = loadJson<DevContainer>(baseConfigPath);
   
   // 4a. Apply base image selection
-  const imageMap: Record<string, string> = {
-    'bookworm': 'mcr.microsoft.com/devcontainers/base:bookworm',
-    'trixie': 'mcr.microsoft.com/devcontainers/base:trixie',
-  };
+  // Build image map from overlaysConfig instead of hardcoding
+  const imageMap: Record<string, string> = {};
+  for (const baseImage of overlaysConfig.base_images) {
+    if (baseImage.image) {
+      imageMap[baseImage.id] = baseImage.image;
+    }
+  }
+  
+  // Get default base image (first in list)
+  const defaultBaseImage = overlaysConfig.base_images[0];
   
   if (answers.baseImage === 'custom' && answers.customImage) {
     // Use custom image provided by user
@@ -635,8 +641,8 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
       config._customImage = answers.customImage; // Temporary marker
     }
     console.log(chalk.yellow(`   ⚠️  Using custom image: ${answers.customImage}`));
-  } else if (answers.baseImage !== 'bookworm') {
-    // Apply non-default base image (bookworm is default, no change needed)
+  } else if (answers.baseImage !== defaultBaseImage.id) {
+    // Apply non-default base image
     const selectedImage = imageMap[answers.baseImage];
     if (answers.stack === 'plain') {
       config.image = selectedImage;
