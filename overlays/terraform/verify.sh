@@ -4,6 +4,14 @@
 
 set -e
 
+# Cleanup on exit
+cleanup() {
+  if [ -n "$TEMP_DIR" ] && [ -d "$TEMP_DIR" ]; then
+    rm -rf "$TEMP_DIR"
+  fi
+}
+trap cleanup EXIT
+
 echo "🔍 Verifying Terraform overlay..."
 echo ""
 
@@ -48,13 +56,8 @@ if terraform init > /dev/null 2>&1 && terraform validate > /dev/null 2>&1; then
     echo "   ✅ Terraform init and validate successful"
 else
     echo "   ❌ Terraform init/validate failed"
-    cd -
-    rm -rf "$TEMP_DIR"
     exit 1
 fi
-
-cd -
-rm -rf "$TEMP_DIR"
 
 echo ""
 echo "✅ Terraform overlay verification complete"
