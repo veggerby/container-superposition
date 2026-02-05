@@ -237,4 +237,46 @@ describe('Golden Tests - Composition', () => {
     // Clean up
     fs.rmSync(outputPath, { recursive: true });
   });
+
+  it('should preserve workspace volumes when merging with overlay volumes', async () => {
+    const outputPath = path.join(TEST_OUTPUT_DIR, 'test-volumes-preserved');
+    
+    if (fs.existsSync(outputPath)) {
+      fs.rmSync(outputPath, { recursive: true });
+    }
+    
+    const answers: QuestionnaireAnswers = {
+      stack: 'compose',
+      baseImage: 'bookworm',
+      language: [],
+      needsDocker: false,
+      database: 'none',
+      playwright: false,
+      cloudTools: [],
+      devTools: ['docker-sock'],
+      observability: [],
+      outputPath,
+    };
+    
+    await composeDevContainer(answers);
+    
+    // Verify docker-compose.yml was created
+    const composePath = path.join(outputPath, 'docker-compose.yml');
+    expect(fs.existsSync(composePath)).toBe(true);
+    
+    // Load and verify content
+    const compose = yaml.load(fs.readFileSync(composePath, 'utf-8')) as any;
+    expect(compose.services.devcontainer).toBeDefined();
+    expect(compose.services.devcontainer.volumes).toBeDefined();
+    
+    // Verify both volumes are present:
+    // 1. Workspace mount from base template
+    // 2. Docker socket from docker-sock overlay
+    const volumes = compose.services.devcontainer.volumes;
+    expect(volumes).toContain('../..:/workspaces:cached');
+    expect(volumes).toContain('/var/run/docker.sock:/var/run/docker-host.sock');
+    
+    // Clean up
+    fs.rmSync(outputPath, { recursive: true });
+  });
 });

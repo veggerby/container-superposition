@@ -30,14 +30,9 @@
             }
         }
     },
-    "mounts": [
-        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readOnly=true"
-    ],
+    "mounts": [],
     "remoteEnv": {
         "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
-    },
-    "postStartCommand": {
-        "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
     },
     "remoteUser": "vscode"
 }

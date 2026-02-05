@@ -44,7 +44,7 @@
     }
   },
   "remoteEnv": {
-    "PATH": "/home/vscode/.dotnet/tools:${PATH}",
+    "PATH": "/home/vscode/.dotnet/tools:${containerEnv:PATH}",
     "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
   }
 }

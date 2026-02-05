@@ -7,7 +7,7 @@ export type BaseImage = 'bookworm' | 'trixie' | 'custom';
 export type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs';
 export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
 export type CloudTool = 'azure-cli' | 'aws-cli' | 'kubectl-helm';
-export type DevTool = 'docker-in-docker' | 'docker-sock' | 'codex' | 'playwright';
+export type DevTool = 'docker-in-docker' | 'docker-sock' | 'codex' | 'playwright' | 'git-helpers' | 'pre-commit' | 'commitlint' | 'just' | 'direnv' | 'modern-cli-tools' | 'ngrok';
 export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'prometheus' | 'grafana' | 'loki';
 
 export interface DevContainerConfig {

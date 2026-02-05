@@ -1,0 +1,7 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "postCreateCommand": "bash .devcontainer/direnv-setup.sh",
+  "remoteEnv": {
+    "DIRENV_LOG_FORMAT": ""
+  }
+}

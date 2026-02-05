@@ -60,14 +60,14 @@ function mergeRemoteEnv(target: Record<string, string>, source: Record<string, s
   for (const key in source) {
     if (key === 'PATH' && target[key]) {
       // Collect PATH components from both target and source
-      const targetPaths = target[key].split(':').filter(p => p && p !== '${PATH}');
-      const sourcePaths = source[key].split(':').filter(p => p && p !== '${PATH}');
+      const targetPaths = target[key].split(':').filter(p => p && p !== '${containerEnv:PATH}');
+      const sourcePaths = source[key].split(':').filter(p => p && p !== '${containerEnv:PATH}');
       
       // Combine and deduplicate paths, preserving order
       const allPaths = [...new Set([...targetPaths, ...sourcePaths])];
       
-      // Rebuild PATH with original ${PATH} at the end
-      output[key] = [...allPaths, '${PATH}'].join(':');
+      // Rebuild PATH with original ${containerEnv:PATH} at the end
+      output[key] = [...allPaths, '${containerEnv:PATH}'].join(':');
     } else {
       // For non-PATH variables, source overwrites target
       output[key] = source[key];
@@ -437,7 +437,14 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
     const compose = yaml.load(content) as any;
     
     if (compose.services) {
-      merged.services = { ...merged.services, ...compose.services };
+      // Deep merge services to preserve arrays like volumes, ports, etc.
+      for (const serviceName in compose.services) {
+        if (merged.services[serviceName]) {
+          merged.services[serviceName] = deepMerge(merged.services[serviceName], compose.services[serviceName]);
+        } else {
+          merged.services[serviceName] = compose.services[serviceName];
+        }
+      }
     }
     if (compose.volumes) {
       merged.volumes = { ...merged.volumes, ...compose.volumes };
@@ -738,7 +745,7 @@ function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath:
       // Make it executable
       fs.chmodSync(destPath, 0o755);
       
-      setupScripts.push(`bash .devcontainer/scripts/setup-${overlay}.sh`);
+      setupScripts.push(`sh .devcontainer/scripts/setup-${overlay}.sh`);
     }
   }
   
