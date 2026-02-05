@@ -18,11 +18,11 @@ const REPO_ROOT_CANDIDATES = [
 ];
 const REPO_ROOT = REPO_ROOT_CANDIDATES.find(candidate => 
   fs.existsSync(path.join(candidate, 'templates')) && 
-  fs.existsSync(path.join(candidate, 'tool', 'overlays'))
+  fs.existsSync(path.join(candidate, 'overlays'))
 ) ?? REPO_ROOT_CANDIDATES[0];
 
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
-const OVERLAYS_DIR = path.join(REPO_ROOT, 'tool', 'overlays');
+const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 
 /**
  * Deep merge two objects, with special handling for arrays
@@ -102,6 +102,45 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
 }
 
 /**
+ * Merge packages from cross-distro-packages feature
+ */
+function mergeCrossDistroPackages(
+  baseConfig: DevContainer, 
+  apt: string | undefined, 
+  apk: string | undefined
+): DevContainer {
+  const featureKey = './features/cross-distro-packages';
+  
+  if (!baseConfig.features) {
+    baseConfig.features = {};
+  }
+  
+  if (!baseConfig.features[featureKey]) {
+    baseConfig.features[featureKey] = {};
+  }
+  
+  // Merge apt packages
+  if (apt) {
+    const existing = baseConfig.features[featureKey].apt || '';
+    const existingPackages = existing.split(' ').filter((p: string) => p);
+    const newPackages = apt.split(' ').filter(p => p);
+    const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
+    baseConfig.features[featureKey].apt = merged;
+  }
+  
+  // Merge apk packages
+  if (apk) {
+    const existing = baseConfig.features[featureKey].apk || '';
+    const existingPackages = existing.split(' ').filter((p: string) => p);
+    const newPackages = apk.split(' ').filter(p => p);
+    const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
+    baseConfig.features[featureKey].apk = merged;
+  }
+  
+  return baseConfig;
+}
+
+/**
  * Load and parse a JSON file
  */
 function loadJson<T = any>(filePath: string): T {
@@ -110,10 +149,10 @@ function loadJson<T = any>(filePath: string): T {
 }
 
 /**
- * Load overlay metadata from overlays.yml
+ * Load overlay metadata from overlays/index.yml
  */
 function loadOverlaysConfig(): OverlaysConfig {
-  const overlaysConfigPath = path.join(REPO_ROOT, 'tool', 'overlays.yml');
+  const overlaysConfigPath = path.join(REPO_ROOT, 'overlays', 'index.yml');
   return yaml.load(fs.readFileSync(overlaysConfigPath, 'utf-8')) as OverlaysConfig;
 }
 
@@ -248,13 +287,23 @@ function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContain
   
   const overlay = loadJson<DevContainer>(overlayPath);
   
-  // Special handling for apt-get packages
+  // Special handling for apt-get packages (legacy)
   if (overlay.features?.['ghcr.io/devcontainers-extra/features/apt-get-packages:1']?.packages) {
     const packages = overlay.features['ghcr.io/devcontainers-extra/features/apt-get-packages:1'].packages;
     baseConfig = mergeAptPackages(baseConfig, packages);
     
     // Remove it from overlay to avoid double-merge
     delete overlay.features['ghcr.io/devcontainers-extra/features/apt-get-packages:1'];
+  }
+  
+  // Special handling for cross-distro packages
+  if (overlay.features?.['./features/cross-distro-packages']) {
+    const aptPackages = overlay.features['./features/cross-distro-packages'].apt;
+    const apkPackages = overlay.features['./features/cross-distro-packages'].apk;
+    baseConfig = mergeCrossDistroPackages(baseConfig, aptPackages, apkPackages);
+    
+    // Remove it from overlay to avoid double-merge
+    delete overlay.features['./features/cross-distro-packages'];
   }
   
   return deepMerge(baseConfig, overlay);
@@ -460,8 +509,8 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
       // Apply custom base image if specified
       merged.services.devcontainer.image = customImage;
     } else if (!merged.services.devcontainer.image) {
-      // Fallback to default if no image is set
-      merged.services.devcontainer.image = 'mcr.microsoft.com/devcontainers/base:bookworm';
+      // Fallback to default if no image is set (shouldn't happen in normal flow)
+      console.warn(chalk.yellow('⚠️  No image specified, this should not happen'));
     }
   }
   
@@ -572,10 +621,16 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   let config = loadJson<DevContainer>(baseConfigPath);
   
   // 4a. Apply base image selection
-  const imageMap: Record<string, string> = {
-    'bookworm': 'mcr.microsoft.com/devcontainers/base:bookworm',
-    'trixie': 'mcr.microsoft.com/devcontainers/base:trixie',
-  };
+  // Build image map from overlaysConfig instead of hardcoding
+  const imageMap: Record<string, string> = {};
+  for (const baseImage of overlaysConfig.base_images) {
+    if (baseImage.image) {
+      imageMap[baseImage.id] = baseImage.image;
+    }
+  }
+  
+  // Get default base image (first in list)
+  const defaultBaseImage = overlaysConfig.base_images[0];
   
   if (answers.baseImage === 'custom' && answers.customImage) {
     // Use custom image provided by user
@@ -586,8 +641,8 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
       config._customImage = answers.customImage; // Temporary marker
     }
     console.log(chalk.yellow(`   ⚠️  Using custom image: ${answers.customImage}`));
-  } else if (answers.baseImage !== 'bookworm') {
-    // Apply non-default base image (bookworm is default, no change needed)
+  } else if (answers.baseImage !== defaultBaseImage.id) {
+    // Apply non-default base image
     const selectedImage = imageMap[answers.baseImage];
     if (answers.stack === 'plain') {
       config.image = selectedImage;
@@ -651,7 +706,17 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     copyOverlayFiles(outputPath, overlay);
   }
   
-  // 8. Filter docker-compose dependencies based on selected overlays
+  // 8.5. Copy cross-distro-packages feature if used
+  if (config.features?.['./features/cross-distro-packages']) {
+    const featuresDir = path.join(outputPath, 'features', 'cross-distro-packages');
+    const sourceFeatureDir = path.join(REPO_ROOT, 'features', 'cross-distro-packages');
+    
+    if (fs.existsSync(sourceFeatureDir)) {
+      copyDir(sourceFeatureDir, featuresDir);
+      console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));
+    }
+  }
+    // 8. Filter docker-compose dependencies based on selected overlays
   filterDockerComposeDependencies(outputPath, overlays);
   
   // 9. Merge runServices array in correct order

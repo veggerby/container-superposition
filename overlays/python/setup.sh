@@ -1,5 +1,5 @@
 #!/bin/bash
-# Python setup script - Virtual environment and dependency installation
+# Python setup script - Install Python packages
 
 set -e
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Node.js setup script - Install global packages
+# Node.js setup script - Install global npm packages
 
 set -e
 

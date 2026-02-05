@@ -6,14 +6,14 @@ on:
       - main
     paths:
       - 'templates/**'
-      - 'tool/overlays/**'
+      - 'overlays/**'
       - 'features/**'
       - 'scripts/**'
       - '.github/workflows/build-devcontainers.yml'
   pull_request:
     paths:
       - 'templates/**'
-      - 'tool/overlays/**'
+      - 'overlays/**'
       - 'features/**'
       - 'scripts/**'
       - '.github/workflows/build-devcontainers.yml'

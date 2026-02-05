@@ -1,12 +1,13 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
   "features": {
+    "./features/cross-distro-packages": {
+      "apt": "build-essential python3-dev",
+      "apk": "build-base python3-dev"
+    },
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12",
       "installTools": true
-    },
-    "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
-      "packages": "build-essential python3-dev"
     }
   },
   "customizations": {

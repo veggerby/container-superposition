@@ -110,7 +110,7 @@ This makes the questionnaire more engaging and the output easier to scan.
 ## What It Does
 
 1. **Selects** the appropriate base template from `templates/`
-2. **Composes** additional capabilities using overlays from `tool/overlays/`
+2. **Composes** additional capabilities using overlays from `overlays/`
 3. **Merges** features, environment variables, ports, and scripts
 4. **Writes** a normal `.devcontainer/` folder you can edit directly
 5. **Steps aside** — you own the output, not the tool
@@ -186,7 +186,7 @@ Overlays add specific capabilities to your base template:
 Each overlay is a composable package that can include:
 
 ```
-tool/overlays/postgres/
+overlays/postgres/
 ├── devcontainer.patch.json    # Features, env vars, ports (merged into devcontainer.json)
 ├── docker-compose.yml         # Service definition (copied as docker-compose.{overlay}.yml)
 ├── .env.example               # Environment variables (merged into combined .env.example)
@@ -232,16 +232,23 @@ npm run clean
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) - Design principles and composition logic
-- [User Experience](docs/ux.md) - Visual design and CLI enhancements
-- [Examples](docs/examples.md) - Common usage patterns
+Complete documentation is available in the [/docs](../docs/) folder:
+
+- **[Documentation Index](../docs/README.md)** - Complete documentation overview
+- **[Publishing Guide](../docs/publishing.md)** - How to publish to npm
+- **[Architecture](../docs/architecture.md)** - Design principles, composition algorithm, deep merge logic
+- **[Dependencies](../docs/dependencies.md)** - Service dependencies, startup order, runServices configuration
+- **[Creating Overlays](../docs/creating-overlays.md)** - Complete guide to creating new overlays
+- **[UX Design](../docs/ux.md)** - Visual design, CLI enhancements, accessibility
+- **[Examples](../docs/examples.md)** - Common usage patterns, observability stacks, customization
+- **[Quick Reference](../docs/quick-reference.md)** - Quick lookup for templates, overlays, ports, commands
 
 ## Contributing
 
 Want to add a new overlay or template?
 
 1. **Template**: Add to `templates/<name>/.devcontainer/`
-2. **Overlay**: Add to `tool/overlays/<name>/`
+2. **Overlay**: Add to `overlays/<name>/`
    - Required: `devcontainer.patch.json`
    - Optional: `docker-compose.yml` for services
    - Optional: `.env.example` for environment variables

@@ -1,5 +1,70 @@
 # Changelog
 
+## [Unreleased]
+
+### 🚀 New Features
+
+**Cross-Distribution Package Manager Feature:**
+- Created `features/cross-distro-packages` - custom devcontainer feature for distro-agnostic package installation
+- Automatic package manager detection (apt vs apk)
+- Simple API: specify packages per distribution in devcontainer.patch.json
+- Eliminates duplicated distro detection code across overlays
+- Proper cache cleanup to minimize image size
+- **Feature is copied to `.devcontainer/features/`** - generated devcontainers are fully portable
+- Composer automatically updates path from `../features/` to `./features/` during generation
+
+### 🌐 Multi-Distribution Support
+Refactored nodejs, python, redis, dotnet overlays to use new `cross-distro-packages` feature
+- Simplified setup scripts by removing duplicated distro detection code
+- nodejs: Removed system package installation from setup.sh (now in feature)
+- python: Removed system package installation from setup.sh (now in feature)
+- redis: Deleted setup.sh entirely (only installed packages, now handled by feature)
+- dotnet: Removed system package installation from setup.sh (now in feature)
+- Alpine package equivalents: build-base (build-essential), bind-tools (dnsutils), netcat-openbsd (netcat-traditional)
+- Added distro-detection logic to setup scripts for nodejs, python, redis, dotnet
+- Setup scripts auto-detect package manager (apk vs apt-get) and install correct packages
+- Alpine package equivalents: build-base (build-essential), bind-tools (dnsutils), netcat-openbsd (netcat-traditional)
+
+**Affected Overlays:**
+- nodejs: System build dependencies (build-essential/build-base)
+- python: Build tools + Python dev headers (python3-dev)
+- redis: Redis CLI tools (redis-tools/redis)
+- dotnet: 9 system packages including xdg-utils, pass, sshpass, git-lfs, sqlite3
+
+### � Improvements
+
+**Base Templates:**
+- Replaced `apt-get-packages` feature with `cross-distro-packages` in both plain and compose templates
+- Base utilities now work on Alpine and Ubuntu, not just Debian
+- Templates reference `./features/cross-distro-packages` for portability
+
+### �📚 Documentation Improvements
+
+**Created Publishing Guide:**
+- Comprehensive npm publishing guide at `docs/publishing.md`
+- Pre-publish checklist, version management, troubleshooting
+- Test procedures and rollback instructions
+
+**Consolidated Documentation:**
+- Moved all docs to `/docs/` folder for better organization
+- Updated `docs/creating-overlays.md` with multi-distro guide
+- Package manager compatibility section with examples
+
+### 🏗️ Project Structure
+
+**Reorganized File Layout:**
+- Moved `tool/overlays/` → `/overlays/` (root level for consistency with templates/ and features/)
+- Renamed `tool/overlays.yml` → `overlays/index.yml` (metadata lives with content)
+- Updated all path resolution candidates in init.ts and composer.ts
+
+### 🐛 Fixes
+
+- Fixed path resolution after overlays reorganization
+- Removed pre-commit git hook causing commit errors
+- Updated package.json files array to include overlays/ and docs/
+
+---
+
 ## v2.0.0 - Complete Architecture Refactor (2025-02-04)
 
 ### 🎯 Major Changes
@@ -10,7 +75,7 @@
 - Overlays organized by category: language, database, observability, cloud tools, dev tools
 
 **Metadata-Driven Configuration:**
-- Created `tool/overlays.yml` - central metadata file for all overlays
+- Created `overlays/index.yml` - central metadata file for all overlays
 - Properties: id, name, description, category, order (for startup sequencing)
 - Add new overlays without code changes
 
@@ -57,7 +122,7 @@
 
 **Questionnaire (`scripts/init.ts`):**
 - Complete rewrite with async/await (no callbacks)
-- Metadata-driven overlay discovery from `overlays.yml`
+- Metadata-driven overlay discovery from `overlays/index.yml`
 - Modern select/checkbox prompts
 - Better CLI argument parsing
 - Improved help output

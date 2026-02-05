@@ -1,5 +1,5 @@
 #!/bin/bash
-# .NET setup script - Install common global tools
+# .NET setup script - Install global tools and configure environment
 
 set -e
 
