@@ -4,47 +4,80 @@ A comprehensive guide to creating overlays for container-superposition.
 
 ## Base Images
 
-Container Superposition provides **opinionated, battle-tested base image defaults** while allowing customization when needed.
+Container Superposition supports multiple Linux distributions with automatic package manager detection.
 
-### Default Base Image
-
-**Debian Bookworm** (`mcr.microsoft.com/devcontainers/base:bookworm`)
-
-This is the recommended default base image:
-- ✅ **Stable**: Long-term support with regular security updates
-- ✅ **Well-maintained**: Microsoft's official devcontainer base
-- ✅ **Broad compatibility**: Works with all overlays
-- ✅ **Battle-tested**: Proven in production environments
-
-### Alternative Base Images
+### Supported Base Images
 
 During interactive initialization, you can choose from:
 
 1. **Debian Bookworm (Recommended)** - `mcr.microsoft.com/devcontainers/base:bookworm`
-   - Default choice, best compatibility
+   - ✅ Default choice, best compatibility
+   - ✅ Stable with long-term support
+   - ✅ apt package manager
+   - ✅ Battle-tested in production
 
 2. **Debian Trixie** - `mcr.microsoft.com/devcontainers/base:trixie`
    - Newer packages, testing stability
+   - apt package manager
    - Use if you need more recent software versions
 
-3. **Custom Image**
-   - Specify any Docker image (e.g., `ubuntu:22.04`, `alpine:latest`)
+3. **Alpine Linux** - `mcr.microsoft.com/devcontainers/base:alpine`
+   - Minimal footprint (~5MB base image)
+   - apk package manager
+   - Ideal for resource-constrained environments
+   - Perfect for containerized microservices
+
+4. **Ubuntu LTS** - `mcr.microsoft.com/devcontainers/base:ubuntu`
+   - Popular, familiar to many developers
+   - apt package manager
+   - Extensive package ecosystem
+   - Good for teams migrating from Ubuntu
+
+5. **Custom Image**
+   - Specify any Docker image
    - ⚠️ **Warning**: May conflict with overlays
    - Test thoroughly and adjust configurations as needed
-   - Not all overlays may work correctly with custom bases
 
-### When to Use Custom Images
+### Package Manager Compatibility
 
-Consider custom images when:
-- You have specific compliance requirements
-- You need a particular base OS (Ubuntu, Alpine, etc.)
-- Your organization has standardized base images
+Overlays automatically detect the package manager based on the selected base image:
 
-**Important**: Custom images may require:
-- Adjusting overlay configurations
-- Installing missing dependencies
-- Modifying setup scripts
-- Testing each overlay individually
+- **Debian/Ubuntu**: Uses `apt-get` for package installation
+- **Alpine**: Uses `apk` for package installation
+- **Custom**: Defaults to `apt-get` (may need manual adjustment)
+
+When creating overlays with package installations, use devcontainer features that handle this automatically, or detect the package manager in setup scripts:
+
+```bash
+# Example: Detect package manager
+if command -v apk > /dev/null; then
+    apk add --no-cache some-package
+elif command -v apt-get > /dev/null; then
+    apt-get update && apt-get install -y some-package
+fi
+```
+
+### When to Use Each Base Image
+
+**Debian Bookworm**:
+- Default for most projects
+- Maximum compatibility with overlays
+- Proven stability
+
+**Alpine**:
+- Docker images/microservices where size matters
+- Cloud deployments with cost optimization
+- CI/CD environments
+
+**Ubuntu**:
+- Teams familiar with Ubuntu
+- Projects requiring Ubuntu-specific packages
+- Enterprise environments standardized on Ubuntu
+
+**Custom**:
+- Specific compliance requirements
+- Organization-mandated base images
+- Specialized OS requirements
 
 ## Overlay Types
 

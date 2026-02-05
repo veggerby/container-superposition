@@ -3,7 +3,8 @@
  */
 
 export type Stack = 'plain' | 'compose';
-export type BaseImage = 'bookworm' | 'trixie' | 'custom';
+export type BaseImage = 'bookworm' | 'trixie' | 'alpine' | 'ubuntu' | 'custom';
+export type PackageManager = 'apt' | 'apk';
 export type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs';
 export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
 export type CloudTool = 'azure-cli' | 'aws-cli' | 'kubectl-helm';
@@ -130,6 +131,7 @@ export interface OverlaysConfig {
     name: string;
     description: string;
     image: string | null;
+    package_manager?: PackageManager;
   }>;
   base_templates: Array<{
     id: string;

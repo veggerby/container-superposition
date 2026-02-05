@@ -14,6 +14,13 @@ This directory contains **unique** features that solve specific problems not add
 
 ## Available Custom Features
 
+### cross-distro-packages
+**NEW**: Cross-distribution package manager with automatic distro detection.
+- Supports apt (Debian/Ubuntu) and apk (Alpine)
+- Single feature declaration for multi-distro compatibility
+- Eliminates duplicated package installation logic
+- Clean package manager cache cleanup
+
 ### project-scaffolder
 Interactive project initialization for common frameworks and patterns.
 - Express API, NestJS, Next.js scaffolding

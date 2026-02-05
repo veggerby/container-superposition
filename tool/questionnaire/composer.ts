@@ -102,6 +102,45 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
 }
 
 /**
+ * Merge packages from cross-distro-packages feature
+ */
+function mergeCrossDistroPackages(
+  baseConfig: DevContainer, 
+  apt: string | undefined, 
+  apk: string | undefined
+): DevContainer {
+  const featureKey = '../features/cross-distro-packages';
+  
+  if (!baseConfig.features) {
+    baseConfig.features = {};
+  }
+  
+  if (!baseConfig.features[featureKey]) {
+    baseConfig.features[featureKey] = {};
+  }
+  
+  // Merge apt packages
+  if (apt) {
+    const existing = baseConfig.features[featureKey].apt || '';
+    const existingPackages = existing.split(' ').filter((p: string) => p);
+    const newPackages = apt.split(' ').filter(p => p);
+    const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
+    baseConfig.features[featureKey].apt = merged;
+  }
+  
+  // Merge apk packages
+  if (apk) {
+    const existing = baseConfig.features[featureKey].apk || '';
+    const existingPackages = existing.split(' ').filter((p: string) => p);
+    const newPackages = apk.split(' ').filter(p => p);
+    const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
+    baseConfig.features[featureKey].apk = merged;
+  }
+  
+  return baseConfig;
+}
+
+/**
  * Load and parse a JSON file
  */
 function loadJson<T = any>(filePath: string): T {
@@ -248,13 +287,23 @@ function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContain
   
   const overlay = loadJson<DevContainer>(overlayPath);
   
-  // Special handling for apt-get packages
+  // Special handling for apt-get packages (legacy)
   if (overlay.features?.['ghcr.io/devcontainers-extra/features/apt-get-packages:1']?.packages) {
     const packages = overlay.features['ghcr.io/devcontainers-extra/features/apt-get-packages:1'].packages;
     baseConfig = mergeAptPackages(baseConfig, packages);
     
     // Remove it from overlay to avoid double-merge
     delete overlay.features['ghcr.io/devcontainers-extra/features/apt-get-packages:1'];
+  }
+  
+  // Special handling for cross-distro packages
+  if (overlay.features?.['../features/cross-distro-packages']) {
+    const aptPackages = overlay.features['../features/cross-distro-packages'].apt;
+    const apkPackages = overlay.features['../features/cross-distro-packages'].apk;
+    baseConfig = mergeCrossDistroPackages(baseConfig, aptPackages, apkPackages);
+    
+    // Remove it from overlay to avoid double-merge
+    delete overlay.features['../features/cross-distro-packages'];
   }
   
   return deepMerge(baseConfig, overlay);

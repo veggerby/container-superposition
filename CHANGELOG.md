@@ -1,5 +1,61 @@
 # Changelog
 
+## [Unreleased]
+
+### 🚀 New Features
+
+**Cross-Distribution Package Manager Feature:**
+- Created `features/cross-distro-packages` - custom devcontainer feature for distro-agnostic package installation
+- Automatic package manager detection (apt vs apk)
+- Simple API: specify packages per distribution in devcontainer.patch.json
+- Eliminates duplicated distro detection code across overlays
+- Proper cache cleanup to minimize image size
+
+### 🌐 Multi-Distribution Support
+Refactored nodejs, python, redis, dotnet overlays to use new `cross-distro-packages` feature
+- Simplified setup scripts by removing duplicated distro detection code
+- nodejs: Removed system package installation from setup.sh (now in feature)
+- python: Removed system package installation from setup.sh (now in feature)
+- redis: Deleted setup.sh entirely (only installed packages, now handled by feature)
+- dotnet: Removed system package installation from setup.sh (now in feature)
+- Alpine package equivalents: build-base (build-essential), bind-tools (dnsutils), netcat-openbsd (netcat-traditional)
+- Added distro-detection logic to setup scripts for nodejs, python, redis, dotnet
+- Setup scripts auto-detect package manager (apk vs apt-get) and install correct packages
+- Alpine package equivalents: build-base (build-essential), bind-tools (dnsutils), netcat-openbsd (netcat-traditional)
+
+**Affected Overlays:**
+- nodejs: System build dependencies (build-essential/build-base)
+- python: Build tools + Python dev headers (python3-dev)
+- redis: Redis CLI tools (redis-tools/redis)
+- dotnet: 9 system packages including xdg-utils, pass, sshpass, git-lfs, sqlite3
+
+### 📚 Documentation Improvements
+
+**Created Publishing Guide:**
+- Comprehensive npm publishing guide at `docs/publishing.md`
+- Pre-publish checklist, version management, troubleshooting
+- Test procedures and rollback instructions
+
+**Consolidated Documentation:**
+- Moved all docs to `/docs/` folder for better organization
+- Updated `docs/creating-overlays.md` with multi-distro guide
+- Package manager compatibility section with examples
+
+### 🏗️ Project Structure
+
+**Reorganized File Layout:**
+- Moved `tool/overlays/` → `/overlays/` (root level for consistency with templates/ and features/)
+- Renamed `tool/overlays.yml` → `overlays/index.yml` (metadata lives with content)
+- Updated all path resolution candidates in init.ts and composer.ts
+
+### 🐛 Fixes
+
+- Fixed path resolution after overlays reorganization
+- Removed pre-commit git hook causing commit errors
+- Updated package.json files array to include overlays/ and docs/
+
+---
+
 ## v2.0.0 - Complete Architecture Refactor (2025-02-04)
 
 ### 🎯 Major Changes

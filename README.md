@@ -27,9 +27,13 @@ This tool is **opinionated by design**, providing carefully curated configuratio
 - Regular security updates
 - Proven stability across diverse projects
 
-**Alternative Options**:
-- **Debian Trixie**: `mcr.microsoft.com/devcontainers/base:trixie` - Newer packages, testing stability
+**Alternative Base Images**:
+- **Debian Trixie**: Newer packages, testing stability
+- **Alpine Linux**: Minimal footprint (~5MB), ideal for resource-constrained environments
+- **Ubuntu LTS**: Popular, familiar, extensive package ecosystem
 - **Custom Images**: Specify your own, but be aware of potential overlay conflicts
+
+All overlays are designed to work across Debian, Alpine, and Ubuntu bases with automatic package manager detection.
 
 ## 📁 Structure
 
