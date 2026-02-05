@@ -193,6 +193,17 @@ cloud_tool_overlays:
     tags: [cloud, azure, cli]
     ports: []
     
+  - id: gcloud
+    name: Google Cloud SDK
+    description: Google Cloud Platform command-line tools (gcloud, gsutil, bq)
+    category: cloud
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [cloud, gcp, google, cli]
+    ports: []
+    
   - id: kubectl-helm
     name: kubectl + Helm
     description: Kubernetes CLI and Helm package manager
@@ -202,6 +213,28 @@ cloud_tool_overlays:
     suggests: []
     conflicts: []
     tags: [cloud, kubernetes, helm]
+    ports: []
+    
+  - id: terraform
+    name: Terraform
+    description: Infrastructure as Code with HCL (includes tflint)
+    category: cloud
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [cloud, iac, terraform, infrastructure]
+    ports: []
+    
+  - id: pulumi
+    name: Pulumi
+    description: Modern Infrastructure as Code with TypeScript/Python/Go
+    category: cloud
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [cloud, iac, pulumi, infrastructure]
     ports: []
 
 dev_tool_overlays:
