@@ -437,7 +437,14 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
     const compose = yaml.load(content) as any;
     
     if (compose.services) {
-      merged.services = { ...merged.services, ...compose.services };
+      // Deep merge services to preserve arrays like volumes, ports, etc.
+      for (const serviceName in compose.services) {
+        if (merged.services[serviceName]) {
+          merged.services[serviceName] = deepMerge(merged.services[serviceName], compose.services[serviceName]);
+        } else {
+          merged.services[serviceName] = compose.services[serviceName];
+        }
+      }
     }
     if (compose.volumes) {
       merged.volumes = { ...merged.volumes, ...compose.volumes };

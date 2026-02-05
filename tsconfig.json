@@ -24,6 +24,8 @@
     "node_modules",
     "dist",
     "templates",
-    "features"
+    "features",
+    "**/__tests__/**",
+    "**/*.test.ts"
   ]
 }
