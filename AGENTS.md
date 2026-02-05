@@ -8,7 +8,7 @@ Container Superposition is a **modular, overlay-based devcontainer scaffolding s
 - **Runtime**: Node.js 18+ with TypeScript 5.3.3 (compiled to ESM modules in `dist/`)
 - **CLI Framework**: Commander for argument parsing, Inquirer for interactive prompts
 - **UI Libraries**: chalk (terminal colors), boxen (borders), ora (spinners)
-- **Configuration**: YAML-based overlay metadata (`tool/overlays.yml`)
+- **Configuration**: YAML-based overlay metadata (`overlays/index.yml`)
 - **Build System**: TypeScript compiler with source maps and declarations
 - **Architecture**: JSON Patch-based composition system for devcontainer configurations
 
@@ -82,8 +82,8 @@ The codebase uses **candidate arrays** to resolve paths correctly in both develo
 **Example from init.ts:**
 ```typescript
 const OVERLAYS_CONFIG_CANDIDATES = [
-  path.join(__dirname, '..', 'tool', 'overlays.yml'),      // ts-node: <root>/scripts
-  path.join(__dirname, '..', '..', 'tool', 'overlays.yml'), // compiled: <root>/dist/scripts
+  path.join(__dirname, '..', 'tool', 'overlays/index.yml'),      // ts-node: <root>/scripts
+  path.join(__dirname, '..', '..', 'tool', 'overlays/index.yml'), // compiled: <root>/dist/scripts
 ];
 
 const OVERLAYS_CONFIG_PATH = OVERLAYS_CONFIG_CANDIDATES.find(fs.existsSync) ?? OVERLAYS_CONFIG_CANDIDATES[0];
@@ -231,7 +231,7 @@ npm run build  # Ensures dist/ is up-to-date
 
 ### Overlay System
 
-Overlays are defined in `tool/overlays.yml` with the following structure:
+Overlays are defined in `overlays/index.yml` with the following structure:
 
 ```yaml
 language_overlays:
@@ -319,12 +319,12 @@ const REPO_ROOT_CANDIDATES = [
 
 1. **Create overlay directory:**
    ```bash
-   mkdir -p tool/overlays/my-overlay
+   mkdir -p overlays/my-overlay
    ```
 
 2. **Add devcontainer patch:**
    ```json
-   // tool/overlays/my-overlay/devcontainer.patch.json
+   // overlays/my-overlay/devcontainer.patch.json
    {
      "features": {
        "ghcr.io/example/feature:1": {}
@@ -349,7 +349,7 @@ const REPO_ROOT_CANDIDATES = [
        name: devnet
    ```
 
-4. **Register in overlays.yml:**
+4. **Register in overlays/index.yml:**
    ```yaml
    my_category_overlays:
      - id: my-overlay
@@ -467,14 +467,14 @@ npm run build
 - Use `console.log(__dirname)` to debug current directory
 
 **Overlay Not Applied:**
-- Verify overlay registered in `overlays.yml`
+- Verify overlay registered in `overlays/index.yml`
 - Check `composer.ts` applies overlay in correct order
 - Ensure type definitions include overlay ID
 - Build after type changes: `npm run build`
 
 **Port Conflicts:**
 - Use `--port-offset 100` to shift all ports
-- Check `overlays.yml` for port declarations
+- Check `overlays/index.yml` for port declarations
 - Verify docker-compose.yml port mappings use offset
 
 **Dependency Loops:**
@@ -561,7 +561,7 @@ npm run test:smoke
 1. Ensure all CI checks pass
 2. Update relevant documentation (README, overlay READMEs)
 3. Add tests for new functionality
-4. Update `overlays.yml` if adding/modifying overlays
+4. Update `overlays/index.yml` if adding/modifying overlays
 5. Update `config.schema.json` if changing types
 
 ## Additional Notes
@@ -574,7 +574,7 @@ Some overlays only work with specific stacks:
 - **Language overlays**: Work with both `plain` and `compose`
 - **Dev tools**: Most support both stacks
 
-Check `supports` field in `overlays.yml` before use.
+Check `supports` field in `overlays/index.yml` before use.
 
 ### Port Offset Calculation
 

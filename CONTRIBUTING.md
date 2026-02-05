@@ -7,12 +7,12 @@ Overlays are small, composable configuration fragments that add specific capabil
 ### 1. Create the Overlay Directory
 
 ```bash
-mkdir -p tool/overlays/my-feature
+mkdir -p overlays/my-feature
 ```
 
 ### 2. Create the Patch File
 
-Create `tool/overlays/my-feature/devcontainer.patch.json`:
+Create `overlays/my-feature/devcontainer.patch.json`:
 
 ```jsonc
 {
@@ -32,7 +32,7 @@ Create `tool/overlays/my-feature/devcontainer.patch.json`:
 
 ### 3. Add Docker Compose (Optional)
 
-If your overlay needs a service, create `tool/overlays/my-feature/docker-compose.yml`:
+If your overlay needs a service, create `overlays/my-feature/docker-compose.yml`:
 
 ```yaml
 version: '3.8'
@@ -65,7 +65,7 @@ networks:
 
 ### 4. Add Environment Variables (Optional)
 
-Create `tool/overlays/my-feature/.env.example`:
+Create `overlays/my-feature/.env.example`:
 
 ```bash
 # My Feature Configuration
@@ -80,7 +80,7 @@ This will be automatically merged into the combined `.env.example` file.
 Add any config files your service needs:
 
 ```bash
-tool/overlays/my-feature/
+overlays/my-feature/
 ├── devcontainer.patch.json
 ├── docker-compose.yml
 ├── .env.example
@@ -137,7 +137,7 @@ export type NewCategory = 'option1' | 'my-feature';
 
 ### 9. Document It
 
-Add to the appropriate section in `tool/overlays/README.md`:
+Add to the appropriate section in `overlays/README.md`:
 
 ```markdown
 ### My Category
@@ -145,7 +145,7 @@ Add to the appropriate section in `tool/overlays/README.md`:
 - **my-feature** - Description of what it does, ports, and key features
 ```
 
-If the overlay is complex, create `tool/overlays/my-feature/README.md`:
+If the overlay is complex, create `overlays/my-feature/README.md`:
 
 ```markdown
 # My Feature Overlay
@@ -174,7 +174,7 @@ Update architecture docs in `tool/docs/` if the overlay introduces new concepts.
 
 ### 10. Document It
 
-Add to `tool/overlays/README.md`:
+Add to `overlays/README.md`:
 
 ```markdown
 - **my-feature** - Description of what it does

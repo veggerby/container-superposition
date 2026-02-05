@@ -18,11 +18,11 @@ const REPO_ROOT_CANDIDATES = [
 ];
 const REPO_ROOT = REPO_ROOT_CANDIDATES.find(candidate => 
   fs.existsSync(path.join(candidate, 'templates')) && 
-  fs.existsSync(path.join(candidate, 'tool', 'overlays'))
+  fs.existsSync(path.join(candidate, 'overlays'))
 ) ?? REPO_ROOT_CANDIDATES[0];
 
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
-const OVERLAYS_DIR = path.join(REPO_ROOT, 'tool', 'overlays');
+const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 
 /**
  * Deep merge two objects, with special handling for arrays
@@ -110,10 +110,10 @@ function loadJson<T = any>(filePath: string): T {
 }
 
 /**
- * Load overlay metadata from overlays.yml
+ * Load overlay metadata from overlays/index.yml
  */
 function loadOverlaysConfig(): OverlaysConfig {
-  const overlaysConfigPath = path.join(REPO_ROOT, 'tool', 'overlays.yml');
+  const overlaysConfigPath = path.join(REPO_ROOT, 'overlays', 'index.yml');
   return yaml.load(fs.readFileSync(overlaysConfigPath, 'utf-8')) as OverlaysConfig;
 }
 

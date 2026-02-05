@@ -38,24 +38,38 @@ container-superposition/
 ├── templates/          # Minimal base templates (plain, compose)
 │   ├── plain/          # Simple image-based devcontainer
 │   └── compose/        # Docker Compose-based devcontainer
-├── tool/
-│   └── overlays/       # Composable capability overlays
-│       ├── dotnet/     # Language/framework overlays
-│       ├── nodejs/
-│       ├── python/
-│       ├── mkdocs/
-│       ├── postgres/   # Database overlays
-│       ├── redis/
-│       ├── otel-collector/  # Observability overlays
-│       ├── jaeger/
-│       ├── prometheus/
-│       ├── grafana/
-│       ├── loki/
-│       ├── aws-cli/    # Cloud/dev tool overlays
-│       ├── azure-cli/
-│       ├── kubectl-helm/
-│       └── playwright/
+├── overlays/           # Composable capability overlays
+│   ├── index.yml       # Overlay registry and metadata
+│   ├── dotnet/         # Language/framework overlays
+│   ├── nodejs/
+│   ├── python/
+│   ├── mkdocs/
+│   ├── postgres/       # Database overlays
+│   ├── redis/
+│   ├── otel-collector/ # Observability overlays
+│   ├── jaeger/
+│   ├── prometheus/
+│   ├── grafana/
+│   ├── loki/
+│   ├── aws-cli/        # Cloud tool overlays
+│   ├── azure-cli/
+│   ├── kubectl-helm/
+│   ├── docker-in-docker/  # Dev tool overlays
+│   ├── docker-sock/
+│   ├── playwright/
+│   ├── codex/
+│   ├── git-helpers/
+│   ├── pre-commit/
+│   ├── commitlint/
+│   ├── just/
+│   ├── direnv/
+│   ├── modern-cli-tools/
+│   └── ngrok/
 ├── features/           # Custom devcontainer features
+├── tool/               # Composition logic and schema
+│   ├── questionnaire/  # Composition engine
+│   └── schema/         # TypeScript types and JSON schema
+├── docs/               # Complete documentation
 └── scripts/            # CLI entry points
 ```
 
@@ -199,7 +213,7 @@ See [tool/README.md](tool/README.md) for full documentation.
 
 ### Metadata-Driven Overlays
 
-All overlays are defined in [tool/overlays.yml](tool/overlays.yml):
+All overlays are defined in [overlays/index.yml](overlays/index.yml):
 
 ```yaml
 observability_overlays:
@@ -245,7 +259,7 @@ npm run init -- --stack compose --observability grafana
 # ✅ prometheus (auto-resolved, required by grafana)
 ```
 
-**Explicit Metadata in overlays.yml:**
+**Explicit Metadata in overlays/index.yml:**
 ```yaml
 observability_overlays:
   - id: grafana
@@ -429,15 +443,27 @@ Example `devcontainer.json` structure:
 }
 ```
 
-## 📚 Learn More
+## 📚 Documentation
 
+Complete documentation is available in the [docs/](docs/) folder:
+
+- **[Documentation Index](docs/README.md)** - Complete documentation overview
+- **[Publishing Guide](docs/publishing.md)** - How to publish to npm
+- **[Quick Reference](docs/quick-reference.md)** - Templates, overlays, ports, commands
+- **[Architecture](docs/architecture.md)** - Design principles and composition logic
+- **[Creating Overlays](docs/creating-overlays.md)** - Guide for adding new overlays
+- **[Examples](docs/examples.md)** - Common usage patterns
+
+Additional resources:
 - [VS Code Dev Containers Documentation](https://code.visualstudio.com/docs/devcontainers/containers)
 - [Dev Container Specification](https://containers.dev/)
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
 
 ## 🤝 Contributing
 
-Have a useful template or feature? Contributions welcome! Keep it:
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Keep contributions:
 - Minimal and focused
 - Well-documented
 - Fast to build

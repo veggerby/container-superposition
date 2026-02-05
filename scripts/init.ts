@@ -43,11 +43,11 @@ interface OverlaysConfig {
 
 const OVERLAYS_CONFIG_CANDIDATES = [
   // When running from TypeScript sources (e.g. ts-node), __dirname is "<root>/scripts"
-  // and "../tool/overlays.yml" resolves to "<root>/tool/overlays.yml".
-  path.join(__dirname, '..', 'tool', 'overlays.yml'),
+  // and "../overlays/index.yml" resolves to "<root>/overlays/index.yml".
+  path.join(__dirname, '..', 'overlays', 'index.yml'),
   // When running from compiled JS in "dist/scripts", __dirname is "<root>/dist/scripts"
-  // and "../../tool/overlays.yml" resolves to "<root>/tool/overlays.yml".
-  path.join(__dirname, '..', '..', 'tool', 'overlays.yml'),
+  // and "../../overlays/index.yml" resolves to "<root>/overlays/index.yml".
+  path.join(__dirname, '..', '..', 'overlays', 'index.yml'),
 ];
 
 const OVERLAYS_CONFIG_PATH =

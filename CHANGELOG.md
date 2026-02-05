@@ -10,7 +10,7 @@
 - Overlays organized by category: language, database, observability, cloud tools, dev tools
 
 **Metadata-Driven Configuration:**
-- Created `tool/overlays.yml` - central metadata file for all overlays
+- Created `overlays/index.yml` - central metadata file for all overlays
 - Properties: id, name, description, category, order (for startup sequencing)
 - Add new overlays without code changes
 
@@ -57,7 +57,7 @@
 
 **Questionnaire (`scripts/init.ts`):**
 - Complete rewrite with async/await (no callbacks)
-- Metadata-driven overlay discovery from `overlays.yml`
+- Metadata-driven overlay discovery from `overlays/index.yml`
 - Modern select/checkbox prompts
 - Better CLI argument parsing
 - Improved help output

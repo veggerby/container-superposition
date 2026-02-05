@@ -30,7 +30,7 @@ echo "   ✅ Source files found"
 echo ""
 echo "3️⃣  Checking overlay configurations..."
 for overlay in postgres redis playwright azure-cli kubectl-helm; do
-  if [ ! -f "tool/overlays/$overlay/devcontainer.patch.json" ]; then
+  if [ ! -f "overlays/$overlay/devcontainer.patch.json" ]; then
     echo "   ❌ Overlay $overlay not found"
     exit 1
   fi
