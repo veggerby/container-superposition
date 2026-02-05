@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
   "remoteEnv": {
-    "PATH": "/home/vscode/.local/share/pnpm:${PATH}",
+    "PATH": "/home/vscode/.local/share/pnpm:${containerEnv:PATH}",
     "CODEX_HOME": "/home/vscode/.codex"
   },
   "postCreateCommand": "bash .devcontainer/scripts/setup-codex.sh"

@@ -33,7 +33,7 @@
     }
   },
   "remoteEnv": {
-    "PATH": "/home/vscode/.npm-global/bin:${PATH}",
+    "PATH": "/home/vscode/.npm-global/bin:${containerEnv:PATH}",
     "PNPM_HOME": "/home/vscode/.local/share/pnpm"
   },
   "forwardPorts": [3000, 8080],
