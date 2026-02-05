@@ -109,7 +109,7 @@ function mergeCrossDistroPackages(
   apt: string | undefined, 
   apk: string | undefined
 ): DevContainer {
-  const featureKey = '../features/cross-distro-packages';
+  const featureKey = './features/cross-distro-packages';
   
   if (!baseConfig.features) {
     baseConfig.features = {};
@@ -297,13 +297,13 @@ function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContain
   }
   
   // Special handling for cross-distro packages
-  if (overlay.features?.['../features/cross-distro-packages']) {
-    const aptPackages = overlay.features['../features/cross-distro-packages'].apt;
-    const apkPackages = overlay.features['../features/cross-distro-packages'].apk;
+  if (overlay.features?.['./features/cross-distro-packages']) {
+    const aptPackages = overlay.features['./features/cross-distro-packages'].apt;
+    const apkPackages = overlay.features['./features/cross-distro-packages'].apk;
     baseConfig = mergeCrossDistroPackages(baseConfig, aptPackages, apkPackages);
     
     // Remove it from overlay to avoid double-merge
-    delete overlay.features['../features/cross-distro-packages'];
+    delete overlay.features['./features/cross-distro-packages'];
   }
   
   return deepMerge(baseConfig, overlay);
@@ -705,19 +705,15 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   for (const overlay of overlays) {
     copyOverlayFiles(outputPath, overlay);
   }
-    // 8.5. Copy cross-distro-packages feature if used
-  if (config.features?.['../features/cross-distro-packages']) {
+  
+  // 8.5. Copy cross-distro-packages feature if used
+  if (config.features?.['./features/cross-distro-packages']) {
     const featuresDir = path.join(outputPath, 'features', 'cross-distro-packages');
     const sourceFeatureDir = path.join(REPO_ROOT, 'features', 'cross-distro-packages');
     
     if (fs.existsSync(sourceFeatureDir)) {
       copyDir(sourceFeatureDir, featuresDir);
       console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));
-      
-      // Update path reference from ../features/ to ./features/
-      const featureConfig = config.features['../features/cross-distro-packages'];
-      delete config.features['../features/cross-distro-packages'];
-      config.features['./features/cross-distro-packages'] = featureConfig;
     }
   }
     // 8. Filter docker-compose dependencies based on selected overlays

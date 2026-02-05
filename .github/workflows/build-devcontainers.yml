@@ -98,7 +98,7 @@ jobs:
           npm run init -- \
             --stack ${{ matrix.stack }} \
             ${{ matrix.overlays }} \
-            -o /tmp/test-workspace-${{ strategy.job-index }}
+            -o /tmp/test-workspace-${{ strategy.job-index }}/.devcontainer
 
       - name: Install DevContainer CLI
         run: npm install -g @devcontainers/cli
