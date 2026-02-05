@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
   "features": {
-    "../features/cross-distro-packages": {
+    "./features/cross-distro-packages": {
       "apt": "build-essential python3-dev",
       "apk": "build-base python3-dev"
     },

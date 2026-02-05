@@ -111,17 +111,17 @@ When using multiple overlays that reference this feature, packages are **automat
 **Example:**
 ```json
 // nodejs overlay adds:
-"../features/cross-distro-packages": {
+"./features/cross-distro-packages": {
   "apt": "build-essential"
 }
 
 // python overlay adds:
-"../features/cross-distro-packages": {
+"./features/cross-distro-packages": {
   "apt": "build-essential python3-dev"
 }
 
 // Final devcontainer.json (after composition):
-"../features/cross-distro-packages": {
+"./features/cross-distro-packages": {
   "apt": "build-essential python3-dev",  // deduplicated!
   "apk": "build-base python3-dev"
 }

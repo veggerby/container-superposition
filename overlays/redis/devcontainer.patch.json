@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
   "features": {
-    "../features/cross-distro-packages": {
+    "./features/cross-distro-packages": {
       "apt": "redis-tools",
       "apk": "redis"
     }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
   "features": {
-    "../features/cross-distro-packages": {
+    "./features/cross-distro-packages": {
       "apt": "xdg-utils pass sshpass build-essential netcat-traditional iputils-ping dnsutils git-lfs sqlite3",
       "apk": "xdg-utils pass sshpass build-base netcat-openbsd iputils bind-tools git-lfs sqlite"
     },
