@@ -85,6 +85,61 @@ language_overlays:
     conflicts: []
     tags: [documentation, mkdocs, python]
     ports: [8000]
+    
+  - id: java
+    name: Java
+    description: Eclipse Temurin JDK 21 with Maven and Gradle
+    category: language
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, java, maven, gradle]
+    ports: [8080, 8081]
+    
+  - id: go
+    name: Go
+    description: Go latest stable with gopls and delve debugger
+    category: language
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, go, golang]
+    ports: [8080, 8081]
+    
+  - id: rust
+    name: Rust
+    description: Rust stable with cargo, rustfmt, and clippy
+    category: language
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, rust, cargo]
+    ports: [8080, 3000]
+    
+  - id: bun
+    name: Bun
+    description: Bun runtime - faster JavaScript runtime and package manager
+    category: language
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, bun, javascript, typescript]
+    ports: [3000, 8080]
+    
+  - id: powershell
+    name: PowerShell
+    description: PowerShell Core for cross-platform scripting and automation
+    category: language
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [language, powershell, scripting]
+    ports: []
 
 database_overlays:
   - id: postgres

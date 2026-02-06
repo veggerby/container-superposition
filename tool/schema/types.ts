@@ -5,7 +5,7 @@
 export type Stack = 'plain' | 'compose';
 export type BaseImage = 'bookworm' | 'trixie' | 'alpine' | 'ubuntu' | 'custom';
 export type PackageManager = 'apt' | 'apk';
-export type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs';
+export type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs' | 'java' | 'go' | 'rust' | 'bun' | 'powershell';
 export type DatabaseOverlay = 'postgres' | 'redis' | 'mongodb' | 'mysql' | 'sqlserver' | 'sqlite' | 'minio';
 export type CloudTool = 'azure-cli' | 'aws-cli' | 'gcloud' | 'kubectl-helm' | 'terraform' | 'pulumi';
 export type DevTool = 'docker-in-docker' | 'docker-sock' | 'codex' | 'playwright' | 'git-helpers' | 'pre-commit' | 'commitlint' | 'just' | 'direnv' | 'modern-cli-tools' | 'ngrok';
