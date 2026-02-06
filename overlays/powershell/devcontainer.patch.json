@@ -19,6 +19,6 @@
     }
   },
   "remoteEnv": {
-    "PATH": "/home/vscode/.local/share/powershell/Modules:${containerEnv:PATH}"
+    "PSModulePath": "/home/vscode/.local/share/powershell/Modules:${containerEnv:PSModulePath}"
   }
 }

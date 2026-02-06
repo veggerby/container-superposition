@@ -14,8 +14,8 @@ go install golang.org/x/tools/gopls@latest || echo "⚠️ gopls installation fa
 # delve (Debugger)
 go install github.com/go-delve/delve/cmd/dlv@latest || echo "⚠️ delve installation failed"
 
-# golangci-lint (Linter)
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin || echo "⚠️ golangci-lint installation failed"
+# golangci-lint (Linter) - install via go install for security
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest || echo "⚠️ golangci-lint installation failed"
 
 # gofumpt (Formatter)
 go install mvdan.cc/gofumpt@latest || echo "⚠️ gofumpt installation failed"

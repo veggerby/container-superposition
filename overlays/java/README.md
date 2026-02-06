@@ -121,7 +121,7 @@ gradle dependencies --configuration compileClasspath
 **Integrates well with:**
 - `postgres`, `mysql`, `mongodb` - Database connectivity (JDBC)
 - `redis` - Caching layer (Jedis, Lettuce)
-- `kafka` - Event streaming (Spring Kafka)
+- Apache Kafka - Event streaming (Spring Kafka)
 - `otel-collector`, `jaeger` - Distributed tracing (OpenTelemetry Java)
 - `prometheus`, `grafana` - Metrics and monitoring (Micrometer)
 
