@@ -318,7 +318,7 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .description('Initialize a devcontainer with guided questions or CLI flags')
     .version('0.1.0')
     .option('--stack <type>', 'Base template: plain, compose')
-    .option('--language <list>', 'Comma-separated language overlays: dotnet, nodejs, python, mkdocs')
+    .option('--language <list>', 'Comma-separated language overlays: dotnet, nodejs, python, mkdocs, java, go, rust, bun, powershell')
     .option('--database <list>', 'Comma-separated database overlays: postgres, redis, mongodb, mysql, sqlserver, sqlite, minio')
     .option('--observability <list>', 'Comma-separated: otel-collector, jaeger, prometheus, grafana, loki')
     .option('--playwright', 'Include Playwright browser automation')
