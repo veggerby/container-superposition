@@ -555,8 +555,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // Build list of requested overlays
   const requestedOverlays: string[] = [];
   if (answers.language && answers.language.length > 0) requestedOverlays.push(...answers.language);
-  if (answers.database?.includes('postgres')) requestedOverlays.push('postgres');
-  if (answers.database?.includes('redis')) requestedOverlays.push('redis');
+  if (answers.database && answers.database.length > 0) requestedOverlays.push(...answers.database);
   if (answers.observability) requestedOverlays.push(...answers.observability);
   if (answers.playwright) requestedOverlays.push('playwright');
   if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
@@ -581,13 +580,10 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     console.log(chalk.yellow(`\nThese overlays will be skipped.\n`));
     
     // Filter out incompatible overlays
-    if (answers.database?.includes('postgres') && incompatible.some(i => i.startsWith('postgres'))) {
-      answers.database = answers.database.replace('postgres', '').replace('+', '').trim() as any;
-      if (!answers.database) answers.database = 'none';
-    }
-    if (answers.database?.includes('redis') && incompatible.some(i => i.startsWith('redis'))) {
-      answers.database = answers.database.replace('redis', '').replace('+', '').trim() as any;
-      if (!answers.database) answers.database = 'none';
+    if (answers.database) {
+      answers.database = answers.database.filter(d => 
+        !incompatible.some(i => i.startsWith(d))
+      ) as any;
     }
     if (answers.observability) {
       answers.observability = answers.observability.filter(o => 
@@ -598,8 +594,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     // Update requestedOverlays after filtering
     requestedOverlays.length = 0;
     if (answers.language && answers.language.length > 0) requestedOverlays.push(...answers.language);
-    if (answers.database?.includes('postgres')) requestedOverlays.push('postgres');
-    if (answers.database?.includes('redis')) requestedOverlays.push('redis');
+    if (answers.database && answers.database.length > 0) requestedOverlays.push(...answers.database);
     if (answers.observability) requestedOverlays.push(...answers.observability);
     if (answers.playwright) requestedOverlays.push('playwright');
     if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);

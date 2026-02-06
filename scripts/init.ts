@@ -9,7 +9,7 @@ import boxen from 'boxen';
 import ora from 'ora';
 import { select, checkbox, input } from '@inquirer/prompts';
 import yaml from 'js-yaml';
-import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, Database, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types.js';
+import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, DatabaseOverlay, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types.js';
 import { composeDevContainer } from '../tool/questionnaire/composer.js';
 
 // Get __dirname equivalent in ESM
@@ -278,17 +278,9 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       config.dev_tool_overlays.some(dt => dt.id === o)
     ) as DevTool[];
 
-    // Database handling
-    const hasPostgres = selectedOverlays.includes('postgres');
-    const hasRedis = selectedOverlays.includes('redis');
-    let database: Database = 'none';
-    if (hasPostgres && hasRedis) {
-      database = 'postgres+redis';
-    } else if (hasPostgres) {
-      database = 'postgres';
-    } else if (hasRedis) {
-      database = 'redis';
-    }
+    const database = selectedOverlays.filter(o =>
+      config.database_overlays.some(db => db.id === o)
+    ) as DatabaseOverlay[];
 
     const playwright = selectedOverlays.includes('playwright');
 
@@ -327,9 +319,7 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .version('0.1.0')
     .option('--stack <type>', 'Base template: plain, compose')
     .option('--language <list>', 'Comma-separated language overlays: dotnet, nodejs, python, mkdocs')
-    .option('--db <type>', 'Database: postgres, redis, postgres+redis, none')
-    .option('--postgres', 'Shorthand for --db postgres')
-    .option('--redis', 'Shorthand for --db redis')
+    .option('--database <list>', 'Comma-separated database overlays: postgres, redis, mongodb, mysql, sqlserver, sqlite, minio')
     .option('--observability <list>', 'Comma-separated: otel-collector, jaeger, prometheus, grafana, loki')
     .option('--playwright', 'Include Playwright browser automation')
     .option('--cloud-tools <list>', 'Comma-separated: aws-cli, azure-cli, gcloud, kubectl-helm, terraform, pulumi')
@@ -351,9 +341,9 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
   if (options.language) {
     config.language = options.language.split(',').map((l: string) => l.trim()) as LanguageOverlay[];
   }
-  if (options.postgres) config.database = 'postgres';
-  if (options.redis) config.database = 'redis';
-  if (options.db) config.database = options.db as Database;
+  if (options.database) {
+    config.database = options.database.split(',').map((d: string) => d.trim()) as DatabaseOverlay[];
+  }
   if (options.observability) {
     config.observability = options.observability.split(',').map((t: string) => t.trim()) as ObservabilityTool[];
   }
@@ -385,7 +375,7 @@ async function main() {
         baseImage: 'bookworm', // Default to bookworm in non-interactive mode
         language: cliConfig.language,
         needsDocker: cliConfig.stack === 'compose',
-        database: cliConfig.database ?? 'none',
+        database: cliConfig.database ?? [],
         playwright: cliConfig.playwright ?? false,
         cloudTools: cliConfig.cloudTools ?? [],
         devTools: cliConfig.devTools ?? [],
@@ -413,8 +403,11 @@ async function main() {
       summaryLines.push(chalk.cyan('Languages:       ') + chalk.white(answers.language.join(', ')));
     }
 
+    if (answers.database && answers.database.length > 0) {
+      summaryLines.push(chalk.cyan('Database:        ') + chalk.white(answers.database.join(', ')));
+    }
+
     summaryLines.push(
-      chalk.cyan('Database:        ') + chalk.white(answers.database),
       chalk.cyan('Playwright:      ') + chalk.white(answers.playwright ? 'Yes' : 'No')
     );
 
