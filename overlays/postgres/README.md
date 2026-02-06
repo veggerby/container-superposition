@@ -433,6 +433,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 ```bash
 # Check if PostgreSQL container is running
 docker-compose ps
+# Note: Use 'docker compose' (without hyphen) if using Docker Compose V2
 
 # Check PostgreSQL logs
 docker-compose logs postgres

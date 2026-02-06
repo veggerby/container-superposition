@@ -437,7 +437,7 @@ mypy script.py
 mypy --strict src/
 ```
 
-**Configuration (.myproject.toml):**
+**Configuration (pyproject.toml):**
 ```toml
 [tool.mypy]
 python_version = "3.12"
@@ -823,20 +823,6 @@ Already configured with Python extension.
     }
   ]
 }
-```
-
-## Testing Setup
-
-Verify Python is configured correctly:
-```bash
-python --version
-pip --version
-pip list --user
-```
-
-Check installed packages:
-```bash
-pip freeze
 ```
 
 ## Security Best Practices
