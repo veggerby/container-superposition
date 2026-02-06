@@ -332,7 +332,7 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .option('--redis', 'Shorthand for --db redis')
     .option('--observability <list>', 'Comma-separated: otel-collector, jaeger, prometheus, grafana, loki')
     .option('--playwright', 'Include Playwright browser automation')
-    .option('--cloud-tools <list>', 'Comma-separated: aws-cli, azure-cli, kubectl-helm')
+    .option('--cloud-tools <list>', 'Comma-separated: aws-cli, azure-cli, gcloud, kubectl-helm, terraform, pulumi')
     .option('--dev-tools <list>', 'Comma-separated: docker-in-docker, docker-sock, playwright, codex, git-helpers, pre-commit, commitlint, just, direnv, modern-cli-tools, ngrok')
     .option('--port-offset <number>', 'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)')
     .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
