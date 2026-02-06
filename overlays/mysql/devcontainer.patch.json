@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "features": {
+    "./features/cross-distro-packages": {
+      "apt": "default-mysql-client",
+      "apk": "mysql-client"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "cweijan.vscode-mysql-client2"
+      ]
+    }
+  },
+  "runServices": ["mysql", "phpmyadmin"],
+  "forwardPorts": [3306, 8080],
+  "portsAttributes": {
+    "3306": {
+      "label": "MySQL",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "phpMyAdmin",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "remoteEnv": {
+    "MYSQL_HOST": "mysql",
+    "MYSQL_PORT": "3306",
+    "MYSQL_DATABASE": "devdb",
+    "MYSQL_USER": "devuser",
+    "MYSQL_PASSWORD": "devpassword",
+    "MYSQL_ROOT_PASSWORD": "rootpassword"
+  }
+}

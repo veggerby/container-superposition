@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "features": {
+    "./features/cross-distro-packages": {
+      "apt": "sqlite3",
+      "apk": "sqlite"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "qwtel.sqlite-viewer",
+        "alexcvzz.vscode-sqlite"
+      ]
+    }
+  },
+  "postCreateCommand": "sh .devcontainer/setup-sqlite.sh"
+}
