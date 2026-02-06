@@ -16,14 +16,17 @@ if ! command -v bun &> /dev/null; then
     case $ARCH in
         x86_64)
             BUN_ARCH="x64"
-            BUN_CHECKSUM="b10d6f82bc34b1fc923aae5be5e4eac46bc33a29b5b1a70aeb85da90089e574e"
+            # SHA256 checksum for bun-linux-x64 v1.1.38
+            BUN_CHECKSUM="a61da5357e28d4977fccd4851fed62ff4da3ea33853005c7dd93dac80bc53932"
             ;;
         aarch64|arm64)
             BUN_ARCH="aarch64"
-            BUN_CHECKSUM="2b8b8a1f3b3e6a3d5c5e8f9e1d7a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"  # Update with correct checksum
+            # SHA256 checksum for bun-linux-aarch64 v1.1.38
+            BUN_CHECKSUM="3b08fd0b31f745509e1fed9c690c80d1a32ef2b3c8d059583f643f696639bd21"
             ;;
         *)
             echo "   ❌ Unsupported architecture: $ARCH"
+            echo "   Bun officially supports x86_64 and aarch64/arm64 only"
             exit 1
             ;;
     esac
