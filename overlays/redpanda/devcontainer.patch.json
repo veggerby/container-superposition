@@ -7,7 +7,7 @@
     }
   },
   "runServices": ["redpanda", "redpanda-console"],
-  "forwardPorts": [9092, 8080],
+  "forwardPorts": [9092, 8080, 8081, 8082, 9644],
   "portsAttributes": {
     "9092": {
       "label": "Redpanda Kafka API",
@@ -16,6 +16,18 @@
     "8080": {
       "label": "Redpanda Console",
       "onAutoForward": "openBrowser"
+    },
+    "8081": {
+      "label": "Schema Registry",
+      "onAutoForward": "notify"
+    },
+    "8082": {
+      "label": "HTTP Proxy",
+      "onAutoForward": "notify"
+    },
+    "9644": {
+      "label": "Admin API",
+      "onAutoForward": "notify"
     }
   },
   "remoteEnv": {

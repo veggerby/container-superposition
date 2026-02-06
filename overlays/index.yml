@@ -239,7 +239,7 @@ database_overlays:
     suggests: []
     conflicts: []
     tags: [database, messaging, streaming, kafka, redpanda]
-    ports: [9092, 8080]
+    ports: [9092, 8080, 8081, 8082, 9644]
     
   - id: nats
     name: NATS
