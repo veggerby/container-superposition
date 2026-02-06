@@ -26,7 +26,7 @@ if ! command -v bun &> /dev/null; then
             ;;
         *)
             echo "   ❌ Unsupported architecture: $ARCH"
-            echo "   Bun officially supports x86_64 and aarch64/arm64 only"
+            echo "   Bun supports x86_64 and aarch64/arm64. Your architecture is not supported."
             exit 1
             ;;
     esac
