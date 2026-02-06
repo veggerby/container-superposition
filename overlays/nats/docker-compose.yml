@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  nats:
+    image: nats:${NATS_VERSION:-latest}-alpine
+    restart: unless-stopped
+    command:
+      - "--jetstream"
+      - "--store_dir=/data"
+      - "--http_port=8222"
+      - "--port=4222"
+    volumes:
+      - nats-data:/data
+    ports:
+      - "${NATS_CLIENT_PORT:-4222}:4222"
+      - "${NATS_HTTP_PORT:-8222}:8222"
+      - "${NATS_CLUSTER_PORT:-6222}:6222"
+    networks:
+      - devnet
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  nats-data:
+
+networks:
+  devnet:

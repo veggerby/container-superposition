@@ -319,7 +319,7 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
     .version('0.1.0')
     .option('--stack <type>', 'Base template: plain, compose')
     .option('--language <list>', 'Comma-separated language overlays: dotnet, nodejs, python, mkdocs, java, go, rust, bun, powershell')
-    .option('--database <list>', 'Comma-separated database overlays: postgres, redis, mongodb, mysql, sqlserver, sqlite, minio')
+    .option('--database <list>', 'Comma-separated database overlays: postgres, redis, mongodb, mysql, sqlserver, sqlite, minio, rabbitmq, redpanda, nats')
     .option('--observability <list>', 'Comma-separated: otel-collector, jaeger, prometheus, grafana, loki')
     .option('--playwright', 'Include Playwright browser automation')
     .option('--cloud-tools <list>', 'Comma-separated: aws-cli, azure-cli, gcloud, kubectl-helm, terraform, pulumi')

@@ -218,6 +218,39 @@ database_overlays:
     conflicts: []
     tags: [database, storage, s3, object-storage, minio]
     ports: [9000, 9001]
+    
+  - id: rabbitmq
+    name: RabbitMQ
+    description: Message broker with AMQP protocol and management UI
+    category: database
+    supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [database, messaging, queue, rabbitmq, amqp]
+    ports: [5672, 15672]
+    
+  - id: redpanda
+    name: Redpanda
+    description: Kafka-compatible event streaming with web console
+    category: database
+    supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [database, messaging, streaming, kafka, redpanda]
+    ports: [9092, 8080]
+    
+  - id: nats
+    name: NATS
+    description: Lightweight pub/sub messaging with JetStream
+    category: database
+    supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [database, messaging, pubsub, nats, jetstream]
+    ports: [4222, 8222]
 
 observability_overlays:
   - id: otel-collector
