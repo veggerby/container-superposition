@@ -13,6 +13,5 @@
         "alexcvzz.vscode-sqlite"
       ]
     }
-  },
-  "postCreateCommand": "sh .devcontainer/setup-sqlite.sh"
+  }
 }

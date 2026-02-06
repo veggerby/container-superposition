@@ -8,10 +8,25 @@ echo "🔧 Setting up MinIO client..."
 # Install MinIO client (mc)
 echo "📦 Installing MinIO client (mc)..."
 if ! command -v mc &> /dev/null; then
-    wget -q https://dl.min.io/client/mc/release/linux-amd64/mc -O /tmp/mc
+    # Pin to a specific version for security and reproducibility
+    MC_VERSION="RELEASE.2024-11-17T19-35-25Z"
+    MC_URL="https://dl.min.io/client/mc/release/linux-amd64/archive/mc.${MC_VERSION}"
+    MC_CHECKSUM="27e18faeabd9a0c8066e3b4aadb13a2c0ae4dac09a1e24defe34c99a11b59e26"
+    
+    echo "   Downloading MinIO client version ${MC_VERSION}..."
+    wget -q "${MC_URL}" -O /tmp/mc
+    
+    # Verify checksum
+    echo "   Verifying checksum..."
+    echo "${MC_CHECKSUM}  /tmp/mc" | sha256sum -c - || {
+        echo "   ❌ Checksum verification failed!"
+        rm -f /tmp/mc
+        exit 1
+    }
+    
     sudo install /tmp/mc /usr/local/bin/
     rm /tmp/mc
-    echo "   ✅ MinIO client installed"
+    echo "   ✅ MinIO client installed (${MC_VERSION})"
 else
     echo "   ✅ MinIO client already installed"
 fi
