@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "features": {
+    "./features/cross-distro-packages": {
+      "apt": "build-essential",
+      "apk": "build-base"
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go"
+      ],
+      "settings": {
+        "go.toolsManagement.autoUpdate": true,
+        "[go]": {
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "go.lintTool": "golangci-lint",
+        "go.lintOnSave": "package"
+      }
+    }
+  },
+  "remoteEnv": {
+    "PATH": "/go/bin:/usr/local/go/bin:${containerEnv:PATH}",
+    "GOPATH": "/go"
+  },
+  "forwardPorts": [8080, 8081],
+  "portsAttributes": {
+    "8080": {
+      "label": "Web Server",
+      "onAutoForward": "openBrowser"
+    },
+    "8081": {
+      "label": "gRPC/API",
+      "onAutoForward": "notify"
+    }
+  }
+}

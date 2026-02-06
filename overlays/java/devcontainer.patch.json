@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "features": {
+    "./features/cross-distro-packages": {
+      "apt": "build-essential",
+      "apk": "build-base"
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "jdkDistro": "tem",
+      "installGradle": "true",
+      "installMaven": "true"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-gradle",
+        "vscjava.vscode-maven"
+      ],
+      "settings": {
+        "java.configuration.runtimes": [],
+        "[java]": {
+          "editor.formatOnSave": true
+        }
+      }
+    }
+  },
+  "remoteEnv": {
+    "JAVA_HOME": "/usr/local/sdkman/candidates/java/current"
+  },
+  "forwardPorts": [8080, 8081],
+  "portsAttributes": {
+    "8080": {
+      "label": "Web App",
+      "onAutoForward": "openBrowser"
+    },
+    "8081": {
+      "label": "Admin/Actuator",
+      "onAutoForward": "notify"
+    }
+  }
+}
