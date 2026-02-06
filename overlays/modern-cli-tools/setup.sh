@@ -20,20 +20,20 @@ fi
 
 # Install yq (YAML processor)
 echo "📦 Installing yq..."
-YQ_VERSION="4.40.5"
+YQ_VERSION="4.52.2"
 ARCH=$(uname -m)
 
-# SHA256 checksums for yq v4.40.5
+# SHA256 checksums for yq v4.52.2
 if [ "$ARCH" = "x86_64" ]; then
     YQ_ARCH="amd64"
-    YQ_CHECKSUM="2f716d6628cfa0e0368ee4196826032b1f39d780d9c3ccc44d61a54146f91e2c"
+    YQ_CHECKSUM="a74bd266990339e0c48a2103534aef692abf99f19390d12c2b0ce6830385c459"
 elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
     YQ_ARCH="arm64"
-    YQ_CHECKSUM="c4e2bb82249b67b83b531a07c48d698e0f0ba8e5da69907f9e6f1f7d158d525e"
+    YQ_CHECKSUM="c82856ac30da522f50dcdd4f53065487b5a2927e9b87ff637956900986f1f7c2"
 else
     echo "⚠️  Unsupported architecture: $ARCH, defaulting to amd64"
     YQ_ARCH="amd64"
-    YQ_CHECKSUM="2f716d6628cfa0e0368ee4196826032b1f39d780d9c3ccc44d61a54146f91e2c"
+    YQ_CHECKSUM="a74bd266990339e0c48a2103534aef692abf99f19390d12c2b0ce6830385c459"
 fi
 
 curl -L "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${YQ_ARCH}" \
