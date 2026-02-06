@@ -31,48 +31,48 @@ jobs:
           - name: "Plain base"
             stack: plain
             overlays: ""
-            
+
           - name: "Compose base"
             stack: compose
             overlays: ""
-          
+
           # Single language overlays
           - name: "Plain + .NET"
             stack: plain
             overlays: "--language dotnet"
-            
+
           - name: "Plain + Node.js"
             stack: plain
             overlays: "--language nodejs"
-            
+
           - name: "Plain + Python"
             stack: plain
             overlays: "--language python"
-          
+
           # Multi-language
           - name: "Plain + .NET + Node.js + Python"
             stack: plain
             overlays: "--language dotnet,nodejs,python"
-          
+
           # Compose with databases
           - name: "Compose + PostgreSQL"
             stack: compose
-            overlays: "--db postgres"
-            
+            overlays: "--database postgres"
+
           - name: "Compose + Node.js + PostgreSQL"
             stack: compose
-            overlays: "--language nodejs --db postgres"
-          
+            overlays: "--language nodejs --database postgres"
+
           # Compose with observability
           - name: "Compose + Full observability"
             stack: compose
-            overlays: "--language nodejs --db postgres --observability prometheus,grafana,jaeger,otel-collector,loki"
-          
+            overlays: "--language nodejs --database postgres --observability prometheus,grafana,jaeger,otel-collector,loki"
+
           # Docker overlays
           - name: "Plain + Docker-in-Docker"
             stack: plain
             overlays: "--dev-tools docker-in-docker"
-            
+
           - name: "Compose + Docker socket"
             stack: compose
             overlays: "--dev-tools docker-sock"

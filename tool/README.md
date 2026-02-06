@@ -68,9 +68,9 @@ The tool features:
 ### Non-Interactive Mode (For Automation)
 
 ```bash
-npm run init -- --stack compose --language dotnet --db postgres
+npm run init -- --stack compose --language dotnet --database postgres
 npm run init -- --stack plain --language nodejs --playwright --cloud-tools azure-cli,kubectl-helm
-npm run init -- --stack compose --language nodejs --db postgres+redis --output ./my-project/.devcontainer
+npm run init -- --stack compose --language nodejs --database postgres+redis --output ./my-project/.devcontainer
 ```
 
 ### Via npx (Once Published)
@@ -96,13 +96,11 @@ This makes the questionnaire more engaging and the output easier to scan.
 |--------|-------------|---------|
 | `--stack <name>` | Base template: `plain`, `compose` | `--stack compose` |
 | `--language <name>` | Language/framework: `dotnet`, `nodejs`, `python`, `mkdocs` | `--language dotnet` |
-| `--db <type>` | Database: `postgres`, `redis`, `postgres+redis`, `none` | `--db postgres` |
-| `--postgres` | Shorthand for `--db postgres` | `--postgres` |
-| `--redis` | Shorthand for `--db redis` | `--redis` |
+| `--database <type>` | Database: `postgres`, `redis`, `mongodb`, `mysql`, `sqlserver`, `sqlite`, `minio` | `--database postgres` |
 | `--observability <list>` | Observability tools: `otel-collector`, `jaeger`, `prometheus`, `grafana`, `loki` | `--observability jaeger,prometheus,grafana` |
 | `--playwright` | Include Playwright browser automation | `--playwright` |
-| `--cloud-tools <list>` | Cloud tools: `aws-cli`, `azure-cli`, `kubectl-helm` | `--cloud-tools aws-cli,kubectl-helm` |
-| `--dev-tools <list>` | Development tools: `docker-in-docker`, `docker-sock`, `playwright`, `codex` | `--dev-tools docker-in-docker,playwright` |
+| `--cloud-tools <list>` | Cloud tools: `aws-cli`, `azure-cli`, `gcloud`, `kubectl-helm`, `terraform`, `pulumi` | `--cloud-tools aws-cli,kubectl-helm` |
+| `--dev-tools <list>` | Development tools: `docker-in-docker`, `docker-sock`, `playwright`, `codex`, `git-helpers`, `pre-commit`, `commitlint`, `just`, `direnv`, `modern-cli-tools`, `ngrok` | `--dev-tools docker-in-docker,playwright` |
 | `--port-offset <number>` | Add offset to all exposed ports (e.g., 100 makes Grafana 3100) | `--port-offset 100` |
 | `-o`, `--output <path>` | Output directory (default: `./.devcontainer`) | `-o ./custom-path` |
 | `-h`, `--help` | Show help | `--help` |

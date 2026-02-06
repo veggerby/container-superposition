@@ -50,7 +50,7 @@ Creates:
 npm run init -- \
   --stack compose \
   --language dotnet \
-  --db postgres+redis \
+  --database postgres+redis \
   --observability otel-collector,jaeger,prometheus,grafana,loki \
   --cloud-tools aws-cli,kubectl-helm
 ```
@@ -218,7 +218,7 @@ Focus on distributed tracing without full observability:
 npm run init -- \
   --stack compose \
   --language dotnet \
-  --db postgres+redis \
+  --database postgres+redis \
   --observability otel-collector,jaeger
 ```
 
@@ -281,15 +281,15 @@ The generated `docker-compose.yml` will include:
 services:
   prometheus:
     # starts first
-  
+
   otel-collector:
     depends_on:
       - prometheus  # waits for prometheus
-  
+
   grafana:
     depends_on:
       - prometheus  # waits for prometheus
-  
+
   devcontainer:
     depends_on:
       - otel-collector  # waits for otel-collector

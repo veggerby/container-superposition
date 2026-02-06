@@ -275,7 +275,7 @@ Default port: `5432`
 
 Customize with port offset:
 \```bash
-npm run init -- --stack compose --db postgres --port-offset 100
+npm run init -- --stack compose --database postgres --port-offset 100
 # PostgreSQL will be on port 5532
 \```
 ```
