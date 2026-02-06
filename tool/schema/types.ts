@@ -6,10 +6,13 @@ export type Stack = 'plain' | 'compose';
 export type BaseImage = 'bookworm' | 'trixie' | 'alpine' | 'ubuntu' | 'custom';
 export type PackageManager = 'apt' | 'apk';
 export type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs';
-export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
-export type CloudTool = 'azure-cli' | 'aws-cli' | 'kubectl-helm';
+export type DatabaseOverlay = 'postgres' | 'redis' | 'mongodb' | 'mysql' | 'sqlserver' | 'sqlite' | 'minio';
+export type CloudTool = 'azure-cli' | 'aws-cli' | 'gcloud' | 'kubectl-helm' | 'terraform' | 'pulumi';
 export type DevTool = 'docker-in-docker' | 'docker-sock' | 'codex' | 'playwright' | 'git-helpers' | 'pre-commit' | 'commitlint' | 'just' | 'direnv' | 'modern-cli-tools' | 'ngrok';
 export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'prometheus' | 'grafana' | 'loki';
+
+// Legacy type for backwards compatibility
+export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
 
 export interface DevContainerConfig {
   /**
@@ -57,7 +60,7 @@ export interface QuestionnaireAnswers {
   customImage?: string; // Only used when baseImage is 'custom'
   language?: LanguageOverlay[]; // Support multiple language overlays
   needsDocker: boolean;
-  database: Database;
+  database?: DatabaseOverlay[]; // Support multiple database overlays
   playwright: boolean;
   cloudTools: CloudTool[];
   devTools: DevTool[];

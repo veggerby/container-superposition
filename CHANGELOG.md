@@ -180,7 +180,7 @@ npm run init
 npm run init -- \
   --stack compose \
   --language nodejs \
-  --db postgres+redis \
+  --database postgres+redis \
   --observability otel-collector,jaeger,prometheus,grafana \
   --cloud-tools aws-cli \
   --playwright
@@ -192,7 +192,7 @@ npm run init -- \
 - Stack names changed: `dotnet` → `compose --language dotnet`
 - Stack names changed: `node-typescript` → `compose --language nodejs`
 - Stack names changed: `python-mkdocs` → `plain --language mkdocs`
-- Stack names changed: `fullstack` → `compose --language nodejs --db postgres+redis`
+- Stack names changed: `fullstack` → `compose --language nodejs --database postgres+redis`
 
 **CLI Compatibility:**
 Old flags still supported with automatic migration:

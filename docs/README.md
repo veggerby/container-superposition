@@ -31,7 +31,7 @@ Complete documentation for the container-superposition devcontainer scaffolding 
 npx container-superposition init
 
 # Non-interactive mode
-npx container-superposition init --stack compose --language nodejs --db postgres
+npx container-superposition init --stack compose --language nodejs --database postgres
 ```
 
 ### For Contributors

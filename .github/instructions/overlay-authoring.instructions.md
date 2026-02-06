@@ -813,7 +813,7 @@ The `composer.ts` file in `tool/questionnaire/` handles merging overlays into th
 6. **Test port offset:**
 
    ```bash
-   npm run init -- --port-offset 100 --stack compose --db postgres
+   npm run init -- --port-offset 100 --stack compose --database postgres
    # Verify PostgreSQL is on port 5532, not 5432
    ```
 

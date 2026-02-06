@@ -50,7 +50,7 @@ node dist/scripts/init.js
 npm run init
 
 # With CLI arguments (skip questionnaire)
-npm run init -- --stack compose --language nodejs --db postgres --observability otel-collector,jaeger --output ./my-project
+npm run init -- --stack compose --language nodejs --database postgres --observability otel-collector,jaeger --output ./my-project
 ```
 
 ### Building and Testing
@@ -273,8 +273,8 @@ Located in `scripts/init.ts` (lines 230-260), the system:
 # grafana requires prometheus
 grafana:
   requires: [prometheus]
-  
-# docker-in-docker conflicts with docker-sock  
+
+# docker-in-docker conflicts with docker-sock
 docker-in-docker:
   conflicts: [docker-sock]
 ```
@@ -368,7 +368,7 @@ const REPO_ROOT_CANDIDATES = [
    ```typescript
    // tool/schema/types.ts
    export type MyCategory = 'my-overlay' | 'other-overlay';
-   
+
    export interface QuestionnaireAnswers {
      // ...existing fields
      myCategory: MyCategory[];
@@ -439,7 +439,7 @@ If you see "File not found" errors in compiled mode:
      path.join(__dirname, '..', 'file.txt'),      // ts-node
      path.join(__dirname, '..', '..', 'file.txt'), // compiled
    ];
-   
+
    const MY_FILE_PATH = MY_FILE_CANDIDATES.find(fs.existsSync) ?? MY_FILE_CANDIDATES[0];
    ```
 

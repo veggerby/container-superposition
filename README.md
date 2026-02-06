@@ -150,19 +150,19 @@ The questionnaire guides you through:
 
 ```bash
 # Node.js API with PostgreSQL and observability
-npm run init -- --stack compose --language nodejs --db postgres --observability otel-collector,jaeger,prometheus,grafana
+npm run init -- --stack compose --language nodejs --database postgres --observability otel-collector,jaeger,prometheus,grafana
 
 # .NET microservice with full observability stack
-npm run init -- --stack compose --language dotnet --db postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
+npm run init -- --stack compose --language dotnet --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
 
 # Python documentation site
 npm run init -- --stack plain --language mkdocs
 
 # Full-stack with everything
-npm run init -- --stack compose --language nodejs --db postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm --dev-tools playwright,docker-in-docker
+npm run init -- --stack compose --language nodejs --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm --dev-tools playwright,docker-in-docker
 
 # Running multiple instances? Add port offset to avoid conflicts
-npm run init -- --stack compose --language nodejs --db postgres --observability jaeger,grafana --port-offset 100
+npm run init -- --stack compose --language nodejs --database postgres --observability jaeger,grafana --port-offset 100
 # This shifts all ports by 100: Grafana becomes 3100, Jaeger UI becomes 16786, etc.
 ```
 

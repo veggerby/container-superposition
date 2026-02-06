@@ -141,7 +141,7 @@ npm run init -- --stack compose --language nodejs --postgres
 npm run init -- \
   --stack compose \
   --language dotnet \
-  --db postgres+redis \
+  --database postgres+redis \
   --observability otel-collector,jaeger,prometheus,grafana,loki \
   --cloud-tools kubectl-helm
 
@@ -271,7 +271,7 @@ These work independently:
 | `dotnet` | `--stack compose --language dotnet` |
 | `node-typescript` | `--stack compose --language nodejs` |
 | `python-mkdocs` | `--stack plain --language mkdocs` |
-| `fullstack` | `--stack compose --language nodejs --db postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki` |
+| `fullstack` | `--stack compose --language nodejs --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki` |
 
 ## File Types
 

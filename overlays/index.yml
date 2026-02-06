@@ -108,6 +108,61 @@ database_overlays:
     conflicts: []
     tags: [database, cache, redis]
     ports: [6379]
+    
+  - id: mongodb
+    name: MongoDB
+    description: MongoDB 8 with Mongo Express web UI
+    category: database
+    supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [database, nosql, mongodb, document]
+    ports: [27017, 8081]
+    
+  - id: mysql
+    name: MySQL
+    description: MySQL 8 with phpMyAdmin web UI
+    category: database
+    supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [database, sql, mysql]
+    ports: [3306, 8080]
+    
+  - id: sqlserver
+    name: SQL Server
+    description: SQL Server 2022 for Linux
+    category: database
+    supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: [dotnet]
+    conflicts: []
+    tags: [database, sql, sqlserver, microsoft]
+    ports: [1433]
+    
+  - id: sqlite
+    name: SQLite
+    description: SQLite with litecli and VS Code extensions
+    category: database
+    supports: [] # Works with both plain and compose
+    requires: []
+    suggests: [python]
+    conflicts: []
+    tags: [database, sql, sqlite, embedded]
+    ports: []
+    
+  - id: minio
+    name: MinIO
+    description: S3-compatible object storage with web console
+    category: database
+    supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: []
+    conflicts: []
+    tags: [database, storage, s3, object-storage, minio]
+    ports: [9000, 9001]
 
 observability_overlays:
   - id: otel-collector
