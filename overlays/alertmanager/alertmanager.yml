@@ -28,10 +28,10 @@ receivers:
   
   - name: 'webhook'
     webhook_configs:
-      - url: 'http://localhost:5001/alerts'
+      - url: 'http://devcontainer:5001/alerts'  # Replace with your webhook service
         send_resolved: true
-    # Example webhook receiver
-    # Replace with your webhook endpoint
+    # Example webhook receiver - update URL to match your webhook service
+    # For development, you can run a simple webhook receiver in the devcontainer
 
 inhibit_rules:
   # Inhibit warning if critical is firing

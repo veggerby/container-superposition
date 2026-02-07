@@ -174,7 +174,7 @@ http_requests_active{service="otel-demo-nodejs"}
 
 **Logs for specific trace:**
 ```logql
-{service="otel-demo-nodejs"} | json | trace_id="<trace-id-from-tempo>"
+{service="otel-demo-nodejs"} | json | `trace.id`="<trace-id-from-tempo>"
 ```
 
 **Log patterns:**

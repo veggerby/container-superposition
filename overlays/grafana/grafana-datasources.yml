@@ -7,6 +7,7 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: true
+    uid: prometheus
     jsonData:
       timeInterval: '15s'
 
@@ -15,14 +16,15 @@ datasources:
     access: proxy
     url: http://loki:3100
     editable: true
+    uid: loki
     jsonData:
       derivedFields:
         - datasourceUid: tempo
-          matcherRegex: "trace.id=(\\w+)"
+          matcherRegex: "\"trace\\.id\"\\s*:\\s*\"([0-9a-fA-F]+)\""
           name: TraceID
           url: "$${__value.raw}"
         - datasourceUid: jaeger
-          matcherRegex: "trace.id=(\\w+)"
+          matcherRegex: "\"trace\\.id\"\\s*:\\s*\"([0-9a-fA-F]+)\""
           name: TraceID (Jaeger)
           url: "$${__value.raw}"
 

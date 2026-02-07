@@ -38,18 +38,23 @@ scrape_configs:
         target_label: 'job'
     
     pipeline_stages:
-      # Parse JSON logs
+      # Docker logs are wrapped in JSON: {log, stream, time}
+      # First parse the Docker wrapper
+      - docker: {}
+      
+      # Then parse application JSON from the log field
       - json:
           expressions:
             level: level
             msg: message
-            timestamp: timestamp
+            trace_id: trace.id
+            span_id: span.id
       
-      # Extract log level
+      # Extract log level as label
       - labels:
           level:
       
-      # Set timestamp
+      # Use Docker's timestamp
       - timestamp:
           source: timestamp
           format: RFC3339Nano

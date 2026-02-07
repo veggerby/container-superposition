@@ -214,7 +214,7 @@ rate(http_requests_total{service="otel-demo-nodejs", status="500"}[5m])
 
 **Logs for specific trace:**
 ```logql
-{service="otel-demo-nodejs"} | json | trace_id="a1b2c3d4..."
+{service="otel-demo-nodejs"} | json | `trace.id`="a1b2c3d4..."
 ```
 
 **Logs with rate:**
