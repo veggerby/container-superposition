@@ -259,6 +259,8 @@ function generateManifest(
       : answers.baseImage,
     overlays,
     portOffset: answers.portOffset,
+    preset: answers.preset,
+    presetChoices: answers.presetChoices,
   };
   
   if (autoResolved.added.length > 0) {
@@ -271,6 +273,10 @@ function generateManifest(
   
   if (autoResolved.added.length > 0) {
     console.log(chalk.cyan(`   ℹ️  Auto-resolved dependencies: ${autoResolved.added.join(', ')}`));
+  }
+  
+  if (answers.preset) {
+    console.log(chalk.cyan(`   ℹ️  Used preset: ${answers.preset}`));
   }
 }
 

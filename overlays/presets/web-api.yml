@@ -1,0 +1,110 @@
+# Web API Stack Preset
+# Complete environment for REST/GraphQL API development
+
+id: web-api
+name: Web API Stack
+description: Complete REST/GraphQL API development environment with database, cache, and observability
+type: meta
+category: preset
+supports: [compose] # Requires Docker Compose for services
+tags: [preset, api, web, backend, observability]
+
+# Overlays to select
+selects:
+  # Always included
+  required:
+    - postgres
+    - redis
+    - otel-collector
+    - prometheus
+    - grafana
+    - loki
+  
+  # User makes choices
+  userChoice:
+    language:
+      id: language
+      prompt: Select API language/framework
+      options: [dotnet, nodejs, python, go, java]
+      defaultOption: nodejs
+
+# Glue configuration - integration helpers
+glueConfig:
+  # Pre-configured environment variables
+  environment:
+    # Database connection
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/myapp"
+    POSTGRES_HOST: "postgres"
+    POSTGRES_PORT: "5432"
+    POSTGRES_DB: "myapp"
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "postgres"
+    
+    # Redis connection
+    REDIS_URL: "redis://redis:6379"
+    REDIS_HOST: "redis"
+    REDIS_PORT: "6379"
+    
+    # OpenTelemetry configuration
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+    OTEL_SERVICE_NAME: "api-service"
+    OTEL_METRICS_EXPORTER: "otlp"
+    OTEL_TRACES_EXPORTER: "otlp"
+    OTEL_LOGS_EXPORTER: "otlp"
+  
+  # Suggested port mappings
+  portMappings:
+    api: 8000
+    grafana: 3000
+    prometheus: 9090
+    jaeger: 16686
+  
+  # README snippet to add to generated devcontainer
+  readme: |
+    ## Web API Stack
+    
+    This devcontainer is configured with a complete API development stack:
+    
+    ### Services
+    
+    - **PostgreSQL**: Primary database (port 5432)
+    - **Redis**: Cache and session store (port 6379)
+    - **OpenTelemetry Collector**: Telemetry aggregation (ports 4317, 4318)
+    - **Prometheus**: Metrics storage (port 9090)
+    - **Grafana**: Observability dashboard (port 3000)
+    - **Loki**: Log aggregation (port 3100)
+    
+    ### Connection Strings
+    
+    ```bash
+    # PostgreSQL
+    DATABASE_URL="postgresql://postgres:postgres@postgres:5432/myapp"
+    
+    # Redis
+    REDIS_URL="redis://redis:6379"
+    
+    # OpenTelemetry
+    OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector:4317"
+    ```
+    
+    ### Quick Start
+    
+    1. Start your API on port 8000 (configured in this preset)
+    2. Access Grafana at http://localhost:3000 (admin/admin)
+    3. View metrics in Prometheus at http://localhost:9090
+    4. Check logs in Loki via Grafana
+    
+    ### Health Checks
+    
+    All services include health checks. Verify with:
+    
+    ```bash
+    docker-compose ps
+    ```
+    
+    ### Next Steps
+    
+    - Configure your API to use the DATABASE_URL and REDIS_URL
+    - Add OpenTelemetry SDK to your application
+    - Create custom Grafana dashboards for your API metrics
+    - Set up log forwarding to Loki

@@ -39,6 +39,31 @@ interface OverlaysConfig {
   observability_overlays: OverlayMetadata[];
   cloud_tool_overlays: OverlayMetadata[];
   dev_tool_overlays: OverlayMetadata[];
+  preset_overlays?: OverlayMetadata[];
+}
+
+interface PresetDefinition {
+  id: string;
+  name: string;
+  description: string;
+  type: 'meta';
+  category: 'preset';
+  supports?: string[];
+  tags?: string[];
+  selects: {
+    required: string[];
+    userChoice?: Record<string, {
+      id: string;
+      prompt: string;
+      options: string[];
+      defaultOption?: string;
+    }>;
+  };
+  glueConfig?: {
+    environment?: Record<string, string>;
+    portMappings?: Record<string, number>;
+    readme?: string;
+  };
 }
 
 const OVERLAYS_CONFIG_CANDIDATES = [
@@ -54,12 +79,111 @@ const OVERLAYS_CONFIG_PATH =
   OVERLAYS_CONFIG_CANDIDATES.find((candidate) => fs.existsSync(candidate)) ??
   OVERLAYS_CONFIG_CANDIDATES[0];
 
+const PRESETS_DIR_CANDIDATES = [
+  path.join(__dirname, '..', 'overlays', 'presets'),
+  path.join(__dirname, '..', '..', 'overlays', 'presets'),
+];
+
+const PRESETS_DIR =
+  PRESETS_DIR_CANDIDATES.find((candidate) => fs.existsSync(candidate)) ??
+  PRESETS_DIR_CANDIDATES[0];
+
 /**
  * Load overlay metadata from YAML file
  */
 function loadOverlaysConfig(): OverlaysConfig {
   const content = fs.readFileSync(OVERLAYS_CONFIG_PATH, 'utf8');
   return yaml.load(content) as OverlaysConfig;
+}
+
+/**
+ * Load preset definition from YAML file
+ */
+function loadPresetDefinition(presetId: string): PresetDefinition | null {
+  const presetPath = path.join(PRESETS_DIR, `${presetId}.yml`);
+  if (!fs.existsSync(presetPath)) {
+    console.warn(chalk.yellow(`⚠️  Preset definition not found: ${presetPath}`));
+    return null;
+  }
+  const content = fs.readFileSync(presetPath, 'utf8');
+  return yaml.load(content) as PresetDefinition;
+}
+
+/**
+ * Expand a preset into a list of overlay IDs with user choices resolved
+ */
+async function expandPreset(
+  presetId: string,
+  stack: Stack
+): Promise<{ overlays: string[]; choices: Record<string, string>; glueConfig?: PresetDefinition['glueConfig'] }> {
+  const preset = loadPresetDefinition(presetId);
+  if (!preset) {
+    return { overlays: [], choices: {} };
+  }
+
+  console.log(chalk.cyan(`\n📦 Expanding preset: ${preset.name}\n`));
+
+  const overlays: string[] = [...preset.selects.required];
+  const choices: Record<string, string> = {};
+
+  // Handle user choices
+  if (preset.selects.userChoice) {
+    for (const [key, choice] of Object.entries(preset.selects.userChoice)) {
+      const selectedOption = await select({
+        message: choice.prompt,
+        choices: choice.options.map(opt => ({
+          name: opt,
+          value: opt,
+        })),
+        default: choice.defaultOption,
+      }) as string;
+
+      overlays.push(selectedOption);
+      choices[key] = selectedOption;
+    }
+  }
+
+  console.log(chalk.dim(`✓ Preset will include: ${overlays.join(', ')}\n`));
+
+  return { overlays, choices, glueConfig: preset.glueConfig };
+}
+
+/**
+ * Build checkbox choices for overlay selection with optional pre-selection
+ */
+function buildOverlayChoices(
+  config: OverlaysConfig,
+  stack: Stack,
+  categoryList: Array<{ name: string; overlays: OverlayMetadata[] }>,
+  preselected: string[]
+): any[] {
+  const choices: any[] = [];
+  
+  categoryList.forEach(category => {
+    const filtered = category.overlays.filter((o: any) => 
+      !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+    );
+    
+    if (filtered.length > 0) {
+      // Add category separator
+      choices.push({
+        type: 'separator',
+        separator: chalk.cyan(`──── ${category.name} ────`)
+      });
+      
+      // Add overlays in this category
+      filtered.forEach((overlay: any) => {
+        choices.push({
+          name: overlay.name,
+          value: overlay.id,
+          description: overlay.description,
+          checked: preselected.includes(overlay.id)
+        });
+      });
+    }
+  });
+  
+  return choices;
 }
 
 /**
@@ -85,6 +209,36 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
   console.log(chalk.dim('Use ') + chalk.cyan('space') + chalk.dim(' to select, ') + chalk.cyan('enter') + chalk.dim(' to confirm.\n'));
 
   try {
+    // Question 0: Optional preset selection
+    let usePreset = false;
+    let selectedPresetId: string | undefined;
+    let presetChoices: Record<string, string> = {};
+    let presetGlueConfig: PresetDefinition['glueConfig'] | undefined;
+    let presetOverlays: string[] = [];
+
+    if (config.preset_overlays && config.preset_overlays.length > 0) {
+      const presetChoice = await select({
+        message: 'Start from a preset or build custom?',
+        choices: [
+          {
+            name: 'Custom (select overlays manually)',
+            value: 'custom',
+            description: 'Choose individual overlays yourself'
+          },
+          ...config.preset_overlays.map(p => ({
+            name: p.name,
+            value: p.id,
+            description: p.description
+          }))
+        ]
+      }) as string;
+
+      if (presetChoice !== 'custom') {
+        usePreset = true;
+        selectedPresetId = presetChoice;
+      }
+    }
+
     // Question 1: Base template
     const stack = await select({
       message: 'Select base template:',
@@ -94,6 +248,14 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
         description: t.description
       }))
     }) as Stack;
+
+    // If using preset, expand it now
+    if (usePreset && selectedPresetId) {
+      const expansion = await expandPreset(selectedPresetId, stack);
+      presetOverlays = expansion.overlays;
+      presetChoices = expansion.choices;
+      presetGlueConfig = expansion.glueConfig;
+    }
 
     // Question 2: Base image selection
     const baseImage = await select({
@@ -122,9 +284,6 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       console.log(chalk.dim('   Test thoroughly and adjust configurations as needed.\n'));
     }
 
-    // Question 3: Categorized multi-select overlays with dependency tracking
-    console.log(chalk.dim('\n💡 Select overlays: Space to toggle, ↑/↓ to navigate, Enter to confirm\n'));
-    
     // Build categorized overlays with separators
     const categoryList = [
       { name: 'Language', overlays: config.language_overlays },
@@ -139,39 +298,52 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
     categoryList.forEach(cat => {
       cat.overlays.forEach((o: any) => allOverlaysMap.set(o.id, o));
     });
+
+    // Question 3: Categorized multi-select overlays with dependency tracking
+    let userSelection: readonly string[];
     
-    // Initial selection
-    const choices: any[] = [];
-    
-    categoryList.forEach(category => {
-      const filtered = category.overlays.filter((o: any) => 
-        !o.supports || o.supports.length === 0 || o.supports.includes(stack)
-      );
+    if (usePreset && presetOverlays.length > 0) {
+      // Preset mode: Ask if user wants to customize
+      console.log(chalk.cyan(`\n✓ Preset includes these overlays: ${presetOverlays.join(', ')}\n`));
       
-      if (filtered.length > 0) {
-        // Add category separator
-        choices.push({
-          type: 'separator',
-          separator: chalk.cyan(`──── ${category.name} ────`)
-        });
+      const customizePreset = await select({
+        message: 'Do you want to customize the overlay selection?',
+        choices: [
+          { name: 'Use preset as-is', value: 'no', description: 'Keep the preset overlay selection' },
+          { name: 'Customize selection', value: 'yes', description: 'Add or remove overlays from the preset' }
+        ]
+      }) as string;
+
+      if (customizePreset === 'yes') {
+        // Show overlay selection with preset overlays pre-selected
+        console.log(chalk.dim('\n💡 Select overlays: Space to toggle, ↑/↓ to navigate, Enter to confirm'));
+        console.log(chalk.dim('   Preset overlays are pre-selected\n'));
         
-        // Add overlays in this category
-        filtered.forEach((overlay: any) => {
-          choices.push({
-            name: overlay.name,
-            value: overlay.id,
-            description: overlay.description
-          });
+        const choices = buildOverlayChoices(config, stack, categoryList, presetOverlays);
+        
+        userSelection = await checkbox({
+          message: 'Select overlays to include:',
+          choices,
+          pageSize: 15,
+          loop: false
         });
+      } else {
+        // Use preset selection as-is
+        userSelection = presetOverlays;
       }
-    });
-    
-    const userSelection = await checkbox({
-      message: 'Select overlays to include:',
-      choices,
-      pageSize: 15,
-      loop: false
-    });
+    } else {
+      // Custom mode: Normal overlay selection
+      console.log(chalk.dim('\n💡 Select overlays: Space to toggle, ↑/↓ to navigate, Enter to confirm\n'));
+      
+      const choices = buildOverlayChoices(config, stack, categoryList, []);
+      
+      userSelection = await checkbox({
+        message: 'Select overlays to include:',
+        choices,
+        pageSize: 15,
+        loop: false
+      });
+    }
     
     // Add all required dependencies
     const withDependencies = new Set<string>(userSelection as string[]);
@@ -288,6 +460,8 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       stack,
       baseImage,
       customImage,
+      preset: selectedPresetId,
+      presetChoices: Object.keys(presetChoices).length > 0 ? presetChoices : undefined,
       language,
       needsDocker: stack === 'compose', // Compose template includes docker-outside-of-docker
       database,

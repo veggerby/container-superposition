@@ -58,6 +58,8 @@ export interface QuestionnaireAnswers {
   stack: Stack;
   baseImage: BaseImage;
   customImage?: string; // Only used when baseImage is 'custom'
+  preset?: string; // ID of preset used, if any
+  presetChoices?: Record<string, string>; // User choices made within preset
   language?: LanguageOverlay[]; // Support multiple language overlays
   needsDocker: boolean;
   database?: DatabaseOverlay[]; // Support multiple database overlays
@@ -126,6 +128,43 @@ export interface OverlayMetadata {
 }
 
 /**
+ * User choice configuration for presets
+ */
+export interface PresetUserChoice {
+  id: string;
+  prompt: string;
+  options: string[];
+  defaultOption?: string;
+}
+
+/**
+ * Glue configuration for presets
+ */
+export interface PresetGlueConfig {
+  environment?: Record<string, string>;
+  portMappings?: Record<string, number>;
+  readme?: string;
+}
+
+/**
+ * Meta-overlay (preset) definition
+ */
+export interface MetaOverlay {
+  id: string;
+  name: string;
+  description: string;
+  category: 'preset';
+  type: 'meta';
+  supports?: string[];
+  tags?: string[];
+  selects: {
+    required: string[];
+    userChoice?: Record<string, PresetUserChoice>;
+  };
+  glueConfig?: PresetGlueConfig;
+}
+
+/**
  * Overlays configuration structure
  */
 export interface OverlaysConfig {
@@ -146,6 +185,7 @@ export interface OverlaysConfig {
   observability_overlays: OverlayMetadata[];
   cloud_tool_overlays: OverlayMetadata[];
   dev_tool_overlays: OverlayMetadata[];
+  preset_overlays?: MetaOverlay[];
 }
 
 /**
@@ -158,6 +198,8 @@ export interface SuperpositionManifest {
   baseImage: string;
   overlays: string[];
   portOffset?: number;
+  preset?: string; // ID of preset used, if any
+  presetChoices?: Record<string, string>; // User choices made within preset
   autoResolved?: {
     added: string[];
     reason: string;
