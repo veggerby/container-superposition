@@ -3,7 +3,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import * as yaml from 'js-yaml';
-import type { QuestionnaireAnswers, DevContainer, CloudTool, OverlayMetadata, OverlaysConfig, SuperpositionManifest } from '../schema/types.js';
+import type { QuestionnaireAnswers, DevContainer, CloudTool, OverlayMetadata, OverlaysConfig, SuperpositionManifest, PresetGlueConfig } from '../schema/types.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -457,6 +457,53 @@ function applyPortOffsetToEnv(envContent: string, offset: number): string {
 }
 
 /**
+ * Apply preset glue configuration
+ */
+function applyGlueConfig(outputPath: string, glueConfig: PresetGlueConfig, presetName?: string): void {
+  console.log(chalk.cyan(`\n📦 Applying preset glue configuration...\n`));
+
+  // 1. Apply environment variables to .env.example
+  if (glueConfig.environment && Object.keys(glueConfig.environment).length > 0) {
+    const envPath = path.join(outputPath, '.env.example');
+    let envContent = '';
+    
+    // Read existing content if file exists
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf-8');
+    }
+    
+    // Add preset environment variables section
+    let presetEnvSection = `\n# Preset: ${presetName || 'custom'}\n# Pre-configured environment variables from preset\n\n`;
+    
+    for (const [key, value] of Object.entries(glueConfig.environment)) {
+      presetEnvSection += `${key}=${value}\n`;
+    }
+    
+    envContent += presetEnvSection;
+    
+    fs.writeFileSync(envPath, envContent);
+    console.log(chalk.dim(`   ✓ Added ${Object.keys(glueConfig.environment).length} environment variables to .env.example`));
+  }
+
+  // 2. Create preset README if provided
+  if (glueConfig.readme) {
+    const readmePath = path.join(outputPath, 'PRESET-README.md');
+    fs.writeFileSync(readmePath, glueConfig.readme);
+    console.log(chalk.dim(`   ✓ Created PRESET-README.md with usage instructions`));
+  }
+
+  // 3. Log port mappings (informational only - actual ports handled by overlay configs)
+  if (glueConfig.portMappings && Object.keys(glueConfig.portMappings).length > 0) {
+    console.log(chalk.dim(`   ℹ️  Suggested port mappings:`));
+    for (const [service, port] of Object.entries(glueConfig.portMappings)) {
+      console.log(chalk.dim(`      ${service}: ${port}`));
+    }
+  }
+  
+  console.log('');
+}
+
+/**
  * Merge docker-compose.yml files from base and overlays into a single file
  */
 function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays: string[], portOffset?: number, customImage?: string): void {
@@ -758,6 +805,11 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   
   // 14. Merge .env.example files from overlays
   mergeEnvExamples(outputPath, overlays, answers.portOffset);
+  
+  // 15. Apply preset glue configuration if present
+  if (answers.presetGlueConfig) {
+    applyGlueConfig(outputPath, answers.presetGlueConfig, answers.preset);
+  }
 }
 
 /**

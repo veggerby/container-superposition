@@ -462,6 +462,7 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
       customImage,
       preset: selectedPresetId,
       presetChoices: Object.keys(presetChoices).length > 0 ? presetChoices : undefined,
+      presetGlueConfig,
       language,
       needsDocker: stack === 'compose', // Compose template includes docker-outside-of-docker
       database,

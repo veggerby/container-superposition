@@ -60,6 +60,7 @@ export interface QuestionnaireAnswers {
   customImage?: string; // Only used when baseImage is 'custom'
   preset?: string; // ID of preset used, if any
   presetChoices?: Record<string, string>; // User choices made within preset
+  presetGlueConfig?: PresetGlueConfig; // Glue configuration from preset
   language?: LanguageOverlay[]; // Support multiple language overlays
   needsDocker: boolean;
   database?: DatabaseOverlay[]; // Support multiple database overlays
