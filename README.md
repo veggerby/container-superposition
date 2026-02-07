@@ -44,6 +44,11 @@ container-superposition/
 │   └── compose/        # Docker Compose-based devcontainer
 ├── overlays/           # Composable capability overlays
 │   ├── index.yml       # Overlay registry and metadata
+│   ├── presets/        # Stack presets (meta-overlays)
+│   │   ├── web-api.yml
+│   │   ├── microservice.yml
+│   │   ├── docs-site.yml
+│   │   └── fullstack.yml
 │   ├── dotnet/         # Language/framework overlays
 │   ├── nodejs/
 │   ├── python/
@@ -74,6 +79,8 @@ container-superposition/
 │   ├── questionnaire/  # Composition engine
 │   └── schema/         # TypeScript types and JSON schema
 ├── docs/               # Complete documentation
+│   ├── presets.md      # Stack presets guide
+│   └── ...
 └── scripts/            # CLI entry points
 ```
 
@@ -142,24 +149,58 @@ npm run init
 ```
 
 The questionnaire guides you through:
-1. **Base template** - plain or compose?
-2. **Overlays** - All available overlays in one multi-select (language, databases, observability, cloud tools, dev tools)
-3. **Output path** - Where to generate the configuration
+1. **Preset or Custom** - Start from a pre-configured stack or build custom?
+2. **Base template** - plain or compose?
+3. **Overlays** - All available overlays in one multi-select (language, databases, observability, cloud tools, dev tools)
+4. **Output path** - Where to generate the configuration
+
+#### Stack Presets (NEW!)
+
+Quickly get started with common development scenarios:
+
+**🌐 Web API Stack**
+- Language choice (Node.js, .NET, Python, Go, Java)
+- PostgreSQL + Redis
+- Full observability (OTEL, Prometheus, Grafana, Loki)
+- Pre-configured connection strings
+
+**🔀 Microservice Stack**
+- Language choice
+- Message broker (RabbitMQ, Redpanda, NATS)
+- Distributed tracing (Jaeger)
+- Metrics & monitoring (Prometheus, Grafana)
+
+**📚 Documentation Site**
+- MkDocs + Python
+- Pre-commit hooks
+- Modern CLI tools
+- GitHub Pages ready
+
+**🎨 Full-Stack Application**
+- Node.js frontend + Backend language choice
+- PostgreSQL + Redis + MinIO
+- Complete observability stack
+
+See [docs/presets.md](docs/presets.md) for detailed preset documentation.
 
 **Example compositions:**
 
 ```bash
-# Node.js API with PostgreSQL and observability
+# Using presets (interactive)
+npm run init
+# Select "Web API Stack" → Choose Node.js → Done!
+
+# Node.js API with PostgreSQL and observability (CLI)
 npm run init -- --stack compose --language nodejs --database postgres --observability otel-collector,jaeger,prometheus,grafana
 
 # .NET microservice with full observability stack
-npm run init -- --stack compose --language dotnet --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
+npm run init -- --stack compose --language dotnet --database postgres,redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
 
 # Python documentation site
 npm run init -- --stack plain --language mkdocs
 
 # Full-stack with everything
-npm run init -- --stack compose --language nodejs --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm --dev-tools playwright,docker-in-docker
+npm run init -- --stack compose --language nodejs --database postgres,redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm --dev-tools playwright,docker-in-docker
 
 # Running multiple instances? Add port offset to avoid conflicts
 npm run init -- --stack compose --language nodejs --database postgres --observability jaeger,grafana --port-offset 100
