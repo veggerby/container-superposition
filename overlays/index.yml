@@ -273,9 +273,21 @@ observability_overlays:
     supports: [compose] # Requires docker-compose
     requires: []
     suggests: []
-    conflicts: []
+    conflicts: [tempo]
     tags: [observability, tracing, jaeger]
     ports: [16686, 14250, 14268]
+    
+  - id: tempo
+    name: Tempo
+    description: Lightweight distributed tracing backend (alternative to Jaeger)
+    category: observability
+    order: 1
+    supports: [compose] # Requires docker-compose
+    requires: []
+    suggests: [otel-collector, grafana]
+    conflicts: [jaeger]
+    tags: [observability, tracing, tempo, grafana]
+    ports: [3200, 4317]
     
   - id: prometheus
     name: Prometheus
@@ -284,19 +296,31 @@ observability_overlays:
     order: 1
     supports: [compose] # Requires docker-compose
     requires: []
-    suggests: []
+    suggests: [alertmanager]
     conflicts: []
     tags: [observability, metrics, prometheus]
     ports: [9090]
     
+  - id: alertmanager
+    name: Alertmanager
+    description: Alert routing and notification management for Prometheus
+    category: observability
+    order: 2
+    supports: [compose] # Requires docker-compose
+    requires: [prometheus]
+    suggests: []
+    conflicts: []
+    tags: [observability, alerts, prometheus]
+    ports: [9093]
+    
   - id: grafana
     name: Grafana
-    description: Observability visualization dashboard
+    description: Observability visualization dashboard with auto-provisioning
     category: observability
     order: 3
     supports: [compose] # Requires docker-compose
     requires: [prometheus]
-    suggests: [loki, jaeger]
+    suggests: [loki, jaeger, tempo, promtail]
     conflicts: []
     tags: [observability, ui, visualization]
     ports: [3000]
@@ -308,10 +332,46 @@ observability_overlays:
     order: 1
     supports: [compose] # Requires docker-compose
     requires: []
-    suggests: []
+    suggests: [promtail]
     conflicts: []
     tags: [observability, logs, loki]
     ports: [3100]
+    
+  - id: promtail
+    name: Promtail
+    description: Log shipping agent for Loki with Docker auto-discovery
+    category: observability
+    order: 2
+    supports: [compose] # Requires docker-compose
+    requires: [loki]
+    suggests: []
+    conflicts: []
+    tags: [observability, logs, promtail, loki]
+    ports: []
+    
+  - id: otel-demo-nodejs
+    name: OTel Demo (Node.js)
+    description: Sample Node.js app with OpenTelemetry instrumentation
+    category: observability
+    order: 4
+    supports: [compose] # Requires docker-compose
+    requires: [otel-collector]
+    suggests: [jaeger, tempo, prometheus, loki, grafana]
+    conflicts: []
+    tags: [observability, demo, nodejs, opentelemetry]
+    ports: [8080]
+    
+  - id: otel-demo-python
+    name: OTel Demo (Python)
+    description: Sample Python Flask app with OpenTelemetry instrumentation
+    category: observability
+    order: 4
+    supports: [compose] # Requires docker-compose
+    requires: [otel-collector]
+    suggests: [jaeger, tempo, prometheus, loki, grafana]
+    conflicts: []
+    tags: [observability, demo, python, opentelemetry]
+    ports: [8081]
 
 cloud_tool_overlays:
   - id: aws-cli

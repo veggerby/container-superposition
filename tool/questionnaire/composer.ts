@@ -650,7 +650,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // 5. Order overlays for proper dependency resolution
   // Observability overlays (in dependency order)
   const orderedOverlays: string[] = [];
-  const observabilityOrder = ['jaeger', 'prometheus', 'loki', 'otel-collector', 'grafana'];
+  const observabilityOrder = ['jaeger', 'tempo', 'prometheus', 'alertmanager', 'loki', 'promtail', 'otel-collector', 'grafana', 'otel-demo-nodejs', 'otel-demo-python'];
   
   // Add observability overlays in order
   for (const obs of observabilityOrder) {

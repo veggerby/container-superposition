@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  otel-demo-python:
+    build:
+      context: .
+      dockerfile: ./otel-demo-python-Dockerfile
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=otel-demo-python
+      - OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0,deployment.environment=dev
+    ports:
+      - "${OTEL_DEMO_PYTHON_PORT:-8081}:8081"
+    depends_on:
+      - otel-collector
+    networks:
+      - devnet
+
+networks:
+  devnet:
