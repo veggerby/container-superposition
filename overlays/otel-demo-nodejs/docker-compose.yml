@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  otel-demo-nodejs:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-otel-demo-nodejs
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=otel-demo-nodejs
+      - OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0,deployment.environment=dev
+    ports:
+      - "${OTEL_DEMO_NODEJS_PORT:-8080}:8080"
+    depends_on:
+      - otel-collector
+    networks:
+      - devnet
+
+networks:
+  devnet:

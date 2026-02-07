@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "runServices": ["otel-demo-nodejs"],
+  "_serviceOrder": 3,
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "OTel Demo (Node.js)",
+      "onAutoForward": "openBrowser"
+    }
+  }
+}

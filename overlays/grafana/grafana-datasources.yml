@@ -7,15 +7,51 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: true
+    uid: prometheus
+    jsonData:
+      timeInterval: '15s'
 
   - name: Loki
     type: loki
     access: proxy
     url: http://loki:3100
     editable: true
+    uid: loki
+    jsonData:
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: "\"trace\\.id\"\\s*:\\s*\"([0-9a-fA-F]+)\""
+          name: TraceID
+          url: "$${__value.raw}"
+        - datasourceUid: jaeger
+          matcherRegex: "\"trace\\.id\"\\s*:\\s*\"([0-9a-fA-F]+)\""
+          name: TraceID (Jaeger)
+          url: "$${__value.raw}"
 
   - name: Jaeger
     type: jaeger
     access: proxy
     url: http://jaeger:16686
     editable: true
+    uid: jaeger
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    uid: tempo
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['service']
+        mappedTags: [{ key: 'service.name', value: 'service' }]
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
+        tags: [{ key: 'service.name', value: 'service' }]
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true

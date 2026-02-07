@@ -40,3 +40,4 @@ examples/.devcontainer/
 !features/**/*
 !tool/**/*
 !scripts/**/*
+!overlays/**/*

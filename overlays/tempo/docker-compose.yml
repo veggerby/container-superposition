@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  tempo:
+    image: grafana/tempo:${TEMPO_VERSION:-latest}
+    command: ["-config.file=/etc/tempo/tempo-config.yaml"]
+    volumes:
+      - ./tempo-config-tempo.yaml:/etc/tempo/tempo-config.yaml
+      - tempo_data:/var/tempo
+    ports:
+      - "${TEMPO_HTTP_PORT:-3200}:3200"   # HTTP API and UI
+      # Note: OTLP port 4317 not exposed to avoid conflict with otel-collector
+      # Apps should send traces to otel-collector, which forwards to Tempo
+    networks:
+      - devnet
+
+volumes:
+  tempo_data:
+
+networks:
+  devnet:

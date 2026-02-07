@@ -21,6 +21,12 @@ exporters:
     tls:
       insecure: true
 
+  # Export traces to Tempo
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
   # Export metrics to Prometheus
   prometheus:
     endpoint: "0.0.0.0:8889"
@@ -43,6 +49,10 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
+      # Note: Configure exporters based on selected tracing backend
+      # - For Jaeger: [otlp/jaeger, debug]
+      # - For Tempo: [otlp/tempo, debug]
+      # - For both: [otlp/jaeger, otlp/tempo, debug] (not recommended)
       exporters: [otlp/jaeger, debug]
     metrics:
       receivers: [otlp]

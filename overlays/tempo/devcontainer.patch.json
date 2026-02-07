@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "runServices": ["tempo"],
+  "_serviceOrder": 1,
+  "forwardPorts": [3200],
+  "portsAttributes": {
+    "3200": {
+      "label": "Tempo HTTP",
+      "onAutoForward": "openBrowser"
+    }
+  }
+}
