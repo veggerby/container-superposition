@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "features": {
+    "./features/cross-distro-packages": {
+      "apt": "curl",
+      "apk": "curl"
+    }
+  },
+  "runServices": ["redpanda", "redpanda-console"],
+  "forwardPorts": [9092, 8080, 8081, 8082, 9644],
+  "portsAttributes": {
+    "9092": {
+      "label": "Redpanda Kafka API",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Redpanda Console",
+      "onAutoForward": "openBrowser"
+    },
+    "8081": {
+      "label": "Schema Registry",
+      "onAutoForward": "notify"
+    },
+    "8082": {
+      "label": "HTTP Proxy",
+      "onAutoForward": "notify"
+    },
+    "9644": {
+      "label": "Admin API",
+      "onAutoForward": "notify"
+    }
+  },
+  "remoteEnv": {
+    "REDPANDA_BROKERS": "redpanda:9092",
+    "KAFKA_BROKERS": "redpanda:9092"
+  }
+}

@@ -20,10 +20,21 @@ Each overlay directory contains:
 - **python** - Python 3.12 with Pylance, Black formatter, and Ruff linter
 - **mkdocs** - Python with MkDocs and Material theme for documentation
 
-### Databases
+### Databases & Storage
 
 - **postgres** - PostgreSQL 16 with client tools and environment variables
 - **redis** - Redis 7 with redis-tools and persistence
+- **mongodb** - MongoDB 8 with Mongo Express web UI
+- **mysql** - MySQL 8 with phpMyAdmin web UI
+- **sqlserver** - SQL Server 2022 for Linux
+- **sqlite** - SQLite with litecli and VS Code extensions
+- **minio** - S3-compatible object storage with web console
+
+### Messaging & Streaming
+
+- **rabbitmq** - RabbitMQ message broker with AMQP protocol and management UI
+- **redpanda** - Kafka-compatible event streaming with web console (lighter than Kafka)
+- **nats** - NATS messaging with JetStream for pub/sub and streaming
 
 ### Observability
 

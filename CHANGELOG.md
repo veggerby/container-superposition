@@ -4,6 +4,34 @@
 
 ### 🚀 New Features
 
+**Messaging & Eventing Overlays:**
+- Added **RabbitMQ** overlay - AMQP message broker with management UI
+  - RabbitMQ 3 with management plugin
+  - Ports: 5672 (AMQP), 15672 (Management UI)
+  - Default vhost and credentials (guest/guest)
+  - Alpine-based image for smaller size
+  - Health checks and data persistence
+- Added **Redpanda** overlay - Kafka-compatible event streaming
+  - Lighter alternative to Apache Kafka (no Zookeeper required)
+  - Redpanda Console for management
+  - Ports: 9092 (Kafka API), 8080 (Console UI)
+  - Schema Registry and Admin API included
+  - Optimized for local development
+- Added **NATS** overlay - Lightweight pub/sub messaging
+  - JetStream enabled for persistence
+  - HTTP monitoring endpoint
+  - Ports: 4222 (client), 8222 (monitoring)
+  - Lowest resource footprint
+  - Alpine-based image
+- Created **MESSAGING-COMPARISON.md** guide to help users choose between messaging systems
+- All three messaging overlays include:
+  - Comprehensive READMEs with code examples (Node.js, Python, Go, .NET)
+  - Docker Compose service definitions
+  - Management/admin UIs
+  - Verification scripts
+  - Port-offset compatibility
+  - Integration with existing overlays
+
 **Cross-Distribution Package Manager Feature:**
 - Created `features/cross-distro-packages` - custom devcontainer feature for distro-agnostic package installation
 - Automatic package manager detection (apt vs apk)
