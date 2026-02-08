@@ -312,6 +312,75 @@ function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContain
 }
 
 /**
+ * Registry to track all files that should exist in the output directory
+ */
+class FileRegistry {
+  private files = new Set<string>();
+  private directories = new Set<string>();
+
+  addFile(relativePath: string): void {
+    this.files.add(relativePath);
+  }
+
+  addDirectory(relativePath: string): void {
+    this.directories.add(relativePath);
+  }
+
+  getFiles(): Set<string> {
+    return this.files;
+  }
+
+  getDirectories(): Set<string> {
+    return this.directories;
+  }
+}
+
+/**
+ * Clean up stale files from previous runs
+ * Removes anything not in the registry (except preserved files like superposition.json)
+ */
+function cleanupStaleFiles(outputPath: string, registry: FileRegistry): void {
+  if (!fs.existsSync(outputPath)) {
+    return;
+  }
+
+  const preservedFiles = new Set(['superposition.json', '.env']); // User-managed files
+  const expectedFiles = registry.getFiles();
+  const expectedDirs = registry.getDirectories();
+
+  const entries = fs.readdirSync(outputPath);
+  let removedCount = 0;
+
+  for (const entry of entries) {
+    // Skip preserved files
+    if (preservedFiles.has(entry)) {
+      continue;
+    }
+
+    const entryPath = path.join(outputPath, entry);
+    const stat = fs.statSync(entryPath);
+
+    if (stat.isDirectory()) {
+      // Remove directory if not in registry
+      if (!expectedDirs.has(entry)) {
+        fs.rmSync(entryPath, { recursive: true, force: true });
+        removedCount++;
+      }
+    } else {
+      // Remove file if not in registry
+      if (!expectedFiles.has(entry)) {
+        fs.unlinkSync(entryPath);
+        removedCount++;
+      }
+    }
+  }
+
+  if (removedCount > 0) {
+    console.log(chalk.dim(`   🧹 Removed ${removedCount} stale file(s) from previous runs`));
+  }
+}
+
+/**
  * Copy a directory recursively
  */
 function copyDir(src: string, dest: string): void {
@@ -337,7 +406,7 @@ function copyDir(src: string, dest: string): void {
  * Copy additional files from overlay to output directory
  * Excludes devcontainer.patch.json and .env.example (handled separately)
  */
-function copyOverlayFiles(outputPath: string, overlayName: string): void {
+function copyOverlayFiles(outputPath: string, overlayName: string, registry: FileRegistry): void {
   const overlayPath = path.join(OVERLAYS_DIR, overlayName);
 
   if (!fs.existsSync(overlayPath)) {
@@ -348,8 +417,8 @@ function copyOverlayFiles(outputPath: string, overlayName: string): void {
   let copiedFiles = 0;
 
   for (const entry of entries) {
-    // Skip devcontainer.patch.json, .env.example, docker-compose.yml, and setup.sh (handled separately)
-    if (entry === 'devcontainer.patch.json' || entry === '.env.example' || entry === 'docker-compose.yml' || entry === 'setup.sh' || entry === 'README.md') {
+    // Skip devcontainer.patch.json, .env.example, docker-compose.yml, setup.sh, verify.sh, and metadata files (handled separately)
+    if (entry === 'devcontainer.patch.json' || entry === '.env.example' || entry === 'docker-compose.yml' || entry === 'setup.sh' || entry === 'verify.sh' || entry === 'README.md' || entry === 'overlay.yml') {
       continue;
     }
 
@@ -364,11 +433,14 @@ function copyOverlayFiles(outputPath: string, overlayName: string): void {
       const destFilename = `${basename}-${overlayName}${ext}`;
       const destPath = path.join(outputPath, destFilename);
       fs.copyFileSync(srcPath, destPath);
+      registry.addFile(destFilename);
       copiedFiles++;
     } else if (stat.isDirectory()) {
       // Copy directories recursively with overlay prefix
-      const destPath = path.join(outputPath, `${entry}-${overlayName}`);
+      const destDirName = `${entry}-${overlayName}`;
+      const destPath = path.join(outputPath, destDirName);
       copyDir(srcPath, destPath);
+      registry.addDirectory(destDirName);
       copiedFiles++;
     }
   }
@@ -722,16 +794,18 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
 
   const overlays = orderedOverlays;
 
+  // 5. Create output directory and file registry for cleanup
+  const outputPath = path.resolve(answers.outputPath);
+  const fileRegistry = new FileRegistry();
+
+  if (!fs.existsSync(outputPath)) {
+    fs.mkdirSync(outputPath, { recursive: true });
+  }
+
   // 6. Apply overlays
   for (const overlay of overlays) {
     console.log(chalk.dim(`   🔧 Applying overlay: ${chalk.cyan(overlay)}`));
     config = applyOverlay(config, overlay);
-  }
-
-  // 5. Create output directory
-  const outputPath = path.resolve(answers.outputPath);
-  if (!fs.existsSync(outputPath)) {
-    fs.mkdirSync(outputPath, { recursive: true });
   }
 
   // 7. Copy template files (docker-compose, scripts, etc.)
@@ -745,14 +819,16 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     const stat = fs.statSync(srcPath);
     if (stat.isDirectory()) {
       copyDir(srcPath, destPath);
+      fileRegistry.addDirectory(entry);
     } else {
       fs.copyFileSync(srcPath, destPath);
+      fileRegistry.addFile(entry);
     }
   }
 
   // 8. Copy overlay files (docker-compose, configs, etc.)
   for (const overlay of overlays) {
-    copyOverlayFiles(outputPath, overlay);
+    copyOverlayFiles(outputPath, overlay, fileRegistry);
   }
 
   // 8.5. Copy cross-distro-packages feature if used
@@ -762,6 +838,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
 
     if (fs.existsSync(sourceFeatureDir)) {
       copyDir(sourceFeatureDir, featuresDir);
+      fileRegistry.addDirectory('features');
       console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));
     }
   }
@@ -788,6 +865,9 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
 
   // Merge setup scripts from overlays into postCreateCommand
   mergeSetupScripts(config, overlays, outputPath);
+  if (overlays.length > 0) {
+    fileRegistry.addDirectory('scripts'); // Scripts directory created by mergeSetupScripts
+  }
 
   // Remove internal fields (those starting with _)
   Object.keys(config).forEach(key => {
@@ -799,18 +879,24 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // 12. Write merged devcontainer.json
   const configPath = path.join(outputPath, 'devcontainer.json');
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+  fileRegistry.addFile('devcontainer.json');
   console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
 
   // 13. Generate superposition.json manifest
   generateManifest(outputPath, answers, overlays, autoResolved, answers.containerName || config.name);
+  fileRegistry.addFile('superposition.json');
 
   // 14. Merge .env.example files from overlays and apply glue config environment variables
   mergeEnvExamples(outputPath, overlays, answers.portOffset, answers.presetGlueConfig, answers.preset);
+  fileRegistry.addFile('.env.example');
 
   // 15. Apply preset glue configuration (README and port mappings) if present
   if (answers.presetGlueConfig) {
     applyGlueConfig(outputPath, answers.presetGlueConfig, answers.preset);
   }
+
+  // 16. Clean up stale files from previous runs (preserves superposition.json and .env)
+  cleanupStaleFiles(outputPath, fileRegistry);
 }
 
 /**
