@@ -53,6 +53,44 @@ function deepMerge(target: any, source: any): any {
 }
 
 /**
+ * Split PATH string on colons, but preserve ${...} variable references
+ * e.g., "${containerEnv:HOME}/bin:${containerEnv:PATH}" -> ["${containerEnv:HOME}/bin", "${containerEnv:PATH}"]
+ */
+function splitPath(pathString: string): string[] {
+  const paths: string[] = [];
+  let current = '';
+  let braceDepth = 0;
+
+  for (let i = 0; i < pathString.length; i++) {
+    const char = pathString[i];
+    const nextChar = pathString[i + 1];
+
+    if (char === '$' && nextChar === '{') {
+      current += char;
+      braceDepth++;
+    } else if (char === '}' && braceDepth > 0) {
+      current += char;
+      braceDepth--;
+    } else if (char === ':' && braceDepth === 0) {
+      // Split here - we're not inside ${...}
+      if (current) {
+        paths.push(current);
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  // Add the last component
+  if (current) {
+    paths.push(current);
+  }
+
+  return paths;
+}
+
+/**
  * Merge remoteEnv objects, with special handling for PATH variables
  */
 function mergeRemoteEnv(target: Record<string, string>, source: Record<string, string>): Record<string, string> {
@@ -60,9 +98,9 @@ function mergeRemoteEnv(target: Record<string, string>, source: Record<string, s
 
   for (const key in source) {
     if (key === 'PATH' && target[key]) {
-      // Collect PATH components from both target and source
-      const targetPaths = target[key].split(':').filter(p => p && p !== '${containerEnv:PATH}');
-      const sourcePaths = source[key].split(':').filter(p => p && p !== '${containerEnv:PATH}');
+      // Collect PATH components from both target and source using smart split
+      const targetPaths = splitPath(target[key]).filter(p => p && p !== '${containerEnv:PATH}');
+      const sourcePaths = splitPath(source[key]).filter(p => p && p !== '${containerEnv:PATH}');
 
       // Combine and deduplicate paths, preserving order
       const allPaths = [...new Set([...targetPaths, ...sourcePaths])];
@@ -944,7 +982,7 @@ function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath:
       // Make it executable
       fs.chmodSync(destPath, 0o755);
 
-      setupScripts.push(`sh .devcontainer/scripts/setup-${overlay}.sh`);
+      setupScripts.push(`bash .devcontainer/scripts/setup-${overlay}.sh`);
     }
   }
 

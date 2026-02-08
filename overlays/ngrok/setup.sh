@@ -28,9 +28,9 @@ else
 fi
 
 # Create sample ngrok configuration
-mkdir -p /home/vscode/.config/ngrok
-if [ ! -f /home/vscode/.config/ngrok/ngrok.yml ]; then
-    cat > /home/vscode/.config/ngrok/ngrok.yml << 'EOF'
+mkdir -p "$HOME/.config/ngrok"
+if [ ! -f "$HOME/.config/ngrok/ngrok.yml" ]; then
+    cat > "$HOME/.config/ngrok/ngrok.yml" << 'EOF'
 # ngrok configuration file
 # Visit https://dashboard.ngrok.com/get-started/your-authtoken to get your authtoken
 # Then run: ngrok config add-authtoken YOUR_TOKEN
@@ -95,9 +95,9 @@ EOF
 fi
 
 # Create sample helper scripts
-mkdir -p /home/vscode/.local/bin 2>/dev/null || true
+mkdir -p "$HOME/.local/bin" 2>/dev/null || true
 
-cat > /home/vscode/.local/bin/ngrok-web << 'EOF'
+cat > "$HOME/.local/bin/ngrok-web" << 'EOF'
 #!/bin/bash
 # Quick script to expose local web server
 
@@ -106,7 +106,7 @@ echo "🌐 Exposing localhost:${PORT} via ngrok..."
 ngrok http ${PORT}
 EOF
 
-chmod +x /home/vscode/.local/bin/ngrok-web 2>/dev/null || true
+chmod +x "$HOME/.local/bin/ngrok-web" 2>/dev/null || true
 
 echo "✓ ngrok setup complete"
 echo ""

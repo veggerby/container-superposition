@@ -5,7 +5,7 @@ Adds pnpm package manager with a persistent `.codex` folder for configurations a
 ## Features
 
 - **pnpm** - Fast, disk space efficient package manager (3x faster than npm)
-- **Codex directory** - Creates `/home/vscode/.codex` for persistent configurations
+- **Codex directory** - Creates `$HOME/.codex` for persistent configurations
 - **Workspace support** - Monorepo support with pnpm workspaces
 - **Global package cache** - Shared dependencies across projects
 - **Strict mode** - Better dependency resolution
@@ -66,7 +66,7 @@ This overlay:
 
    ```bash
    echo $PATH | grep pnpm
-   # Should show: /home/vscode/.local/share/pnpm
+   # Should show: $HOME/.local/share/pnpm
    ```
 
 3. Check pnpm installation:
@@ -89,7 +89,7 @@ Global packages are installed to `$PNPM_HOME`. Ensure it's in your PATH:
 ```bash
 # Check PNPM_HOME
 echo $PNPM_HOME
-# Should show: /home/vscode/.local/share/pnpm
+# Should show: $HOME/.local/share/pnpm
 
 # Add to PATH if missing
 export PATH="$PNPM_HOME:$PATH"

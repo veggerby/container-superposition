@@ -7,6 +7,6 @@
   },
   "postCreateCommand": "npx -y playwright install --with-deps chromium",
   "remoteEnv": {
-    "PLAYWRIGHT_BROWSERS_PATH": "/home/vscode/.cache/ms-playwright"
+    "PLAYWRIGHT_BROWSERS_PATH": "${containerEnv:HOME}/.cache/ms-playwright"
   }
 }

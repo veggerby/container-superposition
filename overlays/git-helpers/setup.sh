@@ -32,22 +32,22 @@ else
 fi
 
 # Set up SSH permissions if .ssh directory exists
-if [ -d /home/vscode/.ssh ]; then
-    chmod 700 /home/vscode/.ssh
-    chmod 600 /home/vscode/.ssh/* 2>/dev/null || true
+if [ -d "$HOME/.ssh" ]; then
+    chmod 700 "$HOME/.ssh"
+    chmod 600 "$HOME/.ssh"/* 2>/dev/null || true
     echo "✓ SSH directory permissions configured"
 fi
 
 # Set up GPG permissions if .gnupg directory exists
-if [ -d /home/vscode/.gnupg ]; then
-    chmod 700 /home/vscode/.gnupg
-    chmod 600 /home/vscode/.gnupg/* 2>/dev/null || true
+if [ -d "$HOME/.gnupg" ]; then
+    chmod 700 "$HOME/.gnupg"
+    chmod 600 "$HOME/.gnupg"/* 2>/dev/null || true
     echo "✓ GPG directory permissions configured"
 fi
 
 # Create sample .gitconfig-include if it doesn't exist
-if [ ! -f /home/vscode/.gitconfig-devcontainer ]; then
-    cat > /home/vscode/.gitconfig-devcontainer << 'EOF'
+if [ ! -f "$HOME/.gitconfig-devcontainer" ]; then
+    cat > "$HOME/.gitconfig-devcontainer" << 'EOF'
 # Git configuration for devcontainer
 # Include this in your .gitconfig with:
 # [include]
