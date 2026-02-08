@@ -238,7 +238,12 @@ Every devcontainer generation creates a `superposition.json` manifest file that 
 ```bash
 # Loads manifest, creates backup, shows questionnaire with pre-selected options
 npm run init -- --from-manifest ./superposition.json
+
+# Or from a different location (regenerates in the manifest's directory)
+npm run init -- --from-manifest /path/to/project/superposition.json
 ```
+
+> **Note:** When using `--from-manifest`, the devcontainer is generated relative to the manifest file's location, not your current working directory. This means you can run the command from anywhere and the output will go to the correct project directory.
 
 **Non-interactive regeneration (exact same setup):**
 

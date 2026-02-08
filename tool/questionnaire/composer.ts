@@ -17,8 +17,8 @@ const REPO_ROOT_CANDIDATES = [
   path.join(__dirname, '..', '..'),          // From source: tool/questionnaire -> root
   path.join(__dirname, '..', '..', '..'),    // From dist: dist/tool/questionnaire -> root
 ];
-const REPO_ROOT = REPO_ROOT_CANDIDATES.find(candidate => 
-  fs.existsSync(path.join(candidate, 'templates')) && 
+const REPO_ROOT = REPO_ROOT_CANDIDATES.find(candidate =>
+  fs.existsSync(path.join(candidate, 'templates')) &&
   fs.existsSync(path.join(candidate, 'overlays'))
 ) ?? REPO_ROOT_CANDIDATES[0];
 
@@ -30,7 +30,7 @@ const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
  */
 function deepMerge(target: any, source: any): any {
   const output = { ...target };
-  
+
   for (const key in source) {
     if (source[key] instanceof Object && key in target) {
       if (Array.isArray(source[key])) {
@@ -48,7 +48,7 @@ function deepMerge(target: any, source: any): any {
       output[key] = source[key];
     }
   }
-  
+
   return output;
 }
 
@@ -57,16 +57,16 @@ function deepMerge(target: any, source: any): any {
  */
 function mergeRemoteEnv(target: Record<string, string>, source: Record<string, string>): Record<string, string> {
   const output = { ...target };
-  
+
   for (const key in source) {
     if (key === 'PATH' && target[key]) {
       // Collect PATH components from both target and source
       const targetPaths = target[key].split(':').filter(p => p && p !== '${containerEnv:PATH}');
       const sourcePaths = source[key].split(':').filter(p => p && p !== '${containerEnv:PATH}');
-      
+
       // Combine and deduplicate paths, preserving order
       const allPaths = [...new Set([...targetPaths, ...sourcePaths])];
-      
+
       // Rebuild PATH with original ${containerEnv:PATH} at the end
       output[key] = [...allPaths, '${containerEnv:PATH}'].join(':');
     } else {
@@ -74,7 +74,7 @@ function mergeRemoteEnv(target: Record<string, string>, source: Record<string, s
       output[key] = source[key];
     }
   }
-  
+
   return output;
 }
 
@@ -83,11 +83,11 @@ function mergeRemoteEnv(target: Record<string, string>, source: Record<string, s
  */
 function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContainer {
   const featureKey = 'ghcr.io/devcontainers-extra/features/apt-get-packages:1';
-  
+
   if (!baseConfig.features) {
     baseConfig.features = {};
   }
-  
+
   if (!baseConfig.features[featureKey]) {
     baseConfig.features[featureKey] = { packages };
   } else {
@@ -98,7 +98,7 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
     const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
     baseConfig.features[featureKey].packages = merged;
   }
-  
+
   return baseConfig;
 }
 
@@ -106,20 +106,20 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
  * Merge packages from cross-distro-packages feature
  */
 function mergeCrossDistroPackages(
-  baseConfig: DevContainer, 
-  apt: string | undefined, 
+  baseConfig: DevContainer,
+  apt: string | undefined,
   apk: string | undefined
 ): DevContainer {
   const featureKey = './features/cross-distro-packages';
-  
+
   if (!baseConfig.features) {
     baseConfig.features = {};
   }
-  
+
   if (!baseConfig.features[featureKey]) {
     baseConfig.features[featureKey] = {};
   }
-  
+
   // Merge apt packages
   if (apt) {
     const existing = baseConfig.features[featureKey].apt || '';
@@ -128,7 +128,7 @@ function mergeCrossDistroPackages(
     const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
     baseConfig.features[featureKey].apt = merged;
   }
-  
+
   // Merge apk packages
   if (apk) {
     const existing = baseConfig.features[featureKey].apk || '';
@@ -137,7 +137,7 @@ function mergeCrossDistroPackages(
     const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
     baseConfig.features[featureKey].apk = merged;
   }
-  
+
   return baseConfig;
 }
 
@@ -172,25 +172,25 @@ function resolveDependencies(
 ): { overlays: string[]; autoResolved: { added: string[]; reason: string } } {
   const overlayMap = new Map<string, OverlayMetadata>();
   allOverlayDefs.forEach(def => overlayMap.set(def.id, def));
-  
+
   const resolved = new Set<string>(requestedOverlays);
   const autoAdded: string[] = [];
   const resolutionReasons: string[] = [];
-  
+
   // Resolve dependencies recursively
   const toProcess = [...requestedOverlays];
   const processed = new Set<string>();
-  
+
   while (toProcess.length > 0) {
     const current = toProcess.shift()!;
     if (processed.has(current)) continue;
     processed.add(current);
-    
+
     const overlayDef = overlayMap.get(current);
     if (!overlayDef || !overlayDef.requires || overlayDef.requires.length === 0) {
       continue;
     }
-    
+
     // Add required dependencies
     for (const required of overlayDef.requires) {
       if (!resolved.has(required)) {
@@ -201,30 +201,30 @@ function resolveDependencies(
       }
     }
   }
-  
+
   // Check for conflicts
   const conflicts: string[] = [];
   for (const overlayId of resolved) {
     const overlayDef = overlayMap.get(overlayId);
     if (!overlayDef || !overlayDef.conflicts) continue;
-    
+
     for (const conflict of overlayDef.conflicts) {
       if (resolved.has(conflict)) {
         conflicts.push(`${overlayId} conflicts with ${conflict}`);
       }
     }
   }
-  
+
   if (conflicts.length > 0) {
     console.log(chalk.yellow(`\n⚠️  Warning: Conflicts detected:`));
     conflicts.forEach(c => console.log(chalk.yellow(`   • ${c}`)));
     console.log(chalk.yellow(`\nPlease resolve these conflicts manually.\n`));
   }
-  
-  const reason = autoAdded.length > 0 
+
+  const reason = autoAdded.length > 0
     ? resolutionReasons.join(', ')
     : '';
-  
+
   return {
     overlays: Array.from(resolved),
     autoResolved: {
@@ -248,8 +248,8 @@ function generateManifest(
     version: '0.1.0',
     generated: new Date().toISOString(),
     baseTemplate: answers.stack,
-    baseImage: answers.baseImage === 'custom' && answers.customImage 
-      ? answers.customImage 
+    baseImage: answers.baseImage === 'custom' && answers.customImage
+      ? answers.customImage
       : answers.baseImage,
     overlays,
     portOffset: answers.portOffset,
@@ -258,19 +258,19 @@ function generateManifest(
     containerName,
     outputPath, // Use the resolved outputPath parameter, not answers.outputPath
   };
-  
+
   if (autoResolved.added.length > 0) {
     manifest.autoResolved = autoResolved;
   }
-  
+
   const manifestPath = path.join(outputPath, 'superposition.json');
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   console.log(chalk.dim(`   📋 Generated superposition.json manifest`));
-  
+
   if (autoResolved.added.length > 0) {
     console.log(chalk.cyan(`   ℹ️  Auto-resolved dependencies: ${autoResolved.added.join(', ')}`));
   }
-  
+
   if (answers.preset) {
     console.log(chalk.cyan(`   ℹ️  Used preset: ${answers.preset}`));
   }
@@ -281,33 +281,33 @@ function generateManifest(
  */
 function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContainer {
   const overlayPath = path.join(OVERLAYS_DIR, overlayName, 'devcontainer.patch.json');
-  
+
   if (!fs.existsSync(overlayPath)) {
     console.warn(chalk.yellow(`⚠️  Overlay not found: ${overlayName}`));
     return baseConfig;
   }
-  
+
   const overlay = loadJson<DevContainer>(overlayPath);
-  
+
   // Special handling for apt-get packages (legacy)
   if (overlay.features?.['ghcr.io/devcontainers-extra/features/apt-get-packages:1']?.packages) {
     const packages = overlay.features['ghcr.io/devcontainers-extra/features/apt-get-packages:1'].packages;
     baseConfig = mergeAptPackages(baseConfig, packages);
-    
+
     // Remove it from overlay to avoid double-merge
     delete overlay.features['ghcr.io/devcontainers-extra/features/apt-get-packages:1'];
   }
-  
+
   // Special handling for cross-distro packages
   if (overlay.features?.['./features/cross-distro-packages']) {
     const aptPackages = overlay.features['./features/cross-distro-packages'].apt;
     const apkPackages = overlay.features['./features/cross-distro-packages'].apk;
     baseConfig = mergeCrossDistroPackages(baseConfig, aptPackages, apkPackages);
-    
+
     // Remove it from overlay to avoid double-merge
     delete overlay.features['./features/cross-distro-packages'];
   }
-  
+
   return deepMerge(baseConfig, overlay);
 }
 
@@ -318,13 +318,13 @@ function copyDir(src: string, dest: string): void {
   if (!fs.existsSync(dest)) {
     fs.mkdirSync(dest, { recursive: true });
   }
-  
+
   const entries = fs.readdirSync(src, { withFileTypes: true });
-  
+
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
-    
+
     if (entry.isDirectory()) {
       copyDir(srcPath, destPath);
     } else {
@@ -339,23 +339,23 @@ function copyDir(src: string, dest: string): void {
  */
 function copyOverlayFiles(outputPath: string, overlayName: string): void {
   const overlayPath = path.join(OVERLAYS_DIR, overlayName);
-  
+
   if (!fs.existsSync(overlayPath)) {
     return;
   }
-  
+
   const entries = fs.readdirSync(overlayPath);
   let copiedFiles = 0;
-  
+
   for (const entry of entries) {
     // Skip devcontainer.patch.json, .env.example, docker-compose.yml, and setup.sh (handled separately)
     if (entry === 'devcontainer.patch.json' || entry === '.env.example' || entry === 'docker-compose.yml' || entry === 'setup.sh' || entry === 'README.md') {
       continue;
     }
-    
+
     const srcPath = path.join(overlayPath, entry);
     const stat = fs.statSync(srcPath);
-    
+
     if (stat.isFile()) {
       // Copy config files with overlay prefix to avoid conflicts
       // e.g., global-tools.txt -> global-tools-dotnet.txt
@@ -372,7 +372,7 @@ function copyOverlayFiles(outputPath: string, overlayName: string): void {
       copiedFiles++;
     }
   }
-  
+
   if (copiedFiles > 0) {
     console.log(chalk.dim(`   📋 Copied ${copiedFiles} file(s) from ${chalk.cyan(overlayName)}`));
   }
@@ -386,10 +386,10 @@ function copyOverlayFiles(outputPath: string, overlayName: string): void {
  */
 function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: number, glueConfig?: PresetGlueConfig, presetName?: string): void {
   const envSections: string[] = [];
-  
+
   for (const overlay of overlays) {
     const envPath = path.join(OVERLAYS_DIR, overlay, '.env.example');
-    
+
     if (fs.existsSync(envPath)) {
       const content = fs.readFileSync(envPath, 'utf-8').trim();
       if (content) {
@@ -397,22 +397,22 @@ function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: n
       }
     }
   }
-  
+
   // Add preset glue environment variables if present
   if (glueConfig?.environment && Object.keys(glueConfig.environment).length > 0) {
     let presetEnvSection = `# Preset: ${presetName || 'custom'}\n# Pre-configured environment variables from preset\n\n`;
-    
+
     for (const [key, value] of Object.entries(glueConfig.environment)) {
       presetEnvSection += `${key}=${value}\n`;
     }
-    
+
     envSections.push(presetEnvSection.trim());
   }
-  
+
   if (envSections.length === 0) {
     return;
   }
-  
+
   // Create combined .env.example
   let header = `# Environment Variables
 #
@@ -430,13 +430,13 @@ function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: n
   }
 
   header += '\n';
-  
+
   const combined = header + envSections.join('\n\n');
   const envOutputPath = path.join(outputPath, '.env.example');
   fs.writeFileSync(envOutputPath, combined + '\n');
-  
+
   console.log(chalk.dim(`   🔐 Created .env.example with ${overlays.length} overlay(s)`));
-  
+
   // If port offset is specified, create a .env file with offset values
   if (portOffset) {
     const envContent = applyPortOffsetToEnv(combined, portOffset);
@@ -452,7 +452,7 @@ function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: n
 function applyPortOffsetToEnv(envContent: string, offset: number): string {
   const lines = envContent.split('\n');
   const portVarPattern = /^([A-Z_]*PORT[A-Z_]*)=(\d+)$/;
-  
+
   const modifiedLines = lines.map(line => {
     const match = line.match(portVarPattern);
     if (match) {
@@ -462,7 +462,7 @@ function applyPortOffsetToEnv(envContent: string, offset: number): string {
     }
     return line;
   });
-  
+
   return modifiedLines.join('\n');
 }
 
@@ -487,12 +487,12 @@ function applyGlueConfig(outputPath: string, glueConfig: PresetGlueConfig, prese
       console.log(chalk.dim(`      ${service}: ${port}`));
     }
   }
-  
+
   // 3. Log environment variables if present
   if (glueConfig.environment && Object.keys(glueConfig.environment).length > 0) {
     console.log(chalk.dim(`   ✓ Added ${Object.keys(glueConfig.environment).length} environment variables to .env.example`));
   }
-  
+
   console.log('');
 }
 
@@ -501,13 +501,13 @@ function applyGlueConfig(outputPath: string, glueConfig: PresetGlueConfig, prese
  */
 function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays: string[], portOffset?: number, customImage?: string): void {
   const composeFiles: string[] = [];
-  
+
   // Add base docker-compose if exists
   const baseComposePath = path.join(TEMPLATES_DIR, baseStack, '.devcontainer', 'docker-compose.yml');
   if (fs.existsSync(baseComposePath)) {
     composeFiles.push(baseComposePath);
   }
-  
+
   // Add overlay docker-compose files
   for (const overlay of overlays) {
     const overlayComposePath = path.join(OVERLAYS_DIR, overlay, 'docker-compose.yml');
@@ -515,22 +515,22 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
       composeFiles.push(overlayComposePath);
     }
   }
-  
+
   if (composeFiles.length === 0) {
     return; // No docker-compose files to merge
   }
-  
+
   // Merge all compose files
   let merged: any = {
     services: {},
     volumes: {},
     networks: {}
   };
-  
+
   for (const composePath of composeFiles) {
     const content = fs.readFileSync(composePath, 'utf-8');
     const compose = yaml.load(content) as any;
-    
+
     if (compose.services) {
       // Deep merge services to preserve arrays like volumes, ports, etc.
       for (const serviceName in compose.services) {
@@ -548,7 +548,7 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
       merged.networks = { ...merged.networks, ...compose.networks };
     }
   }
-  
+
   // Ensure devcontainer service has an image
   if (merged.services.devcontainer) {
     if (customImage) {
@@ -559,7 +559,7 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
       console.warn(chalk.yellow('⚠️  No image specified, this should not happen'));
     }
   }
-  
+
   // Filter depends_on to only include services that exist
   const serviceNames = Object.keys(merged.services);
   for (const serviceName of serviceNames) {
@@ -571,11 +571,11 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
       }
     }
   }
-  
+
   // Remove empty sections
   if (Object.keys(merged.volumes).length === 0) delete merged.volumes;
   if (Object.keys(merged.networks).length === 0) delete merged.networks;
-  
+
   // Write combined docker-compose.yml
   const outputComposePath = path.join(outputPath, 'docker-compose.yml');
   const yamlContent = yaml.dump(merged, {
@@ -583,7 +583,7 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
     lineWidth: -1, // No line wrapping
     noRefs: true
   });
-  
+
   fs.writeFileSync(outputComposePath, yamlContent);
   console.log(chalk.dim(`   🐳 Created combined docker-compose.yml with ${serviceNames.length} service(s)`));
 }
@@ -596,10 +596,10 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   const overlaysDir = path.join(REPO_ROOT, 'overlays');
   const indexYmlPath = path.join(REPO_ROOT, 'overlays', 'index.yml');
   const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
-  
+
   // Collect all overlay definitions
   const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
-  
+
   // Build list of requested overlays
   const requestedOverlays: string[] = [];
   if (answers.language && answers.language.length > 0) requestedOverlays.push(...answers.language);
@@ -608,7 +608,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   if (answers.playwright) requestedOverlays.push('playwright');
   if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
   if (answers.devTools) requestedOverlays.push(...answers.devTools);
-  
+
   // Check compatibility
   const incompatible: string[] = [];
   for (const overlayId of requestedOverlays) {
@@ -619,26 +619,26 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
       }
     }
   }
-  
+
   if (incompatible.length > 0) {
     console.log(chalk.yellow(`\n⚠️  Warning: Some overlays are not compatible with '${answers.stack}' template:`));
     incompatible.forEach(overlay => {
       console.log(chalk.yellow(`   • ${overlay}`));
     });
     console.log(chalk.yellow(`\nThese overlays will be skipped.\n`));
-    
+
     // Filter out incompatible overlays
     if (answers.database) {
-      answers.database = answers.database.filter(d => 
+      answers.database = answers.database.filter(d =>
         !incompatible.some(i => i.startsWith(d))
       ) as any;
     }
     if (answers.observability) {
-      answers.observability = answers.observability.filter(o => 
+      answers.observability = answers.observability.filter(o =>
         !incompatible.some(i => i.startsWith(o))
       ) as any;
     }
-    
+
     // Update requestedOverlays after filtering
     requestedOverlays.length = 0;
     if (answers.language && answers.language.length > 0) requestedOverlays.push(...answers.language);
@@ -648,22 +648,28 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
     if (answers.devTools) requestedOverlays.push(...answers.devTools);
   }
-  
+
   // 2. Resolve dependencies
   const { overlays: resolvedOverlays, autoResolved } = resolveDependencies(requestedOverlays, allOverlayDefs);
-  
+
   // 3. Determine base template path
   const templatePath = path.join(TEMPLATES_DIR, answers.stack, '.devcontainer');
-  
+
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template not found: ${answers.stack}`);
   }
-  
+
   // 4. Load base devcontainer.json
   const baseConfigPath = path.join(templatePath, 'devcontainer.json');
   let config = loadJson<DevContainer>(baseConfigPath);
-  
-  // 4a. Apply base image selection
+
+  // 4a. Set container name if provided
+  if (answers.containerName) {
+    config.name = answers.containerName;
+    console.log(chalk.dim(`   📝 Container name: ${chalk.cyan(answers.containerName)}`));
+  }
+
+  // 4b. Apply base image selection
   // Build image map from overlaysConfig instead of hardcoding
   const imageMap: Record<string, string> = {};
   for (const baseImage of overlaysConfig.base_images) {
@@ -671,10 +677,10 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
       imageMap[baseImage.id] = baseImage.image;
     }
   }
-  
+
   // Get default base image (first in list)
   const defaultBaseImage = overlaysConfig.base_images[0];
-  
+
   if (answers.baseImage === 'custom' && answers.customImage) {
     // Use custom image provided by user
     if (answers.stack === 'plain') {
@@ -694,48 +700,48 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     }
     console.log(chalk.dim(`   🖼️  Using base image: ${chalk.cyan(answers.baseImage)}`));
   }
-  
+
   // 5. Order overlays for proper dependency resolution
   // Observability overlays (in dependency order)
   const orderedOverlays: string[] = [];
   const observabilityOrder = ['jaeger', 'tempo', 'prometheus', 'alertmanager', 'loki', 'promtail', 'otel-collector', 'grafana', 'otel-demo-nodejs', 'otel-demo-python'];
-  
+
   // Add observability overlays in order
   for (const obs of observabilityOrder) {
     if (resolvedOverlays.includes(obs)) {
       orderedOverlays.push(obs);
     }
   }
-  
+
   // Add remaining overlays
   for (const overlay of resolvedOverlays) {
     if (!orderedOverlays.includes(overlay)) {
       orderedOverlays.push(overlay);
     }
   }
-  
+
   const overlays = orderedOverlays;
-  
+
   // 6. Apply overlays
   for (const overlay of overlays) {
     console.log(chalk.dim(`   🔧 Applying overlay: ${chalk.cyan(overlay)}`));
     config = applyOverlay(config, overlay);
   }
-  
+
   // 5. Create output directory
   const outputPath = path.resolve(answers.outputPath);
   if (!fs.existsSync(outputPath)) {
     fs.mkdirSync(outputPath, { recursive: true });
   }
-  
+
   // 7. Copy template files (docker-compose, scripts, etc.)
   const entries = fs.readdirSync(templatePath);
   for (const entry of entries) {
     if (entry === 'devcontainer.json') continue; // We'll write this separately
-    
+
     const srcPath = path.join(templatePath, entry);
     const destPath = path.join(outputPath, entry);
-    
+
     const stat = fs.statSync(srcPath);
     if (stat.isDirectory()) {
       copyDir(srcPath, destPath);
@@ -743,17 +749,17 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
       fs.copyFileSync(srcPath, destPath);
     }
   }
-  
+
   // 8. Copy overlay files (docker-compose, configs, etc.)
   for (const overlay of overlays) {
     copyOverlayFiles(outputPath, overlay);
   }
-  
+
   // 8.5. Copy cross-distro-packages feature if used
   if (config.features?.['./features/cross-distro-packages']) {
     const featuresDir = path.join(outputPath, 'features', 'cross-distro-packages');
     const sourceFeatureDir = path.join(REPO_ROOT, 'features', 'cross-distro-packages');
-    
+
     if (fs.existsSync(sourceFeatureDir)) {
       copyDir(sourceFeatureDir, featuresDir);
       console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));
@@ -761,10 +767,10 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   }
     // 8. Filter docker-compose dependencies based on selected overlays
   filterDockerComposeDependencies(outputPath, overlays);
-  
+
   // 9. Merge runServices array in correct order
   mergeRunServices(config, overlays);
-  
+
   // 11. Merge docker-compose files into single combined file
   if (answers.stack === 'compose') {
     const customImage = config._customImage as string | undefined;
@@ -774,33 +780,33 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
       config.dockerComposeFile = 'docker-compose.yml';
     }
   }
-  
+
   // Apply port offset to devcontainer.json if specified
   if (answers.portOffset) {
     applyPortOffsetToDevcontainer(config, answers.portOffset);
   }
-  
+
   // Merge setup scripts from overlays into postCreateCommand
   mergeSetupScripts(config, overlays, outputPath);
-  
+
   // Remove internal fields (those starting with _)
   Object.keys(config).forEach(key => {
     if (key.startsWith('_')) {
       delete (config as any)[key];
     }
   });
-  
+
   // 12. Write merged devcontainer.json
   const configPath = path.join(outputPath, 'devcontainer.json');
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
   console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
-  
+
   // 13. Generate superposition.json manifest
-  generateManifest(outputPath, answers, overlays, autoResolved, config.name);
-  
+  generateManifest(outputPath, answers, overlays, autoResolved, answers.containerName || config.name);
+
   // 14. Merge .env.example files from overlays and apply glue config environment variables
   mergeEnvExamples(outputPath, overlays, answers.portOffset, answers.presetGlueConfig, answers.preset);
-  
+
   // 15. Apply preset glue configuration (README and port mappings) if present
   if (answers.presetGlueConfig) {
     applyGlueConfig(outputPath, answers.presetGlueConfig, answers.preset);
@@ -820,7 +826,7 @@ function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): vo
       return port;
     }) as number[];
   }
-  
+
   // Offset portsAttributes keys
   if (config.portsAttributes) {
     const newPortsAttributes: any = {};
@@ -841,38 +847,38 @@ function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): vo
  */
 function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath: string): void {
   const setupScripts: string[] = [];
-  
+
   // Create scripts subfolder
   const scriptsDir = path.join(outputPath, 'scripts');
   if (!fs.existsSync(scriptsDir)) {
     fs.mkdirSync(scriptsDir, { recursive: true });
   }
-  
+
   for (const overlay of overlays) {
     const setupPath = path.join(OVERLAYS_DIR, overlay, 'setup.sh');
     if (fs.existsSync(setupPath)) {
       // Copy setup script to scripts subdirectory
       const destPath = path.join(scriptsDir, `setup-${overlay}.sh`);
       fs.copyFileSync(setupPath, destPath);
-      
+
       // Make it executable
       fs.chmodSync(destPath, 0o755);
-      
+
       setupScripts.push(`sh .devcontainer/scripts/setup-${overlay}.sh`);
     }
   }
-  
+
   if (setupScripts.length > 0) {
     // Initialize postCreateCommand if it doesn't exist
     if (!config.postCreateCommand) {
       config.postCreateCommand = {};
     }
-    
+
     // If postCreateCommand is a string, convert to object
     if (typeof config.postCreateCommand === 'string') {
       config.postCreateCommand = { 'default': config.postCreateCommand };
     }
-    
+
     // Add setup scripts
     for (let i = 0; i < setupScripts.length; i++) {
       const overlay = overlays.filter(o => {
@@ -881,7 +887,7 @@ function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath:
       })[i];
       config.postCreateCommand[`setup-${overlay}`] = setupScripts[i];
     }
-    
+
     console.log(chalk.dim(`   🔧 Added ${setupScripts.length} setup script(s)`));
   }
 }
@@ -892,29 +898,29 @@ function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath:
 function filterDockerComposeDependencies(outputPath: string, selectedOverlays: string[]): void {
   const selectedServices = new Set(selectedOverlays);
   const composeFiles = fs.readdirSync(outputPath).filter(f => f.startsWith('docker-compose.') && f.endsWith('.yml'));
-  
+
   for (const composeFile of composeFiles) {
     const composePath = path.join(outputPath, composeFile);
     let content = fs.readFileSync(composePath, 'utf-8');
-    
+
     // Parse YAML manually for simple depends_on filtering
     // This is a simplified approach - for production, use a proper YAML parser
     const lines = content.split('\n');
     const filtered: string[] = [];
     let inDependsOn = false;
     let dependsOnIndent = 0;
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const indent = line.search(/\S/);
-      
+
       if (line.trim().startsWith('depends_on:')) {
         inDependsOn = true;
         dependsOnIndent = indent;
         filtered.push(line);
         continue;
       }
-      
+
       if (inDependsOn) {
         if (indent <= dependsOnIndent && line.trim() !== '') {
           inDependsOn = false;
@@ -927,10 +933,10 @@ function filterDockerComposeDependencies(outputPath: string, selectedOverlays: s
           continue;
         }
       }
-      
+
       filtered.push(line);
     }
-    
+
     fs.writeFileSync(composePath, filtered.join('\n'));
   }
 }
@@ -940,7 +946,7 @@ function filterDockerComposeDependencies(outputPath: string, selectedOverlays: s
  */
 function mergeRunServices(config: DevContainer, overlays: string[]): void {
   const services: Array<{ name: string; order: number }> = [];
-  
+
   for (const overlay of overlays) {
     const overlayPath = path.join(OVERLAYS_DIR, overlay, 'devcontainer.patch.json');
     if (fs.existsSync(overlayPath)) {
@@ -953,11 +959,11 @@ function mergeRunServices(config: DevContainer, overlays: string[]): void {
       }
     }
   }
-  
+
   // Sort by order, then merge
   services.sort((a, b) => a.order - b.order);
   const uniqueServices = [...new Set(services.map(s => s.name))];
-  
+
   if (uniqueServices.length > 0) {
     config.runServices = uniqueServices;
   }

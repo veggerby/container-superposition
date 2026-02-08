@@ -58,6 +58,7 @@ export interface QuestionnaireAnswers {
   stack: Stack;
   baseImage: BaseImage;
   customImage?: string; // Only used when baseImage is 'custom'
+  containerName?: string; // Container/project name from devcontainer.json
   preset?: string; // ID of preset used, if any
   presetChoices?: Record<string, string>; // User choices made within preset
   presetGlueConfig?: PresetGlueConfig; // Glue configuration from preset
