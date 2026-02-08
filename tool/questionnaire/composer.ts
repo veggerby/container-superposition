@@ -263,7 +263,7 @@ function generateManifest(
     preset: answers.preset,
     presetChoices: answers.presetChoices,
     containerName,
-    outputPath: answers.outputPath,
+    outputPath, // Use the resolved outputPath parameter, not answers.outputPath
   };
   
   if (autoResolved.added.length > 0) {

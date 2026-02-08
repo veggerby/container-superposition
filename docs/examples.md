@@ -498,7 +498,7 @@ npm run init -- --from-manifest ./superposition.json
 # If manifest version differs
 npm run init -- --from-manifest ./old-manifest.json
 # ⚠️  Manifest version 0.0.5 may not be fully compatible with this tool
-# Attempts best-effort migration
+# Continues using manifest as-is
 ```
 
 ### Backup Management
@@ -510,7 +510,7 @@ npm run init -- --from-manifest ./superposition.json
 # Contains: devcontainer.json, docker-compose.yml, all scripts, features, etc.
 ```
 
-**Backup patterns automatically added to `.devcontainer/.gitignore`:**
+**Backup patterns automatically added to project root `.gitignore`:**
 ```gitignore
 # Container Superposition backups
 .devcontainer.backup-*/
@@ -520,10 +520,11 @@ superposition.json.backup-*
 
 **Restore from backup:**
 ```bash
-# If regeneration didn't work as expected
+# If regeneration didn't work as expected, restore from backup
 rm -rf .devcontainer
-mv .devcontainer.backup-2026-02-08-143022/.devcontainer .devcontainer
+mv .devcontainer.backup-2026-02-08-143022 .devcontainer
 # Or cherry-pick specific files from backup
+cp .devcontainer.backup-2026-02-08-143022/devcontainer.json .devcontainer/
 ```
 
 ### Advanced: Multiple Environments

@@ -271,10 +271,10 @@ npm run init -- --from-manifest ./superposition.json --yes --no-backup
 
 **Backup behavior:**
 
-- **Default**: Creates timestamped backup (`.devcontainer.backup-2026-02-08-143022/`)
+- **Default**: Creates timestamped backup next to the devcontainer directory (e.g., `.devcontainer.backup-2026-02-08-143022/`)
 - **`--no-backup`**: Skip backup (destructive, use with caution)
 - **`--backup-dir <path>`**: Custom backup location
-- **Automatic .gitignore**: Backup patterns added to `.devcontainer/.gitignore`
+- **Automatic .gitignore**: Backup patterns added to project root `.gitignore`
 
 **What's preserved from manifest:**
 

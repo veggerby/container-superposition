@@ -187,8 +187,18 @@ function loadManifest(manifestPath: string): SuperpositionManifest | null {
     const manifest = JSON.parse(content) as SuperpositionManifest;
     
     // Basic validation
-    if (!manifest.version || !manifest.baseTemplate || !manifest.overlays) {
-      console.error(chalk.red('✗ Invalid manifest format: missing required fields'));
+    if (!manifest.version || !manifest.baseTemplate) {
+      console.error(chalk.red('✗ Invalid manifest format: missing required fields (version, baseTemplate)'));
+      return null;
+    }
+    
+    if (!Array.isArray(manifest.overlays)) {
+      console.error(chalk.red('✗ Invalid manifest format: "overlays" must be an array'));
+      return null;
+    }
+    
+    if (!manifest.overlays.every((overlay) => typeof overlay === 'string')) {
+      console.error(chalk.red('✗ Invalid manifest format: all "overlays" entries must be strings'));
       return null;
     }
     
@@ -201,25 +211,6 @@ function loadManifest(manifestPath: string): SuperpositionManifest | null {
   } catch (error) {
     console.error(chalk.red(`✗ Failed to load manifest: ${error instanceof Error ? error.message : String(error)}`));
     return null;
-  }
-}
-
-/**
- * Load container name from existing devcontainer.json
- */
-function loadExistingContainerName(outputPath: string): string | undefined {
-  const devcontainerPath = path.join(outputPath, 'devcontainer.json');
-  if (!fs.existsSync(devcontainerPath)) {
-    return undefined;
-  }
-  
-  try {
-    const content = fs.readFileSync(devcontainerPath, 'utf-8');
-    const devcontainer = JSON.parse(content) as DevContainer;
-    return devcontainer.name;
-  } catch (error) {
-    console.warn(chalk.yellow('⚠️  Could not read existing devcontainer.json'));
-    return undefined;
   }
 }
 
@@ -249,10 +240,14 @@ async function createBackup(outputPath: string, backupDir?: string): Promise<str
     .replace(/\..+/, '')
     .replace('T', '-');
   
-  // Determine backup location
+  // Determine backup location - create next to outputPath, not inside it
+  const resolvedOutputPath = path.resolve(outputPath);
+  const outputParentDir = path.dirname(resolvedOutputPath);
+  const outputBaseName = path.basename(resolvedOutputPath);
+  const backupBaseName = outputBaseName === '.devcontainer' ? '.devcontainer' : outputBaseName;
   const backupPath = backupDir 
     ? path.resolve(backupDir)
-    : path.join(outputPath, `.devcontainer.backup-${timestamp}`);
+    : path.join(outputParentDir, `${backupBaseName}.backup-${timestamp}`);
   
   // Create backup directory
   fs.mkdirSync(backupPath, { recursive: true });
@@ -315,7 +310,11 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
  * Ensure backup patterns are in .gitignore
  */
 async function ensureBackupPatternsInGitignore(outputPath: string): Promise<void> {
-  const gitignorePath = path.join(outputPath, '.devcontainer', '.gitignore');
+  // Write to the parent directory's .gitignore (project root), not inside outputPath
+  const resolvedOutputPath = path.resolve(outputPath);
+  const projectRoot = path.dirname(resolvedOutputPath);
+  const gitignorePath = path.join(projectRoot, '.gitignore');
+  
   const backupPatterns = [
     '',
     '# Container Superposition backups',
@@ -326,16 +325,15 @@ async function ensureBackupPatternsInGitignore(outputPath: string): Promise<void
   
   if (!fs.existsSync(gitignorePath)) {
     // Create new .gitignore with backup patterns
-    fs.mkdirSync(path.dirname(gitignorePath), { recursive: true });
     await fs.promises.writeFile(gitignorePath, backupPatterns + '\n');
-    console.log(chalk.dim('   📝 Created .devcontainer/.gitignore with backup patterns'));
+    console.log(chalk.dim('   📝 Created .gitignore with backup patterns'));
   } else {
     // Check if patterns already exist
     const content = await fs.promises.readFile(gitignorePath, 'utf-8');
     if (!content.includes('Container Superposition backups')) {
       // Append patterns
       await fs.promises.appendFile(gitignorePath, '\n' + backupPatterns + '\n');
-      console.log(chalk.dim('   📝 Updated .devcontainer/.gitignore with backup patterns'));
+      console.log(chalk.dim('   📝 Updated .gitignore with backup patterns'));
     }
   }
 }
@@ -526,9 +524,6 @@ async function runQuestionnaire(manifest?: SuperpositionManifest): Promise<Quest
 
     // Question 3: Categorized multi-select overlays with dependency tracking
     let userSelection: readonly string[];
-    
-    // Determine pre-selected overlays from preset or manifest
-    const preselectedOverlays = manifest?.overlays || (usePreset ? presetOverlays : []);
     
     if (usePreset && presetOverlays.length > 0) {
       // Preset mode: Ask if user wants to customize
