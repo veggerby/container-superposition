@@ -1,4 +1,3 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "postCreateCommand": "bash .devcontainer/modern-cli-tools-setup.sh"
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json"
 }

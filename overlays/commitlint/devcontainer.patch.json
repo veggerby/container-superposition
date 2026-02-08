@@ -4,6 +4,5 @@
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
     }
-  },
-  "postCreateCommand": "bash .devcontainer/commitlint-setup.sh"
+  }
 }

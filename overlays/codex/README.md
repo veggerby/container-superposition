@@ -13,6 +13,7 @@ Adds pnpm package manager with a persistent `.codex` folder for configurations a
 ## What is pnpm?
 
 pnpm (performant npm) is a drop-in replacement for npm that:
+
 - **Saves disk space** - Uses a content-addressable store for all packages
 - **Faster installations** - Parallel downloads and smart caching
 - **Strict dependencies** - Prevents phantom dependencies
@@ -20,8 +21,82 @@ pnpm (performant npm) is a drop-in replacement for npm that:
 
 ## Environment Variables
 
-- `CODEX_HOME` - Points to `/home/vscode/.codex`
-- `PNPM_HOME` - pnpm global bin directory
+- `CODEX_HOME` - Points to `~/.codex` (persistent configurations)
+- `PNPM_HOME` - Points to `~/.local/share/pnpm` (global bin directory)
+- `PATH` - Includes `$PNPM_HOME` for global packages
+
+**Configured paths:**
+
+- `~/.local/share/pnpm` - pnpm global binaries directory
+- `~/.codex` - Personal configuration and tools directory
+
+## How It Works
+
+This overlay:
+
+1. Installs pnpm globally via npm
+2. Adds `$PNPM_HOME` to your shell PATH (`.bashrc` and `.zshrc`)
+3. Creates the `.codex` directory for persistent configurations
+4. Configures environment variables for VS Code and terminal sessions
+
+**After setup:**
+
+- Restart your terminal or run `source ~/.bashrc` (or `~/.zshrc`)
+- Global pnpm packages will be available system-wide
+- The pnpm command is available in all shells
+
+## Troubleshooting
+
+### pnpm command not found
+
+**Issue:** After installing codex overlay, `pnpm` command is not recognized.
+
+**Solution:**
+
+1. Restart your terminal/shell session:
+
+   ```bash
+   # Option 1: Open a new terminal
+   # Option 2: Reload shell config
+   source ~/.bashrc  # for bash
+   source ~/.zshrc   # for zsh
+   ```
+
+2. Verify PATH includes pnpm:
+
+   ```bash
+   echo $PATH | grep pnpm
+   # Should show: /home/vscode/.local/share/pnpm
+   ```
+
+3. Check pnpm installation:
+
+   ```bash
+   which pnpm
+   # Should show: /usr/local/bin/pnpm or similar
+   ```
+
+4. If still not working, rebuild the devcontainer:
+   - VS Code: `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
+
+### Global packages not found
+
+**Issue:** Globally installed packages not in PATH.
+
+**Solution:**
+Global packages are installed to `$PNPM_HOME`. Ensure it's in your PATH:
+
+```bash
+# Check PNPM_HOME
+echo $PNPM_HOME
+# Should show: /home/vscode/.local/share/pnpm
+
+# Add to PATH if missing
+export PATH="$PNPM_HOME:$PATH"
+
+# Make permanent by adding to shell config
+echo 'export PATH="$PNPM_HOME:$PATH"' >> ~/.bashrc
+```
 
 ## Common Commands
 
@@ -75,6 +150,7 @@ pnpx eslint .  # shorthand
 For monorepo projects:
 
 **pnpm-workspace.yaml:**
+
 ```yaml
 packages:
   - 'packages/*'
@@ -133,12 +209,14 @@ pnpm audit
 ### Key Differences
 
 **pnpm advantages:**
+
 - **Hard links** - Single copy of each package version
 - **Non-flat node_modules** - Prevents phantom dependencies
 - **Built-in workspace** - No extra tools needed
 - **Strict by default** - Better dependency management
 
 **Migration from npm:**
+
 ```bash
 # Remove node_modules and package-lock.json
 rm -rf node_modules package-lock.json
@@ -148,6 +226,7 @@ pnpm install
 ```
 
 **Migration from yarn:**
+
 ```bash
 # Remove node_modules and yarn.lock
 rm -rf node_modules yarn.lock
@@ -231,6 +310,7 @@ my-monorepo/
 ```
 
 **pnpm-workspace.yaml:**
+
 ```yaml
 packages:
   - 'packages/*'
@@ -279,6 +359,7 @@ Then add this mount to your `devcontainer.json`:
 ```
 
 This allows you to:
+
 - Share Codex configurations across multiple devcontainers
 - Persist configurations on your host machine
 - Maintain consistent global tools across projects
@@ -290,6 +371,7 @@ This allows you to:
 ### pnpm command not found
 
 Rebuild container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### EACCES permission errors
@@ -364,6 +446,7 @@ pnpm patch-commit /path/to/patched/package
 Share dependency versions across workspaces:
 
 **pnpm-workspace.yaml:**
+
 ```yaml
 packages:
   - 'packages/*'
@@ -374,6 +457,7 @@ catalog:
 ```
 
 **package.json:**
+
 ```json
 {
   "dependencies": {
@@ -387,6 +471,7 @@ catalog:
 Force specific versions:
 
 **package.json:**
+
 ```json
 {
   "pnpm": {
