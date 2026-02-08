@@ -227,14 +227,19 @@ function loadExistingContainerName(outputPath: string): string | undefined {
  * Create timestamped backup of existing devcontainer and manifest
  */
 async function createBackup(outputPath: string, backupDir?: string): Promise<string | null> {
-  const devcontainerDir = path.join(outputPath, '.devcontainer');
+  // Check for devcontainer files to backup
+  const devcontainerJsonPath = path.join(outputPath, 'devcontainer.json');
+  const dockerComposePath = path.join(outputPath, 'docker-compose.yml');
+  const devcontainerSubdir = path.join(outputPath, '.devcontainer');
   const manifestPath = path.join(outputPath, 'superposition.json');
   
-  // Check if there's anything to backup
-  const hasDevcontainer = fs.existsSync(devcontainerDir);
+  // Determine what exists
+  const hasDevcontainerJson = fs.existsSync(devcontainerJsonPath);
+  const hasDockerCompose = fs.existsSync(dockerComposePath);
+  const hasDevcontainerSubdir = fs.existsSync(devcontainerSubdir) && fs.statSync(devcontainerSubdir).isDirectory();
   const hasManifest = fs.existsSync(manifestPath);
   
-  if (!hasDevcontainer && !hasManifest) {
+  if (!hasDevcontainerJson && !hasDockerCompose && !hasDevcontainerSubdir && !hasManifest) {
     return null; // Nothing to backup
   }
   
@@ -252,16 +257,36 @@ async function createBackup(outputPath: string, backupDir?: string): Promise<str
   // Create backup directory
   fs.mkdirSync(backupPath, { recursive: true });
   
-  // Backup .devcontainer directory
-  if (hasDevcontainer) {
-    const destDir = path.join(backupPath, '.devcontainer');
-    await copyDirectory(devcontainerDir, destDir);
+  // Backup files and directories
+  if (hasDevcontainerJson) {
+    fs.copyFileSync(devcontainerJsonPath, path.join(backupPath, 'devcontainer.json'));
   }
   
-  // Backup superposition.json
+  if (hasDockerCompose) {
+    fs.copyFileSync(dockerComposePath, path.join(backupPath, 'docker-compose.yml'));
+  }
+  
+  if (hasDevcontainerSubdir) {
+    const destDir = path.join(backupPath, '.devcontainer');
+    await copyDirectory(devcontainerSubdir, destDir);
+  }
+  
   if (hasManifest) {
-    const destManifest = path.join(backupPath, 'superposition.json');
-    fs.copyFileSync(manifestPath, destManifest);
+    fs.copyFileSync(manifestPath, path.join(backupPath, 'superposition.json'));
+  }
+  
+  // Also backup other common devcontainer files
+  const otherFiles = ['.env', '.env.example', '.gitignore', 'features', 'scripts'];
+  for (const file of otherFiles) {
+    const srcPath = path.join(outputPath, file);
+    if (fs.existsSync(srcPath)) {
+      const destPath = path.join(backupPath, file);
+      if (fs.statSync(srcPath).isDirectory()) {
+        await copyDirectory(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
   }
   
   return backupPath;
@@ -788,7 +813,7 @@ async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; 
   return {
     config,
     manifestPath: options.fromManifest,
-    noBackup: options.noBackup,
+    noBackup: options.backup === false, // Commander creates options.backup = false for --no-backup
     backupDir: options.backupDir,
     yes: options.yes
   };
