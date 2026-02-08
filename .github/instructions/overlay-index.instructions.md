@@ -1,20 +1,34 @@
 ---
-applyTo: 'overlays/index.yml'
+applyTo: 'overlays/**/overlay.yml'
 ---
 
-# GitHub Copilot Instructions: Overlay Index (index.yml) Authoring
+# GitHub Copilot Instructions: Overlay Manifest (overlay.yml) Authoring
 
-This file provides instructions for GitHub Copilot when modifying the `overlays/index.yml` file, which serves as the central registry for all available overlays.
+This file provides instructions for GitHub Copilot when creating or modifying individual `overlay.yml` manifest files in overlay directories.
 
 ## Purpose
 
-The `overlays/index.yml` file is the single source of truth for:
-- **Overlay discovery** - Which overlays are available for selection
-- **Questionnaire generation** - UI grouping, ordering, and display
-- **Dependency resolution** - What dependencies each overlay requires
-- **Conflict detection** - Which overlays cannot be used together
-- **Port management** - Which ports each overlay uses (for offset calculation)
-- **Stack compatibility** - Which base templates (plain/compose) support each overlay
+Each overlay's `overlay.yml` file is the single source of truth for:
+- **Overlay identity** - Unique ID, name, and description
+- **Category** - Which group the overlay belongs to (language, database, etc.)
+- **Dependencies** - Required, suggested, and conflicting overlays
+- **Stack compatibility** - Which base templates support this overlay
+- **Port configuration** - Which ports the overlay uses (for offset calculation)
+- **Tags** - Keywords for search and filtering
+- **Display order** - Optional ordering within category
+
+## Migration from Central index.yml
+
+**Previous approach:** All overlay metadata was centralized in `overlays/index.yml` (600+ lines).
+
+**New approach:** Each overlay has its own `overlay.yml` manifest file in its directory.
+
+**Benefits:**
+- ✅ Everything for an overlay in one place (cohesion)
+- ✅ No merge conflicts on central file
+- ✅ Overlays are self-contained and portable
+- ✅ Easier to maintain (single edit point)
+- ✅ No "register in index.yml" step
 
 ## File Structure
 
@@ -46,25 +60,25 @@ dev_tool_overlays:
   - # Development utilities
 ```
 
-## Overlay Entry Schema
+## Manifest File Structure
 
-Each overlay entry must follow this structure:
+Each overlay's `overlay.yml` follows this structure:
 
 ```yaml
-- id: overlay-id               # Required: Unique identifier (matches directory name)
-  name: Display Name           # Required: Human-readable name for UI
-  description: Brief summary   # Required: One-line description (shown in questionnaire)
-  category: category-name      # Required: language|database|observability|cloud|dev
-  supports: [template-ids]     # Required: Empty [] = all, or [plain], [compose]
-  requires: [overlay-ids]      # Required: Empty [] or list of required dependencies
-  suggests: [overlay-ids]      # Required: Empty [] or list of suggested overlays
-  conflicts: [overlay-ids]     # Required: Empty [] or list of conflicting overlays
-  tags: [tag1, tag2]          # Required: Search/filter tags (lowercase)
-  ports: [8080, 9090]         # Required: Empty [] or list of ports used
-  order: 2                     # Optional: Display order within category (lower = first)
+id: overlay-id               # Required: Unique identifier (matches directory name)
+name: Display Name           # Required: Human-readable name for UI
+description: Brief summary   # Required: One-line description (shown in questionnaire)
+category: category-name      # Required: language|database|observability|cloud|dev
+supports: [template-ids]     # Required: Empty [] = all, or [plain], [compose]
+requires: [overlay-ids]      # Required: Empty [] or list of required dependencies
+suggests: [overlay-ids]      # Required: Empty [] or list of suggested overlays
+conflicts: [overlay-ids]     # Required: Empty [] or list of conflicting overlays
+tags: [tag1, tag2]          # Required: Search/filter tags (lowercase)
+ports: [8080, 9090]         # Required: Empty [] or list of ports used
+order: 2                     # Optional: Display order within category (lower = first)
 ```
 
-### Field Definitions
+## Field Definitions
 
 #### id (Required)
 
@@ -698,26 +712,77 @@ dev_tool_overlays:
     ports: []                                              # No exposed ports
 ```
 
+## Creating a New Overlay Manifest
+
+**Step-by-step process:**
+
+1. **Create overlay directory:**
+   ```bash
+   mkdir -p overlays/my-overlay
+   ```
+
+2. **Create overlay.yml manifest:**
+   ```yaml
+   id: my-overlay
+   name: My Overlay
+   description: Brief description of what it provides
+   category: language  # or database, observability, cloud, dev
+   supports: []
+   requires: []
+   suggests: []
+   conflicts: []
+   tags:
+     - category-tag
+     - technology-name
+     - related-term
+   ports: []
+   ```
+
+3. **Create other overlay files:**
+   - `devcontainer.patch.json` - DevContainer configuration patches
+   - `README.md` - Documentation
+   - `setup.sh`, `verify.sh`, etc. - As needed
+
+4. **Validate manifest:**
+   - ID matches directory name
+   - Category is valid (language, database, observability, cloud, dev)
+   - All required fields present
+   - Ports match devcontainer.patch.json
+   - Conflicts are bidirectional
+   - Tags are lowercase
+
+5. **Test the overlay:**
+   ```bash
+   npm run build
+   npm run init -- --stack compose --language my-overlay
+   ```
+
+**No registration step needed!** The overlay loader automatically discovers overlay.yml files.
+
 ## Common Mistakes and How to Avoid Them
 
 ### Mistake: Missing Bidirectional Conflicts
 
 **Wrong:**
 ```yaml
-- id: docker-in-docker
-  conflicts: [docker-sock]
+# overlays/docker-in-docker/overlay.yml
+id: docker-in-docker
+conflicts: [docker-sock]
 
-- id: docker-sock
-  conflicts: []                  # Missing reciprocal!
+# overlays/docker-sock/overlay.yml  
+id: docker-sock
+conflicts: []                  # Missing reciprocal!
 ```
 
 **Correct:**
 ```yaml
-- id: docker-in-docker
-  conflicts: [docker-sock]
+# overlays/docker-in-docker/overlay.yml
+id: docker-in-docker
+conflicts: [docker-sock]
 
-- id: docker-sock
-  conflicts: [docker-in-docker]  # Both directions
+# overlays/docker-sock/overlay.yml
+id: docker-sock
+conflicts: [docker-in-docker]  # Both directions
 ```
 
 ### Mistake: ID Doesn't Match Directory
@@ -725,36 +790,38 @@ dev_tool_overlays:
 **Wrong:**
 ```yaml
 # Directory: overlays/nodejs/
-- id: node                       # Doesn't match!
+# overlays/nodejs/overlay.yml
+id: node                       # Doesn't match!
 ```
 
 **Correct:**
 ```yaml
 # Directory: overlays/nodejs/
-- id: nodejs                     # Matches directory name
+# overlays/nodejs/overlay.yml
+id: nodejs                     # Matches directory name
 ```
 
 ### Mistake: Port Mismatch
 
 **Wrong:**
 ```yaml
-# index.yml
-- id: postgres
-  ports: [5432]
+# overlays/postgres/overlay.yml
+id: postgres
+ports: [5432]
 
-# docker-compose.yml
+# overlays/postgres/docker-compose.yml
 ports:
   - "5432:5432"
-  - "5433:5433"                  # Not listed in index.yml!
+  - "5433:5433"                  # Not listed in overlay.yml!
 ```
 
 **Correct:**
 ```yaml
-# index.yml
-- id: postgres
-  ports: [5432, 5433]            # All ports listed
+# overlays/postgres/overlay.yml
+id: postgres
+ports: [5432, 5433]            # All ports listed
 
-# docker-compose.yml
+# overlays/postgres/docker-compose.yml
 ports:
   - "5432:5432"
   - "5433:5433"
@@ -764,30 +831,30 @@ ports:
 
 **Wrong:**
 ```yaml
-- id: nodejs
-  requires: [docker-sock, postgres]  # Too heavy-handed
+id: nodejs
+requires: [docker-sock, postgres]  # Too heavy-handed
 ```
 
 **Correct:**
 ```yaml
-- id: nodejs
-  requires: []                     # Only hard dependencies
-  suggests: [docker-sock]          # Optional integrations in suggests
+id: nodejs
+requires: []                     # Only hard dependencies
+suggests: [docker-sock]          # Optional integrations in suggests
 ```
 
 ### Mistake: Wrong Category
 
 **Wrong:**
 ```yaml
-- id: mkdocs
-  category: dev                    # Documentation tool, but...
+id: mkdocs
+category: dev                    # Documentation tool, but...
 ```
 
 **Correct:**
 ```yaml
-- id: mkdocs
-  category: language               # It's a Python-based framework
-  requires: [python]
+id: mkdocs
+category: language               # It's a Python-based framework
+requires: [python]
 ```
 
 ### Mistake: Uppercase Tags
@@ -804,50 +871,62 @@ tags: [language, nodejs, typescript]
 
 ## Testing and Validation
 
-After modifying index.yml, verify:
+After creating or modifying an overlay.yml manifest:
 
 1. **YAML Syntax:**
    ```bash
-   yamllint overlays/index.yml
+   yamllint overlays/[overlay-id]/overlay.yml
    ```
 
-2. **Overlay Directory Exists:**
+2. **Overlay Directory Structure:**
    ```bash
-   # For each overlay ID, ensure directory exists
+   # Ensure all required files exist
    ls overlays/[overlay-id]/
+   # Should show: overlay.yml, devcontainer.patch.json, README.md (minimum)
    ```
 
 3. **Port Consistency:**
    ```bash
-   # Check ports in index.yml match devcontainer.patch.json
+   # Check ports in overlay.yml match devcontainer.patch.json
    cat overlays/[overlay-id]/devcontainer.patch.json | jq .forwardPorts
    ```
 
 4. **Bidirectional Conflicts:**
    ```bash
    # If overlay A conflicts with B, ensure B conflicts with A
-   grep -A10 "id: overlay-a" overlays/index.yml | grep conflicts
-   grep -A10 "id: overlay-b" overlays/index.yml | grep conflicts
+   cat overlays/docker-in-docker/overlay.yml | grep conflicts
+   cat overlays/docker-sock/overlay.yml | grep conflicts
    ```
 
 5. **Required Dependencies Exist:**
    ```bash
-   # Ensure all IDs in requires/suggests/conflicts exist in index.yml
+   # Ensure all IDs in requires/suggests/conflicts have matching overlay directories
    ```
 
 6. **Build and Test:**
    ```bash
+   # Rebuild project
+   npm run build
+   
    # Test overlay selection in questionnaire
    npm run init
+   
+   # Test with CLI
+   npm run init -- --stack compose --language [overlay-id]
+   ```
 
-   # Verify overlay appears in correct category
-   # Verify dependencies auto-select
-   # Verify conflicts trigger resolution UI
+7. **Run Tests:**
+   ```bash
+   # Run overlay loader tests
+   npm test -- overlay-loader.test.ts
+   
+   # Run all tests
+   npm test
    ```
 
 ## Quality Checklist
 
-Before committing changes to index.yml:
+Before committing a new or modified overlay.yml:
 
 - [ ] Overlay ID matches directory name exactly
 - [ ] Name uses correct capitalization (title case, official name)
@@ -861,7 +940,7 @@ Before committing changes to index.yml:
 - [ ] ports match devcontainer.patch.json and docker-compose.yml (or `[]`)
 - [ ] order is only used when necessary (observability overlays)
 - [ ] YAML syntax is valid (yamllint passes)
-- [ ] All referenced overlay IDs exist in index.yml
+- [ ] All referenced overlay IDs exist as directories
 - [ ] Tested in questionnaire UI
 - [ ] Dependency auto-selection works
 - [ ] Conflict detection works (if applicable)
@@ -869,9 +948,10 @@ Before committing changes to index.yml:
 ## References
 
 **Related Files:**
-- `scripts/init.ts` - Questionnaire logic that reads index.yml
+- `tool/schema/overlay-loader.ts` - Loader that scans and loads overlay.yml files
+- `tool/schema/overlay-manifest.schema.json` - JSON schema for validation
 - `tool/schema/types.ts` - TypeScript type definitions
-- `overlays/index.yml` - The overlay registry file itself
+- `overlays/.registry/` - Special metadata files (base-images.yml, base-templates.yml)
 
 **Related Instructions:**
 - `.github/instructions/overlay-authoring.instructions.md` - Guide for creating overlay files (devcontainer.patch.json, docker-compose.yml, scripts)
@@ -881,3 +961,6 @@ Before committing changes to index.yml:
 - AGENTS.md - Project overview and dependency resolution algorithm
 - docs/dependencies.md - Dependency system documentation
 - docs/overlays.md - Overlay system documentation
+
+**Migration:**
+- `scripts/migrate-to-manifests.ts` - Tool used to split central index.yml into per-overlay manifests
