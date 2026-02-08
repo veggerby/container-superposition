@@ -9,7 +9,7 @@ Container Superposition is a **modular, overlay-based devcontainer scaffolding s
 - **Runtime**: Node.js 18+ with TypeScript 5.3.3 (compiled to ESM modules in `dist/`)
 - **CLI Framework**: Commander for argument parsing, Inquirer for interactive prompts
 - **UI Libraries**: chalk (terminal colors), boxen (borders), ora (spinners)
-- **Configuration**: YAML-based overlay metadata (`overlays/index.yml`)
+- **Configuration**: Per-overlay YAML manifests (`overlays/*/overlay.yml`) with centralized registry files
 - **Build System**: TypeScript compiler with source maps and declarations
 - **Architecture**: JSON Patch-based composition system for devcontainer configurations
 
@@ -84,12 +84,12 @@ The codebase uses **candidate arrays** to resolve paths correctly in both develo
 **Example from init.ts:**
 
 ```typescript
-const OVERLAYS_CONFIG_CANDIDATES = [
-  path.join(__dirname, '..', 'tool', 'overlays/index.yml'),      // ts-node: <root>/scripts
-  path.join(__dirname, '..', '..', 'tool', 'overlays/index.yml'), // compiled: <root>/dist/scripts
+const OVERLAYS_DIR_CANDIDATES = [
+  path.join(__dirname, '..', 'overlays'),      // ts-node: <root>/scripts
+  path.join(__dirname, '..', '..', 'overlays'), // compiled: <root>/dist/scripts
 ];
 
-const OVERLAYS_CONFIG_PATH = OVERLAYS_CONFIG_CANDIDATES.find(fs.existsSync) ?? OVERLAYS_CONFIG_CANDIDATES[0];
+const OVERLAYS_DIR = OVERLAYS_DIR_CANDIDATES.find(fs.existsSync) ?? OVERLAYS_DIR_CANDIDATES[0];
 ```
 
 **Always use this pattern when adding new file resolution logic.**
@@ -363,23 +363,24 @@ const REPO_ROOT_CANDIDATES = [
        name: devnet
    ```
 
-4. **Register in overlays/index.yml:**
+4. **Create overlay.yml manifest:**
 
    ```yaml
-   my_category_overlays:
-     - id: my-overlay
-       name: My Overlay
-       description: Brief description
-       category: my-category
-       supports: [compose]  # or [] for all
-       requires: []
-       suggests: []
-       conflicts: []
-       tags: [my-category, keyword]
-       ports: [8080]
+   id: my-overlay
+   name: My Overlay
+   description: Brief description of what it provides
+   category: language  # or database, observability, cloud, dev
+   supports: []
+   requires: []
+   suggests: []
+   conflicts: []
+   tags:
+     - category-tag
+     - technology-name
+   ports: []
    ```
 
-5. **Update TypeScript types:**
+5. **Create other overlay files:**
 
    ```typescript
    // tool/schema/types.ts
@@ -400,12 +401,16 @@ const REPO_ROOT_CANDIDATES = [
    }
    ```
 
-7. **Build and test:**
+6. **Test the overlay:**
 
    ```bash
    npm run build
-   npm run init -- --stack compose --my-category my-overlay
+   npm run init -- --stack compose --language my-overlay
    ```
+
+**No registration step needed!** The overlay loader automatically discovers `overlay.yml` files.
+
+**Note:** If adding a new category, you'll need to update TypeScript types in `tool/schema/types.ts` and the loader/composer logic.
 
 ### Modifying the Questionnaire
 
@@ -492,15 +497,15 @@ npm run build
 
 **Overlay Not Applied:**
 
-- Verify overlay registered in `overlays/index.yml`
-- Check `composer.ts` applies overlay in correct order
-- Ensure type definitions include overlay ID
+- Verify overlay has `overlay.yml` in its directory
+- Check overlay category is correct
+- Ensure type definitions include overlay ID (if new type added)
 - Build after type changes: `npm run build`
 
 **Port Conflicts:**
 
 - Use `--port-offset 100` to shift all ports
-- Check `overlays/index.yml` for port declarations
+- Check `overlay.yml` for port declarations
 - Verify docker-compose.yml port mappings use offset
 
 **Dependency Loops:**
@@ -590,7 +595,7 @@ npm run test:smoke
 1. Ensure all CI checks pass
 2. Update relevant documentation (README, overlay READMEs)
 3. Add tests for new functionality
-4. Update `overlays/index.yml` if adding/modifying overlays
+4. Add/update overlay's `overlay.yml` if adding/modifying overlays
 5. Update `config.schema.json` if changing types
 
 ## Additional Notes
@@ -603,7 +608,7 @@ Some overlays only work with specific stacks:
 - **Language overlays**: Work with both `plain` and `compose`
 - **Dev tools**: Most support both stacks
 
-Check `supports` field in `overlays/index.yml` before use.
+Check `supports` field in each overlay's `overlay.yml` before use.
 
 ### Port Offset Calculation
 
