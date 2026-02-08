@@ -5,6 +5,7 @@
 Container Superposition is a **modular, overlay-based devcontainer scaffolding system** that composes working development environments from minimal base templates and composable capability overlays.
 
 **Key Technologies:**
+
 - **Runtime**: Node.js 18+ with TypeScript 5.3.3 (compiled to ESM modules in `dist/`)
 - **CLI Framework**: Commander for argument parsing, Inquirer for interactive prompts
 - **UI Libraries**: chalk (terminal colors), boxen (borders), ora (spinners)
@@ -13,6 +14,7 @@ Container Superposition is a **modular, overlay-based devcontainer scaffolding s
 - **Architecture**: JSON Patch-based composition system for devcontainer configurations
 
 **Core Concepts:**
+
 1. **Base Templates**: Minimal starting points (`plain` for single image, `compose` for multi-service)
 2. **Overlays**: Modular capability fragments (languages, databases, observability, cloud tools, dev tools)
 3. **Composition Engine**: Merges overlays into final devcontainer.json using JSON patch operations
@@ -80,6 +82,7 @@ npm run clean
 The codebase uses **candidate arrays** to resolve paths correctly in both development (TypeScript sources) and production (compiled dist/) modes:
 
 **Example from init.ts:**
+
 ```typescript
 const OVERLAYS_CONFIG_CANDIDATES = [
   path.join(__dirname, '..', 'tool', 'overlays/index.yml'),      // ts-node: <root>/scripts
@@ -140,7 +143,7 @@ npm test -- --coverage
 
 ### File Organization
 
-```
+```txt
 scripts/           # CLI entry points (init.ts)
 tool/
   ├── questionnaire/  # Core composition logic (composer.ts)
@@ -154,6 +157,8 @@ features/           # Custom devcontainer features
 ### Naming Conventions
 
 - **Files**: kebab-case (`overlay-metadata.ts`)
+- **Markdown Files**: lowercase kebab-case (`messaging-comparison.md`, `presets-architecture.md`)
+  - **Exceptions**: `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `AGENTS.md`, `LICENSE.md`
 - **Functions**: camelCase (`composeDevContainer()`)
 - **Types/Interfaces**: PascalCase (`OverlayMetadata`, `QuestionnaireAnswers`)
 - **Constants**: SCREAMING_SNAKE_CASE (`OVERLAYS_CONFIG_PATH`)
@@ -189,6 +194,7 @@ npm run build
 ```
 
 **Output:**
+
 - Compiled JavaScript: `dist/` (mirrors source structure)
 - Type declarations: `*.d.ts` files alongside JS
 - Source maps: `*.js.map` for debugging
@@ -248,6 +254,7 @@ language_overlays:
 ```
 
 **Category Hierarchy:**
+
 1. `language` - Programming language/framework (nodejs, dotnet, python, mkdocs)
 2. `database` - Database services (postgres, redis)
 3. `observability` - Monitoring/tracing tools (otel-collector, jaeger, prometheus, grafana, loki)
@@ -269,6 +276,7 @@ Located in `scripts/init.ts` (lines 230-260), the system:
    - Loop until all conflicts resolved
 
 **Example:**
+
 ```yaml
 # grafana requires prometheus
 grafana:
@@ -284,6 +292,7 @@ docker-in-docker:
 The `composeDevContainer()` function in `tool/questionnaire/composer.ts` (721 lines):
 
 **Overlay Application Order:**
+
 1. Base template (plain or compose)
 2. Language overlays
 3. Database overlays
@@ -292,6 +301,7 @@ The `composeDevContainer()` function in `tool/questionnaire/composer.ts` (721 li
 6. Dev tool overlays
 
 **Merge Strategy:**
+
 - JSON patches from `overlay/devcontainer.patch.json` applied via merge-deep
 - Docker Compose services merged into `.devcontainer/docker-compose.yml`
 - Environment variables from `.env.example` concatenated
@@ -309,6 +319,7 @@ const REPO_ROOT_CANDIDATES = [
 ```
 
 **When to add candidates:**
+
 - Any file read/write operation
 - Any path calculation involving `__dirname`
 - Any import of external files (YAML, JSON, templates)
@@ -318,11 +329,13 @@ const REPO_ROOT_CANDIDATES = [
 ### Adding a New Overlay
 
 1. **Create overlay directory:**
+
    ```bash
    mkdir -p overlays/my-overlay
    ```
 
 2. **Add devcontainer patch:**
+
    ```json
    // overlays/my-overlay/devcontainer.patch.json
    {
@@ -338,6 +351,7 @@ const REPO_ROOT_CANDIDATES = [
    ```
 
 3. **Add docker-compose.yml (if multi-service):**
+
    ```yaml
    services:
      my-service:
@@ -350,6 +364,7 @@ const REPO_ROOT_CANDIDATES = [
    ```
 
 4. **Register in overlays/index.yml:**
+
    ```yaml
    my_category_overlays:
      - id: my-overlay
@@ -365,6 +380,7 @@ const REPO_ROOT_CANDIDATES = [
    ```
 
 5. **Update TypeScript types:**
+
    ```typescript
    // tool/schema/types.ts
    export type MyCategory = 'my-overlay' | 'other-overlay';
@@ -376,6 +392,7 @@ const REPO_ROOT_CANDIDATES = [
    ```
 
 6. **Update composer.ts:**
+
    ```typescript
    // Apply overlay in correct order (lines 490-496 pattern)
    if (answers.myCategory.includes('my-overlay')) {
@@ -384,6 +401,7 @@ const REPO_ROOT_CANDIDATES = [
    ```
 
 7. **Build and test:**
+
    ```bash
    npm run build
    npm run init -- --stack compose --my-category my-overlay
@@ -404,6 +422,7 @@ answers.customValue = customValue;
 ```
 
 **Important:**
+
 - Update `QuestionnaireAnswers` type in `tool/schema/types.ts`
 - Update `config.schema.json` for JSON validation
 - Handle in `composer.ts` composition logic
@@ -424,6 +443,7 @@ if (options.myOption) {
 ```
 
 **Also update:**
+
 - README.md examples
 - `--help` text
 - Documentation in templates/*/README.md
@@ -434,6 +454,7 @@ If you see "File not found" errors in compiled mode:
 
 1. **Identify the problematic path resolution**
 2. **Add candidate array:**
+
    ```typescript
    const MY_FILE_CANDIDATES = [
      path.join(__dirname, '..', 'file.txt'),      // ts-node
@@ -444,6 +465,7 @@ If you see "File not found" errors in compiled mode:
    ```
 
 3. **Test both modes:**
+
    ```bash
    npm run init       # ts-node mode
    npm run init:build # compiled mode
@@ -454,6 +476,7 @@ If you see "File not found" errors in compiled mode:
 ### Common Issues
 
 **Build Errors:**
+
 ```bash
 # Clean and rebuild
 npm run clean
@@ -462,22 +485,26 @@ npm run build
 ```
 
 **Path Resolution Failures:**
+
 - Check if running from source vs compiled output
 - Verify candidate arrays cover both scenarios
 - Use `console.log(__dirname)` to debug current directory
 
 **Overlay Not Applied:**
+
 - Verify overlay registered in `overlays/index.yml`
 - Check `composer.ts` applies overlay in correct order
 - Ensure type definitions include overlay ID
 - Build after type changes: `npm run build`
 
 **Port Conflicts:**
+
 - Use `--port-offset 100` to shift all ports
 - Check `overlays/index.yml` for port declarations
 - Verify docker-compose.yml port mappings use offset
 
 **Dependency Loops:**
+
 - Check `requires` fields don't create circular dependencies
 - Use `suggests` instead of `requires` for optional dependencies
 
@@ -512,6 +539,7 @@ if (DEBUG) {
 ```
 
 Run with:
+
 ```bash
 DEBUG=true npm run init
 ```
@@ -521,7 +549,8 @@ DEBUG=true npm run init
 ### Title Format
 
 Use conventional commit style:
-```
+
+```txt
 [category] Brief description
 
 Examples:
