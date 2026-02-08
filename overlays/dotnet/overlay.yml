@@ -1,0 +1,13 @@
+id: dotnet
+name: .NET
+description: .NET 10 SDK with C# DevKit
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - dotnet
+  - csharp
+ports: []

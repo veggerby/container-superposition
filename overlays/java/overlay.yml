@@ -1,0 +1,16 @@
+id: java
+name: Java
+description: Eclipse Temurin JDK 21 with Maven and Gradle
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - java
+  - maven
+  - gradle
+ports:
+  - 8080
+  - 8081

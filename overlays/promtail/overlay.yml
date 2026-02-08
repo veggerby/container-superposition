@@ -1,0 +1,17 @@
+id: promtail
+name: Promtail
+description: Log shipping agent for Loki with Docker auto-discovery
+category: observability
+supports:
+  - compose
+requires:
+  - loki
+suggests: []
+conflicts: []
+tags:
+  - observability
+  - logs
+  - promtail
+  - loki
+ports: []
+order: 2

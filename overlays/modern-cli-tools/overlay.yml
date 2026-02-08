@@ -1,0 +1,13 @@
+id: modern-cli-tools
+name: Modern CLI Tools
+description: jq, yq, ripgrep, fd, bat - Essential modern command-line tools
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - dev
+  - cli
+  - productivity
+ports: []

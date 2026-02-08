@@ -1,0 +1,18 @@
+id: rabbitmq
+name: RabbitMQ
+description: Message broker with AMQP protocol and management UI
+category: database
+supports:
+  - compose
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - database
+  - messaging
+  - queue
+  - rabbitmq
+  - amqp
+ports:
+  - 5672
+  - 15672

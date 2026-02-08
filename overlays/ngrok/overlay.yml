@@ -1,0 +1,14 @@
+id: ngrok
+name: ngrok
+description: Secure tunneling for webhook testing and external access
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - dev
+  - tunneling
+  - webhooks
+ports:
+  - 4040

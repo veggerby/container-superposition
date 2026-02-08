@@ -1,0 +1,23 @@
+id: otel-demo-python
+name: OTel Demo (Python)
+description: Sample Python Flask app with OpenTelemetry instrumentation
+category: observability
+supports:
+  - compose
+requires:
+  - otel-collector
+suggests:
+  - jaeger
+  - tempo
+  - prometheus
+  - loki
+  - grafana
+conflicts: []
+tags:
+  - observability
+  - demo
+  - python
+  - opentelemetry
+ports:
+  - 8081
+order: 4

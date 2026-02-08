@@ -1,0 +1,14 @@
+id: gcloud
+name: Google Cloud SDK
+description: Google Cloud Platform command-line tools (gcloud, gsutil, bq)
+category: cloud
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - cloud
+  - gcp
+  - google
+  - cli
+ports: []

@@ -1,0 +1,15 @@
+id: mkdocs
+name: MkDocs
+description: Material for MkDocs - professional documentation generator
+category: language
+supports: []
+requires:
+  - python
+suggests: []
+conflicts: []
+tags:
+  - documentation
+  - mkdocs
+  - python
+ports:
+  - 8000

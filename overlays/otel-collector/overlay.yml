@@ -1,0 +1,21 @@
+id: otel-collector
+name: OpenTelemetry Collector
+description: Telemetry collection pipeline
+category: observability
+supports:
+  - compose
+requires: []
+suggests:
+  - jaeger
+  - prometheus
+conflicts: []
+tags:
+  - observability
+  - telemetry
+  - opentelemetry
+ports:
+  - 4317
+  - 4318
+  - 8888
+  - 8889
+order: 2

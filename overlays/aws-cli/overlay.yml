@@ -1,0 +1,13 @@
+id: aws-cli
+name: AWS CLI
+description: Amazon Web Services command-line tools
+category: cloud
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - cloud
+  - aws
+  - cli
+ports: []

@@ -1,0 +1,15 @@
+id: pre-commit
+name: Pre-commit Framework
+description: Automated code quality gates with pre-commit hooks
+category: dev
+supports: []
+requires: []
+suggests:
+  - commitlint
+conflicts: []
+tags:
+  - dev
+  - git
+  - quality
+  - hooks
+ports: []

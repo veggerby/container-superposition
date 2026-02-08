@@ -1,0 +1,20 @@
+id: tempo
+name: Tempo
+description: Lightweight distributed tracing backend (alternative to Jaeger)
+category: observability
+supports:
+  - compose
+requires: []
+suggests:
+  - otel-collector
+  - grafana
+conflicts:
+  - jaeger
+tags:
+  - observability
+  - tracing
+  - tempo
+  - grafana
+ports:
+  - 3200
+order: 1

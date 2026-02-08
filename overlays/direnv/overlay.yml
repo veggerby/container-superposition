@@ -1,0 +1,13 @@
+id: direnv
+name: direnv
+description: Per-directory environment variable management
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - dev
+  - environment
+  - automation
+ports: []

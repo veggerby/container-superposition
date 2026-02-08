@@ -1,0 +1,13 @@
+id: azure-cli
+name: Azure CLI
+description: Microsoft Azure command-line tools
+category: cloud
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - cloud
+  - azure
+  - cli
+ports: []

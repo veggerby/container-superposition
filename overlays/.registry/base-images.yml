@@ -1,0 +1,26 @@
+base_images:
+  - id: bookworm
+    name: Debian Bookworm (Recommended)
+    description: Stable, battle-tested base with broad compatibility
+    image: mcr.microsoft.com/devcontainers/base:bookworm
+    package_manager: apt
+  - id: trixie
+    name: Debian Trixie
+    description: Newer packages, testing stability
+    image: mcr.microsoft.com/devcontainers/base:trixie
+    package_manager: apt
+  - id: alpine
+    name: Alpine Linux
+    description: Minimal footprint (~5MB), apk package manager
+    image: mcr.microsoft.com/devcontainers/base:alpine
+    package_manager: apk
+  - id: ubuntu
+    name: Ubuntu LTS
+    description: Popular, familiar, extensive package ecosystem
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    package_manager: apt
+  - id: custom
+    name: Custom Image
+    description: Specify your own (may conflict with overlays)
+    image: null
+    package_manager: apt

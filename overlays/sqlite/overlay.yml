@@ -1,0 +1,15 @@
+id: sqlite
+name: SQLite
+description: SQLite with litecli and VS Code extensions
+category: database
+supports: []
+requires: []
+suggests:
+  - python
+conflicts: []
+tags:
+  - database
+  - sql
+  - sqlite
+  - embedded
+ports: []

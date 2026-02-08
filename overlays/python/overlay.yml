@@ -1,0 +1,12 @@
+id: python
+name: Python
+description: Python 3.12 with linting and formatting
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - python
+ports: []
