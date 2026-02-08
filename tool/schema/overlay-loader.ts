@@ -31,15 +31,45 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
       return null;
     }
     
-    // Set defaults for optional fields
+    // Validate and coerce array fields to ensure they are actual arrays
+    const ensureArray = (value: any): string[] => {
+      if (Array.isArray(value)) {
+        // Validate all elements are strings
+        if (!value.every(item => typeof item === 'string')) {
+          console.warn(`Warning: Non-string values in array field in ${overlayDir}`);
+          return value.filter(item => typeof item === 'string');
+        }
+        return value;
+      }
+      if (typeof value === 'string') {
+        // Single string value - wrap in array
+        console.warn(`Warning: Scalar value instead of array in ${overlayDir}, wrapping in array`);
+        return [value];
+      }
+      return [];
+    };
+    
+    const ensureNumberArray = (value: any): number[] => {
+      if (Array.isArray(value)) {
+        // Validate all elements are numbers
+        if (!value.every(item => typeof item === 'number')) {
+          console.warn(`Warning: Non-number values in ports array in ${overlayDir}`);
+          return value.filter(item => typeof item === 'number');
+        }
+        return value;
+      }
+      return [];
+    };
+    
+    // Set defaults for optional fields with type validation
     return {
       ...manifest,
-      supports: manifest.supports || [],
-      requires: manifest.requires || [],
-      suggests: manifest.suggests || [],
-      conflicts: manifest.conflicts || [],
-      tags: manifest.tags || [],
-      ports: manifest.ports || [],
+      supports: ensureArray(manifest.supports),
+      requires: ensureArray(manifest.requires),
+      suggests: ensureArray(manifest.suggests),
+      conflicts: ensureArray(manifest.conflicts),
+      tags: ensureArray(manifest.tags),
+      ports: ensureNumberArray(manifest.ports),
     };
   } catch (error) {
     console.warn(`Warning: Failed to parse manifest in ${overlayDir}:`, error);
@@ -64,8 +94,13 @@ export function loadOverlayManifests(overlaysDir: string): Map<string, OverlayMe
       continue;
     }
     
-    // Skip special directories
-    if (entry.name.startsWith('.') || entry.name === 'presets') {
+    // Skip special directories (but not presets - handled separately)
+    if (entry.name.startsWith('.')) {
+      continue;
+    }
+    
+    // Skip presets directory (presets are loaded separately)
+    if (entry.name === 'presets') {
       continue;
     }
     
@@ -84,6 +119,52 @@ export function loadOverlayManifests(overlaysDir: string): Map<string, OverlayMe
   }
   
   return manifests;
+}
+
+/**
+ * Load preset metadata from presets directory
+ */
+export function loadPresetMetadata(overlaysDir: string): OverlayMetadata[] {
+  const presetsDir = path.join(overlaysDir, 'presets');
+  const presets: OverlayMetadata[] = [];
+  
+  if (!fs.existsSync(presetsDir)) {
+    return presets;
+  }
+  
+  try {
+    const files = fs.readdirSync(presetsDir);
+    
+    for (const file of files) {
+      if (!file.endsWith('.yml') && !file.endsWith('.yaml')) {
+        continue;
+      }
+      
+      const presetPath = path.join(presetsDir, file);
+      const content = fs.readFileSync(presetPath, 'utf8');
+      const preset = yaml.load(content) as any;
+      
+      // Extract metadata from preset definition
+      if (preset.id && preset.name && preset.description) {
+        presets.push({
+          id: preset.id,
+          name: preset.name,
+          description: preset.description,
+          category: 'preset',
+          supports: preset.supports || [],
+          requires: [],
+          suggests: [],
+          conflicts: [],
+          tags: preset.tags || [],
+          ports: [],
+        });
+      }
+    }
+  } catch (error) {
+    console.warn('Warning: Failed to load preset metadata:', error);
+  }
+  
+  return presets;
 }
 
 /**
@@ -151,7 +232,7 @@ export function buildOverlaysConfigFromManifests(overlaysDir: string): OverlaysC
     observability_overlays: [],
     cloud_tool_overlays: [],
     dev_tool_overlays: [],
-    preset_overlays: [],
+    preset_overlays: loadPresetMetadata(overlaysDir),
   };
   
   for (const manifest of manifests.values()) {
@@ -172,7 +253,7 @@ export function buildOverlaysConfigFromManifests(overlaysDir: string): OverlaysC
         config.dev_tool_overlays.push(manifest);
         break;
       case 'preset':
-        config.preset_overlays?.push(manifest);
+        // Presets loaded separately via loadPresetMetadata
         break;
       default:
         console.warn(`Warning: Unknown category '${manifest.category}' for overlay '${manifest.id}'`);

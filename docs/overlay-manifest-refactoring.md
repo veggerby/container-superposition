@@ -1,175 +1,123 @@
-# Per-Overlay Manifest Refactoring - Summary
+# Overlay Manifest System
 
 ## Overview
 
-This document summarizes the successful refactoring of overlay metadata from a centralized `overlays/index.yml` file to individual per-overlay `overlay.yml` manifest files.
+The overlay system uses per-overlay manifest files (`overlay.yml`) instead of a centralized registry. Each overlay is self-contained with its metadata in its own directory, enabling parallel development and easier maintenance.
 
-## Problem
+## Manifest Format
 
-The centralized `overlays/index.yml` file (592 lines) created several issues:
-- **Split Context**: Overlay implementation separated from its metadata
-- **Maintenance Burden**: Required editing two locations (directory + index.yml)
-- **Merge Conflicts**: Central file was a bottleneck for parallel development
-- **Consistency Checks**: Required manual validation to keep index.yml and overlay directories in sync
-- **Portability**: Overlays weren't self-contained units
-
-## Solution
-
-### New Structure
-
-Each overlay directory now contains its own metadata manifest:
-
-```
-overlays/
-  .registry/
-    base-images.yml       # Base container images
-    base-templates.yml    # Template types (plain, compose)
-    README.md
-  nodejs/
-    overlay.yml           # ← Overlay metadata (new)
-    devcontainer.patch.json
-    setup.sh
-    README.md
-  postgres/
-    overlay.yml           # ← Overlay metadata (new)
-    docker-compose.yml
-    devcontainer.patch.json
-    README.md
-```
-
-### Overlay Manifest Format
-
-Example `overlays/nodejs/overlay.yml`:
+Each overlay directory contains an `overlay.yml` file defining its metadata:
 
 ```yaml
 id: nodejs
 name: Node.js
 description: Node.js LTS with TypeScript and tooling
 category: language
-supports: []
-requires: []
-suggests: []
-conflicts: []
+supports: []              # Empty = all stacks, or [plain], [compose]
+requires: []              # Hard dependencies
+suggests: []              # Recommended overlays
+conflicts: []             # Incompatible overlays
 tags:
   - language
   - nodejs
   - javascript
   - typescript
-ports: []
+ports: []                 # Ports used (for offset calculation)
 ```
 
-## Implementation
+### Required Fields
 
-### Phase 1: Schema and Types
-- Created JSON schemas for validation
-- Updated TypeScript types to support both formats
+- **id**: Unique identifier (must match directory name)
+- **name**: Human-readable display name
+- **description**: One-line summary
+- **category**: One of: `language`, `database`, `observability`, `cloud`, `dev`, `preset`
 
-### Phase 2: Migration Tool
-- Built `scripts/migrate-to-manifests.ts` to split index.yml
-- Generated 46 individual overlay.yml files
-- Created registry directory with base-images.yml and base-templates.yml
+### Optional Fields
 
-### Phase 3: Loader Refactoring
-- Implemented `tool/schema/overlay-loader.ts` with automatic discovery
-- Updated `scripts/init.ts` and `tool/questionnaire/composer.ts`
-- Maintained backward compatibility with old index.yml format
+- **supports**: Stack compatibility (`[]` = all, `[plain]`, `[compose]`)
+- **requires**: Overlay IDs that must be auto-installed
+- **suggests**: Recommended overlay IDs
+- **conflicts**: Incompatible overlay IDs (must be bidirectional)
+- **tags**: Lowercase keywords for search/filtering
+- **ports**: Ports exposed by overlay (for offset calculation)
+- **order**: Display order within category (lower = first)
 
-### Phase 4: Testing
-- Created comprehensive test suite (14 new tests)
-- All 41 existing tests continue to pass
-- Validated dependency resolution, composition, and manifest generation
+## Directory Structure
 
-### Phase 5: Documentation
-- Updated overlay-authoring.instructions.md
-- Updated overlay-index.instructions.md  
-- Updated AGENTS.md with new architecture
-- Created migration documentation
+```
+overlays/
+  .registry/
+    base-images.yml       # Base container images
+    base-templates.yml    # Template types (plain, compose)
+  nodejs/
+    overlay.yml           # Overlay metadata
+    devcontainer.patch.json
+    setup.sh
+    README.md
+  postgres/
+    overlay.yml           # Overlay metadata
+    docker-compose.yml
+    devcontainer.patch.json
+    README.md
+  presets/
+    web-api.yml           # Preset definition
+    microservice.yml
+```
 
-### Phase 6: Cleanup
-- Archived original index.yml → index.yml.archived
-- Updated all code references
-- Final integration testing successful
+## Loader Behavior
 
-## Benefits Achieved
+The overlay loader (`tool/schema/overlay-loader.ts`) discovers overlays by:
 
-✅ **Cohesion**: Everything for an overlay in one place  
-✅ **No Merge Conflicts**: No central bottleneck file  
-✅ **Portability**: Overlays are self-contained (copy folder = copy overlay)  
-✅ **Easier Maintenance**: Single edit point per overlay  
-✅ **Better Discoverability**: `ls overlays/` shows what's available  
-✅ **Simpler Authoring**: No "register in index.yml" step  
-✅ **Dynamic Loading**: Automatic discovery of new overlays  
+1. Scanning `overlays/` directory for subdirectories
+2. Loading `overlay.yml` from each directory
+3. Validating manifest structure and fields
+4. Grouping overlays by category
+5. Loading base images/templates from `.registry/` files
+6. Loading preset metadata from `overlays/presets/*.yml`
 
-## Testing Results
+### Discovery Process
 
-All tests pass:
-- ✅ overlay-loader.test.ts (14 tests) - New loader functionality
-- ✅ dependency-resolution.test.ts (11 tests) - Dependency algorithm
-- ✅ composition.test.ts (7 tests) - Overlay composition
-- ✅ presets.test.ts (5 tests) - Preset expansion
-- ✅ manifest-regeneration.test.ts (4 tests) - Manifest generation
+```typescript
+// Automatic discovery - no registration needed
+const manifests = loadOverlayManifests(overlaysDir);
+const config = buildOverlaysConfigFromManifests(overlaysDir);
+```
 
-**Total: 41/41 tests passing**
+The loader:
+- Skips directories starting with `.` (e.g., `.registry`)
+- Validates `id` matches directory name
+- Sets default empty arrays for optional fields
+- Warns about invalid or malformed manifests
 
-## Files Created
+### Preset Handling
 
-### Manifest Files (46)
-- `overlays/*/overlay.yml` - Individual overlay manifests
+Presets are meta-overlays defined in `overlays/presets/*.yml`. Each preset file contains:
+- Metadata (id, name, description, tags, supports)
+- Selection rules (required overlays, user choices)
+- Glue configuration (environment variables, port mappings, README content)
 
-### Registry Files
-- `overlays/.registry/base-images.yml`
-- `overlays/.registry/base-templates.yml`
-- `overlays/.registry/README.md`
+The loader reads preset metadata separately and populates `preset_overlays` in the config.
 
-### Schema Files
-- `tool/schema/overlay-manifest.schema.json`
-- `tool/schema/base-images.schema.json`
-- `tool/schema/base-templates.schema.json`
+### Backward Compatibility
 
-### Loader and Tests
-- `tool/schema/overlay-loader.ts` - Automatic discovery and loading
-- `tool/__tests__/overlay-loader.test.ts` - Comprehensive test suite
+The loader supports both approaches:
+1. **Preferred**: Loads from individual manifests (checks for `.registry/` directory)
+2. **Fallback**: Loads from `overlays/index.yml` if present and `.registry/` absent
 
-### Migration Tool
-- `scripts/migrate-to-manifests.ts` - One-time migration script
+This allows smooth migration and testing without breaking existing setups.
 
-### Documentation
-- `overlays/README-ARCHIVED.md` - Migration documentation
+## Creating an Overlay
 
-## Files Modified
-
-- `scripts/init.ts` - Use new loader
-- `tool/questionnaire/composer.ts` - Use new loader
-- `tool/__tests__/dependency-resolution.test.ts` - Use new loader
-- `.github/instructions/overlay-authoring.instructions.md` - Document overlay.yml
-- `.github/instructions/overlay-index.instructions.md` - Per-overlay focus
-- `AGENTS.md` - Updated architecture documentation
-
-## Files Archived
-
-- `overlays/index.yml` → `overlays/index.yml.archived`
-
-## Usage
-
-### Adding a New Overlay
-
-**Before (old way):**
-1. Create overlay directory
-2. Add overlay files
-3. Register in overlays/index.yml (easy to forget!)
-
-**After (new way):**
-1. Create overlay directory
-2. Add overlay files including overlay.yml
-3. Done! (automatic discovery)
-
-### Example: Creating a New Overlay
+### Step 1: Create Directory
 
 ```bash
 mkdir -p overlays/my-overlay
 ```
 
+### Step 2: Create Manifest
+
 Create `overlays/my-overlay/overlay.yml`:
+
 ```yaml
 id: my-overlay
 name: My Overlay
@@ -185,22 +133,26 @@ tags:
 ports: []
 ```
 
-No registration needed! The loader automatically discovers it.
+### Step 3: Add Implementation Files
 
-## Backward Compatibility
+- `devcontainer.patch.json` - DevContainer configuration patches
+- `README.md` - Documentation
+- Other files as needed (setup.sh, docker-compose.yml, etc.)
 
-The loader supports both approaches:
-1. **Preferred**: Loads from individual manifests (checks for `.registry/` directory)
-2. **Fallback**: Loads from `overlays/index.yml` if present
+### Step 4: Test
 
-This allows for:
-- Smooth transition period
-- Testing of new approach
-- Potential rollback if needed
+```bash
+npm run build
+npm run init -- --stack compose --language my-overlay
+```
 
-## Migration Path
+**No registration step needed!** The loader automatically discovers the new overlay.
 
-To migrate an old repository:
+## Migration from Central index.yml
+
+For repositories still using the centralized `overlays/index.yml`:
+
+### Using the Migration Tool
 
 ```bash
 # Run migration script
@@ -217,23 +169,40 @@ npm test
 mv overlays/index.yml overlays/index.yml.archived
 ```
 
-## Future Enhancements
+The migration tool:
+- Splits central index.yml into individual manifests
+- Creates `.registry/` directory with base images/templates
+- Validates bidirectional conflicts
+- Checks ID-directory name matching
+- Verifies port consistency
 
-Potential improvements enabled by this refactoring:
-- External overlay repositories (download and use overlays from other repos)
-- Overlay marketplace/discovery
-- Automated validation of overlay manifests in CI
-- Version constraints between overlays
-- Overlay templates/generators
+## Benefits
 
-## Conclusion
+- **Cohesion**: Overlay metadata colocated with implementation
+- **No Merge Conflicts**: No central file bottleneck
+- **Portability**: Copy directory = copy overlay
+- **Discovery**: Automatic scanning, no registration
+- **Parallelization**: Multiple developers can work independently
+- **Maintainability**: Single edit point per overlay
 
-The refactoring successfully addressed all identified problems while maintaining 100% test coverage. The new structure is more maintainable, scalable, and user-friendly. All overlays are now self-contained, making the system more modular and easier to extend.
+## Validation
+
+Manifests are validated at runtime:
+- Required fields presence
+- ID matches directory name
+- Array fields are actual arrays
+- Bidirectional conflicts
+- Port consistency with devcontainer.patch.json
+
+For stricter validation, JSON schemas are available:
+- `tool/schema/overlay-manifest.schema.json`
+- `tool/schema/base-images.schema.json`
+- `tool/schema/base-templates.schema.json`
 
 ## References
 
-- **Issue**: Refactor overlay metadata to per-overlay manifests
-- **Migration Script**: `scripts/migrate-to-manifests.ts`
 - **Loader**: `tool/schema/overlay-loader.ts`
 - **Tests**: `tool/__tests__/overlay-loader.test.ts`
-- **Documentation**: `.github/instructions/overlay-*.instructions.md`
+- **Schemas**: `tool/schema/*.schema.json`
+- **Instructions**: `.github/instructions/overlay-*.instructions.md`
+- **Archive**: `docs/overlay-metadata-archive.md` (old index.yml reference)

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { loadOverlaysConfig, loadOverlayManifest, loadOverlayManifests, loadBaseImages, loadBaseTemplates } from '../schema/overlay-loader.js';
@@ -46,11 +46,14 @@ describe('Overlay Loader', () => {
     it('should load all overlay manifests from directory', () => {
       const manifests = loadOverlayManifests(OVERLAYS_DIR);
       
-      expect(manifests.size).toBeGreaterThan(40); // We have 46+ overlays
+      // Test for known overlays rather than hard-coded count
+      expect(manifests.size).toBeGreaterThan(0);
       expect(manifests.has('nodejs')).toBe(true);
       expect(manifests.has('python')).toBe(true);
       expect(manifests.has('postgres')).toBe(true);
       expect(manifests.has('redis')).toBe(true);
+      expect(manifests.has('dotnet')).toBe(true);
+      expect(manifests.has('grafana')).toBe(true);
     });
     
     it('should skip .registry and presets directories', () => {
@@ -111,6 +114,21 @@ describe('Overlay Loader', () => {
       expect(config.observability_overlays.length).toBeGreaterThan(0);
       expect(config.cloud_tool_overlays.length).toBeGreaterThan(0);
       expect(config.dev_tool_overlays.length).toBeGreaterThan(0);
+      expect(config.preset_overlays?.length).toBeGreaterThan(0);
+    });
+    
+    it('should load preset metadata', () => {
+      const config = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+      
+      expect(config.preset_overlays).toBeDefined();
+      expect(config.preset_overlays!.length).toBeGreaterThan(0);
+      
+      // Check that presets have expected structure
+      const preset = config.preset_overlays!.find(p => p.id === 'web-api');
+      expect(preset).toBeDefined();
+      expect(preset?.name).toBeTruthy();
+      expect(preset?.description).toBeTruthy();
+      expect(preset?.category).toBe('preset');
     });
     
     it('should correctly categorize overlays', () => {
