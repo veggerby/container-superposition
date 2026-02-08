@@ -7,9 +7,9 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
-import { select, checkbox, input } from '@inquirer/prompts';
+import { select, checkbox, input, confirm } from '@inquirer/prompts';
 import yaml from 'js-yaml';
-import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, DatabaseOverlay, CloudTool, DevTool, ObservabilityTool } from '../tool/schema/types.js';
+import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, DatabaseOverlay, CloudTool, DevTool, ObservabilityTool, SuperpositionManifest, DevContainer } from '../tool/schema/types.js';
 import { composeDevContainer } from '../tool/questionnaire/composer.js';
 
 // Get __dirname equivalent in ESM
@@ -149,6 +149,196 @@ async function expandPreset(
 }
 
 /**
+ * Search for manifest file in multiple locations
+ */
+function findManifestFile(manifestPath?: string): string | null {
+  const searchPaths: string[] = [];
+  
+  if (manifestPath) {
+    // If path specified, use it directly
+    searchPaths.push(manifestPath);
+  } else {
+    // Search in common locations
+    searchPaths.push(
+      'superposition.json',
+      '.devcontainer/superposition.json',
+      '../superposition.json',
+      path.join(process.cwd(), 'superposition.json'),
+      path.join(process.cwd(), '.devcontainer', 'superposition.json')
+    );
+  }
+  
+  for (const searchPath of searchPaths) {
+    const resolvedPath = path.resolve(searchPath);
+    if (fs.existsSync(resolvedPath)) {
+      return resolvedPath;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Load and validate manifest file
+ */
+function loadManifest(manifestPath: string): SuperpositionManifest | null {
+  try {
+    const content = fs.readFileSync(manifestPath, 'utf-8');
+    const manifest = JSON.parse(content) as SuperpositionManifest;
+    
+    // Basic validation
+    if (!manifest.version || !manifest.baseTemplate) {
+      console.error(chalk.red('✗ Invalid manifest format: missing required fields (version, baseTemplate)'));
+      return null;
+    }
+    
+    if (!Array.isArray(manifest.overlays)) {
+      console.error(chalk.red('✗ Invalid manifest format: "overlays" must be an array'));
+      return null;
+    }
+    
+    if (!manifest.overlays.every((overlay) => typeof overlay === 'string')) {
+      console.error(chalk.red('✗ Invalid manifest format: all "overlays" entries must be strings'));
+      return null;
+    }
+    
+    // Version check (warn if different, but continue)
+    if (manifest.version !== '0.1.0') {
+      console.warn(chalk.yellow(`⚠️  Manifest version ${manifest.version} may not be fully compatible with this tool`));
+    }
+    
+    return manifest;
+  } catch (error) {
+    console.error(chalk.red(`✗ Failed to load manifest: ${error instanceof Error ? error.message : String(error)}`));
+    return null;
+  }
+}
+
+/**
+ * Create timestamped backup of existing devcontainer and manifest
+ */
+async function createBackup(outputPath: string, backupDir?: string): Promise<string | null> {
+  // Check for devcontainer files to backup
+  const devcontainerJsonPath = path.join(outputPath, 'devcontainer.json');
+  const dockerComposePath = path.join(outputPath, 'docker-compose.yml');
+  const devcontainerSubdir = path.join(outputPath, '.devcontainer');
+  const manifestPath = path.join(outputPath, 'superposition.json');
+  
+  // Determine what exists
+  const hasDevcontainerJson = fs.existsSync(devcontainerJsonPath);
+  const hasDockerCompose = fs.existsSync(dockerComposePath);
+  const hasDevcontainerSubdir = fs.existsSync(devcontainerSubdir) && fs.statSync(devcontainerSubdir).isDirectory();
+  const hasManifest = fs.existsSync(manifestPath);
+  
+  if (!hasDevcontainerJson && !hasDockerCompose && !hasDevcontainerSubdir && !hasManifest) {
+    return null; // Nothing to backup
+  }
+  
+  // Create timestamp
+  const timestamp = new Date().toISOString()
+    .replace(/:/g, '-')
+    .replace(/\..+/, '')
+    .replace('T', '-');
+  
+  // Determine backup location - create next to outputPath, not inside it
+  const resolvedOutputPath = path.resolve(outputPath);
+  const outputParentDir = path.dirname(resolvedOutputPath);
+  const outputBaseName = path.basename(resolvedOutputPath);
+  const backupBaseName = outputBaseName === '.devcontainer' ? '.devcontainer' : outputBaseName;
+  const backupPath = backupDir 
+    ? path.resolve(backupDir)
+    : path.join(outputParentDir, `${backupBaseName}.backup-${timestamp}`);
+  
+  // Create backup directory
+  fs.mkdirSync(backupPath, { recursive: true });
+  
+  // Backup files and directories
+  if (hasDevcontainerJson) {
+    fs.copyFileSync(devcontainerJsonPath, path.join(backupPath, 'devcontainer.json'));
+  }
+  
+  if (hasDockerCompose) {
+    fs.copyFileSync(dockerComposePath, path.join(backupPath, 'docker-compose.yml'));
+  }
+  
+  if (hasDevcontainerSubdir) {
+    const destDir = path.join(backupPath, '.devcontainer');
+    await copyDirectory(devcontainerSubdir, destDir);
+  }
+  
+  if (hasManifest) {
+    fs.copyFileSync(manifestPath, path.join(backupPath, 'superposition.json'));
+  }
+  
+  // Also backup other common devcontainer files
+  const otherFiles = ['.env', '.env.example', '.gitignore', 'features', 'scripts'];
+  for (const file of otherFiles) {
+    const srcPath = path.join(outputPath, file);
+    if (fs.existsSync(srcPath)) {
+      const destPath = path.join(backupPath, file);
+      if (fs.statSync(srcPath).isDirectory()) {
+        await copyDirectory(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+  
+  return backupPath;
+}
+
+/**
+ * Recursively copy directory
+ */
+async function copyDirectory(src: string, dest: string): Promise<void> {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    
+    if (entry.isDirectory()) {
+      await copyDirectory(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+/**
+ * Ensure backup patterns are in .gitignore
+ */
+async function ensureBackupPatternsInGitignore(outputPath: string): Promise<void> {
+  // Write to the parent directory's .gitignore (project root), not inside outputPath
+  const resolvedOutputPath = path.resolve(outputPath);
+  const projectRoot = path.dirname(resolvedOutputPath);
+  const gitignorePath = path.join(projectRoot, '.gitignore');
+  
+  const backupPatterns = [
+    '',
+    '# Container Superposition backups',
+    '.devcontainer.backup-*/',
+    '*.backup-*',
+    'superposition.json.backup-*'
+  ].join('\n');
+  
+  if (!fs.existsSync(gitignorePath)) {
+    // Create new .gitignore with backup patterns
+    await fs.promises.writeFile(gitignorePath, backupPatterns + '\n');
+    console.log(chalk.dim('   📝 Created .gitignore with backup patterns'));
+  } else {
+    // Check if patterns already exist
+    const content = await fs.promises.readFile(gitignorePath, 'utf-8');
+    if (!content.includes('Container Superposition backups')) {
+      // Append patterns
+      await fs.promises.appendFile(gitignorePath, '\n' + backupPatterns + '\n');
+      console.log(chalk.dim('   📝 Updated .gitignore with backup patterns'));
+    }
+  }
+}
+
+/**
  * Build checkbox choices for overlay selection with optional pre-selection
  */
 function buildOverlayChoices(
@@ -189,13 +379,13 @@ function buildOverlayChoices(
 /**
  * Interactive questionnaire with modern checkbox selections
  */
-async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
+async function runQuestionnaire(manifest?: SuperpositionManifest): Promise<QuestionnaireAnswers> {
   const config = loadOverlaysConfig();
 
   // Pretty banner
   console.log('\n' + boxen(
     chalk.bold.cyan('Container Superposition') + '\n' +
-    chalk.gray('DevContainer Initializer'),
+    chalk.gray(manifest ? 'DevContainer Regenerator' : 'DevContainer Initializer'),
     {
       padding: 1,
       margin: 1,
@@ -205,18 +395,33 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
     }
   ));
   
+  if (manifest) {
+    console.log(chalk.cyan('📋 Loaded from manifest:'));
+    console.log(chalk.dim(`   Template: ${manifest.baseTemplate}`));
+    console.log(chalk.dim(`   Overlays: ${manifest.overlays.join(', ')}`));
+    if (manifest.preset) {
+      console.log(chalk.dim(`   Preset: ${manifest.preset}`));
+    }
+    if (manifest.portOffset) {
+      console.log(chalk.dim(`   Port offset: ${manifest.portOffset}`));
+    }
+    console.log();
+  }
+  
   console.log(chalk.dim('Compose your ideal devcontainer from modular overlays.'));
   console.log(chalk.dim('Use ') + chalk.cyan('space') + chalk.dim(' to select, ') + chalk.cyan('enter') + chalk.dim(' to confirm.\n'));
 
   try {
     // Question 0: Optional preset selection
     let usePreset = false;
-    let selectedPresetId: string | undefined;
-    let presetChoices: Record<string, string> = {};
+    let selectedPresetId: string | undefined = manifest?.preset;
+    let presetChoices: Record<string, string> = manifest?.presetChoices || {};
     let presetGlueConfig: PresetDefinition['glueConfig'] | undefined;
     let presetOverlays: string[] = [];
 
     if (config.preset_overlays && config.preset_overlays.length > 0) {
+      const defaultPreset = manifest?.preset || 'custom';
+      
       const presetChoice = await select({
         message: 'Start from a preset or build custom?',
         choices: [
@@ -230,7 +435,8 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
             value: p.id,
             description: p.description
           }))
-        ]
+        ],
+        default: defaultPreset
       }) as string;
 
       if (presetChoice !== 'custom') {
@@ -246,7 +452,8 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
         name: t.name,
         value: t.id,
         description: t.description
-      }))
+      })),
+      default: manifest?.baseTemplate
     }) as Stack;
 
     // If using preset, expand it now
@@ -347,6 +554,50 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
         // Use preset selection as-is
         userSelection = presetOverlays;
       }
+    } else if (manifest) {
+      // Manifest mode: Pre-select overlays from manifest
+      console.log(chalk.cyan(`\n✓ Manifest includes these overlays: ${manifest.overlays.join(', ')}\n`));
+      
+      const customizeManifest = await select({
+        message: 'Do you want to customize the overlay selection?',
+        choices: [
+          { name: 'Use manifest as-is', value: 'no', description: 'Keep the manifest overlay selection' },
+          { name: 'Customize selection', value: 'yes', description: 'Add or remove overlays from the manifest' }
+        ]
+      }) as string;
+
+      if (customizeManifest === 'yes') {
+        // Show overlay selection with manifest overlays pre-selected
+        console.log(chalk.dim('\n💡 Select overlays: Space to toggle, ↑/↓ to navigate, Enter to confirm'));
+        console.log(chalk.dim('   Manifest overlays are pre-selected\n'));
+        
+        // Filter out overlays that don't exist anymore
+        const existingOverlays = manifest.overlays.filter(id => allOverlaysMap.has(id));
+        const missingOverlays = manifest.overlays.filter(id => !allOverlaysMap.has(id));
+        
+        if (missingOverlays.length > 0) {
+          console.log(chalk.yellow(`⚠️  Warning: Some overlays from manifest no longer exist: ${missingOverlays.join(', ')}\n`));
+        }
+        
+        const choices = buildOverlayChoices(config, stack, categoryList, existingOverlays);
+        
+        userSelection = await checkbox({
+          message: 'Select overlays to include:',
+          choices,
+          pageSize: 15,
+          loop: false
+        });
+      } else {
+        // Use manifest selection as-is (filtering out missing overlays)
+        const existingOverlays = manifest.overlays.filter(id => allOverlaysMap.has(id));
+        const missingOverlays = manifest.overlays.filter(id => !allOverlaysMap.has(id));
+        
+        if (missingOverlays.length > 0) {
+          console.log(chalk.yellow(`⚠️  Warning: Some overlays from manifest no longer exist and will be skipped: ${missingOverlays.join(', ')}\n`));
+        }
+        
+        userSelection = existingOverlays;
+      }
     } else {
       // Custom mode: Normal overlay selection
       console.log(chalk.dim('\n💡 Select overlays: Space to toggle, ↑/↓ to navigate, Enter to confirm\n'));
@@ -439,13 +690,13 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
     // Question 4: Output path
     const outputPath = await input({
       message: 'Output path:',
-      default: './.devcontainer'
+      default: manifest?.outputPath || './.devcontainer'
     });
 
     // Question 5: Port offset (optional, for running multiple instances)
     const portOffsetInput = await input({
       message: 'Port offset (leave empty for default ports, e.g., 100 to avoid conflicts):',
-      default: ''
+      default: manifest?.portOffset ? String(manifest.portOffset) : ''
     });
     const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
 
@@ -501,13 +752,17 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
 /**
  * Parse CLI arguments
  */
-async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
+async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; manifestPath?: string; noBackup?: boolean; backupDir?: string; yes?: boolean } | null> {
   const program = new Command();
   
   program
     .name('container-superposition')
     .description('Initialize a devcontainer with guided questions or CLI flags')
     .version('0.1.0')
+    .option('--from-manifest <path>', 'Load configuration from existing superposition.json manifest')
+    .option('--yes', 'Skip confirmation prompts (non-interactive regeneration)')
+    .option('--no-backup', 'Skip creating backup before regeneration')
+    .option('--backup-dir <path>', 'Custom backup directory location')
     .option('--stack <type>', 'Base template: plain, compose')
     .option('--language <list>', 'Comma-separated language overlays: dotnet, nodejs, python, mkdocs, java, go, rust, bun, powershell')
     .option('--database <list>', 'Comma-separated database overlays: postgres, redis, mongodb, mysql, sqlserver, sqlite, minio, rabbitmq, redpanda, nats')
@@ -550,29 +805,113 @@ async function parseCliArgs(): Promise<Partial<QuestionnaireAnswers> | null> {
   }
   if (options.output) config.outputPath = options.output;
 
-  return config;
+  return {
+    config,
+    manifestPath: options.fromManifest,
+    noBackup: options.backup === false, // Commander creates options.backup = false for --no-backup
+    backupDir: options.backupDir,
+    yes: options.yes
+  };
 }
 
 async function main() {
   try {
-    const cliConfig = await parseCliArgs();
+    const cliArgs = await parseCliArgs();
+    
+    let manifest: SuperpositionManifest | undefined;
+    let shouldBackup = true;
+    let backupDir: string | undefined;
+    let skipConfirmation = false;
+    
+    // Handle manifest loading
+    if (cliArgs?.manifestPath || (cliArgs && Object.keys(cliArgs.config).length === 0 && cliArgs.manifestPath !== undefined)) {
+      const manifestPath = findManifestFile(cliArgs?.manifestPath);
+      
+      if (!manifestPath) {
+        console.error(chalk.red('✗ Could not find manifest file'));
+        if (cliArgs?.manifestPath) {
+          console.error(chalk.red(`  Searched for: ${cliArgs.manifestPath}`));
+        } else {
+          console.error(chalk.red('  Searched in: superposition.json, .devcontainer/superposition.json, ../superposition.json'));
+        }
+        process.exit(1);
+      }
+      
+      const loadedManifest = loadManifest(manifestPath);
+      if (!loadedManifest) {
+        process.exit(1);
+      }
+      
+      manifest = loadedManifest;
+      
+      // Check for backup options
+      if (cliArgs?.noBackup) {
+        shouldBackup = false;
+      }
+      if (cliArgs?.backupDir) {
+        backupDir = cliArgs.backupDir;
+      }
+      if (cliArgs?.yes) {
+        skipConfirmation = true;
+      }
+      
+      // Show manifest summary and get confirmation
+      if (!skipConfirmation) {
+        console.log('\n' + boxen(
+          chalk.bold.cyan('Regenerate from Manifest\n\n') +
+          chalk.white('Loaded configuration:\n') +
+          chalk.gray(`  Template: ${manifest.baseTemplate}\n`) +
+          chalk.gray(`  Overlays: ${manifest.overlays.join(', ')}\n`) +
+          (manifest.preset ? chalk.gray(`  Preset: ${manifest.preset}\n`) : '') +
+          (manifest.portOffset ? chalk.gray(`  Port offset: ${manifest.portOffset}\n`) : '') +
+          '\n' +
+          chalk.white('Actions:\n') +
+          (shouldBackup ? chalk.gray(`  - Backup current .devcontainer/ to timestamped folder\n`) : chalk.yellow('  - Skip backup (--no-backup)\n')) +
+          chalk.gray('  - Regenerate devcontainer with selections from questionnaire'),
+          { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
+        ));
+        
+        const proceed = await confirm({
+          message: 'Continue with regeneration?',
+          default: false
+        });
+        
+        if (!proceed) {
+          console.log(chalk.yellow('\nCancelled by user'));
+          process.exit(0);
+        }
+      }
+      
+      // Create backup if requested
+      if (shouldBackup) {
+        const outputPath = manifest.outputPath || '.';
+        const backupPath = await createBackup(outputPath, backupDir);
+        
+        if (backupPath) {
+          console.log(chalk.green(`\n✓ Backup created: ${backupPath}`));
+        }
+      }
+      
+      // Ensure .gitignore has backup patterns
+      await ensureBackupPatternsInGitignore(manifest.outputPath || '.');
+    }
     
     let answers: QuestionnaireAnswers;
     
-    if (cliConfig && cliConfig.stack) {
+    if (cliArgs && cliArgs.config.stack) {
       // Non-interactive mode
       answers = {
-        stack: cliConfig.stack,
+        stack: cliArgs.config.stack,
         baseImage: 'bookworm', // Default to bookworm in non-interactive mode
-        language: cliConfig.language,
-        needsDocker: cliConfig.stack === 'compose',
-        database: cliConfig.database ?? [],
-        playwright: cliConfig.playwright ?? false,
-        cloudTools: cliConfig.cloudTools ?? [],
-        devTools: cliConfig.devTools ?? [],
-        observability: cliConfig.observability ?? [],
-        outputPath: cliConfig.outputPath ?? './.devcontainer',
-        portOffset: cliConfig.portOffset,
+        language: cliArgs.config.language,
+        needsDocker: cliArgs.config.stack === 'compose',
+        database: cliArgs.config.database ?? [],
+        playwright: cliArgs.config.playwright ?? false,
+        cloudTools: cliArgs.config.cloudTools ?? [],
+        devTools: cliArgs.config.devTools ?? [],
+        observability: cliArgs.config.observability ?? [],
+        outputPath: cliArgs.config.outputPath ?? manifest?.outputPath ?? './.devcontainer',
+        portOffset: cliArgs.config.portOffset ?? manifest?.portOffset,
       };
       
       console.log('\n' + boxen(
@@ -580,8 +919,8 @@ async function main() {
         { padding: 0.5, borderColor: 'blue', borderStyle: 'round' }
       ));
     } else {
-      // Interactive mode
-      answers = await runQuestionnaire();
+      // Interactive mode (with optional manifest pre-population)
+      answers = await runQuestionnaire(manifest);
     }
 
     // Show configuration summary

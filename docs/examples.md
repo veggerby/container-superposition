@@ -360,3 +360,191 @@ REDIS_PORT=6379
 ```
 
 Copy `.env.example` to `.env` and customize for your needs.
+
+## Manifest Regeneration Examples
+
+Every generation creates a `superposition.json` manifest file that records your configuration. Use it to iterate on your setup, update to latest versions, or experiment safely.
+
+### Basic Workflow: Iterating on Configuration
+
+```bash
+# 1. Initial setup - Start simple
+npm run init -- --stack compose --language nodejs --database postgres
+# Creates .devcontainer/ and superposition.json
+
+# 2. Verify it works
+code . 
+# Dev Containers: Reopen in Container
+
+# 3. Later: Add Redis and observability
+npm run init -- --from-manifest ./superposition.json
+# Questionnaire appears with nodejs and postgres already selected
+# Add: redis, otel-collector, prometheus, grafana
+# Original .devcontainer/ automatically backed up to .devcontainer.backup-{timestamp}/
+```
+
+**What happens:**
+- Previous selections (nodejs, postgres) pre-selected in questionnaire
+- You modify the selection (add redis, observability tools)
+- Original devcontainer backed up with timestamp
+- New devcontainer generated with updated selections
+- New superposition.json reflects current configuration
+
+### Non-Interactive Regeneration
+
+Regenerate exact same setup (useful for updating to latest overlay versions):
+
+```bash
+# Regenerate with exact same selections, skip confirmation, no backup
+npm run init -- --from-manifest ./superposition.json --yes --no-backup
+```
+
+**Use cases:**
+- **CI/CD**: Regenerate template from manifest in pipeline
+- **Updates**: Get latest overlay versions without manual re-selection
+- **Testing**: Quickly regenerate after overlay changes
+
+### Switching Languages
+
+```bash
+# Started with Node.js
+npm run init -- --stack compose --language nodejs --database postgres
+
+# Switch to Python
+npm run init -- --from-manifest ./superposition.json
+# In questionnaire:
+#   - Deselect nodejs
+#   - Select python
+#   - Keep postgres (already selected)
+# Regenerate
+```
+
+### Adding Observability to Existing Setup
+
+```bash
+# Initial minimal setup
+npm run init -- --stack compose --language dotnet --database postgres,redis
+
+# Add full observability stack
+npm run init -- --from-manifest ./superposition.json
+# Add: otel-collector, jaeger, prometheus, grafana, loki
+# All existing selections preserved
+```
+
+### Team Workflow: Sharing Configurations
+
+```bash
+# Developer 1: Create and commit manifest
+npm run init -- --stack compose --language nodejs --database postgres --observability prometheus,grafana
+git add superposition.json .devcontainer/
+git commit -m "Add devcontainer configuration"
+git push
+
+# Developer 2: Clone and regenerate from manifest
+git clone <repo>
+npm install
+npm run init -- --from-manifest ./superposition.json --yes
+# Gets exact same devcontainer setup
+```
+
+### Custom Backup Location
+
+```bash
+# Backup to custom directory
+npm run init -- --from-manifest ./superposition.json --backup-dir ../backups/
+# Creates backup in ../backups/.devcontainer.backup-{timestamp}/
+```
+
+### Manifest Fields Preserved
+
+The manifest stores and restores:
+
+```json
+{
+  "version": "0.1.0",
+  "generated": "2026-02-08T10:00:00Z",
+  "baseTemplate": "compose",
+  "baseImage": "bookworm",
+  "overlays": ["nodejs", "postgres", "redis"],
+  "portOffset": 100,
+  "preset": "web-api",
+  "presetChoices": { "language": "nodejs" },
+  "containerName": "My API Project",
+  "outputPath": "./.devcontainer"
+}
+```
+
+**Preserved on regeneration:**
+- Base template selection (plain/compose)
+- Base image selection
+- All overlay selections
+- Port offset
+- Preset (if used) and preset choices
+- Container name (from devcontainer.json)
+- Output path
+
+### Edge Cases Handled
+
+**Missing overlays:**
+```bash
+# If manifest references overlays that no longer exist
+npm run init -- --from-manifest ./superposition.json
+# ⚠️  Warning: Some overlays from manifest no longer exist: old-overlay
+# Continues with remaining valid overlays
+```
+
+**Version mismatch:**
+```bash
+# If manifest version differs
+npm run init -- --from-manifest ./old-manifest.json
+# ⚠️  Manifest version 0.0.5 may not be fully compatible with this tool
+# Continues using manifest as-is
+```
+
+### Backup Management
+
+**Default behavior:**
+```bash
+npm run init -- --from-manifest ./superposition.json
+# Creates: .devcontainer.backup-2026-02-08-143022/
+# Contains: devcontainer.json, docker-compose.yml, all scripts, features, etc.
+```
+
+**Backup patterns automatically added to project root `.gitignore`:**
+```gitignore
+# Container Superposition backups
+.devcontainer.backup-*/
+*.backup-*
+superposition.json.backup-*
+```
+
+**Restore from backup:**
+```bash
+# If regeneration didn't work as expected, restore from backup
+rm -rf .devcontainer
+mv .devcontainer.backup-2026-02-08-143022 .devcontainer
+# Or cherry-pick specific files from backup
+cp .devcontainer.backup-2026-02-08-143022/devcontainer.json .devcontainer/
+```
+
+### Advanced: Multiple Environments
+
+```bash
+# Development environment
+npm run init -- --stack compose --language nodejs --database postgres --output ./dev
+mv dev/superposition.json dev-superposition.json
+
+# Staging environment (more observability)
+npm run init -- --from-manifest ./dev-superposition.json --output ./staging
+# Add: otel-collector, jaeger, prometheus, grafana
+mv staging/superposition.json staging-superposition.json
+
+# Production environment (full stack)
+npm run init -- --from-manifest ./staging-superposition.json --output ./prod
+# Add: loki, redis for caching
+mv prod/superposition.json prod-superposition.json
+
+# Now you have three manifests for different environments
+# Regenerate any environment from its manifest
+npm run init -- --from-manifest ./dev-superposition.json --yes --output ./dev
+```
