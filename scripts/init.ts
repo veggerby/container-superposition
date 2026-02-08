@@ -750,7 +750,7 @@ async function runQuestionnaire(manifest?: SuperpositionManifest, manifestDir?: 
 /**
  * Parse CLI arguments
  */
-async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; manifestPath?: string; noBackup?: boolean; backupDir?: string; yes?: boolean } | null> {
+async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; manifestPath?: string; noBackup?: boolean; backupDir?: string; yes?: boolean; noInteractive?: boolean } | null> {
   const program = new Command();
 
   program
@@ -759,6 +759,7 @@ async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; 
     .version('0.1.0')
     .option('--from-manifest <path>', 'Load configuration from existing superposition.json manifest')
     .option('--yes', 'Skip confirmation prompts (non-interactive regeneration)')
+    .option('--no-interactive', 'Use manifest values directly without questionnaire (requires --from-manifest)')
     .option('--no-backup', 'Skip creating backup before regeneration')
     .option('--backup-dir <path>', 'Custom backup directory location')
     .option('--stack <type>', 'Base template: plain, compose')
@@ -808,7 +809,8 @@ async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; 
     manifestPath: options.fromManifest,
     noBackup: options.backup === false, // Commander creates options.backup = false for --no-backup
     backupDir: options.backupDir,
-    yes: options.yes
+    yes: options.yes,
+    noInteractive: options.interactive === false // Commander creates options.interactive = false for --no-interactive
   };
 }
 
@@ -821,6 +823,7 @@ async function main() {
     let shouldBackup = true;
     let backupDir: string | undefined;
     let skipConfirmation = false;
+    let useManifestOnly = false;
 
     // Handle manifest loading
     if (cliArgs?.manifestPath || (cliArgs && Object.keys(cliArgs.config).length === 0 && cliArgs.manifestPath !== undefined)) {
@@ -855,6 +858,10 @@ async function main() {
       }
       if (cliArgs?.yes) {
         skipConfirmation = true;
+      }
+      if (cliArgs?.noInteractive) {
+        useManifestOnly = true;
+        skipConfirmation = true; // Also skip confirmation when using manifest only
       }
 
       // Show manifest summary and get confirmation
@@ -907,7 +914,67 @@ async function main() {
 
     let answers: QuestionnaireAnswers;
 
-    if (cliArgs && cliArgs.config.stack) {
+    if (useManifestOnly && manifest && manifestDir) {
+      // Use manifest values directly without questionnaire
+      const config = loadOverlaysConfigWrapper();
+
+      // Categorize overlays from manifest
+      const language = manifest.overlays.filter(o =>
+        config.language_overlays.some(l => l.id === o)
+      ) as LanguageOverlay[];
+
+      const database = manifest.overlays.filter(o =>
+        config.database_overlays.some(db => db.id === o)
+      ) as DatabaseOverlay[];
+
+      const observability = manifest.overlays.filter(o =>
+        config.observability_overlays.some(obs => obs.id === o)
+      ) as ObservabilityTool[];
+
+      const cloudTools = manifest.overlays.filter(o =>
+        config.cloud_tool_overlays.some(ct => ct.id === o)
+      ) as CloudTool[];
+
+      const devTools = manifest.overlays.filter(o =>
+        config.dev_tool_overlays.some(dt => dt.id === o)
+      ) as DevTool[];
+
+      const playwright = manifest.overlays.includes('playwright');
+
+      const resolvedOutputPath = manifest.outputPath
+        ? path.resolve(manifestDir, manifest.outputPath)
+        : manifestDir;
+
+      answers = {
+        stack: manifest.baseTemplate,
+        baseImage: manifest.baseImage as BaseImage,
+        containerName: manifest.containerName,
+        preset: manifest.preset,
+        presetChoices: manifest.presetChoices,
+        language,
+        needsDocker: manifest.baseTemplate === 'compose',
+        database,
+        playwright,
+        cloudTools,
+        devTools,
+        observability,
+        outputPath: resolvedOutputPath,
+        portOffset: manifest.portOffset
+      };
+
+      console.log('\n' + boxen(
+        chalk.bold.cyan('Regenerating from Manifest (No Interactive)\n\n') +
+        chalk.white('Configuration:\n') +
+        chalk.gray(`  Template: ${manifest.baseTemplate}\n`) +
+        chalk.gray(`  Base Image: ${manifest.baseImage}\n`) +
+        (manifest.containerName ? chalk.gray(`  Container: ${manifest.containerName}\n`) : '') +
+        chalk.gray(`  Overlays: ${manifest.overlays.join(', ')}\n`) +
+        (manifest.preset ? chalk.gray(`  Preset: ${manifest.preset}\n`) : '') +
+        (manifest.portOffset ? chalk.gray(`  Port offset: ${manifest.portOffset}\n`) : '') +
+        chalk.gray(`  Output: ${resolvedOutputPath}`),
+        { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
+      ));
+    } else if (cliArgs && cliArgs.config.stack) {
       // Non-interactive mode
       // Determine output path: CLI arg > manifest path (resolved to manifest dir) > default
       let resolvedOutputPath = './.devcontainer';

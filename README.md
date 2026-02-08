@@ -250,7 +250,12 @@ npm run init -- --from-manifest /path/to/project/superposition.json
 ```bash
 # Regenerate with exact same selections (useful for updates)
 npm run init -- --from-manifest ./superposition.json --yes --no-backup
+
+# Truly non-interactive: use manifest values directly without questionnaire
+npm run init -- --from-manifest ./superposition.json --no-interactive --no-backup
 ```
+
+> **Note:** The `--no-interactive` option skips the questionnaire entirely and uses all values from the manifest. This is perfect for CI/CD pipelines or when you want to ensure exact reproducibility.
 
 **Workflow examples:**
 
@@ -259,19 +264,21 @@ npm run init -- --from-manifest ./superposition.json --yes --no-backup
 npm run init -- --stack compose --language nodejs --database postgres
 # Creates .devcontainer/ and superposition.json
 
-# 2. Later: Add Redis and observability
+# 2. Later: Add Redis and observability (interactive)
 npm run init -- --from-manifest ./superposition.json
 # Questionnaire shows with nodejs and postgres pre-selected
 # Add redis, otel-collector, grafana
 # Original .devcontainer/ backed up automatically
 
-# 3. Switch languages (e.g., Node.js → Python)
+# 3. Update to latest overlay versions (non-interactive)
+npm run init -- --from-manifest ./superposition.json --no-interactive --no-backup
+# Uses exact manifest values, no questions asked
+# Perfect for CI/CD or ensuring reproducibility
+
+# 4. Switch languages (e.g., Node.js → Python)
 npm run init -- --from-manifest ./superposition.json
 # Change nodejs to python in questionnaire
 # Regenerate with new language
-
-# 4. Update to latest overlay versions (CI/CD)
-npm run init -- --from-manifest ./superposition.json --yes --no-backup
 ```
 
 **Backup behavior:**
