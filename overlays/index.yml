@@ -561,3 +561,32 @@ dev_tool_overlays:
     conflicts: []
     tags: [dev, tunneling, webhooks]
     ports: [4040]
+
+preset_overlays:
+  - id: web-api
+    name: Web API Stack
+    description: Complete REST/GraphQL API development with database, cache, and observability
+    category: preset
+    supports: [compose]
+    tags: [preset, api, web, backend, observability]
+    
+  - id: microservice
+    name: Microservice Stack
+    description: Microservices development with messaging, distributed tracing, and monitoring
+    category: preset
+    supports: [compose]
+    tags: [preset, microservice, messaging, distributed, tracing]
+    
+  - id: docs-site
+    name: Documentation Site
+    description: Documentation website development with MkDocs, quality checks, and deployment tools
+    category: preset
+    supports: []
+    tags: [preset, documentation, mkdocs, markdown]
+    
+  - id: fullstack
+    name: Full-Stack Application
+    description: Complete full-stack development with frontend, backend, databases, and observability
+    category: preset
+    supports: [compose]
+    tags: [preset, fullstack, frontend, backend, monorepo]

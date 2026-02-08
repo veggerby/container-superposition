@@ -18,22 +18,9 @@ MinIO S3-compatible object storage for local development and testing of cloud st
 This overlay adds MinIO as a Docker Compose service, providing a local S3-compatible object storage server. The service is accessible from your development container via the hostname `minio`.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - AWS SDK / mc client         │
-│   - Connects to minio:9000      │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   MinIO Container               │
-│   - API on port 9000            │
-│   - Console on port 9001        │
-│   - Data volume                 │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>AWS SDK / mc client<br/>Connects to minio:9000] -->|Docker network devnet| B[MinIO Container<br/>API on port 9000<br/>Console on port 9001<br/>Data volume]
 ```
 
 ## Configuration
@@ -257,7 +244,7 @@ async function downloadFile() {
     Bucket: 'my-bucket',
     Key: 'myfile.txt',
   }));
-  
+
   const stream = response.Body;
   const chunks = [];
   for await (const chunk of stream) {
@@ -375,7 +362,7 @@ import (
 
 func main() {
     ctx := context.Background()
-    
+
     // Initialize MinIO client
     minioClient, err := minio.New("minio:9000", &minio.Options{
         Creds:  credentials.NewStaticV4("minioadmin", "minioadmin", ""),
@@ -575,7 +562,7 @@ curl http://minio:9000/minio/v2/metrics/cluster
    ```bash
    # Set private bucket policy
    mc anonymous set none local/my-bucket
-   
+
    # Use IAM policies for fine-grained access
    mc admin policy create local mypolicy policy.json
    ```

@@ -16,22 +16,9 @@ Microsoft SQL Server 2022 for Linux - enterprise-grade relational database for .
 This overlay adds Microsoft SQL Server 2022 for Linux as a Docker Compose service. The database runs in its own container and is accessible from your development container via the hostname `sqlserver`.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - VS Code mssql extension     │
-│   - Connects to sqlserver:1433  │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   SQL Server Container          │
-│   - SQL Server 2022             │
-│   - Port 1433                   │
-│   - Data volume                 │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>VS Code mssql extension<br/>Connects to sqlserver:1433] -->|Docker network devnet| B[SQL Server Container<br/>SQL Server 2022<br/>Port 1433<br/>Data volume]
 ```
 
 ## Configuration
@@ -377,14 +364,14 @@ import (
 
 func main() {
     connString := "sqlserver://sa:YourStrong@Passw0rd@sqlserver:1433?database=MyApp&TrustServerCertificate=true"
-    
+
     db, _ := sql.Open("sqlserver", connString)
     defer db.Close()
 
     // Query
     rows, _ := db.Query("SELECT * FROM Users")
     defer rows.Close()
-    
+
     for rows.Next() {
         var name, email string
         rows.Scan(&name, &email)

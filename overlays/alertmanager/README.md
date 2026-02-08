@@ -17,29 +17,13 @@ Alert routing, grouping, and notification management for Prometheus alerts.
 Alertmanager receives alerts from Prometheus, groups them, applies routing rules, and sends notifications to configured receivers (email, Slack, webhook, etc.).
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Prometheus                    │
-│   - Evaluates alert rules       │
-│   - Sends alerts to AM          │
-└──────────────┬──────────────────┘
-               │
-               │ HTTP POST
-               │
-┌──────────────▼──────────────────┐
-│   Alertmanager                  │
-│   - Receives alerts             │
-│   - Groups similar alerts       │
-│   - Deduplicates                │
-│   - Applies routing rules       │
-│   - Sends to receivers          │
-│   - UI (http://localhost:9093)  │
-└──────────────┬──────────────────┘
-               │
-               ├─> Email
-               ├─> Slack
-               ├─> Webhook
-               └─> PagerDuty
+```mermaid
+graph TD
+    A[Prometheus<br/>Evaluates alert rules<br/>Sends alerts to AM] -->|HTTP POST| B[Alertmanager<br/>Receives alerts<br/>Groups similar alerts<br/>Deduplicates<br/>Applies routing rules<br/>Sends to receivers<br/>UI http://localhost:9093]
+    B --> C[Email]
+    B --> D[Slack]
+    B --> E[Webhook]
+    B --> F[PagerDuty]
 ```
 
 **Alert Flow:**
@@ -306,7 +290,7 @@ routes:
       severity: critical
     receiver: pagerduty
     group_interval: 1m
-  
+
   - match:
       severity: warning
     receiver: slack
@@ -324,7 +308,7 @@ inhibit_rules:
     target_match:
       alertname: 'ServiceDown'
     equal: ['cluster']
-  
+
   # Don't warn about high latency if service has errors
   - source_match:
       severity: 'critical'

@@ -13,8 +13,16 @@ Complete documentation for the container-superposition devcontainer scaffolding 
 ### Architecture & Design
 
 - **[Architecture](architecture.md)** - Design principles, composition algorithm, and deep merge logic
+- **[Presets Architecture](presets-architecture.md)** - Meta-overlay design and preset system architecture
 - **[Dependencies](dependencies.md)** - Service dependencies, startup order, and runServices configuration
 - **[UX Design](ux.md)** - Visual design, CLI enhancements, and accessibility features
+
+### User Guides
+
+- **[Presets Guide](presets.md)** - Using stack presets for common development scenarios
+- **[Messaging Comparison](messaging-comparison.md)** - Choosing between RabbitMQ, Redpanda, and NATS
+- **[Messaging Quick Start](messaging-quick-start.md)** - Getting started with messaging overlays
+- **[Observability Workflow](observability-workflow.md)** - Setting up monitoring and tracing
 
 ### Development
 
@@ -66,18 +74,23 @@ Located in `templates/`
 Composable capability modules organized by category:
 
 **Languages & Frameworks:**
+
 - dotnet, nodejs, python, mkdocs
 
 **Databases:**
+
 - postgres, redis
 
 **Observability:**
+
 - otel-collector, jaeger, prometheus, grafana, loki
 
 **Cloud Tools:**
+
 - aws-cli, azure-cli, kubectl-helm
 
 **Dev Tools:**
+
 - docker-in-docker, docker-sock, playwright, codex, git-helpers, pre-commit, commitlint, just, direnv, modern-cli-tools, ngrok
 
 Located in `tool/overlays/`
@@ -85,6 +98,7 @@ Located in `tool/overlays/`
 ### Composition
 
 The tool uses a deep merge strategy to combine:
+
 1. Base template
 2. Selected overlays (in category order)
 3. User preferences (port offsets, custom paths)
@@ -93,44 +107,19 @@ Output: Standard `.devcontainer/` folder with editable JSON/YAML files
 
 ## 🔧 Architecture Overview
 
-```
-┌─────────────────────┐
-│  User Input         │
-│  (CLI/Interactive)  │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Dependency         │
-│  Resolution         │
-│  (requires/suggests)│
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Conflict           │
-│  Detection          │
-│  (conflicts field)  │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Composition        │
-│  (Deep Merge)       │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Output             │
-│  .devcontainer/     │
-└─────────────────────┘
+```mermaid
+graph TD
+    A[User Input<br/>CLI/Interactive] --> B[Dependency Resolution<br/>requires/suggests]
+    B --> C[Conflict Detection<br/>conflicts field]
+    C --> D[Composition<br/>Deep Merge]
+    D --> E[Output<br/>.devcontainer/]
 ```
 
 ## 📁 Output Structure
 
 After running the tool:
 
-```
+```txt
 .devcontainer/
 ├── devcontainer.json              # Main configuration
 ├── docker-compose.yml             # Base compose file (if using compose)
@@ -225,6 +214,7 @@ When published to npm, includes:
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for:
+
 - Development setup
 - Code style guidelines
 - Pull request process
@@ -236,9 +226,9 @@ MIT - See [LICENSE](../LICENSE)
 
 ## 🔗 Links
 
-- **Repository**: https://github.com/veggerby/container-superposition
-- **Issues**: https://github.com/veggerby/container-superposition/issues
-- **npm Package**: https://www.npmjs.com/package/container-superposition (once published)
+- **Repository**: <https://github.com/veggerby/container-superposition>
+- **Issues**: <https://github.com/veggerby/container-superposition/issues>
+- **npm Package**: <https://www.npmjs.com/package/container-superposition> (once published)
 
 ## 🆘 Support
 
@@ -256,11 +246,13 @@ MIT - See [LICENSE](../LICENSE)
 - No proprietary formats
 
 ### Stateless
+
 - Each invocation is independent
 - Output is deterministic
 - No configuration files
 
 ### Optional
+
 - Templates work without the tool
 - Manual copying is always an option
 - Tool is convenience wrapper
@@ -276,12 +268,14 @@ MIT - See [LICENSE](../LICENSE)
 ## Extension
 
 ### Add an Overlay
+
 1. Create `tool/overlays/<name>/`
 2. Add `devcontainer.patch.json`
 3. Optional: Add `docker-compose.yml`
 4. Update questionnaire
 
 ### Add a Template
+
 1. Create `templates/<name>/.devcontainer/`
 2. Add complete devcontainer.json
 3. Add scripts and files
@@ -290,16 +284,19 @@ MIT - See [LICENSE](../LICENSE)
 ## Maintenance
 
 ### Smoke Tests
+
 ```bash
 npm test
 ```
 
 ### Build
+
 ```bash
 npm run build
 ```
 
 ### Development
+
 ```bash
 npm run init
 ```

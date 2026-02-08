@@ -33,29 +33,12 @@ This demo application showcases the three pillars of observability:
 - Searchable in Loki
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│  OTel Demo App (Node.js)        │
-│  - HTTP server on port 8080     │
-│  - OpenTelemetry SDK            │
-│  - Auto-instrumentation         │
-└──────────────┬──────────────────┘
-               │
-               │ OTLP (gRPC)
-               │
-┌──────────────▼──────────────────┐
-│  OpenTelemetry Collector        │
-│  - Receives OTLP data           │
-│  - Routes to backends           │
-└──────────────┬──────────────────┘
-               │
-      ┌────────┼────────┐
-      │        │        │
-      ▼        ▼        ▼
-  ┌──────┐ ┌──────┐ ┌──────┐
-  │Jaeger│ │Prom  │ │Loki  │
-  │/Tempo│ │etheus│ │      │
-  └──────┘ └──────┘ └──────┘
+```mermaid
+graph TD
+    A[OTel Demo App Node.js<br/>HTTP server on port 8080<br/>OpenTelemetry SDK<br/>Auto-instrumentation] -->|OTLP gRPC| B[OpenTelemetry Collector<br/>Receives OTLP data<br/>Routes to backends]
+    B --> C[Jaeger/Tempo]
+    B --> D[Prometheus]
+    B --> E[Loki]
 ```
 
 ## Configuration
@@ -180,7 +163,7 @@ rate(http_requests_total{service="otel-demo-nodejs"}[5m])
 
 **Request duration (p99):**
 ```promql
-histogram_quantile(0.99, 
+histogram_quantile(0.99,
   rate(http_request_duration_seconds_bucket{service="otel-demo-nodejs"}[5m])
 )
 ```
@@ -274,7 +257,7 @@ const tracer = trace.getTracer('my-app');
 
 function myFunction() {
   const span = tracer.startSpan('my_operation');
-  
+
   try {
     // Your code here
     span.setAttribute('key', 'value');

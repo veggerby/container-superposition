@@ -17,28 +17,10 @@ MySQL 8 relational database with phpMyAdmin web UI for development and testing.
 This overlay adds MySQL 8 and phpMyAdmin as separate Docker Compose services. The database runs in its own container and is accessible from your development container via the hostname `mysql`.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - mysql client                │
-│   - Connects to mysql:3306      │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   MySQL Container               │
-│   - MySQL 8 server              │
-│   - Port 3306                   │
-│   - Data volume                 │
-└──────────────┬──────────────────┘
-               │
-┌──────────────▼──────────────────┐
-│   phpMyAdmin Container          │
-│   - Web UI on port 8080         │
-│   - Connected to MySQL          │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>mysql client<br/>Connects to mysql:3306] -->|Docker network devnet| B[MySQL Container<br/>MySQL 8 server<br/>Port 3306<br/>Data volume]
+    B --> C[phpMyAdmin Container<br/>Web UI on port 8080<br/>Connected to MySQL]
 ```
 
 ## Configuration
@@ -361,7 +343,7 @@ func main() {
     // Query
     rows, _ := db.Query("SELECT * FROM users")
     defer rows.Close()
-    
+
     for rows.Next() {
         var name, email string
         rows.Scan(&name, &email)

@@ -21,6 +21,7 @@ container-superposition --stack compose \
 ```
 
 **Access:**
+
 - AMQP: `amqp://guest:guest@rabbitmq:5672/`
 - Management UI: `http://localhost:15672` (guest/guest)
 
@@ -41,6 +42,7 @@ container-superposition --stack compose \
 ```
 
 **Access:**
+
 - Kafka API: `redpanda:9092`
 - Console UI: `http://localhost:8080`
 - Schema Registry: `http://redpanda:8081`
@@ -61,6 +63,7 @@ container-superposition --stack compose \
 ```
 
 **Access:**
+
 - Client: `nats://nats:4222`
 - Monitoring: `http://localhost:8222`
 
@@ -77,6 +80,7 @@ container-superposition --stack compose \
 ```
 
 **Services:**
+
 - PostgreSQL: Persistent data storage
 - RabbitMQ: Asynchronous task queues
 - Redis: Session/cache storage
@@ -94,6 +98,7 @@ container-superposition --stack compose \
 ```
 
 **Use Case:**
+
 - Redpanda: Event log aggregation
 - PostgreSQL: Analytics database
 - Node.js: Event producers/consumers
@@ -110,6 +115,7 @@ container-superposition --stack compose \
 ```
 
 **Use Case:**
+
 - NATS: Real-time updates
 - PostgreSQL: Event sourcing
 - Go: High-performance services
@@ -125,6 +131,7 @@ container-superposition --stack compose \
 ```
 
 **Use Case:**
+
 - RabbitMQ: Background jobs
 - NATS: Service-to-service communication
 - Redpanda: Event log aggregation
@@ -152,6 +159,7 @@ container-superposition --stack compose \
 ```
 
 **Ports:**
+
 - Project 1: RabbitMQ on 5672, Management on 15672
 - Project 2: RabbitMQ on 5772, Management on 15772
 - Project 3: RabbitMQ on 5872, Management on 15872
@@ -168,6 +176,7 @@ container-superposition --stack compose \
 ```
 
 **Install client:**
+
 ```bash
 npm install amqplib
 ```
@@ -181,6 +190,7 @@ container-superposition --stack compose \
 ```
 
 **Install client:**
+
 ```bash
 pip install confluent-kafka
 ```
@@ -194,6 +204,7 @@ container-superposition --stack compose \
 ```
 
 **Install client:**
+
 ```bash
 go get github.com/nats-io/nats.go
 ```
@@ -207,6 +218,7 @@ container-superposition --stack compose \
 ```
 
 **Install clients:**
+
 ```bash
 dotnet add package RabbitMQ.Client
 dotnet add package Confluent.Kafka
@@ -292,6 +304,7 @@ container-superposition
 ```
 
 The interactive questionnaire will let you select:
+
 1. Base template (compose recommended for messaging)
 2. Base image (Debian Bookworm recommended)
 3. Language overlays
@@ -333,18 +346,20 @@ curl http://localhost:8222/varz
    - `overlays/rabbitmq/README.md`
    - `overlays/redpanda/README.md`
    - `overlays/nats/README.md`
-4. Check `overlays/MESSAGING-COMPARISON.md` for choosing between systems
+4. Check [messaging-comparison.md](messaging-comparison.md) for choosing between systems
 5. Start coding!
 
 ## Troubleshooting
 
 **Port conflicts?**
+
 ```bash
 # Use port offset
 container-superposition --port-offset 100 ...
 ```
 
 **Service not starting?**
+
 ```bash
 # Check Docker logs
 docker-compose logs rabbitmq
@@ -353,6 +368,7 @@ docker-compose logs nats
 ```
 
 **Need to change configuration?**
+
 ```bash
 # Edit .devcontainer/.env
 cd .devcontainer
@@ -364,6 +380,6 @@ cp .env.example .env
 ## Additional Resources
 
 - **Full Documentation**: See individual overlay READMEs
-- **Comparison Guide**: `overlays/MESSAGING-COMPARISON.md`
+- **Comparison Guide**: [messaging-comparison.md](messaging-comparison.md)
 - **Code Examples**: Each README includes Node.js, Python, Go, .NET examples
 - **Main Documentation**: `README.md` in repository root

@@ -17,33 +17,10 @@ Multi-tenant log aggregation system designed for storing and querying logs from 
 Loki is a log aggregation system inspired by Prometheus. Unlike traditional log systems that index the entire log line, Loki only indexes metadata (labels), making it extremely cost-effective for storing large volumes of logs.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Application                   │
-│   - Sends logs via OTLP         │
-│   - Or via Promtail shipper     │
-└──────────────┬──────────────────┘
-               │
-               │ HTTP POST
-               │
-┌──────────────▼──────────────────┐
-│   Grafana Loki                  │
-│                                  │
-│   Ingester → Storage             │
-│   - Index labels only           │
-│   - Store logs compressed       │
-│   - Query via LogQL             │
-│   - API: http://...:3100        │
-└─────────────────────────────────┘
-               │
-               │ Query
-               │
-┌──────────────▼──────────────────┐
-│   Grafana Dashboard             │
-│   - Explore logs                │
-│   - Build dashboards            │
-│   - Alert on log patterns       │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Application<br/>Sends logs via OTLP<br/>Or via Promtail shipper] -->|HTTP POST| B[Grafana Loki<br/>Ingester → Storage<br/>Index labels only<br/>Store logs compressed<br/>Query via LogQL<br/>API: http://...:3100]
+    B -->|Query| C[Grafana Dashboard<br/>Explore logs<br/>Build dashboards<br/>Alert on log patterns]
 ```
 
 **Key Concepts:**
@@ -90,7 +67,7 @@ server:
 ingester:                    # In-memory log processing
   chunk_idle_period: 5m      # How long before flushing chunks
   chunk_retain_period: 30s   # Retain in memory after flush
-  
+
 schema_config:               # Index schema
   configs:
     - from: 2020-10-24
@@ -379,19 +356,19 @@ func main() {
     cfg := loki.Config{
         URL: "http://loki:3100",
     }
-    
+
     client, err := loki.New(cfg)
     if err != nil {
         panic(err)
     }
     defer client.Stop()
-    
+
     labels := model.LabelSet{
         "service":     "my-app",
         "environment": "development",
         "level":       "info",
     }
-    
+
     client.Handle(labels, time.Now(), "User logged in successfully")
 }
 ```
@@ -508,7 +485,7 @@ sum(rate({service="my-app"} |= "error" [5m]))
 
 **Error ratio:**
 ```logql
-sum(rate({service="my-app"} |= "error" [5m])) / 
+sum(rate({service="my-app"} |= "error" [5m])) /
 sum(rate({service="my-app"} [5m]))
 ```
 
@@ -559,7 +536,7 @@ bottomk(5, avg by (service) (rate({environment="production"}[1h])))
 
 **Quantile (percentile):**
 ```logql
-quantile_over_time(0.95, 
+quantile_over_time(0.95,
   {service="my-app"} | json | unwrap response_time [5m]
 )
 ```
@@ -578,19 +555,19 @@ stddev_over_time({service="my-app"} | json | unwrap latency [5m])
 
 **IP filtering:**
 ```logql
-{service="nginx"} 
-  | json 
-  | remote_addr != "127.0.0.1" 
+{service="nginx"}
+  | json
+  | remote_addr != "127.0.0.1"
   | remote_addr !~ "192.168.*"
 ```
 
 **Complex parsing and filtering:**
 ```logql
-{service="my-app"} 
-  | json 
-  | level="error" 
-  | http_status >= 500 
-  | duration > 1000 
+{service="my-app"}
+  | json
+  | level="error"
+  | http_status >= 500
+  | duration > 1000
   | line_format "{{.timestamp}} [{{.level}}] {{.message}}"
 ```
 
@@ -624,11 +601,11 @@ logger.info(
 );
 
 logger.error(
-  { 
-    userId: '12345', 
-    orderId: '67890', 
+  {
+    userId: '12345',
+    orderId: '67890',
     error: 'timeout',
-    duration: 5000 
+    duration: 5000
   },
   'Payment processing failed'
 );
@@ -735,19 +712,19 @@ import "go.uber.org/zap"
 func main() {
     logger, _ := zap.NewProduction()
     defer logger.Sync()
-    
+
     logger = logger.With(
         zap.String("service", "my-app"),
         zap.String("environment", "production"),
     )
-    
+
     // Structured logging
     logger.Info("User logged in",
         zap.String("user_id", "12345"),
         zap.String("ip", "192.168.1.1"),
         zap.String("method", "POST"),
     )
-    
+
     logger.Error("Payment processing failed",
         zap.String("user_id", "12345"),
         zap.String("order_id", "67890"),

@@ -16,22 +16,9 @@ Redis 7 in-memory data store for caching, session management, and real-time appl
 This overlay adds a Redis 7 server as a separate Docker Compose service. Redis runs in its own container and is accessible from your development container via the hostname `redis`.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - redis-cli client            │
-│   - Connects to redis:6379      │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   Redis Container               │
-│   - Redis 7 server              │
-│   - Port 6379                   │
-│   - Data volume (optional)      │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>redis-cli client<br/>Connects to redis:6379] -->|Docker network devnet| B[Redis Container<br/>Redis 7 server<br/>Port 6379<br/>Data volume optional]
 ```
 
 ## Configuration
@@ -535,7 +522,7 @@ import (
 
 func main() {
     ctx := context.Background()
-    
+
     rdb := redis.NewClient(&redis.Options{
         Addr: "redis:6379",
         // Password: "your-password",  // if configured
@@ -560,7 +547,7 @@ func main() {
     // Pub/Sub
     pubsub := rdb.Subscribe(ctx, "notifications")
     ch := pubsub.Channel()
-    
+
     for msg := range ch {
         println("Received:", msg.Payload)
     }

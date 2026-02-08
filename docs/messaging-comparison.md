@@ -1,11 +1,11 @@
-# Messaging System Comparison Guide
+# Messaging System Comparison
 
-This guide helps you choose the right messaging overlay for your use case.
+This guide helps you choose the right messaging overlay for your development environment.
 
 ## Quick Comparison
 
 | Feature | RabbitMQ | Redpanda | NATS |
-|---------|----------|----------|------|
+| --------- | ---------- | ---------- | ------ |
 | **Protocol** | AMQP | Kafka API | NATS Protocol |
 | **Primary Use Case** | Task queues, RPC | Event streaming | Pub/sub, microservices |
 | **Latency** | Low (ms) | Low (ms) | Very low (μs) |
@@ -19,6 +19,7 @@ This guide helps you choose the right messaging overlay for your use case.
 ## When to Use RabbitMQ
 
 **Choose RabbitMQ if you need:**
+
 - ✅ Task queues with work distribution
 - ✅ Complex routing patterns (exchanges, bindings)
 - ✅ Request/reply (RPC) patterns
@@ -27,6 +28,7 @@ This guide helps you choose the right messaging overlay for your use case.
 - ✅ AMQP protocol compatibility
 
 **Use Cases:**
+
 - Background job processing
 - Order processing systems
 - Email/notification queuing
@@ -34,6 +36,7 @@ This guide helps you choose the right messaging overlay for your use case.
 - Integration with AMQP-based systems
 
 **Example:**
+
 ```bash
 # Generate with RabbitMQ
 container-superposition --stack compose --database rabbitmq --language nodejs
@@ -42,6 +45,7 @@ container-superposition --stack compose --database rabbitmq --language nodejs
 ## When to Use Redpanda
 
 **Choose Redpanda if you need:**
+
 - ✅ Event streaming (Kafka-compatible)
 - ✅ High-throughput log aggregation
 - ✅ Event sourcing and CQRS
@@ -50,6 +54,7 @@ container-superposition --stack compose --database rabbitmq --language nodejs
 - ✅ Modern web console UI
 
 **Use Cases:**
+
 - Application event streaming
 - Log aggregation from multiple services
 - Change data capture (CDC)
@@ -57,12 +62,14 @@ container-superposition --stack compose --database rabbitmq --language nodejs
 - Replacing Apache Kafka for local development
 
 **Example:**
+
 ```bash
 # Generate with Redpanda
 container-superposition --stack compose --database redpanda --language nodejs
 ```
 
 **Why Redpanda over Kafka?**
+
 - No Zookeeper required (simpler setup)
 - Lower resource usage for local development
 - Faster startup times
@@ -72,6 +79,7 @@ container-superposition --stack compose --database redpanda --language nodejs
 ## When to Use NATS
 
 **Choose NATS if you need:**
+
 - ✅ Lightweight pub/sub messaging
 - ✅ Very low latency (microseconds)
 - ✅ Simple subject-based routing
@@ -80,6 +88,7 @@ container-superposition --stack compose --database redpanda --language nodejs
 - ✅ Minimal resource footprint
 
 **Use Cases:**
+
 - Microservices communication
 - Real-time updates and notifications
 - Command/control distribution
@@ -88,12 +97,14 @@ container-superposition --stack compose --database redpanda --language nodejs
 - Fast request/reply RPC
 
 **Example:**
+
 ```bash
 # Generate with NATS
 container-superposition --stack compose --database nats --language nodejs
 ```
 
 **Why NATS?**
+
 - Simplest to set up and use
 - Lowest resource usage
 - Fastest message delivery
@@ -117,6 +128,7 @@ container-superposition --stack compose \
 ```
 
 **Common Patterns:**
+
 - **Redpanda + RabbitMQ**: Event streaming for analytics + task queues for jobs
 - **NATS + RabbitMQ**: Real-time notifications + background processing
 - **All three**: Event streaming (Redpanda) + Task queues (RabbitMQ) + Service mesh (NATS)
@@ -125,7 +137,7 @@ container-superposition --stack compose \
 
 ### Latency
 
-```
+```txt
 NATS:      < 1ms   (fastest - optimized for low latency)
 RabbitMQ:  1-5ms   (fast - good for most use cases)
 Redpanda:  1-10ms  (optimized for throughput over latency)
@@ -133,7 +145,7 @@ Redpanda:  1-10ms  (optimized for throughput over latency)
 
 ### Throughput
 
-```
+```txt
 Redpanda:  Highest  (millions of messages/sec)
 RabbitMQ:  High     (hundreds of thousands/sec)
 NATS:      High     (hundreds of thousands/sec)
@@ -141,7 +153,7 @@ NATS:      High     (hundreds of thousands/sec)
 
 ### Memory Usage (Single Instance)
 
-```
+```txt
 NATS:      ~50MB   (minimal)
 RabbitMQ:  ~200MB  (moderate)
 Redpanda:  ~1GB    (higher - includes schema registry, admin API)
@@ -150,18 +162,21 @@ Redpanda:  ~1GB    (higher - includes schema registry, admin API)
 ## Protocol Compatibility
 
 ### RabbitMQ
+
 - **Primary**: AMQP 0-9-1
 - **Also supports**: MQTT, STOMP (with plugins)
 - **Client libraries**: All major languages
 - **Interoperability**: Works with other AMQP systems
 
 ### Redpanda
+
 - **Primary**: Kafka wire protocol
 - **Also includes**: Schema Registry API, HTTP Proxy
 - **Client libraries**: All Kafka client libraries work
 - **Interoperability**: Drop-in Kafka replacement
 
 ### NATS
+
 - **Primary**: NATS protocol (text-based)
 - **Also supports**: WebSocket, TLS
 - **Client libraries**: All major languages
@@ -169,90 +184,82 @@ Redpanda:  ~1GB    (higher - includes schema registry, admin API)
 
 ## Decision Tree
 
-```
-Need Kafka compatibility?
-├─ YES → Redpanda
-└─ NO
-    ├─ Need complex routing/RPC?
-    │   └─ YES → RabbitMQ
-    └─ NO
-        ├─ Need lowest latency?
-        │   └─ YES → NATS
-        └─ NO
-            ├─ Need task queues?
-            │   └─ YES → RabbitMQ
-            └─ NO
-                └─ Default → NATS (simplest)
+```mermaid
+graph TD
+    A[Need Kafka compatibility?] -->|YES| B[Redpanda]
+    A -->|NO| C[Need complex routing/RPC?]
+    C -->|YES| D[RabbitMQ]
+    C -->|NO| E[Need lowest latency?]
+    E -->|YES| F[NATS]
+    E -->|NO| G[Need task queues?]
+    G -->|YES| H[RabbitMQ]
+    G -->|NO| I[NATS - simplest]
 ```
 
 ## Integration Examples
 
 ### RabbitMQ + Node.js
+
 ```javascript
 const amqp = require('amqplib');
 const connection = await amqp.connect('amqp://rabbitmq:5672');
+const channel = await connection.createChannel();
+
+// Publish to queue
+await channel.assertQueue('tasks');
+channel.sendToQueue('tasks', Buffer.from('Hello World'));
+
+// Consume from queue
+await channel.consume('tasks', (msg) => {
+  console.log('Received:', msg.content.toString());
+  channel.ack(msg);
+});
 ```
 
 ### Redpanda + Node.js
+
 ```javascript
 const { Kafka } = require('kafkajs');
 const kafka = new Kafka({ brokers: ['redpanda:9092'] });
+
+// Producer
+const producer = kafka.producer();
+await producer.connect();
+await producer.send({
+  topic: 'events',
+  messages: [{ value: 'Hello Redpanda' }]
+});
+
+// Consumer
+const consumer = kafka.consumer({ groupId: 'my-group' });
+await consumer.connect();
+await consumer.subscribe({ topic: 'events' });
+await consumer.run({
+  eachMessage: async ({ message }) => {
+    console.log('Received:', message.value.toString());
+  }
+});
 ```
 
 ### NATS + Node.js
+
 ```javascript
 const { connect } = require('nats');
 const nc = await connect({ servers: 'nats://nats:4222' });
+
+// Publish
+nc.publish('updates', 'Hello NATS');
+
+// Subscribe
+const sub = nc.subscribe('updates');
+for await (const msg of sub) {
+  console.log('Received:', msg.string());
+}
 ```
 
-## Management & Monitoring
+## See Also
 
-### RabbitMQ
-- **UI**: http://localhost:15672 (full-featured)
-- **Features**: Queue stats, message browsing, topology visualization
-- **Auth**: Default guest/guest
-
-### Redpanda
-- **UI**: http://localhost:8080 (Redpanda Console)
-- **Features**: Topic management, message browsing, consumer groups
-- **Auth**: None by default
-
-### NATS
-- **UI**: http://localhost:8222 (HTTP monitoring API, JSON only)
-- **Features**: Server stats, connection info, subscription data
-- **Auth**: None by default
-- **Note**: Use `nats` CLI for full management
-
-## Migration Considerations
-
-### From RabbitMQ to NATS
-- Convert exchanges/queues to subjects
-- Replace RPC with request/reply
-- Use JetStream for persistence
-
-### From Kafka to Redpanda
-- No code changes needed (100% compatible)
-- Update bootstrap servers to `redpanda:9092`
-- Simpler deployment (no Zookeeper)
-
-### From NATS to RabbitMQ
-- Convert subjects to routing keys
-- Add exchange/queue declarations
-- Implement dead letter queues if needed
-
-## Additional Resources
-
-- [RabbitMQ Documentation](rabbitmq/README.md)
-- [Redpanda Documentation](redpanda/README.md)
-- [NATS Documentation](nats/README.md)
-- [Messaging Patterns](https://www.enterpriseintegrationpatterns.com/patterns/messaging/)
-
-## Summary
-
-**Simple pub/sub?** → **NATS**  
-**Task queues?** → **RabbitMQ**  
-**Event streaming?** → **Redpanda**  
-
-For most microservices: Start with **NATS** (simple, fast, lightweight).  
-For complex workflows: Add **RabbitMQ** (rich routing, task queues).  
-For high-volume logs: Add **Redpanda** (streaming, event sourcing).
+- [Observability Workflow](observability-workflow.md) - Monitoring messaging systems
+- [RabbitMQ Overlay](../overlays/rabbitmq/README.md)
+- [Redpanda Overlay](../overlays/redpanda/README.md)
+- [NATS Overlay](../overlays/nats/README.md)

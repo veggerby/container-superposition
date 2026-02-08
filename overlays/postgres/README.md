@@ -16,22 +16,9 @@ PostgreSQL 16 database server for development and testing.
 This overlay adds a PostgreSQL 16 database server as a separate Docker Compose service. The database runs in its own container and is accessible from your development container via the hostname `postgres`.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - psql client                 │
-│   - Connects to postgres:5432   │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   PostgreSQL Container          │
-│   - PostgreSQL 16 server        │
-│   - Port 5432                   │
-│   - Data volume                 │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>psql client<br/>Connects to postgres:5432] -->|Docker network devnet| B[PostgreSQL Container<br/>PostgreSQL 16 server<br/>Port 5432<br/>Data volume]
 ```
 
 ## Configuration
@@ -376,7 +363,7 @@ func main() {
     // Query
     var username, email string
     err = conn.QueryRow(ctx, "SELECT username, email FROM users WHERE id = $1", 1).Scan(&username, &email)
-    
+
     // Insert
     _, err = conn.Exec(ctx, "INSERT INTO users (username, email) VALUES ($1, $2)", "john", "john@example.com")
 }

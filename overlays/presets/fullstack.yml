@@ -1,0 +1,181 @@
+# Full-Stack Application Preset
+# Complete development environment for full-stack applications
+
+id: fullstack
+name: Full-Stack Application
+description: Complete full-stack development with frontend, backend, databases, and observability
+type: meta
+category: preset
+supports: [compose] # Requires Docker Compose for services
+tags: [preset, fullstack, frontend, backend, monorepo]
+
+# Overlays to select
+selects:
+  # Always included
+  required:
+    - nodejs  # Frontend (React/Vue/Angular)
+    - postgres
+    - redis
+    - minio  # File uploads/storage
+    - otel-collector
+    - prometheus
+    - grafana
+    - loki
+  
+  # User makes choices
+  userChoice:
+    backend:
+      id: backend
+      prompt: Select backend language/framework
+      options: [dotnet, python, go, java]
+      defaultOption: dotnet
+
+# Glue configuration
+glueConfig:
+  # Pre-configured environment variables
+  environment:
+    # Database
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/myapp"
+    POSTGRES_HOST: "postgres"
+    POSTGRES_PORT: "5432"
+    POSTGRES_DB: "myapp"
+    
+    # Redis
+    REDIS_URL: "redis://redis:6379"
+    REDIS_HOST: "redis"
+    
+    # MinIO (S3-compatible storage)
+    MINIO_ENDPOINT: "minio:9000"
+    MINIO_ACCESS_KEY: "minioadmin"
+    MINIO_SECRET_KEY: "minioadmin"
+    MINIO_BUCKET: "uploads"
+    MINIO_USE_SSL: "false"
+    
+    # OpenTelemetry
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+    OTEL_SERVICE_NAME: "fullstack-app"
+    
+    # Application
+    FRONTEND_PORT: "3000"
+    BACKEND_PORT: "8000"
+    API_URL: "http://localhost:8000"
+    GRAFANA_PORT: "3001"
+  
+  # Suggested port mappings
+  portMappings:
+    frontend: 3000
+    backend: 8000
+    grafana: 3001
+    minio: 9000
+    minio-console: 9001
+  
+  # README snippet
+  readme: |
+    ## Full-Stack Application Stack
+    
+    This devcontainer provides a complete full-stack development environment:
+    
+    ### Architecture
+    
+    ```
+    Frontend (Node.js) ──→ Backend ──→ PostgreSQL
+         │                    │
+         └────────────────────┴──→ Redis (session/cache)
+                              │
+                              └──→ MinIO (file storage)
+    ```
+    
+    ### Services
+    
+    - **Node.js**: Frontend development (React/Vue/Angular) on port 3000
+    - **Backend**: Your chosen language/framework on port 8000
+    - **PostgreSQL**: Primary database (port 5432)
+    - **Redis**: Cache and session store (port 6379)
+    - **MinIO**: S3-compatible object storage (ports 9000, 9001)
+    - **OpenTelemetry Collector**: Telemetry aggregation
+    - **Prometheus**: Metrics (port 9090)
+    - **Grafana**: Dashboards (port 3001)
+    - **Loki**: Log aggregation (port 3100)
+    
+    ### Connection Strings
+    
+    ```bash
+    # PostgreSQL
+    DATABASE_URL="postgresql://postgres:postgres@postgres:5432/myapp"
+    
+    # Redis
+    REDIS_URL="redis://redis:6379"
+    
+    # MinIO (S3-compatible)
+    MINIO_ENDPOINT="minio:9000"
+    MINIO_ACCESS_KEY="minioadmin"
+    MINIO_SECRET_KEY="minioadmin"
+    
+    # Backend API (from frontend)
+    API_URL="http://localhost:8000"
+    ```
+    
+    ### Quick Start
+    
+    #### Frontend Setup
+    
+    ```bash
+    cd frontend/
+    npm install
+    npm run dev  # Runs on port 3000
+    ```
+    
+    #### Backend Setup
+    
+    Start your backend on port 8000 (varies by language).
+    
+    #### MinIO Setup
+    
+    1. Access MinIO Console at http://localhost:9001
+    2. Login with minioadmin/minioadmin
+    3. Create bucket named "uploads"
+    4. Configure your app to use MinIO endpoint
+    
+    ### Monorepo Structure (Recommended)
+    
+    ```
+    project/
+    ├── frontend/          # React/Vue/Angular app
+    ├── backend/           # API server
+    ├── shared/            # Shared types/models
+    ├── .devcontainer/     # This devcontainer
+    └── docker-compose.yml
+    ```
+    
+    ### File Upload Example
+    
+    Your backend can upload files to MinIO:
+    
+    ```javascript
+    // Node.js example
+    const Minio = require('minio');
+    const minioClient = new Minio.Client({
+      endPoint: 'minio',
+      port: 9000,
+      useSSL: false,
+      accessKey: 'minioadmin',
+      secretKey: 'minioadmin'
+    });
+    
+    await minioClient.putObject('uploads', 'file.jpg', stream);
+    ```
+    
+    ### Observability
+    
+    - **Metrics**: Grafana at http://localhost:3001
+    - **Traces**: Add OTEL SDK to frontend and backend
+    - **Logs**: Forwarded to Loki, viewable in Grafana
+    
+    ### Next Steps
+    
+    - Set up frontend build pipeline
+    - Implement API endpoints in backend
+    - Configure database migrations
+    - Add authentication/authorization
+    - Set up shared TypeScript types between frontend and backend
+    - Create custom Grafana dashboards

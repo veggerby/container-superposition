@@ -1,0 +1,118 @@
+# Documentation Site Preset
+# Development environment for documentation websites
+
+id: docs-site
+name: Documentation Site
+description: Documentation website development with MkDocs, quality checks, and deployment tools
+type: meta
+category: preset
+supports: [] # Works with both plain and compose
+tags: [preset, documentation, mkdocs, markdown]
+
+# Overlays to select
+selects:
+  # Always included
+  required:
+    - mkdocs
+    - pre-commit
+    - modern-cli-tools
+  
+  # No user choices for this preset
+  userChoice: {}
+
+# Glue configuration
+glueConfig:
+  # Pre-configured environment variables
+  environment:
+    # MkDocs configuration
+    MKDOCS_PORT: "8000"
+    MKDOCS_STRICT: "true"
+    
+    # Documentation settings
+    DOCS_DIR: "docs"
+    SITE_DIR: "site"
+  
+  # Suggested port mappings
+  portMappings:
+    mkdocs: 8000
+  
+  # README snippet
+  readme: |
+    ## Documentation Site Stack
+    
+    This devcontainer is configured for documentation development:
+    
+    ### Tools
+    
+    - **MkDocs**: Python-based static site generator (port 8000)
+    - **Pre-commit**: Git hooks for quality checks
+    - **Modern CLI Tools**: bat, fd, ripgrep, fzf for productivity
+    
+    ### Quick Start
+    
+    1. Initialize MkDocs (if not already done):
+       ```bash
+       mkdocs new .
+       ```
+    
+    2. Start development server:
+       ```bash
+       mkdocs serve
+       ```
+    
+    3. Access your docs at http://localhost:8000
+    
+    ### Pre-commit Hooks
+    
+    This preset includes pre-commit hooks for documentation quality:
+    
+    - Markdown linting
+    - Trailing whitespace removal
+    - YAML validation
+    - Link checking (optional)
+    
+    Install hooks:
+    
+    ```bash
+    pre-commit install
+    ```
+    
+    ### MkDocs Configuration
+    
+    Edit `mkdocs.yml` to configure:
+    
+    - Theme (Material for MkDocs recommended)
+    - Navigation structure
+    - Plugins (search, tags, etc.)
+    - Markdown extensions
+    
+    Example `mkdocs.yml`:
+    
+    ```yaml
+    site_name: My Documentation
+    theme:
+      name: material
+      palette:
+        primary: indigo
+    nav:
+      - Home: index.md
+      - Getting Started: getting-started.md
+    ```
+    
+    ### GitHub Pages Deployment
+    
+    Deploy to GitHub Pages:
+    
+    ```bash
+    mkdocs gh-deploy
+    ```
+    
+    This builds your site and pushes to the `gh-pages` branch.
+    
+    ### Next Steps
+    
+    - Choose a MkDocs theme (Material is popular)
+    - Add markdown files to `docs/` directory
+    - Configure navigation in `mkdocs.yml`
+    - Set up CI/CD for automatic deployments
+    - Add link checking to pre-commit hooks

@@ -16,22 +16,9 @@ Distributed tracing platform for monitoring and troubleshooting microservices-ba
 Jaeger is an open-source, end-to-end distributed tracing system that helps you monitor and troubleshoot complex distributed systems. It collects timing data (spans) from your services and visualizes how requests flow through your architecture.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Your Application              │
-│   - Instrumented with OTLP      │
-│   - Sends spans to Jaeger       │
-└──────────────┬──────────────────┘
-               │
-               │ OTLP (gRPC/HTTP)
-               │
-┌──────────────▼──────────────────┐
-│   Jaeger All-in-One             │
-│   - Collector (receives spans)  │
-│   - Storage (in-memory)         │
-│   - Query (serves UI)           │
-│   - UI (http://localhost:16686) │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Your Application<br/>Instrumented with OTLP<br/>Sends spans to Jaeger] -->|OTLP gRPC/HTTP| B[Jaeger All-in-One<br/>Collector receives spans<br/>Storage in-memory<br/>Query serves UI<br/>UI http://localhost:16686]
 ```
 
 **What is a Trace?**
@@ -246,7 +233,7 @@ def process_payment(amount, currency):
     with tracer.start_as_current_span("process_payment") as span:
         span.set_attribute("payment.amount", amount)
         span.set_attribute("payment.currency", currency)
-        
+
         try:
             # Payment processing logic
             result = charge_card(amount, currency)
@@ -308,10 +295,10 @@ var activitySource = new ActivitySource("MyService", "1.0.0");
 public async Task<Order> ProcessOrder(string orderId)
 {
     using var activity = activitySource.StartActivity("ProcessOrder");
-    
+
     activity?.SetTag("order.id", orderId);
     activity?.SetTag("order.type", "online");
-    
+
     try
     {
         var order = await _orderService.GetOrder(orderId);
@@ -345,7 +332,7 @@ package main
 import (
     "context"
     "log"
-    
+
     "go.opentelemetry.io/otel"
     "go.opentelemetry.io/otel/attribute"
     "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -356,7 +343,7 @@ import (
 
 func initTracer() func() {
     ctx := context.Background()
-    
+
     exporter, err := otlptracegrpc.New(ctx,
         otlptracegrpc.WithEndpoint("jaeger:4317"), // or otel-collector:4317
         otlptracegrpc.WithInsecure(),
@@ -364,21 +351,21 @@ func initTracer() func() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     res := resource.NewWithAttributes(
         semconv.SchemaURL,
         semconv.ServiceName("my-service"),
         semconv.ServiceVersion("1.0.0"),
         attribute.String("deployment.environment", "development"),
     )
-    
+
     tp := sdktrace.NewTracerProvider(
         sdktrace.WithBatcher(exporter),
         sdktrace.WithResource(res),
     )
-    
+
     otel.SetTracerProvider(tp)
-    
+
     return func() {
         _ = tp.Shutdown(ctx)
     }
@@ -387,7 +374,7 @@ func initTracer() func() {
 func main() {
     cleanup := initTracer()
     defer cleanup()
-    
+
     // Your application code
 }
 ```
@@ -405,18 +392,18 @@ var tracer = otel.Tracer("my-service")
 func processPayment(ctx context.Context, amount float64) error {
     ctx, span := tracer.Start(ctx, "processPayment")
     defer span.End()
-    
+
     span.SetAttributes(
         attribute.Float64("payment.amount", amount),
         attribute.String("payment.currency", "USD"),
     )
-    
+
     if err := chargeCard(ctx, amount); err != nil {
         span.RecordError(err)
         span.SetStatus(codes.Error, err.Error())
         return err
     }
-    
+
     span.SetAttributes(attribute.String("payment.status", "success"))
     return nil
 }

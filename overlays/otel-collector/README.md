@@ -17,31 +17,13 @@ Vendor-agnostic telemetry collection agent that receives, processes, and exports
 The OpenTelemetry Collector acts as a centralized agent that receives telemetry from your applications, processes it (batching, filtering, enriching), and exports it to various backends.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Application 1                 │
-│   - Sends OTLP traces/metrics   │
-└──────────────┬──────────────────┘
-               │
-               │ OTLP gRPC/HTTP
-               │
-┌──────────────▼──────────────────┐    ┌─────────────────┐
-│   OpenTelemetry Collector       │───→│   Jaeger        │
-│                                  │    │   (traces)      │
-│  Receivers → Processors →        │    └─────────────────┘
-│              Exporters           │    ┌─────────────────┐
-│                                  │───→│   Prometheus    │
-│  - Batch processing              │    │   (metrics)     │
-│  - Memory limiting               │    └─────────────────┘
-│  - Attribute enrichment          │    ┌─────────────────┐
-│  - Sampling                      │───→│   Loki          │
-└──────────────▲──────────────────┘    │   (logs)        │
-               │                        └─────────────────┘
-               │
-┌──────────────┴──────────────────┐
-│   Application 2                 │
-│   - Sends OTLP logs             │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A1[Application 1<br/>Sends OTLP traces/metrics] -->|OTLP gRPC/HTTP| B[OpenTelemetry Collector<br/>Receivers → Processors → Exporters<br/>Batch processing<br/>Memory limiting<br/>Attribute enrichment<br/>Sampling]
+    A2[Application 2<br/>Sends OTLP logs] -->|OTLP gRPC/HTTP| B
+    B --> C[Jaeger<br/>traces]
+    B --> D[Prometheus<br/>metrics]
+    B --> E[Loki<br/>logs]
 ```
 
 **Benefits:**
@@ -460,7 +442,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp, jaeger]
-      processors: 
+      processors:
         - memory_limiter
         - resource
         - batch
@@ -510,31 +492,31 @@ service:
       receivers: [otlp]
       processors: [tail_sampling, batch]
       exporters: [otlp/jaeger]
-    
+
     # Debug traces (all)
     traces/debug:
       receivers: [otlp]
       processors: [batch]
       exporters: [debug]
-    
+
     # Application metrics
     metrics/app:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
-    
+
     # System metrics
     metrics/system:
       receivers: [hostmetrics]
       processors: [resource, batch]
       exporters: [prometheus]
-    
+
     # Application logs
     logs/app:
       receivers: [otlp]
       processors: [attributes, batch]
       exporters: [loki]
-    
+
     # File logs
     logs/files:
       receivers: [filelog]
@@ -731,7 +713,7 @@ import (
     "context"
     "log"
     "time"
-    
+
     "go.opentelemetry.io/otel"
     "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
     "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -743,7 +725,7 @@ import (
 
 func initProvider() func() {
     ctx := context.Background()
-    
+
     res, err := resource.New(ctx,
         resource.WithAttributes(
             semconv.ServiceName("my-service"),
@@ -753,7 +735,7 @@ func initProvider() func() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     // Setup tracing
     traceExporter, err := otlptracegrpc.New(ctx,
         otlptracegrpc.WithEndpoint("otel-collector:4317"),
@@ -762,13 +744,13 @@ func initProvider() func() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     tp := sdktrace.NewTracerProvider(
         sdktrace.WithBatcher(traceExporter),
         sdktrace.WithResource(res),
     )
     otel.SetTracerProvider(tp)
-    
+
     // Setup metrics
     metricExporter, err := otlpmetricgrpc.New(ctx,
         otlpmetricgrpc.WithEndpoint("otel-collector:4317"),
@@ -777,7 +759,7 @@ func initProvider() func() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     mp := metric.NewMeterProvider(
         metric.WithReader(metric.NewPeriodicReader(metricExporter,
             metric.WithInterval(60*time.Second),
@@ -785,7 +767,7 @@ func initProvider() func() {
         metric.WithResource(res),
     )
     otel.SetMeterProvider(mp)
-    
+
     return func() {
         _ = tp.Shutdown(ctx)
         _ = mp.Shutdown(ctx)
@@ -827,19 +809,19 @@ processors:
         type: status_code
         status_code:
           status_codes: [ERROR]
-      
+
       # Always sample slow requests
       - name: slow-traces
         type: latency
         latency:
           threshold_ms: 1000
-      
+
       # Sample 10% of other traces
       - name: probabilistic-policy
         type: probabilistic
         probabilistic:
           sampling_percentage: 10
-      
+
       # Sample by specific attributes
       - name: important-service
         type: string_attribute
@@ -857,10 +839,10 @@ processors:
   batch:
     # Time to wait before sending (whichever comes first)
     timeout: 10s
-    
+
     # Preferred batch size
     send_batch_size: 1024
-    
+
     # Maximum batch size
     send_batch_max_size: 2048
 
@@ -869,13 +851,13 @@ exporters:
     endpoint: jaeger:4317
     tls:
       insecure: true
-    
+
     # Queue configuration
     sending_queue:
       enabled: true
       num_consumers: 10      # Concurrent exporters
       queue_size: 5000       # Max items in queue
-    
+
     # Retry on failure
     retry_on_failure:
       enabled: true
@@ -996,7 +978,7 @@ processors:
     timeout: 1s
     send_batch_size: 8192
     send_batch_max_size: 16384
-    
+
     # For low latency
     # timeout: 100ms
     # send_batch_size: 128
@@ -1022,7 +1004,7 @@ exporters:
     sending_queue:
       enabled: true
       storage: file_storage
-      
+
 extensions:
   file_storage:
     directory: /var/lib/otelcol

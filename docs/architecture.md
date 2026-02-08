@@ -110,25 +110,20 @@ This allows overlays to provide complete configurations with config files, scrip
 
 ## Workflow
 
-```
-User Input
-    ↓
-CLI Parser (Commander)
-    ↓
-Interactive or Non-Interactive Mode
-    ↓
-QuestionnaireAnswers
-    ↓
-Composer Engine
-    ├── Load base template
-    ├── Select overlays
-    ├── Deep merge devcontainer configs
-    ├── Copy template files
-    ├── Copy overlay files (docker-compose, configs, etc.)
-    ├── Merge .env.example files
-    └── Write output
-    ↓
-.devcontainer/ folder
+```mermaid
+graph TD
+    A[User Input] --> B[CLI Parser Commander]
+    B --> C[Interactive or Non-Interactive Mode]
+    C --> D[QuestionnaireAnswers]
+    D --> E[Composer Engine]
+    E --> F[Load base template]
+    E --> G[Select overlays]
+    E --> H[Deep merge devcontainer configs]
+    E --> I[Copy template files]
+    E --> J[Copy overlay files]
+    E --> K[Merge .env.example files]
+    E --> L[Write output]
+    L --> M[.devcontainer/ folder]
 ```
 
 ## Overlay System
