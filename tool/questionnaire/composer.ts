@@ -153,13 +153,7 @@ function loadJson<T = any>(filePath: string): T {
  * Get all overlay definitions as a flat array
  */
 function getAllOverlayDefs(config: OverlaysConfig): OverlayMetadata[] {
-  return [
-    ...config.language_overlays,
-    ...config.database_overlays,
-    ...config.observability_overlays,
-    ...config.cloud_tool_overlays,
-    ...config.dev_tool_overlays,
-  ];
+  return config.overlays;
 }
 
 /**

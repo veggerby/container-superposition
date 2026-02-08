@@ -402,9 +402,10 @@ async function runQuestionnaire(manifest?: SuperpositionManifest, manifestDir?: 
     let selectedPresetId: string | undefined = manifest?.preset;
     let presetChoices: Record<string, string> = manifest?.presetChoices || {};
     let presetGlueConfig: PresetDefinition['glueConfig'] | undefined;
+    const presetOverlaysFiltered = config.overlays.filter(o => o.category === 'preset');
     let presetOverlays: string[] = [];
 
-    if (config.preset_overlays && config.preset_overlays.length > 0) {
+    if (presetOverlaysFiltered.length > 0) {
       const defaultPreset = manifest?.preset || 'custom';
 
       const presetChoice = await select({
@@ -415,7 +416,7 @@ async function runQuestionnaire(manifest?: SuperpositionManifest, manifestDir?: 
             value: 'custom',
             description: 'Choose individual overlays yourself'
           },
-          ...config.preset_overlays.map(p => ({
+          ...presetOverlaysFiltered.map(p => ({
             name: p.name,
             value: p.id,
             description: p.description
@@ -495,18 +496,15 @@ async function runQuestionnaire(manifest?: SuperpositionManifest, manifestDir?: 
 
     // Build categorized overlays with separators
     const categoryList = [
-      { name: 'Language', overlays: config.language_overlays },
-      { name: 'Database', overlays: config.database_overlays },
-      { name: 'Observability', overlays: config.observability_overlays },
-      { name: 'Cloud', overlays: config.cloud_tool_overlays },
-      { name: 'DevTool', overlays: config.dev_tool_overlays },
+      { name: 'Language', overlays: config.overlays.filter(o => o.category === 'language') },
+      { name: 'Database', overlays: config.overlays.filter(o => o.category === 'database') },
+      { name: 'Observability', overlays: config.overlays.filter(o => o.category === 'observability') },
+      { name: 'Cloud', overlays: config.overlays.filter(o => o.category === 'cloud') },
+      { name: 'DevTool', overlays: config.overlays.filter(o => o.category === 'dev') },
     ];
 
     // Create a map of all overlays for dependency lookup
-    const allOverlaysMap = new Map<string, OverlayMetadata>();
-    categoryList.forEach(cat => {
-      cat.overlays.forEach((o: any) => allOverlaysMap.set(o.id, o));
-    });
+    const allOverlaysMap = new Map(config.overlays.map(o => [o.id, o]));
 
     // Question 3: Categorized multi-select overlays with dependency tracking
     let userSelection: readonly string[];
@@ -698,24 +696,26 @@ async function runQuestionnaire(manifest?: SuperpositionManifest, manifestDir?: 
     const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
 
     // Parse selected overlays into categories
+    const overlayMap = new Map(config.overlays.map(o => [o.id, o]));
+
     const language = selectedOverlays.filter(o =>
-      config.language_overlays.some(l => l.id === o)
+      overlayMap.get(o)?.category === 'language'
     ) as LanguageOverlay[];
 
     const observability = selectedOverlays.filter(o =>
-      config.observability_overlays.some(obs => obs.id === o)
+      overlayMap.get(o)?.category === 'observability'
     ) as ObservabilityTool[];
 
     const cloudTools = selectedOverlays.filter(o =>
-      config.cloud_tool_overlays.some(ct => ct.id === o)
+      overlayMap.get(o)?.category === 'cloud'
     ) as CloudTool[];
 
     const devTools = selectedOverlays.filter(o =>
-      config.dev_tool_overlays.some(dt => dt.id === o)
+      overlayMap.get(o)?.category === 'dev'
     ) as DevTool[];
 
     const database = selectedOverlays.filter(o =>
-      config.database_overlays.some(db => db.id === o)
+      overlayMap.get(o)?.category === 'database'
     ) as DatabaseOverlay[];
 
     const playwright = selectedOverlays.includes('playwright');
@@ -745,6 +745,150 @@ async function runQuestionnaire(manifest?: SuperpositionManifest, manifestDir?: 
     }
     throw error;
   }
+}
+
+/**
+ * Build partial answers from manifest
+ * Note: Categories are only used for UI/questionnaire grouping.
+ * The composer works with overlay IDs regardless of category.
+ */
+function buildAnswersFromManifest(
+  manifest: SuperpositionManifest,
+  manifestDir?: string
+): Partial<QuestionnaireAnswers> {
+  const config = loadOverlaysConfigWrapper();
+
+  // Helper to categorize overlays by type (for QuestionnaireAnswers structure)
+  const categorizeOverlays = (overlayIds: string[]) => {
+    const language: LanguageOverlay[] = [];
+    const database: DatabaseOverlay[] = [];
+    const observability: ObservabilityTool[] = [];
+    const cloudTools: CloudTool[] = [];
+    const devTools: DevTool[] = [];
+
+    // Build lookup map from unified overlays array
+    const overlayMap = new Map(config.overlays.map(o => [o.id, o]));
+
+    // Categorize based on overlay metadata
+    for (const id of overlayIds) {
+      const overlay = overlayMap.get(id);
+      if (!overlay) continue;
+
+      switch (overlay.category) {
+        case 'language':
+          language.push(id as LanguageOverlay);
+          break;
+        case 'database':
+          database.push(id as DatabaseOverlay);
+          break;
+        case 'observability':
+          observability.push(id as ObservabilityTool);
+          break;
+        case 'cloud':
+          cloudTools.push(id as CloudTool);
+          break;
+        case 'dev':
+          devTools.push(id as DevTool);
+          break;
+      }
+    }
+
+    return { language, database, observability, cloudTools, devTools };
+  };
+
+  const categories = categorizeOverlays(manifest.overlays);
+
+  // Resolve output path relative to manifest directory if relative
+  let outputPath = manifest.outputPath || './.devcontainer';
+  if (manifestDir && !path.isAbsolute(outputPath)) {
+    outputPath = path.resolve(manifestDir, outputPath);
+  }
+
+  return {
+    stack: manifest.baseTemplate,
+    baseImage: manifest.baseImage as BaseImage,
+    containerName: manifest.containerName,
+    preset: manifest.preset,
+    presetChoices: manifest.presetChoices,
+    ...categories,
+    needsDocker: manifest.baseTemplate === 'compose',
+    playwright: categories.devTools.includes('playwright'),
+    outputPath,
+    portOffset: manifest.portOffset
+  };
+}
+
+/**
+ * Build partial answers from CLI arguments
+ */
+function buildAnswersFromCliArgs(
+  config: Partial<QuestionnaireAnswers>
+): Partial<QuestionnaireAnswers> {
+  const answers: Partial<QuestionnaireAnswers> = {};
+
+  if (config.stack) {
+    answers.stack = config.stack;
+    answers.needsDocker = config.stack === 'compose';
+  }
+  if (config.baseImage) answers.baseImage = config.baseImage;
+  if (config.containerName) answers.containerName = config.containerName;
+  if (config.language) answers.language = config.language;
+  if (config.database) answers.database = config.database;
+  if (config.playwright !== undefined) answers.playwright = config.playwright;
+  if (config.observability) answers.observability = config.observability;
+  if (config.cloudTools) answers.cloudTools = config.cloudTools;
+  if (config.devTools) answers.devTools = config.devTools;
+  if (config.portOffset !== undefined) answers.portOffset = config.portOffset;
+  if (config.outputPath) answers.outputPath = config.outputPath;
+  if (config.preset) answers.preset = config.preset;
+  if (config.presetChoices) answers.presetChoices = config.presetChoices;
+
+  return answers;
+}
+
+/**
+ * Merge multiple partial answers with precedence: cli > interactive > manifest > defaults
+ */
+function mergeAnswers(
+  ...partials: Array<Partial<QuestionnaireAnswers> | undefined>
+): QuestionnaireAnswers {
+  const merged: any = {
+    language: [],
+    database: [],
+    cloudTools: [],
+    devTools: [],
+    observability: [],
+    playwright: false,
+    outputPath: './.devcontainer'
+  };
+
+  // Merge in order (later overrides earlier)
+  for (const partial of partials) {
+    if (!partial) continue;
+
+    Object.keys(partial).forEach(key => {
+      const value = (partial as any)[key];
+      if (value !== undefined && value !== null) {
+        // For arrays, prefer non-empty values
+        if (Array.isArray(value)) {
+          if (value.length > 0) {
+            merged[key] = value;
+          }
+        } else {
+          merged[key] = value;
+        }
+      }
+    });
+  }
+
+  // Ensure required fields have defaults
+  if (!merged.stack) merged.stack = 'plain';
+  if (!merged.baseImage) merged.baseImage = 'bookworm';
+  if (!merged.needsDocker && merged.stack) {
+    merged.needsDocker = merged.stack === 'compose';
+  }
+
+  return merged as QuestionnaireAnswers;
 }
 
 /**
@@ -822,145 +966,58 @@ async function main() {
     let manifestDir: string | undefined;
     let shouldBackup = true;
     let backupDir: string | undefined;
-    let skipConfirmation = false;
     let useManifestOnly = false;
 
     // Handle manifest loading
-    if (cliArgs?.manifestPath || (cliArgs && Object.keys(cliArgs.config).length === 0 && cliArgs.manifestPath !== undefined)) {
-      const manifestPath = findManifestFile(cliArgs?.manifestPath);
+    if (cliArgs?.manifestPath) {
+      const manifestPath = findManifestFile(cliArgs.manifestPath);
 
       if (!manifestPath) {
         console.error(chalk.red('✗ Could not find manifest file'));
-        if (cliArgs?.manifestPath) {
-          console.error(chalk.red(`  Searched for: ${cliArgs.manifestPath}`));
-        } else {
-          console.error(chalk.red('  Searched in: superposition.json, .devcontainer/superposition.json, ../superposition.json'));
-        }
+        console.error(chalk.red(`  Searched for: ${cliArgs.manifestPath}`));
         process.exit(1);
       }
 
-      // Capture manifest's directory for resolving relative paths
       manifestDir = path.dirname(manifestPath);
-
       const loadedManifest = loadManifest(manifestPath);
       if (!loadedManifest) {
         process.exit(1);
       }
-
       manifest = loadedManifest;
 
-      // Check for backup options
-      if (cliArgs?.noBackup) {
+      // Check for backup and interaction options
+      if (cliArgs.noBackup) {
         shouldBackup = false;
       }
-      if (cliArgs?.backupDir) {
+      if (cliArgs.backupDir) {
         backupDir = cliArgs.backupDir;
       }
-      if (cliArgs?.yes) {
-        skipConfirmation = true;
-      }
-      if (cliArgs?.noInteractive) {
+      if (cliArgs.noInteractive) {
         useManifestOnly = true;
-        skipConfirmation = true; // Also skip confirmation when using manifest only
       }
+    }
 
-      // Show manifest summary and get confirmation
-      if (!skipConfirmation) {
-        console.log('\n' + boxen(
-          chalk.bold.cyan('Regenerate from Manifest\n\n') +
-          chalk.white('Loaded configuration:\n') +
-          chalk.gray(`  Template: ${manifest.baseTemplate}\n`) +
-          chalk.gray(`  Overlays: ${manifest.overlays.join(', ')}\n`) +
-          (manifest.preset ? chalk.gray(`  Preset: ${manifest.preset}\n`) : '') +
-          (manifest.portOffset ? chalk.gray(`  Port offset: ${manifest.portOffset}\n`) : '') +
-          '\n' +
-          chalk.white('Actions:\n') +
-          (shouldBackup ? chalk.gray(`  - Backup current .devcontainer/ to timestamped folder\n`) : chalk.yellow('  - Skip backup (--no-backup)\n')) +
-          chalk.gray('  - Regenerate devcontainer with selections from questionnaire'),
-          { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
-        ));
+    // Create backup if needed
+    if (shouldBackup && manifest) {
+      const outputPath = path.resolve(
+        manifestDir || '.',
+        manifest.outputPath || './.devcontainer'
+      );
 
-        const proceed = await confirm({
-          message: 'Continue with regeneration?',
-          default: false
-        });
-
-        if (!proceed) {
-          console.log(chalk.yellow('\nCancelled by user'));
-          process.exit(0);
-        }
-      }
-
-      // Create backup if requested
-      if (shouldBackup && manifest && manifestDir) {
-        const outputPath = manifest.outputPath
-          ? path.resolve(manifestDir, manifest.outputPath)
-          : manifestDir;
-        const backupPath = await createBackup(outputPath, backupDir);
-
-        if (backupPath) {
-          console.log(chalk.green(`\n✓ Backup created: ${backupPath}`));
-        }
-      }
-
-      // Ensure .gitignore has backup patterns
-      if (manifest && manifestDir) {
-        const outputPath = manifest.outputPath
-          ? path.resolve(manifestDir, manifest.outputPath)
-          : manifestDir;
+      const backupPath = await createBackup(outputPath, backupDir);
+      if (backupPath) {
+        console.log(chalk.green(`✓ Backup created: ${backupPath}\n`));
         await ensureBackupPatternsInGitignore(outputPath);
       }
     }
 
+    // Build answers based on mode
     let answers: QuestionnaireAnswers;
 
-    if (useManifestOnly && manifest && manifestDir) {
-      // Use manifest values directly without questionnaire
-      const config = loadOverlaysConfigWrapper();
-
-      // Categorize overlays from manifest
-      const language = manifest.overlays.filter(o =>
-        config.language_overlays.some(l => l.id === o)
-      ) as LanguageOverlay[];
-
-      const database = manifest.overlays.filter(o =>
-        config.database_overlays.some(db => db.id === o)
-      ) as DatabaseOverlay[];
-
-      const observability = manifest.overlays.filter(o =>
-        config.observability_overlays.some(obs => obs.id === o)
-      ) as ObservabilityTool[];
-
-      const cloudTools = manifest.overlays.filter(o =>
-        config.cloud_tool_overlays.some(ct => ct.id === o)
-      ) as CloudTool[];
-
-      const devTools = manifest.overlays.filter(o =>
-        config.dev_tool_overlays.some(dt => dt.id === o)
-      ) as DevTool[];
-
-      const playwright = manifest.overlays.includes('playwright');
-
-      const resolvedOutputPath = manifest.outputPath
-        ? path.resolve(manifestDir, manifest.outputPath)
-        : manifestDir;
-
-      answers = {
-        stack: manifest.baseTemplate,
-        baseImage: manifest.baseImage as BaseImage,
-        containerName: manifest.containerName,
-        preset: manifest.preset,
-        presetChoices: manifest.presetChoices,
-        language,
-        needsDocker: manifest.baseTemplate === 'compose',
-        database,
-        playwright,
-        cloudTools,
-        devTools,
-        observability,
-        outputPath: resolvedOutputPath,
-        portOffset: manifest.portOffset
-      };
+    if (useManifestOnly && manifest) {
+      // Mode 1: Manifest-only (--from-manifest --no-interactive)
+      const manifestAnswers = buildAnswersFromManifest(manifest, manifestDir);
+      answers = mergeAnswers(manifestAnswers);
 
       console.log('\n' + boxen(
         chalk.bold.cyan('Regenerating from Manifest (No Interactive)\n\n') +
@@ -971,41 +1028,23 @@ async function main() {
         chalk.gray(`  Overlays: ${manifest.overlays.join(', ')}\n`) +
         (manifest.preset ? chalk.gray(`  Preset: ${manifest.preset}\n`) : '') +
         (manifest.portOffset ? chalk.gray(`  Port offset: ${manifest.portOffset}\n`) : '') +
-        chalk.gray(`  Output: ${resolvedOutputPath}`),
+        chalk.gray(`  Output: ${answers.outputPath}`),
         { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
       ));
     } else if (cliArgs && cliArgs.config.stack) {
-      // Non-interactive mode
-      // Determine output path: CLI arg > manifest path (resolved to manifest dir) > default
-      let resolvedOutputPath = './.devcontainer';
-      if (cliArgs.config.outputPath) {
-        resolvedOutputPath = cliArgs.config.outputPath;
-      } else if (manifest?.outputPath && manifestDir) {
-        resolvedOutputPath = path.resolve(manifestDir, manifest.outputPath);
-      }
-
-      answers = {
-        stack: cliArgs.config.stack,
-        baseImage: manifest?.baseImage as BaseImage || 'bookworm', // Use manifest's base image or default
-        containerName: manifest?.containerName,
-        language: cliArgs.config.language,
-        needsDocker: cliArgs.config.stack === 'compose',
-        database: cliArgs.config.database ?? [],
-        playwright: cliArgs.config.playwright ?? false,
-        cloudTools: cliArgs.config.cloudTools ?? [],
-        devTools: cliArgs.config.devTools ?? [],
-        observability: cliArgs.config.observability ?? [],
-        outputPath: resolvedOutputPath,
-        portOffset: cliArgs.config.portOffset ?? manifest?.portOffset,
-      };
+      // Mode 2: CLI-based (with optional manifest defaults)
+      const cliAnswers = buildAnswersFromCliArgs(cliArgs.config);
+      const manifestAnswers = manifest ? buildAnswersFromManifest(manifest, manifestDir) : undefined;
+      answers = mergeAnswers(manifestAnswers, cliAnswers, { outputPath: cliAnswers.outputPath || './.devcontainer' });
 
       console.log('\n' + boxen(
-        chalk.bold('Running in non-interactive mode'),
+        chalk.bold('Running in CLI mode'),
         { padding: 0.5, borderColor: 'blue', borderStyle: 'round' }
       ));
     } else {
-      // Interactive mode (with optional manifest pre-population)
-      answers = await runQuestionnaire(manifest, manifestDir);
+      // Mode 3: Interactive (with optional manifest pre-population)
+      const interactiveAnswers = await runQuestionnaire(manifest, manifestDir);
+      answers = mergeAnswers(interactiveAnswers);
     }
 
     // Show configuration summary
@@ -1032,7 +1071,7 @@ async function main() {
       );
     }
 
-    if (answers.cloudTools.length > 0) {
+    if (answers.cloudTools && answers.cloudTools.length > 0) {
       summaryLines.push(
         chalk.cyan('Cloud tools:     ') + chalk.white(answers.cloudTools.join(', '))
       );

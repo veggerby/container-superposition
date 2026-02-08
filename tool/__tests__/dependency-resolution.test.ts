@@ -23,13 +23,7 @@ function loadOverlaysConfigWrapper(): OverlaysConfig {
  * Get all overlay definitions as a flat array
  */
 function getAllOverlayDefs(config: OverlaysConfig): OverlayMetadata[] {
-  return [
-    ...config.language_overlays,
-    ...config.database_overlays,
-    ...config.observability_overlays,
-    ...config.cloud_tool_overlays,
-    ...config.dev_tool_overlays,
-  ];
+  return config.overlays;
 }
 
 /**
@@ -41,25 +35,25 @@ function resolveDependencies(
 ): { overlays: string[]; autoResolved: { added: string[]; reason: string } } {
   const overlayMap = new Map<string, OverlayMetadata>();
   allOverlayDefs.forEach(def => overlayMap.set(def.id, def));
-  
+
   const resolved = new Set<string>(requestedOverlays);
   const autoAdded: string[] = [];
   const resolutionReasons: string[] = [];
-  
+
   // Resolve dependencies recursively
   const toProcess = [...requestedOverlays];
   const processed = new Set<string>();
-  
+
   while (toProcess.length > 0) {
     const current = toProcess.shift()!;
     if (processed.has(current)) continue;
     processed.add(current);
-    
+
     const overlayDef = overlayMap.get(current);
     if (!overlayDef || !overlayDef.requires || overlayDef.requires.length === 0) {
       continue;
     }
-    
+
     // Add required dependencies
     for (const required of overlayDef.requires) {
       if (!resolved.has(required)) {
@@ -70,11 +64,11 @@ function resolveDependencies(
       }
     }
   }
-  
-  const reason = autoAdded.length > 0 
+
+  const reason = autoAdded.length > 0
     ? resolutionReasons.join(', ')
     : '';
-  
+
   return {
     overlays: Array.from(resolved),
     autoResolved: {
@@ -95,9 +89,11 @@ describe('Overlay Dependency Resolution', () => {
 
   it('should load overlays.yml successfully', () => {
     expect(overlaysConfig).toBeDefined();
-    expect(overlaysConfig.language_overlays).toBeDefined();
-    expect(overlaysConfig.database_overlays).toBeDefined();
-    expect(overlaysConfig.observability_overlays).toBeDefined();
+    expect(overlaysConfig.overlays).toBeDefined();
+    expect(overlaysConfig.overlays.length).toBeGreaterThan(0);
+    expect(overlaysConfig.overlays.some(o => o.category === 'language')).toBe(true);
+    expect(overlaysConfig.overlays.some(o => o.category === 'database')).toBe(true);
+    expect(overlaysConfig.overlays.some(o => o.category === 'observability')).toBe(true);
   });
 
   it('should have required metadata fields for all overlays', () => {
@@ -116,7 +112,7 @@ describe('Overlay Dependency Resolution', () => {
 
   it('should auto-resolve grafana -> prometheus dependency', () => {
     const result = resolveDependencies(['grafana'], allOverlayDefs);
-    
+
     expect(result.overlays).toContain('grafana');
     expect(result.overlays).toContain('prometheus');
     expect(result.autoResolved.added).toContain('prometheus');
@@ -125,7 +121,7 @@ describe('Overlay Dependency Resolution', () => {
 
   it('should not duplicate overlays when dependency is already requested', () => {
     const result = resolveDependencies(['grafana', 'prometheus'], allOverlayDefs);
-    
+
     expect(result.overlays).toContain('grafana');
     expect(result.overlays).toContain('prometheus');
     expect(result.autoResolved.added).toHaveLength(0);
@@ -133,7 +129,7 @@ describe('Overlay Dependency Resolution', () => {
 
   it('should handle overlays with no dependencies', () => {
     const result = resolveDependencies(['postgres'], allOverlayDefs);
-    
+
     expect(result.overlays).toContain('postgres');
     expect(result.overlays).toHaveLength(1);
     expect(result.autoResolved.added).toHaveLength(0);
@@ -141,7 +137,7 @@ describe('Overlay Dependency Resolution', () => {
 
   it('should handle multiple overlays with no shared dependencies', () => {
     const result = resolveDependencies(['postgres', 'redis'], allOverlayDefs);
-    
+
     expect(result.overlays).toContain('postgres');
     expect(result.overlays).toContain('redis');
     expect(result.overlays).toHaveLength(2);
@@ -151,21 +147,21 @@ describe('Overlay Dependency Resolution', () => {
   it('should verify docker-in-docker conflicts with docker-sock', () => {
     const dockerInDocker = allOverlayDefs.find(o => o.id === 'docker-in-docker');
     const dockerSock = allOverlayDefs.find(o => o.id === 'docker-sock');
-    
+
     expect(dockerInDocker?.conflicts).toContain('docker-sock');
     expect(dockerSock?.conflicts).toContain('docker-in-docker');
   });
 
   it('should verify grafana suggests loki and jaeger', () => {
     const grafana = allOverlayDefs.find(o => o.id === 'grafana');
-    
+
     expect(grafana?.suggests).toContain('loki');
     expect(grafana?.suggests).toContain('jaeger');
   });
 
   it('should verify otel-collector suggests jaeger and prometheus', () => {
     const otelCollector = allOverlayDefs.find(o => o.id === 'otel-collector');
-    
+
     expect(otelCollector?.suggests).toContain('jaeger');
     expect(otelCollector?.suggests).toContain('prometheus');
   });
@@ -174,7 +170,7 @@ describe('Overlay Dependency Resolution', () => {
     const grafana = allOverlayDefs.find(o => o.id === 'grafana');
     const postgres = allOverlayDefs.find(o => o.id === 'postgres');
     const prometheus = allOverlayDefs.find(o => o.id === 'prometheus');
-    
+
     expect(grafana?.ports).toContain(3000);
     expect(postgres?.ports).toContain(5432);
     expect(prometheus?.ports).toContain(9090);
@@ -183,7 +179,7 @@ describe('Overlay Dependency Resolution', () => {
   it('should verify tags are present and meaningful', () => {
     const grafana = allOverlayDefs.find(o => o.id === 'grafana');
     const postgres = allOverlayDefs.find(o => o.id === 'postgres');
-    
+
     expect(grafana?.tags).toContain('observability');
     expect(postgres?.tags).toContain('database');
   });

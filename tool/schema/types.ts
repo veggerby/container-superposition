@@ -113,13 +113,18 @@ export interface DevContainer {
 }
 
 /**
+ * Overlay categories - just metadata for grouping in UI
+ */
+export type OverlayCategory = 'language' | 'database' | 'observability' | 'cloud' | 'dev' | 'preset';
+
+/**
  * Overlay metadata from overlays.yml
  */
 export interface OverlayMetadata {
   id: string;
   name: string;
   description: string;
-  category: string;
+  category: OverlayCategory;
   supports?: string[];
   requires?: string[];
   suggests?: string[];
@@ -182,12 +187,8 @@ export interface OverlaysConfig {
     name: string;
     description: string;
   }>;
-  language_overlays: OverlayMetadata[];
-  database_overlays: OverlayMetadata[];
-  observability_overlays: OverlayMetadata[];
-  cloud_tool_overlays: OverlayMetadata[];
-  dev_tool_overlays: OverlayMetadata[];
-  preset_overlays?: OverlayMetadata[]; // Preset metadata from index.yml (not full MetaOverlay)
+  /** All overlays, regardless of category */
+  overlays: OverlayMetadata[];
 }
 
 /**
