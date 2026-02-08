@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as yaml from 'js-yaml';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe('Preset Definitions', () => {
   const presetsDir = path.join(__dirname, '..', '..', 'overlays', 'presets');

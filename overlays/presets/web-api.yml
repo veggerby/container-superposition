@@ -57,7 +57,6 @@ glueConfig:
     api: 8000
     grafana: 3000
     prometheus: 9090
-    jaeger: 16686
   
   # README snippet to add to generated devcontainer
   readme: |

@@ -385,7 +385,10 @@ function copyOverlayFiles(outputPath: string, overlayName: string): void {
 /**
  * Merge .env.example files from all selected overlays
  */
-function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: number): void {
+/**
+ * Merge .env.example files from overlays and apply glue config
+ */
+function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: number, glueConfig?: PresetGlueConfig, presetName?: string): void {
   const envSections: string[] = [];
   
   for (const overlay of overlays) {
@@ -397,6 +400,17 @@ function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: n
         envSections.push(content);
       }
     }
+  }
+  
+  // Add preset glue environment variables if present
+  if (glueConfig?.environment && Object.keys(glueConfig.environment).length > 0) {
+    let presetEnvSection = `# Preset: ${presetName || 'custom'}\n# Pre-configured environment variables from preset\n\n`;
+    
+    for (const [key, value] of Object.entries(glueConfig.environment)) {
+      presetEnvSection += `${key}=${value}\n`;
+    }
+    
+    envSections.push(presetEnvSection.trim());
   }
   
   if (envSections.length === 0) {
@@ -457,47 +471,30 @@ function applyPortOffsetToEnv(envContent: string, offset: number): string {
 }
 
 /**
- * Apply preset glue configuration
+ * Apply preset glue configuration (README and port mappings)
+ * Note: Environment variables are handled in mergeEnvExamples to ensure proper port offset application
  */
 function applyGlueConfig(outputPath: string, glueConfig: PresetGlueConfig, presetName?: string): void {
   console.log(chalk.cyan(`\n📦 Applying preset glue configuration...\n`));
 
-  // 1. Apply environment variables to .env.example
-  if (glueConfig.environment && Object.keys(glueConfig.environment).length > 0) {
-    const envPath = path.join(outputPath, '.env.example');
-    let envContent = '';
-    
-    // Read existing content if file exists
-    if (fs.existsSync(envPath)) {
-      envContent = fs.readFileSync(envPath, 'utf-8');
-    }
-    
-    // Add preset environment variables section
-    let presetEnvSection = `\n# Preset: ${presetName || 'custom'}\n# Pre-configured environment variables from preset\n\n`;
-    
-    for (const [key, value] of Object.entries(glueConfig.environment)) {
-      presetEnvSection += `${key}=${value}\n`;
-    }
-    
-    envContent += presetEnvSection;
-    
-    fs.writeFileSync(envPath, envContent);
-    console.log(chalk.dim(`   ✓ Added ${Object.keys(glueConfig.environment).length} environment variables to .env.example`));
-  }
-
-  // 2. Create preset README if provided
+  // 1. Create preset README if provided
   if (glueConfig.readme) {
     const readmePath = path.join(outputPath, 'PRESET-README.md');
     fs.writeFileSync(readmePath, glueConfig.readme);
     console.log(chalk.dim(`   ✓ Created PRESET-README.md with usage instructions`));
   }
 
-  // 3. Log port mappings (informational only - actual ports handled by overlay configs)
+  // 2. Log port mappings (informational only - actual ports handled by overlay configs)
   if (glueConfig.portMappings && Object.keys(glueConfig.portMappings).length > 0) {
     console.log(chalk.dim(`   ℹ️  Suggested port mappings:`));
     for (const [service, port] of Object.entries(glueConfig.portMappings)) {
       console.log(chalk.dim(`      ${service}: ${port}`));
     }
+  }
+  
+  // 3. Log environment variables if present
+  if (glueConfig.environment && Object.keys(glueConfig.environment).length > 0) {
+    console.log(chalk.dim(`   ✓ Added ${Object.keys(glueConfig.environment).length} environment variables to .env.example`));
   }
   
   console.log('');
@@ -803,10 +800,10 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // 13. Generate superposition.json manifest
   generateManifest(outputPath, answers, overlays, autoResolved);
   
-  // 14. Merge .env.example files from overlays
-  mergeEnvExamples(outputPath, overlays, answers.portOffset);
+  // 14. Merge .env.example files from overlays and apply glue config environment variables
+  mergeEnvExamples(outputPath, overlays, answers.portOffset, answers.presetGlueConfig, answers.preset);
   
-  // 15. Apply preset glue configuration if present
+  // 15. Apply preset glue configuration (README and port mappings) if present
   if (answers.presetGlueConfig) {
     applyGlueConfig(outputPath, answers.presetGlueConfig, answers.preset);
   }

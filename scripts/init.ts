@@ -252,9 +252,25 @@ async function runQuestionnaire(): Promise<QuestionnaireAnswers> {
     // If using preset, expand it now
     if (usePreset && selectedPresetId) {
       const expansion = await expandPreset(selectedPresetId, stack);
-      presetOverlays = expansion.overlays;
-      presetChoices = expansion.choices;
-      presetGlueConfig = expansion.glueConfig;
+      
+      if (!expansion.overlays || expansion.overlays.length === 0) {
+        // Preset failed to expand (e.g., missing or invalid preset definition).
+        // Treat this as "no preset" so the manifest does not incorrectly record one.
+        console.log(
+          chalk.yellow(
+            `\n⚠️  Preset "${selectedPresetId}" could not be applied. Falling back to custom overlay selection.\n`
+          )
+        );
+        usePreset = false;
+        selectedPresetId = undefined;
+        presetOverlays = [];
+        presetChoices = {};
+        presetGlueConfig = undefined;
+      } else {
+        presetOverlays = expansion.overlays;
+        presetChoices = expansion.choices;
+        presetGlueConfig = expansion.glueConfig;
+      }
     }
 
     // Question 2: Base image selection

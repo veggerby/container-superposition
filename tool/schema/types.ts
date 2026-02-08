@@ -186,7 +186,7 @@ export interface OverlaysConfig {
   observability_overlays: OverlayMetadata[];
   cloud_tool_overlays: OverlayMetadata[];
   dev_tool_overlays: OverlayMetadata[];
-  preset_overlays?: MetaOverlay[];
+  preset_overlays?: OverlayMetadata[]; // Preset metadata from index.yml (not full MetaOverlay)
 }
 
 /**
