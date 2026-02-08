@@ -224,6 +224,67 @@ npm run init -- --stack compose --language nodejs --postgres --port-offset 200 -
 
 This automatically adjusts all exposed ports in docker-compose.yml and documents the offset in .env.example.
 
+### Regenerating from Manifest
+
+Every devcontainer generation creates a `superposition.json` manifest file that records your configuration choices. You can use this manifest to:
+
+- **Iterate on your setup** - Modify overlay selections and regenerate
+- **Update to latest** - Regenerate with newer overlay versions
+- **Experiment safely** - Try different configurations with automatic backup
+- **Share configurations** - Commit the manifest for team consistency
+
+**Basic regeneration (interactive):**
+
+```bash
+# Loads manifest, creates backup, shows questionnaire with pre-selected options
+npm run init -- --from-manifest ./superposition.json
+```
+
+**Non-interactive regeneration (exact same setup):**
+
+```bash
+# Regenerate with exact same selections (useful for updates)
+npm run init -- --from-manifest ./superposition.json --yes --no-backup
+```
+
+**Workflow examples:**
+
+```bash
+# 1. Initial setup
+npm run init -- --stack compose --language nodejs --database postgres
+# Creates .devcontainer/ and superposition.json
+
+# 2. Later: Add Redis and observability
+npm run init -- --from-manifest ./superposition.json
+# Questionnaire shows with nodejs and postgres pre-selected
+# Add redis, otel-collector, grafana
+# Original .devcontainer/ backed up automatically
+
+# 3. Switch languages (e.g., Node.js → Python)
+npm run init -- --from-manifest ./superposition.json
+# Change nodejs to python in questionnaire
+# Regenerate with new language
+
+# 4. Update to latest overlay versions (CI/CD)
+npm run init -- --from-manifest ./superposition.json --yes --no-backup
+```
+
+**Backup behavior:**
+
+- **Default**: Creates timestamped backup (`.devcontainer.backup-2026-02-08-143022/`)
+- **`--no-backup`**: Skip backup (destructive, use with caution)
+- **`--backup-dir <path>`**: Custom backup location
+- **Automatic .gitignore**: Backup patterns added to `.devcontainer/.gitignore`
+
+**What's preserved from manifest:**
+
+- Base template (plain/compose)
+- Preset selection (if used)
+- All overlay selections
+- Port offset
+- Output path
+- Container name
+
 See [tool/README.md](tool/README.md) for full documentation.
 
 ### Option 2: Manual Composition
