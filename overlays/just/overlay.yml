@@ -1,0 +1,13 @@
+id: just
+name: Just Task Runner
+description: Fast, simple command runner (Rust-based alternative to Make)
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - dev
+  - automation
+  - tasks
+ports: []

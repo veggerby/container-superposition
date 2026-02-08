@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://container-superposition.dev/schema/base-templates.json",
+  "title": "Base Templates Configuration",
+  "description": "Available base devcontainer templates",
+  "type": "object",
+  "required": ["base_templates"],
+  "properties": {
+    "base_templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the template",
+            "enum": ["plain", "compose"]
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the template type"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

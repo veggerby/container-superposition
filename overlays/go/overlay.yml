@@ -1,0 +1,15 @@
+id: go
+name: Go
+description: Go latest stable with gopls and delve debugger
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - go
+  - golang
+ports:
+  - 8080
+  - 8081

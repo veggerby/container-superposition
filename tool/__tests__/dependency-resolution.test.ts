@@ -1,22 +1,22 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import * as yaml from 'js-yaml';
 import type { OverlaysConfig, OverlayMetadata } from '../schema/types.js';
+import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
-const OVERLAYS_CONFIG_PATH = path.join(REPO_ROOT, 'overlays', 'index.yml');
+const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
+const INDEX_YML_PATH = path.join(OVERLAYS_DIR, 'index.yml');
 
 /**
- * Load overlay metadata from overlays.yml
+ * Load overlay metadata using overlay loader
  */
-function loadOverlaysConfig(): OverlaysConfig {
-  return yaml.load(fs.readFileSync(OVERLAYS_CONFIG_PATH, 'utf-8')) as OverlaysConfig;
+function loadOverlaysConfigWrapper(): OverlaysConfig {
+  return loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
 }
 
 /**
@@ -89,7 +89,7 @@ describe('Overlay Dependency Resolution', () => {
   let allOverlayDefs: OverlayMetadata[];
 
   beforeAll(() => {
-    overlaysConfig = loadOverlaysConfig();
+    overlaysConfig = loadOverlaysConfigWrapper();
     allOverlayDefs = getAllOverlayDefs(overlaysConfig);
   });
 

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import * as yaml from 'js-yaml';
 import type { QuestionnaireAnswers, DevContainer, CloudTool, OverlayMetadata, OverlaysConfig, SuperpositionManifest, PresetGlueConfig } from '../schema/types.js';
+import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -146,14 +147,6 @@ function mergeCrossDistroPackages(
 function loadJson<T = any>(filePath: string): T {
   const content = fs.readFileSync(filePath, 'utf-8');
   return JSON.parse(content);
-}
-
-/**
- * Load overlay metadata from overlays/index.yml
- */
-function loadOverlaysConfig(): OverlaysConfig {
-  const overlaysConfigPath = path.join(REPO_ROOT, 'overlays', 'index.yml');
-  return yaml.load(fs.readFileSync(overlaysConfigPath, 'utf-8')) as OverlaysConfig;
 }
 
 /**
@@ -600,7 +593,9 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
  */
 export async function composeDevContainer(answers: QuestionnaireAnswers): Promise<void> {
   // 1. Load overlay configuration
-  const overlaysConfig = loadOverlaysConfig();
+  const overlaysDir = path.join(REPO_ROOT, 'overlays');
+  const indexYmlPath = path.join(REPO_ROOT, 'overlays', 'index.yml');
+  const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
   
   // Collect all overlay definitions
   const allOverlayDefs = getAllOverlayDefs(overlaysConfig);

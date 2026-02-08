@@ -1,0 +1,21 @@
+id: grafana
+name: Grafana
+description: Observability visualization dashboard with auto-provisioning
+category: observability
+supports:
+  - compose
+requires:
+  - prometheus
+suggests:
+  - loki
+  - jaeger
+  - tempo
+  - promtail
+conflicts: []
+tags:
+  - observability
+  - ui
+  - visualization
+ports:
+  - 3000
+order: 3

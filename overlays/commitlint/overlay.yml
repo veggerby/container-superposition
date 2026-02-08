@@ -1,0 +1,15 @@
+id: commitlint
+name: Commitlint
+description: Conventional commits validation for automated releases
+category: dev
+supports: []
+requires: []
+suggests:
+  - pre-commit
+conflicts: []
+tags:
+  - dev
+  - git
+  - commits
+  - semantic-release
+ports: []

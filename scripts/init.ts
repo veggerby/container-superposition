@@ -9,38 +9,13 @@ import boxen from 'boxen';
 import ora from 'ora';
 import { select, checkbox, input, confirm } from '@inquirer/prompts';
 import yaml from 'js-yaml';
-import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, DatabaseOverlay, CloudTool, DevTool, ObservabilityTool, SuperpositionManifest, DevContainer } from '../tool/schema/types.js';
+import type { QuestionnaireAnswers, Stack, BaseImage, LanguageOverlay, DatabaseOverlay, CloudTool, DevTool, ObservabilityTool, SuperpositionManifest, DevContainer, OverlaysConfig, OverlayMetadata } from '../tool/schema/types.js';
 import { composeDevContainer } from '../tool/questionnaire/composer.js';
+import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-interface OverlayMetadata {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  order?: number;
-  image?: string | null;
-  supports?: string[];
-  requires?: string[];
-  suggests?: string[];
-  conflicts?: string[];
-  tags?: string[];
-  ports?: number[];
-}
-
-interface OverlaysConfig {
-  base_images: OverlayMetadata[];
-  base_templates: OverlayMetadata[];
-  language_overlays: OverlayMetadata[];
-  database_overlays: OverlayMetadata[];
-  observability_overlays: OverlayMetadata[];
-  cloud_tool_overlays: OverlayMetadata[];
-  dev_tool_overlays: OverlayMetadata[];
-  preset_overlays?: OverlayMetadata[];
-}
 
 interface PresetDefinition {
   id: string;
@@ -66,6 +41,17 @@ interface PresetDefinition {
   };
 }
 
+const OVERLAYS_DIR_CANDIDATES = [
+  // When running from TypeScript sources (e.g. ts-node), __dirname is "<root>/scripts"
+  path.join(__dirname, '..', 'overlays'),
+  // When running from compiled JS in "dist/scripts", __dirname is "<root>/dist/scripts"
+  path.join(__dirname, '..', '..', 'overlays'),
+];
+
+const OVERLAYS_DIR =
+  OVERLAYS_DIR_CANDIDATES.find((candidate) => fs.existsSync(candidate)) ??
+  OVERLAYS_DIR_CANDIDATES[0];
+
 const OVERLAYS_CONFIG_CANDIDATES = [
   // When running from TypeScript sources (e.g. ts-node), __dirname is "<root>/scripts"
   // and "../overlays/index.yml" resolves to "<root>/overlays/index.yml".
@@ -89,11 +75,10 @@ const PRESETS_DIR =
   PRESETS_DIR_CANDIDATES[0];
 
 /**
- * Load overlay metadata from YAML file
+ * Load overlay metadata from individual manifests or fallback to YAML file
  */
-function loadOverlaysConfig(): OverlaysConfig {
-  const content = fs.readFileSync(OVERLAYS_CONFIG_PATH, 'utf8');
-  return yaml.load(content) as OverlaysConfig;
+function loadOverlaysConfigWrapper(): OverlaysConfig {
+  return loadOverlaysConfig(OVERLAYS_DIR, OVERLAYS_CONFIG_PATH);
 }
 
 /**
@@ -380,7 +365,7 @@ function buildOverlayChoices(
  * Interactive questionnaire with modern checkbox selections
  */
 async function runQuestionnaire(manifest?: SuperpositionManifest): Promise<QuestionnaireAnswers> {
-  const config = loadOverlaysConfig();
+  const config = loadOverlaysConfigWrapper();
 
   // Pretty banner
   console.log('\n' + boxen(

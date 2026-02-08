@@ -10,9 +10,9 @@ This file provides instructions for GitHub Copilot when creating or modifying ov
 
 Each overlay directory must contain at minimum:
 
+- `overlay.yml` - Required: Overlay metadata manifest (id, name, description, category, dependencies, etc.)
 - `devcontainer.patch.json` - Required: Patches to merge into base devcontainer.json
 - `README.md` - Required: Documentation following overlay-docs.instructions.md guidelines
-- **Entry in `overlays/index.yml`** - Required: Metadata registration (see overlay-index.instructions.md)
 
 Optional files (as needed):
 
@@ -25,6 +25,67 @@ Optional files (as needed):
 - `global-tools.txt` - For language overlays (.NET tools, Go binaries)
 
 ## File Standards
+
+### 0. overlay.yml (New)
+
+**Purpose:** Metadata manifest for the overlay. Defines the overlay's identity, dependencies, and configuration.
+
+**Schema:** See `tool/schema/overlay-manifest.schema.json` for validation.
+
+**Structure:**
+
+```yaml
+id: overlay-id               # Must match directory name
+name: Display Name           # Human-readable name for UI
+description: Brief summary   # One-line description
+category: category-name      # language|database|observability|cloud|dev
+supports: []                 # Empty = all, or [plain], [compose]
+requires: []                 # Hard dependencies (auto-installed)
+suggests: []                 # Recommended overlays
+conflicts: []                # Incompatible overlays
+tags: [tag1, tag2]          # Search/filter tags (lowercase)
+ports: [8080, 9090]         # Ports used (for offset calculation)
+order: 2                     # Optional: Display order within category
+```
+
+**Example (overlays/nodejs/overlay.yml):**
+
+```yaml
+id: nodejs
+name: Node.js
+description: Node.js LTS with TypeScript and tooling
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - nodejs
+  - javascript
+  - typescript
+ports: []
+```
+
+**Field Guidelines:**
+
+- **id**: Must match directory name exactly (kebab-case)
+- **name**: Title case, official product name
+- **description**: One sentence, no period at end
+- **category**: One of: language, database, observability, cloud, dev, preset
+- **supports**: Empty array for all stacks, or [compose] for compose-only
+- **requires**: List of overlay IDs that must be auto-installed
+- **suggests**: List of overlay IDs that work well together
+- **conflicts**: List of overlay IDs that cannot be used together (must be bidirectional)
+- **tags**: Lowercase keywords for search/filtering
+- **ports**: List of ports exposed by this overlay (matches devcontainer.patch.json)
+- **order**: Optional integer for display ordering (lower = first)
+
+**Important Notes:**
+
+- The overlay.yml file replaces the need to register in a central `overlays/index.yml` file
+- Each overlay is now self-contained with its own metadata
+- The loader automatically scans overlay directories and loads all overlay.yml files
 
 ### 1. devcontainer.patch.json
 
@@ -864,16 +925,23 @@ The `composer.ts` file in `tool/questionnaire/` handles merging overlays into th
 ## Quality Checklist
 
 Before submitting overlay files, verify:
-**Overlay registered in `overlays/index.yml`** (see overlay-index.instructions.md)
 
-- [ ] Overlay ID in index.yml matches directory name
-- [ ] Category, supports, requires, suggests, conflicts correctly defined
-- [ ] Ports in index.yml match ports in devcontainer.patch.json
+**Overlay Manifest:**
+- [ ] `overlay.yml` exists in overlay directory
+- [ ] Overlay ID matches directory name
+- [ ] Category is one of: language, database, observability, cloud, dev
+- [ ] supports is `[]` or `[plain]` or `[compose]`
+- [ ] requires, suggests, conflicts are correctly defined
+- [ ] If conflicts specified, bidirectional (both overlays list each other)
+- [ ] Ports match ports in devcontainer.patch.json
+- [ ] Tags are lowercase and include category
+
+**Overlay Files:**
 - [ ] `devcontainer.patch.json` includes schema reference
 - [ ] All JSON/YAML files are valid syntax
 - [ ] Scripts have proper shebang (`#!/bin/bash`)
 - [ ] Scripts use `set -e` for error handling (except verify.sh)
-- [ ] Port forwarding matches ports in `overlays/index.yml`
+- [ ] Port forwarding in devcontainer.patch.json matches overlay.yml ports
 - [ ] Docker Compose uses `devnet` network (not external)
 - [ ] Environment variables use `${VAR:-default}` syntax
 - [ ] All volumes are declared at root level
@@ -889,12 +957,19 @@ Before submitting overlay files, verify:
 
 **Key Files to Reference:**
 
-- `overlays/index.yml` - Overlay registry (see overlay-index.instructions.md for authoring guide)
+- `tool/schema/overlay-manifest.schema.json` - JSON schema for overlay.yml
+- `tool/schema/overlay-loader.ts` - Overlay loading and registry building
 - `tool/questionnaire/composer.ts` - Merge algorithm and overlay application logic
-- `overlays/nodejs/` - Example language overlay
+- `overlays/nodejs/` - Example language overlay with overlay.yml
 - `overlays/postgres/` - Example database overlay
 - `overlays/grafana/` - Example observability overlay with config files
 - `overlays/gcloud/` - Example cloud CLI overlay
+
+**Special Registry Files:**
+
+- `overlays/.registry/base-images.yml` - Available base container images
+- `overlays/.registry/base-templates.yml` - Base devcontainer templates
+- `overlays/presets/*.yml` - Preset definitions (meta-overlays)
 
 **Documentation:**
 

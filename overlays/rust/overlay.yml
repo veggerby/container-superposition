@@ -1,0 +1,15 @@
+id: rust
+name: Rust
+description: Rust stable with cargo, rustfmt, and clippy
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - rust
+  - cargo
+ports:
+  - 8080
+  - 3000

@@ -1,0 +1,15 @@
+id: git-helpers
+name: Git Helpers
+description: Git LFS, GitHub CLI, GPG/SSH support for secure Git operations
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - dev
+  - git
+  - security
+  - ssh
+  - gpg
+ports: []

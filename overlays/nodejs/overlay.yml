@@ -1,0 +1,14 @@
+id: nodejs
+name: Node.js
+description: Node.js LTS with TypeScript and tooling
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - nodejs
+  - javascript
+  - typescript
+ports: []

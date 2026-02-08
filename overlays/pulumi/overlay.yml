@@ -1,0 +1,14 @@
+id: pulumi
+name: Pulumi
+description: Modern Infrastructure as Code with TypeScript/Python/Go
+category: cloud
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - cloud
+  - iac
+  - pulumi
+  - infrastructure
+ports: []

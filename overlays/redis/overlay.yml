@@ -1,0 +1,15 @@
+id: redis
+name: Redis
+description: Redis 7 cache
+category: database
+supports:
+  - compose
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - database
+  - cache
+  - redis
+ports:
+  - 6379

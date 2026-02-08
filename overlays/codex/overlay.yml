@@ -1,0 +1,12 @@
+id: codex
+name: Codex
+description: pnpm CLI with mounted .codex folder
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - dev
+  - package-manager
+ports: []

@@ -1,0 +1,13 @@
+id: docker-sock
+name: Docker (host socket)
+description: Access host Docker daemon via socket mount (fast, local-only)
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts:
+  - docker-in-docker
+tags:
+  - dev
+  - docker
+ports: []

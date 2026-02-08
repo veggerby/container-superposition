@@ -1,0 +1,17 @@
+id: prometheus
+name: Prometheus
+description: Metrics collection and monitoring
+category: observability
+supports:
+  - compose
+requires: []
+suggests:
+  - alertmanager
+conflicts: []
+tags:
+  - observability
+  - metrics
+  - prometheus
+ports:
+  - 9090
+order: 1

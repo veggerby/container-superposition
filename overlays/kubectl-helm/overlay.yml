@@ -1,0 +1,13 @@
+id: kubectl-helm
+name: kubectl + Helm
+description: Kubernetes CLI and Helm package manager
+category: cloud
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - cloud
+  - kubernetes
+  - helm
+ports: []

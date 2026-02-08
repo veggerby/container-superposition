@@ -1,0 +1,16 @@
+id: bun
+name: Bun
+description: Bun runtime - faster JavaScript runtime and package manager
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - bun
+  - javascript
+  - typescript
+ports:
+  - 3000
+  - 8080

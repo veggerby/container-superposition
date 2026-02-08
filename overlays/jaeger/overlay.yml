@@ -1,0 +1,19 @@
+id: jaeger
+name: Jaeger
+description: Distributed tracing backend
+category: observability
+supports:
+  - compose
+requires: []
+suggests: []
+conflicts:
+  - tempo
+tags:
+  - observability
+  - tracing
+  - jaeger
+ports:
+  - 16686
+  - 14250
+  - 14268
+order: 1

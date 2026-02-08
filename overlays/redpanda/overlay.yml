@@ -1,0 +1,21 @@
+id: redpanda
+name: Redpanda
+description: Kafka-compatible event streaming with web console
+category: database
+supports:
+  - compose
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - database
+  - messaging
+  - streaming
+  - kafka
+  - redpanda
+ports:
+  - 9092
+  - 8080
+  - 8081
+  - 8082
+  - 9644

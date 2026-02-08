@@ -1,0 +1,13 @@
+id: docker-in-docker
+name: Docker-in-Docker
+description: Isolated Docker daemon inside container (portable, works in Codespaces)
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts:
+  - docker-sock
+tags:
+  - dev
+  - docker
+ports: []

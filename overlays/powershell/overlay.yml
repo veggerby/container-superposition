@@ -1,0 +1,13 @@
+id: powershell
+name: PowerShell
+description: PowerShell Core for cross-platform scripting and automation
+category: language
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - language
+  - powershell
+  - scripting
+ports: []
