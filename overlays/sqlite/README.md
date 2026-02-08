@@ -18,15 +18,9 @@ SQLite embedded database with enhanced CLI tools and VS Code extensions for file
 Unlike server-based databases, SQLite stores the entire database in a single file on disk. This overlay installs the SQLite CLI tools and VS Code extensions for working with SQLite databases.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - sqlite3 CLI                 │
-│   - litecli (enhanced CLI)      │
-│   - SQLite databases (.db)      │
-│   - No server needed            │
-└─────────────────────────────────┘
+```mermaid
+graph LR
+    A[Development Container<br/>Your application code<br/>sqlite3 CLI<br/>litecli enhanced CLI<br/>SQLite databases .db<br/>No server needed]
 ```
 
 **No Docker Compose service** - SQLite is embedded directly in your application and development environment.
@@ -304,7 +298,7 @@ func main() {
     // Query
     rows, _ := db.Query("SELECT * FROM users")
     defer rows.Close()
-    
+
     for rows.Next() {
         var id int
         var name, email string
@@ -525,7 +519,7 @@ sqlite3 myapp.db "VACUUM;"
    ```python
    # Good
    cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
-   
+
    # Bad (SQL injection vulnerable)
    cursor.execute(f'SELECT * FROM users WHERE email = "{email}"')
    ```

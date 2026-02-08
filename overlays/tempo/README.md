@@ -16,32 +16,10 @@ Modern distributed tracing backend from Grafana Labs - a lightweight alternative
 Tempo is a high-volume, minimal-dependency distributed tracing backend designed to be cost-effective and easy to operate. Unlike Jaeger, Tempo doesn't require a database - it stores traces directly to object storage.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Your Application              │
-│   - Instrumented with OTLP      │
-│   - Sends spans to Tempo        │
-└──────────────┬──────────────────┘
-               │
-               │ OTLP (gRPC)
-               │
-┌──────────────▼──────────────────┐
-│   Tempo                         │
-│   - Distributor (receives)      │
-│   - Ingester (buffers)          │
-│   - Compactor (optimizes)       │
-│   - Querier (serves queries)    │
-│   - Storage (local/S3)          │
-└─────────────────────────────────┘
-               │
-               │ Query API
-               │
-┌──────────────▼──────────────────┐
-│   Grafana                       │
-│   - Tempo datasource            │
-│   - TraceQL queries             │
-│   - Trace visualization         │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Your Application<br/>Instrumented with OTLP<br/>Sends spans to Tempo] -->|OTLP gRPC| B[Tempo<br/>Distributor receives<br/>Ingester buffers<br/>Compactor optimizes<br/>Querier serves queries<br/>Storage local/S3]
+    B -->|Query API| C[Grafana<br/>Tempo datasource<br/>TraceQL queries<br/>Trace visualization]
 ```
 
 **Key Differences from Jaeger:**

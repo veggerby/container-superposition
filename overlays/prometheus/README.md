@@ -17,22 +17,9 @@ Time-series database and monitoring system for collecting and querying metrics f
 Prometheus is a pull-based monitoring system that periodically scrapes metrics from configured endpoints. It stores time-series data and provides a powerful query language (PromQL) for analysis and alerting.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Your Application              │
-│   - Exposes /metrics endpoint   │
-│   - Returns metrics in text fmt │
-└──────────────┬──────────────────┘
-               │
-               │ HTTP pull (every 15s)
-               │
-┌──────────────▼──────────────────┐
-│   Prometheus Server             │
-│   - Scrapes metrics             │
-│   - Stores in TSDB              │
-│   - Evaluates rules             │
-│   - Serves UI (http://...:9090) │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Your Application<br/>Exposes /metrics endpoint<br/>Returns metrics in text fmt] -->|HTTP pull every 15s| B[Prometheus Server<br/>Scrapes metrics<br/>Stores in TSDB<br/>Evaluates rules<br/>Serves UI http://...:9090]
 ```
 
 **Metric Types:**
@@ -91,7 +78,7 @@ Edit `prometheus.yml` in your project's `.devcontainer` directory:
 ```yaml
 scrape_configs:
   # ... existing configs ...
-  
+
   - job_name: 'my-app'
     static_configs:
       - targets: ['my-app:8080']
@@ -262,14 +249,14 @@ histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
 
 **99th percentile by endpoint:**
 ```promql
-histogram_quantile(0.99, 
+histogram_quantile(0.99,
   sum by (le, endpoint) (rate(http_request_duration_seconds_bucket[5m]))
 )
 ```
 
 **Average request duration:**
 ```promql
-rate(http_request_duration_seconds_sum[5m]) / 
+rate(http_request_duration_seconds_sum[5m]) /
 rate(http_request_duration_seconds_count[5m])
 ```
 
@@ -344,7 +331,7 @@ const app = express();
 const register = new promClient.Registry();
 
 // Collect default metrics (CPU, memory, etc.)
-promClient.collectDefaultMetrics({ 
+promClient.collectDefaultMetrics({
   register,
   prefix: 'myapp_',
 });
@@ -380,22 +367,22 @@ app.use((req, res, next) => {
 
   res.on('finish', () => {
     const duration = (Date.now() - start) / 1000;
-    
+
     httpRequestsTotal.inc({
       method: req.method,
       route: req.route?.path || req.path,
       status_code: res.statusCode,
     });
-    
+
     httpRequestDuration.observe({
       method: req.method,
       route: req.route?.path || req.path,
       status_code: res.statusCode,
     }, duration);
-    
+
     activeConnections.dec();
   });
-  
+
   next();
 });
 
@@ -453,20 +440,20 @@ def before_request():
 @app.after_request
 def after_request(response):
     duration = time.time() - request._start_time
-    
+
     REQUEST_COUNT.labels(
         method=request.method,
         endpoint=request.endpoint or request.path,
         status=response.status_code
     ).inc()
-    
+
     REQUEST_DURATION.labels(
         method=request.method,
         endpoint=request.endpoint or request.path
     ).observe(duration)
-    
+
     ACTIVE_REQUESTS.dec()
-    
+
     return response
 
 # Expose metrics endpoint
@@ -543,11 +530,11 @@ app.Use(async (context, next) =>
         .NewTimer())
     {
         activeRequests.Inc();
-        
+
         await next();
-        
+
         activeRequests.Dec();
-        
+
         requestCounter
             .WithLabels(
                 context.Request.Method,
@@ -576,7 +563,7 @@ package main
 import (
     "net/http"
     "time"
-    
+
     "github.com/prometheus/client_golang/prometheus"
     "github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -589,7 +576,7 @@ var (
         },
         []string{"method", "endpoint", "status"},
     )
-    
+
     httpRequestDuration = prometheus.NewHistogramVec(
         prometheus.HistogramOpts{
             Name:    "http_request_duration_seconds",
@@ -598,7 +585,7 @@ var (
         },
         []string{"method", "endpoint"},
     )
-    
+
     activeRequests = prometheus.NewGauge(
         prometheus.GaugeOpts{
             Name: "active_requests",
@@ -618,20 +605,20 @@ func metricsMiddleware(next http.HandlerFunc) http.HandlerFunc {
         start := time.Now()
         activeRequests.Inc()
         defer activeRequests.Dec()
-        
+
         // Wrap response writer to capture status code
         wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-        
+
         next(wrapped, r)
-        
+
         duration := time.Since(start).Seconds()
-        
+
         httpRequestsTotal.WithLabelValues(
             r.Method,
             r.URL.Path,
             http.StatusText(wrapped.statusCode),
         ).Inc()
-        
+
         httpRequestDuration.WithLabelValues(
             r.Method,
             r.URL.Path,
@@ -652,7 +639,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 func main() {
     http.Handle("/metrics", promhttp.Handler())
     http.HandleFunc("/api/hello", metricsMiddleware(helloHandler))
-    
+
     http.ListenAndServe(":8080", nil)
 }
 
@@ -680,21 +667,21 @@ groups:
       # Pre-calculate request rate
       - record: job:http_requests:rate5m
         expr: sum by (job) (rate(http_requests_total[5m]))
-      
+
       # Pre-calculate error rate
       - record: job:http_errors:rate5m
         expr: |
           sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
-      
+
       # Pre-calculate error ratio
       - record: job:http_errors:ratio5m
         expr: |
           job:http_errors:rate5m / job:http_requests:rate5m
-      
+
       # Pre-calculate 95th percentile latency
       - record: job:http_request_duration:p95
         expr: |
-          histogram_quantile(0.95, 
+          histogram_quantile(0.95,
             sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))
           )
 ```
@@ -722,7 +709,7 @@ groups:
         annotations:
           summary: "High error rate detected"
           description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
-      
+
       # Alert when latency is high
       - alert: HighLatency
         expr: |
@@ -735,7 +722,7 @@ groups:
         annotations:
           summary: "High latency detected"
           description: "95th percentile latency is {{ $value }}s"
-      
+
       # Alert when service is down
       - alert: ServiceDown
         expr: up{job="my-app"} == 0
@@ -745,7 +732,7 @@ groups:
         annotations:
           summary: "Service {{ $labels.job }} is down"
           description: "{{ $labels.instance }} has been down for more than 1 minute"
-      
+
       # Alert when disk space is low
       - alert: DiskSpaceLow
         expr: |
@@ -893,7 +880,7 @@ Histogram('http_request_duration_seconds',
 **Use recording rules for expensive queries:**
 ```yaml
 # Instead of running this complex query repeatedly:
-histogram_quantile(0.95, 
+histogram_quantile(0.95,
   sum by (service, le) (rate(http_request_duration_seconds_bucket[5m]))
 )
 
@@ -949,7 +936,7 @@ scrape_configs:
     scrape_interval: 5s     # Override for specific job
     static_configs:
       - targets: ['app:8080']
-  
+
   - job_name: 'low-frequency'
     scrape_interval: 60s    # Less frequent scraping
     static_configs:

@@ -16,22 +16,9 @@ RabbitMQ message broker for task queues, pub/sub messaging, and microservices co
 This overlay adds RabbitMQ as a Docker Compose service that runs alongside your development container. RabbitMQ provides message queuing and routing capabilities using the AMQP protocol.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - AMQP client libraries       │
-│   - Connects to rabbitmq:5672   │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   RabbitMQ Container            │
-│   - AMQP server (5672)          │
-│   - Management UI (15672)       │
-│   - Message/queue persistence   │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>AMQP client libraries<br/>Connects to rabbitmq:5672] -->|Docker network devnet| B[RabbitMQ Container<br/>AMQP server 5672<br/>Management UI 15672<br/>Message/queue persistence]
 ```
 
 ## Configuration
@@ -171,15 +158,15 @@ const amqp = require('amqplib');
 async function publishMessage() {
   const connection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
   const channel = await connection.createChannel();
-  
+
   const queue = 'task_queue';
   const message = 'Hello RabbitMQ!';
-  
+
   await channel.assertQueue(queue, { durable: true });
   channel.sendToQueue(queue, Buffer.from(message), { persistent: true });
-  
+
   console.log(`Sent: ${message}`);
-  
+
   setTimeout(() => {
     connection.close();
   }, 500);
@@ -195,14 +182,14 @@ const amqp = require('amqplib');
 async function consumeMessages() {
   const connection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
   const channel = await connection.createChannel();
-  
+
   const queue = 'task_queue';
-  
+
   await channel.assertQueue(queue, { durable: true });
   channel.prefetch(1);
-  
+
   console.log('Waiting for messages...');
-  
+
   channel.consume(queue, (msg) => {
     console.log(`Received: ${msg.content.toString()}`);
     // Acknowledge message
@@ -350,7 +337,7 @@ consumer.Received += (model, ea) =>
     var body = ea.Body.ToArray();
     var message = Encoding.UTF8.GetString(body);
     Console.WriteLine($"Received: {message}");
-    
+
     channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
 };
 

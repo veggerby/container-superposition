@@ -15,18 +15,11 @@ Run a fully isolated Docker daemon inside your development container. This is tr
 This overlay runs a full Docker daemon inside the development container using the official `docker:dind` (Docker-in-Docker) feature from Microsoft. Unlike **docker-sock** which mounts the host's Docker socket, this creates a completely isolated Docker environment.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│                                  │
-│  ┌──────────────────────────┐   │
-│  │   Docker Daemon (DinD)   │   │
-│  │                          │   │
-│  │  ┌────────┐  ┌────────┐ │   │
-│  │  │Container│ │Container│ │   │
-│  │  └────────┘  └────────┘ │   │
-│  └──────────────────────────┘   │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container] --> B[Docker Daemon DinD]
+    B --> C[Container 1]
+    B --> D[Container 2]
 ```
 
 ## Use Cases

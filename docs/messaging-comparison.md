@@ -184,20 +184,16 @@ Redpanda:  ~1GB    (higher - includes schema registry, admin API)
 
 ## Decision Tree
 
-```txt
-Need Kafka compatibility?
-├─ YES → Redpanda
-└─ NO
-    ├─ Need complex routing/RPC?
-    │   └─ YES → RabbitMQ
-    └─ NO
-        ├─ Need lowest latency?
-        │   └─ YES → NATS
-        └─ NO
-            ├─ Need task queues?
-            │   └─ YES → RabbitMQ
-            └─ NO
-                └─ Default → NATS (simplest)
+```mermaid
+graph TD
+    A[Need Kafka compatibility?] -->|YES| B[Redpanda]
+    A -->|NO| C[Need complex routing/RPC?]
+    C -->|YES| D[RabbitMQ]
+    C -->|NO| E[Need lowest latency?]
+    E -->|YES| F[NATS]
+    E -->|NO| G[Need task queues?]
+    G -->|YES| H[RabbitMQ]
+    G -->|NO| I[NATS - simplest]
 ```
 
 ## Integration Examples

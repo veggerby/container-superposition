@@ -18,23 +18,9 @@ Lightweight, high-performance messaging system for microservices, IoT, and real-
 This overlay adds NATS as a Docker Compose service with JetStream enabled for persistence and advanced features. NATS is optimized for speed and simplicity, making it ideal for microservices communication and real-time messaging.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - NATS client libraries       │
-│   - Connects to nats:4222       │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   NATS Container                │
-│   - Client port (4222)          │
-│   - Monitoring (8222)           │
-│   - JetStream enabled           │
-│   - Message persistence         │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>NATS client libraries<br/>Connects to nats:4222] -->|Docker network devnet| B[NATS Container<br/>Client port 4222<br/>Monitoring 8222<br/>JetStream enabled<br/>Message persistence]
 ```
 
 ## Configuration
@@ -106,7 +92,7 @@ http://localhost:8222
 
 Provides JSON endpoints:
 - `/varz` - Server information
-- `/connz` - Connection information  
+- `/connz` - Connection information
 - `/routez` - Route information
 - `/subsz` - Subscription information
 - `/jsz` - JetStream information
@@ -194,15 +180,15 @@ const { connect, StringCodec } = require('nats');
 async function publish() {
   const nc = await connect({ servers: 'nats://nats:4222' });
   const sc = StringCodec();
-  
+
   // Simple publish
   nc.publish('updates.user', sc.encode('User updated'));
   console.log('Published message');
-  
+
   // Request/reply
   const response = await nc.request('time', sc.encode(''), { timeout: 1000 });
   console.log('Response:', sc.decode(response.data));
-  
+
   await nc.drain();
 }
 
@@ -216,11 +202,11 @@ const { connect, StringCodec } = require('nats');
 async function subscribe() {
   const nc = await connect({ servers: 'nats://nats:4222' });
   const sc = StringCodec();
-  
+
   // Subscribe to subject
   const sub = nc.subscribe('updates.>');
   console.log('Listening for messages...');
-  
+
   for await (const msg of sub) {
     console.log(`[${msg.subject}]: ${sc.decode(msg.data)}`);
   }
@@ -237,26 +223,26 @@ async function jetstream() {
   const nc = await connect({ servers: 'nats://nats:4222' });
   const js = nc.jetstream();
   const sc = StringCodec();
-  
+
   // Create stream
   await js.streams.add({
     name: 'EVENTS',
     subjects: ['events.>']
   });
-  
+
   // Publish to stream
   await js.publish('events.user.created', sc.encode('{"id": 1}'));
   console.log('Published to stream');
-  
+
   // Create consumer
   const consumer = await js.consumers.get('EVENTS', 'myconsumer');
   const messages = await consumer.consume();
-  
+
   for await (const msg of messages) {
     console.log(`Received: ${sc.decode(msg.data)}`);
     msg.ack();
   }
-  
+
   await nc.close();
 }
 
@@ -278,15 +264,15 @@ from nats.aio.client import Client as NATS
 async def publish():
     nc = NATS()
     await nc.connect("nats://nats:4222")
-    
+
     # Simple publish
     await nc.publish("updates.user", b"User updated")
     print("Published message")
-    
+
     # Request/reply
     response = await nc.request("time", b"", timeout=1)
     print(f"Response: {response.data.decode()}")
-    
+
     await nc.close()
 
 if __name__ == '__main__':
@@ -306,11 +292,11 @@ async def message_handler(msg):
 async def subscribe():
     nc = NATS()
     await nc.connect("nats://nats:4222")
-    
+
     # Subscribe to subject
     await nc.subscribe("updates.>", cb=message_handler)
     print("Listening for messages...")
-    
+
     # Keep running
     while True:
         await asyncio.sleep(1)
@@ -328,21 +314,21 @@ async def jetstream():
     nc = NATS()
     await nc.connect("nats://nats:4222")
     js = nc.jetstream()
-    
+
     # Create stream
     await js.add_stream(name="EVENTS", subjects=["events.>"])
-    
+
     # Publish to stream
     await js.publish("events.user.created", b'{"id": 1}')
     print("Published to stream")
-    
+
     # Subscribe to stream
     sub = await js.subscribe("events.>", durable="myconsumer")
-    
+
     async for msg in sub.messages:
         print(f"Received: {msg.data.decode()}")
         await msg.ack()
-    
+
     await nc.close()
 
 if __name__ == '__main__':

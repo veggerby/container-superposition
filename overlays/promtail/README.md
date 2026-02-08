@@ -16,33 +16,10 @@ Log shipping agent that collects container logs and sends them to Loki for centr
 Promtail is a log shipping agent designed to collect logs from various sources and send them to Loki. In this overlay, Promtail monitors Docker containers and automatically ships their logs to Loki.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Docker Containers             │
-│   - Application logs            │
-│   - Service logs                │
-│   - System logs                 │
-└──────────────┬──────────────────┘
-               │
-               │ Docker socket
-               │
-┌──────────────▼──────────────────┐
-│   Promtail                      │
-│   - Discovers containers        │
-│   - Tails log files             │
-│   - Parses JSON logs            │
-│   - Adds labels                 │
-│   - Buffers & batches           │
-└──────────────┬──────────────────┘
-               │
-               │ HTTP Push
-               │
-┌──────────────▼──────────────────┐
-│   Loki                          │
-│   - Indexes labels              │
-│   - Stores log data             │
-│   - Serves queries              │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Docker Containers<br/>Application logs<br/>Service logs<br/>System logs] -->|Docker socket| B[Promtail<br/>Discovers containers<br/>Tails log files<br/>Parses JSON logs<br/>Adds labels<br/>Buffers & batches]
+    B -->|HTTP Push| C[Loki<br/>Indexes labels<br/>Stores log data<br/>Serves queries]
 ```
 
 **What It Does:**

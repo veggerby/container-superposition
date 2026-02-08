@@ -19,31 +19,10 @@ Kafka-compatible event streaming platform optimized for local development - ligh
 This overlay adds Redpanda as a Docker Compose service that provides Kafka-compatible event streaming. Redpanda is designed to be a drop-in replacement for Kafka but optimized for local development with lower resource requirements.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - Kafka client libraries      │
-│   - Connects to redpanda:9092   │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   Redpanda Container            │
-│   - Kafka API (9092)            │
-│   - Schema Registry (8081)      │
-│   - HTTP Proxy (8082)           │
-│   - Admin API (9644)            │
-│   - Event/message persistence   │
-└──────────────┬──────────────────┘
-               │
-┌──────────────▼──────────────────┐
-│   Redpanda Console              │
-│   - Web UI (8080)               │
-│   - Topic management            │
-│   - Message browsing            │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>Kafka client libraries<br/>Connects to redpanda:9092] -->|Docker network devnet| B[Redpanda Container<br/>Kafka API 9092<br/>Schema Registry 8081<br/>HTTP Proxy 8082<br/>Admin API 9644<br/>Event/message persistence]
+    B --> C[Redpanda Console<br/>Web UI 8080<br/>Topic management<br/>Message browsing]
 ```
 
 ## Configuration
@@ -221,7 +200,7 @@ const producer = kafka.producer();
 
 async function run() {
   await producer.connect();
-  
+
   await producer.send({
     topic: 'my-topic',
     messages: [
@@ -229,7 +208,7 @@ async function run() {
       { key: 'key2', value: 'Event streaming is awesome' },
     ],
   });
-  
+
   console.log('Messages sent successfully');
   await producer.disconnect();
 }
@@ -251,7 +230,7 @@ const consumer = kafka.consumer({ groupId: 'my-group' });
 async function run() {
   await consumer.connect();
   await consumer.subscribe({ topic: 'my-topic', fromBeginning: true });
-  
+
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
       console.log({
@@ -316,15 +295,15 @@ consumer.subscribe(['my-topic'])
 try:
     while True:
         msg = consumer.poll(1.0)
-        
+
         if msg is None:
             continue
         if msg.error():
             print(f'Consumer error: {msg.error()}')
             continue
-            
+
         print(f'Received message: {msg.value().decode("utf-8")}')
-        
+
 except KeyboardInterrupt:
     pass
 finally:
@@ -543,7 +522,7 @@ Stream database changes in real-time.
 ### Stream Processing
 ```
 Input Topic → Stream Processor → Output Topic
-              (filter, map,      
+              (filter, map,
                aggregate,
                join)
 ```

@@ -17,28 +17,10 @@ MongoDB document database with Mongo Express web UI for development and testing.
 This overlay adds MongoDB 8 and Mongo Express as separate Docker Compose services. The database runs in its own container and is accessible from your development container via the hostname `mongodb`.
 
 **Architecture:**
-```
-┌─────────────────────────────────┐
-│   Development Container         │
-│   - Your application code       │
-│   - mongosh client              │
-│   - Connects to mongodb:27017   │
-└──────────────┬──────────────────┘
-               │
-               │ Docker network (devnet)
-               │
-┌──────────────▼──────────────────┐
-│   MongoDB Container             │
-│   - MongoDB 8 server            │
-│   - Port 27017                  │
-│   - Data volumes                │
-└──────────────┬──────────────────┘
-               │
-┌──────────────▼──────────────────┐
-│   Mongo Express Container       │
-│   - Web UI on port 8081         │
-│   - Connected to MongoDB        │
-└─────────────────────────────────┘
+```mermaid
+graph TD
+    A[Development Container<br/>Your application code<br/>mongosh client<br/>Connects to mongodb:27017] -->|Docker network devnet| B[MongoDB Container<br/>MongoDB 8 server<br/>Port 27017<br/>Data volumes]
+    B --> C[Mongo Express Container<br/>Web UI on port 8081<br/>Connected to MongoDB]
 ```
 
 ## Configuration
@@ -199,14 +181,14 @@ async function main() {
   await client.connect();
   const db = client.db('myapp');
   const collection = db.collection('users');
-  
+
   // Insert
   await collection.insertOne({ name: 'Alice', email: 'alice@example.com' });
-  
+
   // Find
   const users = await collection.find({}).toArray();
   console.log(users);
-  
+
   await client.close();
 }
 
@@ -307,23 +289,23 @@ import (
 
 func main() {
     ctx := context.Background()
-    
+
     client, _ := mongo.Connect(ctx, options.Client().
         ApplyURI("mongodb://root:example@mongodb:27017/"))
     defer client.Disconnect(ctx)
-    
+
     collection := client.Database("myapp").Collection("users")
-    
+
     // Insert
     collection.InsertOne(ctx, bson.M{
         "name":  "Alice",
         "email": "alice@example.com",
     })
-    
+
     // Find
     cursor, _ := collection.Find(ctx, bson.M{})
     defer cursor.Close(ctx)
-    
+
     for cursor.Next(ctx) {
         var result bson.M
         cursor.Decode(&result)
