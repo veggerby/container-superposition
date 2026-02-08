@@ -248,7 +248,8 @@ function generateManifest(
   outputPath: string,
   answers: QuestionnaireAnswers,
   overlays: string[],
-  autoResolved: { added: string[]; reason: string }
+  autoResolved: { added: string[]; reason: string },
+  containerName?: string
 ): void {
   const manifest: SuperpositionManifest = {
     version: '0.1.0',
@@ -261,6 +262,8 @@ function generateManifest(
     portOffset: answers.portOffset,
     preset: answers.preset,
     presetChoices: answers.presetChoices,
+    containerName,
+    outputPath: answers.outputPath,
   };
   
   if (autoResolved.added.length > 0) {
@@ -798,7 +801,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
   
   // 13. Generate superposition.json manifest
-  generateManifest(outputPath, answers, overlays, autoResolved);
+  generateManifest(outputPath, answers, overlays, autoResolved, config.name);
   
   // 14. Merge .env.example files from overlays and apply glue config environment variables
   mergeEnvExamples(outputPath, overlays, answers.portOffset, answers.presetGlueConfig, answers.preset);
