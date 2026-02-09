@@ -52,41 +52,115 @@ const SECTIONS_TO_EXTRACT = [
 ];
 
 /**
- * Extract section content with limited depth to avoid overly verbose output
+ * Extract key information from a section in a concise, readable format
+ * Focus on the most important details users need to get started
  */
-function extractSectionLimited(section: MarkdownSection, maxSubsections = 3): string {
+function extractSectionSummary(section: MarkdownSection): string {
     const parts: string[] = [];
 
-    if (section.content) {
-        parts.push(section.content);
-    }
+    // Combine content from section and subsections
+    const allContent = [section.content, ...section.subsections.map(s => s.content)].join('\n');
 
-    // Only include first few subsections to keep README concise
-    const subsectionsToInclude = section.subsections.slice(0, maxSubsections);
-    
-    for (const subsection of subsectionsToInclude) {
-        if (parts.length > 0 && parts[parts.length - 1] !== '') {
-            parts.push('');
+    // For connection information, extract just the essentials
+    if (section.title.toLowerCase().includes('connection')) {
+        const connectionDetails: string[] = [];
+        const lines = allContent.split('\n');
+        
+        for (const line of lines) {
+            const trimmed = line.trim();
+            // Match connection details (handle both plain text and comments)
+            if (trimmed.match(/^(#\s*)?(Hostname|Host|Port|Database|DB|User|Username|Password|URL|Connection):/i)) {
+                const cleaned = trimmed.replace(/^#\s*/, '').replace('Connection string', 'Connection URL');
+                connectionDetails.push(`- ${cleaned}`);
+            }
+            // Also match connection URLs
+            else if (trimmed.match(/^(#\s*)?[a-z]+:\/\//)) {
+                const cleaned = trimmed.replace(/^#\s*/, '');
+                if (cleaned.length < 100) {  // Only include short URLs
+                    connectionDetails.push(`- Connection URL: \`${cleaned}\``);
+                }
+            }
         }
-        parts.push(`**${subsection.title}**`);
-        parts.push('');
-        if (subsection.content) {
-            // Limit content length - take first 500 characters
-            const content = subsection.content;
-            if (content.length > 500) {
-                parts.push(content.substring(0, 500) + '...');
-            } else {
-                parts.push(content);
+        
+        if (connectionDetails.length > 0) {
+            // Take first 6 most important details
+            parts.push(...connectionDetails.slice(0, 6));
+        } else {
+            parts.push('See full documentation for connection details');
+        }
+    }
+    // For commands, list just the main categories
+    else if (section.title.toLowerCase().includes('command')) {
+        if (section.subsections.length > 0) {
+            parts.push('Key command categories:');
+            parts.push('');
+            const categories = section.subsections.slice(0, 4).map(s => `- ${s.title}`);
+            parts.push(...categories);
+            
+            if (section.subsections.length > 4) {
+                parts.push(`- ...and ${section.subsections.length - 4} more`);
+            }
+        } else {
+            parts.push('See full documentation for available commands');
+        }
+    }
+    // For configuration, just mention it exists
+    else if (section.title.toLowerCase().includes('config')) {
+        parts.push('Configurable via environment variables and configuration files.');
+        if (section.subsections.length > 0) {
+            parts.push('');
+            parts.push('Available settings:');
+            section.subsections.slice(0, 3).forEach(s => {
+                parts.push(`- ${s.title}`);
+            });
+        }
+    }
+    // For use cases, list them
+    else if (section.title.toLowerCase().includes('use case')) {
+        const useCases: string[] = [];
+        for (const subsection of section.subsections.slice(0, 4)) {
+            if (subsection.title) {
+                useCases.push(`- **${subsection.title}**`);
+                // Add brief description from subsection content if available
+                if (subsection.content) {
+                    const firstLine = subsection.content.split('\n').find(l => l.trim() && !l.trim().startsWith('-'));
+                    if (firstLine && firstLine.length < 80) {
+                        useCases.push(`  ${firstLine.trim()}`);
+                    }
+                }
+            }
+        }
+        if (useCases.length > 0) {
+            parts.push(...useCases);
+        }
+    }
+    // For troubleshooting, list common issues
+    else if (section.title.toLowerCase().includes('troubleshoot')) {
+        const issues: string[] = [];
+        for (const subsection of section.subsections.slice(0, 3)) {
+            if (subsection.title) {
+                issues.push(`- **${subsection.title}**`);
+            }
+        }
+        if (issues.length > 0) {
+            parts.push('Common issues:');
+            parts.push(...issues);
+            if (section.subsections.length > 3) {
+                parts.push(`- ...and ${section.subsections.length - 3} more (see full docs)`);
+            }
+        }
+    }
+    // Default: just show first paragraph
+    else {
+        if (section.content && section.content.trim()) {
+            const firstPara = getFirstParagraph(section.content);
+            if (firstPara) {
+                parts.push(firstPara);
             }
         }
     }
 
-    if (section.subsections.length > maxSubsections) {
-        parts.push('');
-        parts.push(`*... and ${section.subsections.length - maxSubsections} more items (see full documentation)*`);
-    }
-
-    return parts.join('\n').trim();
+    return parts.join('\n');
 }
 
 /**
@@ -102,13 +176,13 @@ function loadOverlayDocs(overlayId: string, metadata: OverlayMetadata): OverlayD
     const content = fs.readFileSync(readmePath, 'utf-8');
     const sections = parseMarkdown(content);
 
-    // Extract relevant sections
+    // Extract relevant sections with summaries
     const extractedSections = new Map<string, string>();
     for (const pattern of SECTIONS_TO_EXTRACT) {
         const section = findSection(sections, pattern);
         if (section) {
-            // Use limited extraction to keep README concise
-            extractedSections.set(section.title, extractSectionLimited(section));
+            // Use summary extraction to keep README concise
+            extractedSections.set(section.title, extractSectionSummary(section));
         }
     }
 

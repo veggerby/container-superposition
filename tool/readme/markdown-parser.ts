@@ -19,9 +19,24 @@ export function parseMarkdown(content: string): MarkdownSection[] {
 
     let currentSection: MarkdownSection | null = null;
     let currentContent: string[] = [];
+    let inCodeBlock = false;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
+        
+        // Track code block state
+        if (line.trim().startsWith('```')) {
+            inCodeBlock = !inCodeBlock;
+            currentContent.push(line);
+            continue;
+        }
+
+        // Skip heading detection inside code blocks
+        if (inCodeBlock) {
+            currentContent.push(line);
+            continue;
+        }
+
         const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
 
         if (headingMatch) {
