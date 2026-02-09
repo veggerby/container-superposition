@@ -68,16 +68,21 @@ export function loadCustomPatches(outputPath: string): CustomizationConfig | nul
       postStart: [],
     };
 
+    // Determine the custom directory path relative to workspace root
+    // outputPath is typically .devcontainer, so custom is .devcontainer/custom
+    const outputDirName = path.basename(outputPath);
+    const customRelPath = path.join(outputDirName, 'custom', 'scripts').replace(/\\/g, '/');
+
     // Check for post-create.sh
     const postCreatePath = path.join(scriptsDir, 'post-create.sh');
     if (fs.existsSync(postCreatePath)) {
-      config.scripts.postCreate.push('bash .devcontainer/custom/scripts/post-create.sh');
+      config.scripts.postCreate!.push(`bash ${customRelPath}/post-create.sh`);
     }
 
     // Check for post-start.sh
     const postStartPath = path.join(scriptsDir, 'post-start.sh');
     if (fs.existsSync(postStartPath)) {
-      config.scripts.postStart.push('bash .devcontainer/custom/scripts/post-start.sh');
+      config.scripts.postStart!.push(`bash ${customRelPath}/post-start.sh`);
     }
   }
 
@@ -112,9 +117,8 @@ function parseEnvFile(content: string): Record<string, string> {
       const key = match[1].trim();
       const value = match[2].trim();
       
-      // Remove quotes if present
-      const unquotedValue = value.replace(/^["']|["']$/g, '');
-      env[key] = unquotedValue;
+      // Preserve the value as-is (including quotes if present)
+      env[key] = value;
     }
   }
   

@@ -105,7 +105,8 @@ DATABASE_URL="postgresql://localhost:5432/mydb"
     expect(customPatches).not.toBeNull();
     expect(customPatches?.environmentVars?.MY_API_KEY).toBe('secret123');
     expect(customPatches?.environmentVars?.CUSTOM_SETTING).toBe('value');
-    expect(customPatches?.environmentVars?.DATABASE_URL).toBe('postgresql://localhost:5432/mydb');
+    // Quotes are now preserved
+    expect(customPatches?.environmentVars?.DATABASE_URL).toBe('"postgresql://localhost:5432/mydb"');
   });
 
   it('should detect custom scripts', async () => {
@@ -120,8 +121,10 @@ DATABASE_URL="postgresql://localhost:5432/mydb"
     expect(customPatches).not.toBeNull();
     expect(customPatches?.scripts?.postCreate).toHaveLength(1);
     expect(customPatches?.scripts?.postStart).toHaveLength(1);
-    expect(customPatches?.scripts?.postCreate?.[0]).toBe('bash .devcontainer/custom/scripts/post-create.sh');
-    expect(customPatches?.scripts?.postStart?.[0]).toBe('bash .devcontainer/custom/scripts/post-start.sh');
+    // Paths are now computed dynamically based on outputPath
+    const outputDirName = path.basename(TEST_OUTPUT_DIR);
+    expect(customPatches?.scripts?.postCreate?.[0]).toBe(`bash ${outputDirName}/custom/scripts/post-create.sh`);
+    expect(customPatches?.scripts?.postStart?.[0]).toBe(`bash ${outputDirName}/custom/scripts/post-start.sh`);
   });
 
   it('should scan custom files directory', async () => {
@@ -314,11 +317,13 @@ DATABASE_URL="postgresql://localhost:5432/mydb"
     // Regenerate
     await composeDevContainer(answers);
     
-    // Verify customizations are tracked
+    // Verify customizations are tracked with dynamic location
     manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
     expect(manifest.customizations).toBeDefined();
     expect(manifest.customizations.enabled).toBe(true);
-    expect(manifest.customizations.location).toBe('.devcontainer/custom');
+    // Location is now computed from outputPath basename
+    const outputDirName = path.basename(outputPath);
+    expect(manifest.customizations.location).toBe(`${outputDirName}/custom`);
   });
 
   it('should preserve custom directory during regeneration', async () => {

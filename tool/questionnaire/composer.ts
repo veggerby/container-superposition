@@ -298,9 +298,11 @@ function generateManifest(
 
   // Track customizations if custom directory exists
   if (hasCustomDirectory(outputPath)) {
+    // Compute the custom directory location relative to workspace root
+    const outputDirName = path.basename(outputPath);
     manifest.customizations = {
       enabled: true,
-      location: '.devcontainer/custom',
+      location: `${outputDirName}/custom`,
     };
   }
 
@@ -793,13 +795,14 @@ function applyCustomDockerComposePatch(
 
 /**
  * Apply custom environment variables
+ * Returns true if .env.example was created or modified
  */
 function applyCustomEnvironment(
   outputPath: string,
   customConfig: CustomizationConfig
-): void {
+): boolean {
   if (!customConfig.environmentVars || Object.keys(customConfig.environmentVars).length === 0) {
-    return;
+    return false;
   }
 
   console.log(chalk.dim(`   🔑 Applying custom environment variables`));
@@ -823,6 +826,7 @@ function applyCustomEnvironment(
   }
 
   fs.writeFileSync(envExamplePath, content);
+  return true;
 }
 
 /**
@@ -855,6 +859,16 @@ function applyCustomScripts(
       config.postCreateCommand = {};
     }
     
+    // Handle array form - convert to object
+    if (Array.isArray(config.postCreateCommand)) {
+      const arrayCommands = config.postCreateCommand;
+      config.postCreateCommand = {};
+      for (let i = 0; i < arrayCommands.length; i++) {
+        config.postCreateCommand[`command-${i}`] = arrayCommands[i];
+      }
+    }
+    
+    // Handle string form - convert to object
     if (typeof config.postCreateCommand === 'string') {
       config.postCreateCommand = { 'default': config.postCreateCommand };
     }
@@ -873,6 +887,16 @@ function applyCustomScripts(
       config.postStartCommand = {};
     }
     
+    // Handle array form - convert to object
+    if (Array.isArray(config.postStartCommand)) {
+      const arrayCommands = config.postStartCommand;
+      config.postStartCommand = {};
+      for (let i = 0; i < arrayCommands.length; i++) {
+        config.postStartCommand[`command-${i}`] = arrayCommands[i];
+      }
+    }
+    
+    // Handle string form - convert to object
     if (typeof config.postStartCommand === 'string') {
       config.postStartCommand = { 'default': config.postStartCommand };
     }
@@ -889,24 +913,44 @@ function applyCustomScripts(
 /**
  * Copy custom files from custom/files/ directory
  */
-function copyCustomFiles(customConfig: CustomizationConfig, outputPath: string): void {
+function copyCustomFiles(customConfig: CustomizationConfig, outputPath: string, fileRegistry: FileRegistry): void {
   if (!customConfig.files || customConfig.files.length === 0) {
     return;
   }
 
   console.log(chalk.dim(`   📄 Copying ${customConfig.files.length} custom file(s)`));
 
+  const directoriesAdded = new Set<string>();
+
   for (const file of customConfig.files) {
     const destPath = path.join(outputPath, file.destination);
     const destDir = path.dirname(destPath);
+    const relativeDest = path.relative(outputPath, destPath);
+    const relativeDestDir = path.relative(outputPath, destDir);
 
     // Create destination directory if it doesn't exist
     if (!fs.existsSync(destDir)) {
       fs.mkdirSync(destDir, { recursive: true });
     }
 
+    // Add directory to registry if not already added
+    if (relativeDestDir && relativeDestDir !== '.' && !directoriesAdded.has(relativeDestDir)) {
+      // Add all parent directories
+      const parts = relativeDestDir.split(path.sep);
+      for (let i = 1; i <= parts.length; i++) {
+        const dirPath = parts.slice(0, i).join(path.sep);
+        if (!directoriesAdded.has(dirPath)) {
+          fileRegistry.addDirectory(dirPath);
+          directoriesAdded.add(dirPath);
+        }
+      }
+    }
+
     // Copy file
     fs.copyFileSync(file.source, destPath);
+    
+    // Add file to registry
+    fileRegistry.addFile(relativeDest);
   }
 }
 
@@ -1129,7 +1173,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     config = applyCustomScripts(config, customPatches, outputPath);
     
     // Copy custom files
-    copyCustomFiles(customPatches, outputPath);
+    copyCustomFiles(customPatches, outputPath, fileRegistry);
   }
 
   // Remove internal fields (those starting with _)
@@ -1162,7 +1206,11 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
 
   // Apply custom environment variables (after .env.example is created)
   if (customPatches) {
-    applyCustomEnvironment(outputPath, customPatches);
+    const customEnvCreated = applyCustomEnvironment(outputPath, customPatches);
+    // Add .env.example to registry if it was created by custom patches but not by overlays
+    if (customEnvCreated && !envCreated) {
+      fileRegistry.addFile('.env.example');
+    }
   }
 
   // 15. Apply preset glue configuration (README and port mappings) if present

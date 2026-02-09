@@ -535,5 +535,4 @@ LOG_LEVEL=debug
 ## See Also
 
 - [Overlay Authoring Guide](../.github/instructions/overlay-authoring.instructions.md)
-- [Manifest Regeneration Guide](../docs/manifest-regeneration.md)
 - [DevContainer Specification](https://containers.dev/)
