@@ -3,8 +3,9 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import * as yaml from 'js-yaml';
-import type { QuestionnaireAnswers, DevContainer, CloudTool, OverlayMetadata, OverlaysConfig, SuperpositionManifest, PresetGlueConfig } from '../schema/types.js';
+import type { QuestionnaireAnswers, DevContainer, CloudTool, OverlayMetadata, OverlaysConfig, SuperpositionManifest, PresetGlueConfig, CustomizationConfig } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
+import { loadCustomPatches, hasCustomDirectory, getCustomScriptPaths } from '../schema/custom-loader.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -295,6 +296,16 @@ function generateManifest(
     manifest.autoResolved = autoResolved;
   }
 
+  // Track customizations if custom directory exists
+  if (hasCustomDirectory(outputPath)) {
+    // Compute the custom directory location relative to workspace root
+    const outputDirName = path.basename(outputPath);
+    manifest.customizations = {
+      enabled: true,
+      location: `${outputDirName}/custom`,
+    };
+  }
+
   const manifestPath = path.join(outputPath, 'superposition.json');
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   console.log(chalk.dim(`   📋 Generated superposition.json manifest`));
@@ -377,6 +388,7 @@ function cleanupStaleFiles(outputPath: string, registry: FileRegistry): void {
   }
 
   const preservedFiles = new Set(['superposition.json', '.env']); // User-managed files
+  const preservedDirs = new Set(['custom']); // User customizations directory
   const expectedFiles = registry.getFiles();
   const expectedDirs = registry.getDirectories();
 
@@ -393,6 +405,11 @@ function cleanupStaleFiles(outputPath: string, registry: FileRegistry): void {
     const stat = fs.statSync(entryPath);
 
     if (stat.isDirectory()) {
+      // Skip preserved directories
+      if (preservedDirs.has(entry)) {
+        continue;
+      }
+      
       // Remove directory if not in registry
       if (!expectedDirs.has(entry)) {
         fs.rmSync(entryPath, { recursive: true, force: true });
@@ -698,6 +715,246 @@ function mergeDockerComposeFiles(outputPath: string, baseStack: string, overlays
 }
 
 /**
+ * Apply custom devcontainer patch from .devcontainer/custom/
+ */
+function applyCustomDevcontainerPatch(config: DevContainer, customConfig: CustomizationConfig): DevContainer {
+  if (!customConfig.devcontainerPatch) {
+    return config;
+  }
+
+  console.log(chalk.dim(`   🎨 Applying custom devcontainer patches`));
+  return deepMerge(config, customConfig.devcontainerPatch);
+}
+
+/**
+ * Apply custom docker-compose patch to merged docker-compose
+ */
+function applyCustomDockerComposePatch(
+  outputPath: string,
+  customConfig: CustomizationConfig
+): void {
+  if (!customConfig.dockerComposePatch) {
+    return;
+  }
+
+  const composePath = path.join(outputPath, 'docker-compose.yml');
+  if (!fs.existsSync(composePath)) {
+    console.warn(chalk.yellow('⚠️  docker-compose.yml not found, skipping custom docker-compose patch'));
+    return;
+  }
+
+  console.log(chalk.dim(`   🐳 Applying custom docker-compose patches`));
+
+  // Load existing compose file
+  const existingContent = fs.readFileSync(composePath, 'utf-8');
+  const existing = yaml.load(existingContent) as any;
+
+  // Merge with custom patch
+  const merged: any = {
+    services: { ...existing.services },
+    volumes: { ...existing.volumes },
+    networks: { ...existing.networks },
+  };
+
+  const custom = customConfig.dockerComposePatch;
+
+  // Merge services
+  if (custom.services) {
+    for (const serviceName in custom.services) {
+      if (merged.services[serviceName]) {
+        merged.services[serviceName] = deepMerge(merged.services[serviceName], custom.services[serviceName]);
+      } else {
+        merged.services[serviceName] = custom.services[serviceName];
+      }
+    }
+  }
+
+  // Merge volumes
+  if (custom.volumes) {
+    merged.volumes = { ...merged.volumes, ...custom.volumes };
+  }
+
+  // Merge networks
+  if (custom.networks) {
+    merged.networks = { ...merged.networks, ...custom.networks };
+  }
+
+  // Remove empty sections
+  if (Object.keys(merged.volumes).length === 0) delete merged.volumes;
+  if (Object.keys(merged.networks).length === 0) delete merged.networks;
+
+  // Write updated compose file
+  const yamlContent = yaml.dump(merged, {
+    indent: 2,
+    lineWidth: -1,
+    noRefs: true
+  });
+
+  fs.writeFileSync(composePath, yamlContent);
+}
+
+/**
+ * Apply custom environment variables
+ * Returns true if .env.example was created or modified
+ */
+function applyCustomEnvironment(
+  outputPath: string,
+  customConfig: CustomizationConfig
+): boolean {
+  if (!customConfig.environmentVars || Object.keys(customConfig.environmentVars).length === 0) {
+    return false;
+  }
+
+  console.log(chalk.dim(`   🔑 Applying custom environment variables`));
+
+  const envExamplePath = path.join(outputPath, '.env.example');
+  let content = '';
+
+  // Load existing .env.example if it exists
+  if (fs.existsSync(envExamplePath)) {
+    content = fs.readFileSync(envExamplePath, 'utf-8');
+    if (!content.endsWith('\n')) {
+      content += '\n';
+    }
+    content += '\n';
+  }
+
+  // Add custom environment section
+  content += '# Custom Environment Variables\n';
+  for (const [key, value] of Object.entries(customConfig.environmentVars)) {
+    content += `${key}=${value}\n`;
+  }
+
+  fs.writeFileSync(envExamplePath, content);
+  return true;
+}
+
+/**
+ * Apply custom lifecycle scripts
+ */
+function applyCustomScripts(
+  config: DevContainer,
+  customConfig: CustomizationConfig,
+  outputPath: string
+): DevContainer {
+  if (!customConfig.scripts) {
+    return config;
+  }
+
+  // Make custom scripts executable
+  const scriptPaths = getCustomScriptPaths(outputPath);
+  for (const scriptPath of scriptPaths) {
+    try {
+      fs.chmodSync(scriptPath, 0o755);
+    } catch (error) {
+      console.warn(chalk.yellow(`⚠️  Failed to make ${scriptPath} executable:`, error));
+    }
+  }
+
+  // Add custom postCreateCommand scripts
+  if (customConfig.scripts.postCreate && customConfig.scripts.postCreate.length > 0) {
+    console.log(chalk.dim(`   🔧 Adding custom post-create script(s)`));
+    
+    if (!config.postCreateCommand) {
+      config.postCreateCommand = {};
+    }
+    
+    // Handle array form - convert to object
+    if (Array.isArray(config.postCreateCommand)) {
+      const arrayCommands = config.postCreateCommand;
+      config.postCreateCommand = {};
+      for (let i = 0; i < arrayCommands.length; i++) {
+        config.postCreateCommand[`command-${i}`] = arrayCommands[i];
+      }
+    }
+    
+    // Handle string form - convert to object
+    if (typeof config.postCreateCommand === 'string') {
+      config.postCreateCommand = { 'default': config.postCreateCommand };
+    }
+    
+    for (let i = 0; i < customConfig.scripts.postCreate.length; i++) {
+      const key = `custom-post-create-${i}`;
+      config.postCreateCommand[key] = customConfig.scripts.postCreate[i];
+    }
+  }
+
+  // Add custom postStartCommand scripts
+  if (customConfig.scripts.postStart && customConfig.scripts.postStart.length > 0) {
+    console.log(chalk.dim(`   ✓ Adding custom post-start script(s)`));
+    
+    if (!config.postStartCommand) {
+      config.postStartCommand = {};
+    }
+    
+    // Handle array form - convert to object
+    if (Array.isArray(config.postStartCommand)) {
+      const arrayCommands = config.postStartCommand;
+      config.postStartCommand = {};
+      for (let i = 0; i < arrayCommands.length; i++) {
+        config.postStartCommand[`command-${i}`] = arrayCommands[i];
+      }
+    }
+    
+    // Handle string form - convert to object
+    if (typeof config.postStartCommand === 'string') {
+      config.postStartCommand = { 'default': config.postStartCommand };
+    }
+    
+    for (let i = 0; i < customConfig.scripts.postStart.length; i++) {
+      const key = `custom-post-start-${i}`;
+      config.postStartCommand[key] = customConfig.scripts.postStart[i];
+    }
+  }
+
+  return config;
+}
+
+/**
+ * Copy custom files from custom/files/ directory
+ */
+function copyCustomFiles(customConfig: CustomizationConfig, outputPath: string, fileRegistry: FileRegistry): void {
+  if (!customConfig.files || customConfig.files.length === 0) {
+    return;
+  }
+
+  console.log(chalk.dim(`   📄 Copying ${customConfig.files.length} custom file(s)`));
+
+  const directoriesAdded = new Set<string>();
+
+  for (const file of customConfig.files) {
+    const destPath = path.join(outputPath, file.destination);
+    const destDir = path.dirname(destPath);
+    const relativeDest = path.relative(outputPath, destPath);
+    const relativeDestDir = path.relative(outputPath, destDir);
+
+    // Create destination directory if it doesn't exist
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    // Add directory to registry if not already added
+    if (relativeDestDir && relativeDestDir !== '.' && !directoriesAdded.has(relativeDestDir)) {
+      // Add all parent directories
+      const parts = relativeDestDir.split(path.sep);
+      for (let i = 1; i <= parts.length; i++) {
+        const dirPath = parts.slice(0, i).join(path.sep);
+        if (!directoriesAdded.has(dirPath)) {
+          fileRegistry.addDirectory(dirPath);
+          directoriesAdded.add(dirPath);
+        }
+      }
+    }
+
+    // Copy file
+    fs.copyFileSync(file.source, destPath);
+    
+    // Add file to registry
+    fileRegistry.addFile(relativeDest);
+  }
+}
+
+/**
  * Main composition logic
  */
 export async function composeDevContainer(answers: QuestionnaireAnswers): Promise<void> {
@@ -904,6 +1161,21 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   // Merge setup scripts from overlays into postCreateCommand
   mergeSetupScripts(config, overlays, outputPath, fileRegistry);
 
+  // 10. Apply custom patches from .devcontainer/custom/ (if present)
+  const customPatches = loadCustomPatches(outputPath);
+  if (customPatches) {
+    console.log(chalk.cyan('\n🎨 Applying custom patches...'));
+    
+    // Apply custom devcontainer patch
+    config = applyCustomDevcontainerPatch(config, customPatches);
+    
+    // Apply custom scripts
+    config = applyCustomScripts(config, customPatches, outputPath);
+    
+    // Copy custom files
+    copyCustomFiles(customPatches, outputPath, fileRegistry);
+  }
+
   // Remove internal fields (those starting with _)
   Object.keys(config).forEach(key => {
     if (key.startsWith('_')) {
@@ -917,6 +1189,11 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   fileRegistry.addFile('devcontainer.json');
   console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
 
+  // Apply custom docker-compose patch (after writing base docker-compose.yml)
+  if (customPatches && answers.stack === 'compose') {
+    applyCustomDockerComposePatch(outputPath, customPatches);
+  }
+
   // 13. Generate superposition.json manifest
   generateManifest(outputPath, answers, overlays, autoResolved, answers.containerName || config.name);
   fileRegistry.addFile('superposition.json');
@@ -925,6 +1202,15 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   const envCreated = mergeEnvExamples(outputPath, overlays, answers.portOffset, answers.presetGlueConfig, answers.preset);
   if (envCreated) {
     fileRegistry.addFile('.env.example');
+  }
+
+  // Apply custom environment variables (after .env.example is created)
+  if (customPatches) {
+    const customEnvCreated = applyCustomEnvironment(outputPath, customPatches);
+    // Add .env.example to registry if it was created by custom patches but not by overlays
+    if (customEnvCreated && !envCreated) {
+      fileRegistry.addFile('.env.example');
+    }
   }
 
   // 15. Apply preset glue configuration (README and port mappings) if present
