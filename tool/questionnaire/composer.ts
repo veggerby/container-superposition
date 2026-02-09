@@ -19,6 +19,7 @@ import {
     hasCustomDirectory,
     getCustomScriptPaths,
 } from '../schema/custom-loader.js';
+import { generateReadme } from '../readme/readme-generator.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1336,7 +1337,16 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
         applyGlueConfig(outputPath, answers.presetGlueConfig, answers.preset, fileRegistry);
     }
 
-    // 16. Clean up stale files from previous runs (preserves superposition.json and .env)
+    // 16. Generate consolidated README.md from selected overlays
+    console.log(chalk.cyan('\n📖 Generating consolidated README...'));
+    const overlayMetadataMap = new Map<string, OverlayMetadata>(
+        allOverlayDefs.map((o) => [o.id, o])
+    );
+    generateReadme(answers, overlays, overlayMetadataMap, outputPath);
+    fileRegistry.addFile('README.md');
+    console.log(chalk.dim(`   📝 Created README.md with documentation from ${overlays.length} overlay(s)`));
+
+    // 17. Clean up stale files from previous runs (preserves superposition.json and .env)
     cleanupStaleFiles(outputPath, fileRegistry);
 }
 
