@@ -209,4 +209,25 @@ export interface SuperpositionManifest {
   };
   containerName?: string; // Container/project name from devcontainer.json
   outputPath?: string; // Output path used for generation
+  customizations?: {
+    enabled: boolean;
+    location: string;
+  };
+}
+
+/**
+ * Custom patch configuration loaded from .devcontainer/custom/
+ */
+export interface CustomizationConfig {
+  devcontainerPatch?: DevContainer;
+  dockerComposePatch?: any; // YAML structure for docker-compose
+  environmentVars?: Record<string, string>;
+  scripts?: {
+    postCreate?: string[];
+    postStart?: string[];
+  };
+  files?: Array<{
+    source: string;
+    destination: string;
+  }>;
 }
