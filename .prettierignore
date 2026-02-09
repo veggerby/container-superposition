@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+out
+*.tsbuildinfo
+
+# Coverage
+coverage
+.nyc_output
+
+# Lock files
+package-lock.yaml
+yarn.lock
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Generated test outputs
+tool/__tests__/output/
