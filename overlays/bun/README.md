@@ -11,15 +11,16 @@ Adds Bun runtime - an all-in-one JavaScript runtime, bundler, test runner, and p
 - **TypeScript support** - Native TypeScript execution
 - **Node.js compatibility** - Runs most Node.js packages
 - **VS Code Extensions:**
-  - Bun for Visual Studio Code (oven.bun-vscode)
-  - ESLint (dbaeumer.vscode-eslint)
-  - Prettier (esbenp.prettier-vscode)
+    - Bun for Visual Studio Code (oven.bun-vscode)
+    - ESLint (dbaeumer.vscode-eslint)
+    - Prettier (esbenp.prettier-vscode)
 
 ## How It Works
 
 This overlay installs Bun via the official installation script. Bun is a drop-in replacement for Node.js with significantly faster startup times and module resolution. It includes Node.js LTS for compatibility with packages that require native Node.js APIs.
 
 **Installation method:**
+
 - Bun via official install script
 - Node.js LTS for compatibility
 - Installed to ~/.bun
@@ -127,6 +128,7 @@ bun run server.ts
 - **Full-stack apps** - Next.js, Remix with Bun runtime
 
 **Integrates well with:**
+
 - `postgres`, `redis`, `mysql` - Database drivers (pg, ioredis, mysql2)
 - `docker-sock` - Docker SDK (dockerode)
 - `prometheus` - Metrics collection (prom-client)
@@ -158,12 +160,12 @@ Bun works with standard TypeScript configuration:
 
 ```json
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "types": ["bun-types"]
-  }
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "types": ["bun-types"]
+    }
 }
 ```
 
@@ -174,26 +176,27 @@ Bun works with standard TypeScript configuration:
 ```typescript
 // server.ts
 const server = Bun.serve({
-  port: 3000,
-  fetch(req) {
-    const url = new URL(req.url);
-    
-    if (url.pathname === "/") {
-      return new Response("Hello from Bun!");
-    }
-    
-    if (url.pathname === "/json") {
-      return Response.json({ message: "JSON response" });
-    }
-    
-    return new Response("Not Found", { status: 404 });
-  },
+    port: 3000,
+    fetch(req) {
+        const url = new URL(req.url);
+
+        if (url.pathname === '/') {
+            return new Response('Hello from Bun!');
+        }
+
+        if (url.pathname === '/json') {
+            return Response.json({ message: 'JSON response' });
+        }
+
+        return new Response('Not Found', { status: 404 });
+    },
 });
 
 console.log(`Server running on http://localhost:${server.port}`);
 ```
 
 **Run:**
+
 ```bash
 bun run server.ts
 # Access at http://localhost:3000
@@ -226,24 +229,26 @@ console.log(users);
 
 ## Performance Comparison
 
-| Operation | Bun | Node.js | Speedup |
-|-----------|-----|---------|---------|
-| **Package install** | 5s | 25s | 5x faster |
-| **Cold start** | 50ms | 200ms | 4x faster |
-| **Bundling** | 2s | 10s | 5x faster |
-| **Test execution** | 1s | 5s | 5x faster |
+| Operation           | Bun  | Node.js | Speedup   |
+| ------------------- | ---- | ------- | --------- |
+| **Package install** | 5s   | 25s     | 5x faster |
+| **Cold start**      | 50ms | 200ms   | 4x faster |
+| **Bundling**        | 2s   | 10s     | 5x faster |
+| **Test execution**  | 1s   | 5s      | 5x faster |
 
-*Approximate benchmarks for typical projects*
+_Approximate benchmarks for typical projects_
 
 ## Troubleshooting
 
 ### Issue: Package compatibility
 
 **Symptoms:**
+
 - Package doesn't work with Bun
 - Native module errors
 
 **Solution:**
+
 ```bash
 # Use Node.js for specific commands
 node script.js
@@ -255,9 +260,11 @@ npm install problematic-package
 ### Issue: TypeScript types
 
 **Symptoms:**
+
 - Missing type definitions for Bun APIs
 
 **Solution:**
+
 ```bash
 # Install Bun types
 bun add -d bun-types
@@ -273,6 +280,7 @@ bun add -d bun-types
 ### Issue: Bun not in PATH
 
 **Solution:**
+
 ```bash
 # Add to shell profile
 export BUN_INSTALL="$HOME/.bun"
@@ -290,6 +298,7 @@ source ~/.bashrc
 - [Bun Examples](https://github.com/oven-sh/bun/tree/main/examples) - Sample projects
 
 **Related Overlays:**
+
 - `postgres` - PostgreSQL with pg driver
 - `redis` - Redis with ioredis
 - `docker-sock` - Docker access

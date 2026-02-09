@@ -16,6 +16,7 @@ Sample Python Flask application fully instrumented with OpenTelemetry to demonst
 This Flask application demonstrates the three pillars of observability using OpenTelemetry's Python SDK with auto-instrumentation.
 
 **Key Components:**
+
 - `opentelemetry-instrument` - Auto-instruments Flask
 - Flask application - HTTP server with sample endpoints
 - JSON logging - Structured logs with trace correlation
@@ -41,6 +42,7 @@ OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0,deployment.environment=dev
 ### Dependencies
 
 Requires:
+
 - **otel-collector** - Required to receive and route telemetry
 - **jaeger** or **tempo** - Recommended for trace visualization
 - **prometheus** - Recommended for metrics visualization
@@ -50,6 +52,7 @@ Requires:
 ## Available Endpoints
 
 Same as Node.js demo:
+
 - `GET /` - Home page with documentation
 - `GET /api/data` - Returns JSON data with trace context
 - `GET /api/slow` - Simulates 2-second delay
@@ -70,6 +73,7 @@ Same as Node.js demo:
 - [Auto-instrumentation](https://opentelemetry.io/docs/instrumentation/python/automatic/)
 
 **Related Overlays:**
+
 - `otel-collector` - Required for receiving telemetry
 - `otel-demo-nodejs` - Node.js demo app for multi-language testing
 - `jaeger` or `tempo` - Trace visualization

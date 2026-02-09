@@ -3,16 +3,16 @@ name: NATS
 description: Lightweight pub/sub messaging with JetStream
 category: database
 supports:
-  - compose
+    - compose
 requires: []
 suggests: []
 conflicts: []
 tags:
-  - database
-  - messaging
-  - pubsub
-  - nats
-  - jetstream
+    - database
+    - messaging
+    - pubsub
+    - nats
+    - jetstream
 ports:
-  - 4222
-  - 8222
+    - 4222
+    - 8222

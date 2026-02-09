@@ -8,9 +8,9 @@ Adds Eclipse Temurin JDK 21 (LTS) with Maven and Gradle for enterprise Java deve
 - **Maven** - Dependency management and build tool
 - **Gradle** - Modern build automation
 - **VS Code Extensions:**
-  - Java Extension Pack (vscjava.vscode-java-pack) - Complete Java IDE experience
-  - Gradle for Java (vscjava.vscode-gradle)
-  - Maven for Java (vscjava.vscode-maven)
+    - Java Extension Pack (vscjava.vscode-java-pack) - Complete Java IDE experience
+    - Gradle for Java (vscjava.vscode-gradle)
+    - Maven for Java (vscjava.vscode-maven)
 - **Language Server Protocol** - IntelliSense, refactoring, debugging
 - **Automatic dependency installation** - Runs Maven/Gradle on container creation
 
@@ -19,6 +19,7 @@ Adds Eclipse Temurin JDK 21 (LTS) with Maven and Gradle for enterprise Java deve
 This overlay uses the official devcontainers Java feature to install Eclipse Temurin JDK 21 with Maven and Gradle. The Java Extension Pack provides comprehensive IDE features including IntelliSense, debugging, test running, and project management.
 
 **Installation method:**
+
 - Eclipse Temurin JDK via SDKMAN
 - Maven and Gradle installed via devcontainer feature
 - Java tools accessible via PATH
@@ -119,6 +120,7 @@ gradle dependencies --configuration compileClasspath
 - **Microservices** - Cloud-native Java services
 
 **Integrates well with:**
+
 - `postgres`, `mysql`, `mongodb` - Database connectivity (JDBC)
 - `redis` - Caching layer (Jedis, Lettuce)
 - Apache Kafka - Event streaming (Spring Kafka)
@@ -133,11 +135,11 @@ The overlay installs **Java 21 (LTS)**. To use a different version, modify `devc
 
 ```json
 {
-  "features": {
-    "ghcr.io/devcontainers/features/java:1": {
-      "version": "17"  // Change to 17, 21, or latest
+    "features": {
+        "ghcr.io/devcontainers/features/java:1": {
+            "version": "17" // Change to 17, 21, or latest
+        }
     }
-  }
 }
 ```
 
@@ -172,6 +174,7 @@ org.gradle.caching=true
 ### Spring Boot Example
 
 **pom.xml:**
+
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
@@ -180,6 +183,7 @@ org.gradle.caching=true
 ```
 
 **Application.java:**
+
 ```java
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -201,6 +205,7 @@ public class Application {
 ```
 
 **Run:**
+
 ```bash
 mvn spring-boot:run
 # Access at http://localhost:8080
@@ -211,6 +216,7 @@ mvn spring-boot:run
 ### Issue: JAVA_HOME not set
 
 **Solution:**
+
 ```bash
 # Check JAVA_HOME
 echo $JAVA_HOME
@@ -224,6 +230,7 @@ export JAVA_HOME=/usr/local/sdkman/candidates/java/current
 ### Issue: Maven/Gradle not found
 
 **Symptoms:**
+
 - `mvn: command not found`
 - `gradle: command not found`
 
@@ -233,6 +240,7 @@ Rebuild the devcontainer - Maven and Gradle are installed via the Java feature.
 ### Issue: Out of memory during build
 
 **Solution:**
+
 ```bash
 # Maven - increase heap size
 export MAVEN_OPTS="-Xmx2048m"
@@ -251,6 +259,7 @@ org.gradle.jvmargs=-Xmx2048m
 - [Java Extension Pack](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack)
 
 **Related Overlays:**
+
 - `postgres` - PostgreSQL database (JDBC)
 - `redis` - Redis cache (Jedis, Lettuce)
 - `docker-sock` - Docker access for Testcontainers

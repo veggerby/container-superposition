@@ -22,6 +22,7 @@ cat package.json | jq '.name, .version, .bin, .files'
 ```
 
 **Expected output:**
+
 ```json
 "container-superposition"
 "0.1.0"
@@ -80,6 +81,7 @@ npm pack --dry-run
 ```
 
 **Expected contents:**
+
 - ✅ 138 files
 - ✅ All overlays (dotnet, nodejs, python, postgres, redis, jaeger, prometheus, grafana, loki, etc.)
 - ✅ All templates (plain, compose)
@@ -89,6 +91,7 @@ npm pack --dry-run
 - ✅ README and LICENSE
 
 **Package size:**
+
 - Compressed: ~122 KB
 - Unpacked: ~462 KB
 
@@ -116,6 +119,7 @@ Document changes in [CHANGELOG.md](../CHANGELOG.md):
 ## [0.1.0] - 2026-02-05
 
 ### Added
+
 - Initial release
 - Interactive questionnaire with dependency resolution
 - 24+ overlays across languages, databases, observability, cloud tools, dev tools
@@ -192,19 +196,23 @@ git push origin v0.1.0
 
 Update README.md to reflect published status:
 
-```markdown
+````markdown
 ## Quick Start
 
 ### Via npx (Recommended)
+
 ```bash
 npx container-superposition init
 ```
+````
 
 ### Or Install Globally
+
 ```bash
 npm install -g container-superposition
 container-superposition init
 ```
+
 ````
 
 ## Continuous Publishing
@@ -350,3 +358,4 @@ npm unpublish container-superposition --force
 - [npm Version Management](https://docs.npmjs.com/cli/v10/commands/npm-version)
 - [Semantic Versioning](https://semver.org/)
 - [npm Package Lifecycle Scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts#life-cycle-scripts)
+````

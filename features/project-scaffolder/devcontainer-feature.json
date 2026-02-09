@@ -1,24 +1,24 @@
 {
-  "id": "project-scaffolder",
-  "version": "1.0.0",
-  "name": "Project Scaffolder",
-  "description": "Interactive project scaffolding for common frameworks and patterns",
-  "options": {
-    "template": {
-      "type": "string",
-      "enum": ["express-typescript", "nestjs-api", "nextjs-app", "react-vite", "none"],
-      "default": "none",
-      "description": "Project template to scaffold"
-    },
-    "includeTests": {
-      "type": "boolean",
-      "default": true,
-      "description": "Include test setup (Vitest/Jest)"
-    },
-    "includeCi": {
-      "type": "boolean",
-      "default": true,
-      "description": "Include GitHub Actions CI/CD"
+    "id": "project-scaffolder",
+    "version": "1.0.0",
+    "name": "Project Scaffolder",
+    "description": "Interactive project scaffolding for common frameworks and patterns",
+    "options": {
+        "template": {
+            "type": "string",
+            "enum": ["express-typescript", "nestjs-api", "nextjs-app", "react-vite", "none"],
+            "default": "none",
+            "description": "Project template to scaffold"
+        },
+        "includeTests": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include test setup (Vitest/Jest)"
+        },
+        "includeCi": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include GitHub Actions CI/CD"
+        }
     }
-  }
 }

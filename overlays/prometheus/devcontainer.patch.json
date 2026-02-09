@@ -1,12 +1,12 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "runServices": ["prometheus"],
-  "_serviceOrder": 1,
-  "forwardPorts": [9090],
-  "portsAttributes": {
-    "9090": {
-      "label": "Prometheus",
-      "onAutoForward": "openBrowser"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["prometheus"],
+    "_serviceOrder": 1,
+    "forwardPorts": [9090],
+    "portsAttributes": {
+        "9090": {
+            "label": "Prometheus",
+            "onAutoForward": "openBrowser"
+        }
     }
-  }
 }

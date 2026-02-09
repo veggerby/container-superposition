@@ -1,28 +1,28 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "curl",
-      "apk": "curl"
-    }
-  },
-  "runServices": ["rabbitmq"],
-  "forwardPorts": [5672, 15672],
-  "portsAttributes": {
-    "5672": {
-      "label": "RabbitMQ AMQP",
-      "onAutoForward": "notify"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "curl",
+            "apk": "curl"
+        }
     },
-    "15672": {
-      "label": "RabbitMQ Management UI",
-      "onAutoForward": "openBrowser"
+    "runServices": ["rabbitmq"],
+    "forwardPorts": [5672, 15672],
+    "portsAttributes": {
+        "5672": {
+            "label": "RabbitMQ AMQP",
+            "onAutoForward": "notify"
+        },
+        "15672": {
+            "label": "RabbitMQ Management UI",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "remoteEnv": {
+        "RABBITMQ_HOST": "rabbitmq",
+        "RABBITMQ_PORT": "5672",
+        "RABBITMQ_MANAGEMENT_PORT": "15672",
+        "RABBITMQ_USER": "guest",
+        "RABBITMQ_PASSWORD": "guest"
     }
-  },
-  "remoteEnv": {
-    "RABBITMQ_HOST": "rabbitmq",
-    "RABBITMQ_PORT": "5672",
-    "RABBITMQ_MANAGEMENT_PORT": "15672",
-    "RABBITMQ_USER": "guest",
-    "RABBITMQ_PASSWORD": "guest"
-  }
 }

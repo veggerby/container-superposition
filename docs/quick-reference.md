@@ -2,18 +2,20 @@
 
 ## Base Images
 
-| Image | ID | Use Case | Stability |
-|-------|-------|----------|-----------|
+| Image                  | ID         | Use Case                              | Stability    |
+| ---------------------- | ---------- | ------------------------------------- | ------------ |
 | **Debian Bookworm** ⭐ | `bookworm` | Production-ready, recommended default | Stable (LTS) |
-| **Debian Trixie** | `trixie` | Newer packages for testing | Testing |
-| **Custom Image** ⚠️ | `custom` | Specific requirements, may conflict | Varies |
+| **Debian Trixie**      | `trixie`   | Newer packages for testing            | Testing      |
+| **Custom Image** ⚠️    | `custom`   | Specific requirements, may conflict   | Varies       |
 
 **Default**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:bookworm`)
+
 - Battle-tested in production
 - Broad compatibility with all overlays
 - Regular security updates
 
 **When to use custom images**:
+
 - Specific compliance requirements
 - Organization-standardized base images
 - Need for particular base OS (Ubuntu, Alpine, etc.)
@@ -22,9 +24,9 @@
 
 ## Base Templates
 
-| Template | Use Case | Contents |
-|----------|----------|----------|
-| **plain** | Simple projects | Minimal Debian image, git, zsh, basic tools |
+| Template    | Use Case           | Contents                                             |
+| ----------- | ------------------ | ---------------------------------------------------- |
+| **plain**   | Simple projects    | Minimal Debian image, git, zsh, basic tools          |
 | **compose** | Multi-service apps | Docker Compose, devcontainer service, devnet network |
 
 ## Interactive Overlay Selection
@@ -32,6 +34,7 @@
 When running the questionnaire interactively, overlays are presented in a **categorized multi-select with dependency tracking**:
 
 **Features**:
+
 - 📋 **Categorized view** - Overlays grouped by category with visual separators
 - ⚡ **Dependency auto-resolution** - Required dependencies automatically added
 - ⚠️ **Conflict detection** - Post-selection conflict resolution UI
@@ -40,16 +43,19 @@ When running the questionnaire interactively, overlays are presented in a **cate
 - 📊 **Stack compatibility** - Only shows overlays compatible with selected stack
 
 **Keyboard workflow**:
+
 - `↑/↓` - Navigate overlays
 - `Space` - Toggle selection
 - `Enter` - Confirm selection
 
 **Dependency Resolution**:
+
 - **Automatic**: Select Grafana → Prometheus auto-added (marked as required)
 - **Recursive**: Dependencies of dependencies also auto-added
 - **Post-selection**: Conflicts (e.g., docker-in-docker ↔ docker-sock) resolved after selection
 
 **Example workflow**:
+
 1. Select Node.js, PostgreSQL, Grafana
 2. System auto-adds Prometheus (required by Grafana)
 3. No conflicts → Configuration complete
@@ -59,55 +65,55 @@ This ensures valid configurations without manual dependency tracking!
 
 ## Language Overlays
 
-| Overlay | Version | Key Features | Extensions |
-|---------|---------|--------------|------------|
-| **dotnet** | .NET 10 | C# DevKit, build tools, testing | C# DevKit, GUID generator, Nuke, REST Client |
-| **nodejs** | Node LTS | TypeScript, npm/yarn | ESLint, Prettier, npm IntelliSense |
-| **python** | Python 3.12 | pip, venv, dev tools | Pylance, Black, Ruff |
-| **mkdocs** | Python 3.12 | MkDocs, Material theme | Markdown All-in-One, Markdownlint, Mermaid |
+| Overlay    | Version     | Key Features                    | Extensions                                   |
+| ---------- | ----------- | ------------------------------- | -------------------------------------------- |
+| **dotnet** | .NET 10     | C# DevKit, build tools, testing | C# DevKit, GUID generator, Nuke, REST Client |
+| **nodejs** | Node LTS    | TypeScript, npm/yarn            | ESLint, Prettier, npm IntelliSense           |
+| **python** | Python 3.12 | pip, venv, dev tools            | Pylance, Black, Ruff                         |
+| **mkdocs** | Python 3.12 | MkDocs, Material theme          | Markdown All-in-One, Markdownlint, Mermaid   |
 
 ## Database Overlays
 
-| Overlay | Version | Ports | Environment Variables |
-|---------|---------|-------|----------------------|
-| **postgres** | 16 | 5432 | POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD |
-| **redis** | 7 | 6379 | REDIS_PASSWORD (optional) |
+| Overlay      | Version | Ports | Environment Variables                         |
+| ------------ | ------- | ----- | --------------------------------------------- |
+| **postgres** | 16      | 5432  | POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD |
+| **redis**    | 7       | 6379  | REDIS_PASSWORD (optional)                     |
 
 ## Observability Overlays
 
-| Overlay | Purpose | Ports | Dependencies |
-|---------|---------|-------|--------------|
-| **otel-collector** | Telemetry pipeline | 4317 (gRPC), 4318 (HTTP), 8889 (Prometheus) | - |
-| **jaeger** | Distributed tracing | 16686 (UI), 14250 (model.proto) | - |
-| **prometheus** | Metrics collection | 9090 | - |
-| **grafana** | Visualization | 3000 | prometheus (required) |
-| **loki** | Log aggregation | 3100 | - |
+| Overlay            | Purpose             | Ports                                       | Dependencies          |
+| ------------------ | ------------------- | ------------------------------------------- | --------------------- |
+| **otel-collector** | Telemetry pipeline  | 4317 (gRPC), 4318 (HTTP), 8889 (Prometheus) | -                     |
+| **jaeger**         | Distributed tracing | 16686 (UI), 14250 (model.proto)             | -                     |
+| **prometheus**     | Metrics collection  | 9090                                        | -                     |
+| **grafana**        | Visualization       | 3000                                        | prometheus (required) |
+| **loki**           | Log aggregation     | 3100                                        | -                     |
 
 ### Observability Stack Combinations
 
-| Stack | Use Case | Command |
-|-------|----------|---------|
-| **Traces Only** | Distributed tracing | `--observability jaeger` |
-| **Metrics Only** | Performance monitoring | `--observability prometheus,grafana` |
-| **Standard** | Traces + Metrics | `--observability otel-collector,jaeger,prometheus,grafana` |
-| **Complete** | Full observability | `--observability otel-collector,jaeger,prometheus,grafana,loki` |
+| Stack            | Use Case               | Command                                                         |
+| ---------------- | ---------------------- | --------------------------------------------------------------- |
+| **Traces Only**  | Distributed tracing    | `--observability jaeger`                                        |
+| **Metrics Only** | Performance monitoring | `--observability prometheus,grafana`                            |
+| **Standard**     | Traces + Metrics       | `--observability otel-collector,jaeger,prometheus,grafana`      |
+| **Complete**     | Full observability     | `--observability otel-collector,jaeger,prometheus,grafana,loki` |
 
 ## Cloud/DevOps Overlays
 
-| Overlay | Tools | Extensions |
-|---------|-------|------------|
-| **aws-cli** | AWS CLI | AWS Toolkit |
-| **azure-cli** | Azure CLI | Azure Account, Azure Resources |
-| **kubectl-helm** | kubectl, Helm | Kubernetes |
+| Overlay          | Tools         | Extensions                     |
+| ---------------- | ------------- | ------------------------------ |
+| **aws-cli**      | AWS CLI       | AWS Toolkit                    |
+| **azure-cli**    | Azure CLI     | Azure Account, Azure Resources |
+| **kubectl-helm** | kubectl, Helm | Kubernetes                     |
 
 ## Development Tool Overlays
 
-| Overlay | Purpose | Contents | Conflicts |
-|---------|---------|----------|-----------|
-| **docker-in-docker** | Docker daemon inside container | Docker CLI, daemon | docker-sock |
-| **docker-sock** | Docker socket mounting | Docker CLI, socket access | docker-in-docker |
-| **playwright** | Browser testing | Playwright, Chromium | - |
-| **codex** | AI code assistant | Codex tools and integrations | - |
+| Overlay              | Purpose                        | Contents                     | Conflicts        |
+| -------------------- | ------------------------------ | ---------------------------- | ---------------- |
+| **docker-in-docker** | Docker daemon inside container | Docker CLI, daemon           | docker-sock      |
+| **docker-sock**      | Docker socket mounting         | Docker CLI, socket access    | docker-in-docker |
+| **playwright**       | Browser testing                | Playwright, Chromium         | -                |
+| **codex**            | AI code assistant              | Codex tools and integrations | -                |
 
 ## Service Startup Order
 
@@ -122,11 +128,13 @@ Services start in this order (controlled by `_serviceOrder`):
 ## Common Commands
 
 ### Interactive
+
 ```bash
 npm run init
 ```
 
 ### Simple Scenarios
+
 ```bash
 # Plain image with language
 npm run init -- --stack plain --language python
@@ -136,6 +144,7 @@ npm run init -- --stack compose --language nodejs --postgres
 ```
 
 ### Production-Ready
+
 ```bash
 # Microservice with full observability
 npm run init -- \
@@ -156,12 +165,14 @@ npm run init -- \
 ## Output Structure
 
 ### Minimal (plain + language)
+
 ```
 .devcontainer/
 └── devcontainer.json
 ```
 
 ### Typical (compose + language + database)
+
 ```
 .devcontainer/
 ├── devcontainer.json
@@ -171,6 +182,7 @@ npm run init -- \
 ```
 
 ### Full (compose + language + database + observability)
+
 ```
 .devcontainer/
 ├── devcontainer.json
@@ -191,6 +203,7 @@ npm run init -- \
 ## Environment Variables by Overlay
 
 ### Databases
+
 ```bash
 # PostgreSQL
 POSTGRES_VERSION=16
@@ -206,6 +219,7 @@ REDIS_PASSWORD=  # Optional
 ```
 
 ### Observability
+
 ```bash
 # OpenTelemetry Collector
 OTEL_COLLECTOR_VERSION=latest
@@ -227,37 +241,38 @@ LOKI_VERSION=latest
 
 ## Port Reference
 
-| Port | Service | Purpose |
-|------|---------|---------|
-| 3000 | Grafana | Visualization dashboard |
-| 3100 | Loki | Log ingestion API |
-| 4317 | Jaeger/OTLP | OTLP gRPC receiver |
-| 4318 | Jaeger/OTLP | OTLP HTTP receiver |
-| 5000 | .NET | HTTP endpoint |
-| 5001 | .NET | HTTPS endpoint |
-| 5432 | PostgreSQL | Database |
-| 6379 | Redis | Cache |
-| 8000 | MkDocs | Documentation server |
-| 8080 | Generic | Web application |
-| 8888 | OTLP | Collector metrics |
-| 8889 | OTLP | Prometheus exporter |
-| 9090 | Prometheus | Metrics API/UI |
-| 13133 | OTLP | Health check |
-| 16686 | Jaeger | Tracing UI |
+| Port  | Service     | Purpose                 |
+| ----- | ----------- | ----------------------- |
+| 3000  | Grafana     | Visualization dashboard |
+| 3100  | Loki        | Log ingestion API       |
+| 4317  | Jaeger/OTLP | OTLP gRPC receiver      |
+| 4318  | Jaeger/OTLP | OTLP HTTP receiver      |
+| 5000  | .NET        | HTTP endpoint           |
+| 5001  | .NET        | HTTPS endpoint          |
+| 5432  | PostgreSQL  | Database                |
+| 6379  | Redis       | Cache                   |
+| 8000  | MkDocs      | Documentation server    |
+| 8080  | Generic     | Web application         |
+| 8888  | OTLP        | Collector metrics       |
+| 8889  | OTLP        | Prometheus exporter     |
+| 9090  | Prometheus  | Metrics API/UI          |
+| 13133 | OTLP        | Health check            |
+| 16686 | Jaeger      | Tracing UI              |
 
 ## Dependencies
 
 ### Required for Observability
 
-| Component | Depends On |
-|-----------|------------|
+| Component      | Depends On               |
+| -------------- | ------------------------ |
 | otel-collector | jaeger, prometheus, loki |
-| grafana | prometheus, loki, jaeger |
-| devcontainer | All selected services |
+| grafana        | prometheus, loki, jaeger |
+| devcontainer   | All selected services    |
 
 ### Standalone Services
 
 These work independently:
+
 - postgres
 - redis
 - jaeger (can accept traces directly)
@@ -266,22 +281,22 @@ These work independently:
 
 ## Migration from Old Templates
 
-| Old Template | New Equivalent |
-|--------------|----------------|
-| `dotnet` | `--stack compose --language dotnet` |
-| `node-typescript` | `--stack compose --language nodejs` |
-| `python-mkdocs` | `--stack plain --language mkdocs` |
-| `fullstack` | `--stack compose --language nodejs --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki` |
+| Old Template      | New Equivalent                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `dotnet`          | `--stack compose --language dotnet`                                                                                         |
+| `node-typescript` | `--stack compose --language nodejs`                                                                                         |
+| `python-mkdocs`   | `--stack plain --language mkdocs`                                                                                           |
+| `fullstack`       | `--stack compose --language nodejs --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki` |
 
 ## File Types
 
-| File | Behavior |
-|------|----------|
-| `devcontainer.patch.json` | Merged into devcontainer.json (not copied) |
-| `.env.example` | Merged into combined .env.example (not copied) |
-| `docker-compose.yml` | Copied as `docker-compose.{overlay}.yml` |
-| Other files | Copied as-is to output directory |
-| Directories | Copied recursively to output directory |
+| File                      | Behavior                                       |
+| ------------------------- | ---------------------------------------------- |
+| `devcontainer.patch.json` | Merged into devcontainer.json (not copied)     |
+| `.env.example`            | Merged into combined .env.example (not copied) |
+| `docker-compose.yml`      | Copied as `docker-compose.{overlay}.yml`       |
+| Other files               | Copied as-is to output directory               |
+| Directories               | Copied recursively to output directory         |
 
 ## Type Definitions
 

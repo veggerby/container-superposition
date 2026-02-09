@@ -5,6 +5,7 @@ Minimal base templates for devcontainer configurations. These are designed to be
 ## Philosophy
 
 These templates provide a **clean foundation** that:
+
 - ✅ Start minimal - add only what you need via overlays
 - ✅ Use official images and features from [containers.dev](https://containers.dev)
 - ✅ Support both simple (image-based) and complex (docker-compose) scenarios
@@ -16,11 +17,13 @@ We **DO NOT** duplicate what's already available. We **COMPOSE** existing tools 
 ## Available Templates
 
 ### 🟢 plain
+
 **Minimal image-based devcontainer**
 
 Ideal for: Simple projects that don't need additional services
 
 Includes:
+
 - Debian base image
 - Common utilities (git, zsh, curl, wget, vim)
 - Basic shell enhancements
@@ -29,17 +32,20 @@ Includes:
 **Use when:** Building single-service applications without external dependencies
 
 **Compose with:**
+
 - Language overlays (dotnet, nodejs, python, mkdocs)
 - Development tools (playwright, aws-cli, azure-cli)
 
 ---
 
 ### 🔵 compose
+
 **Docker Compose-based devcontainer**
 
 Ideal for: Multi-service applications requiring databases, observability, etc.
 
 Includes:
+
 - Docker Compose infrastructure
 - Devcontainer service on shared network
 - Docker-outside-of-Docker support
@@ -48,6 +54,7 @@ Includes:
 **Use when:** Building applications that need databases, caching, observability stack, or multiple services
 
 **Compose with:**
+
 - Language overlays (dotnet, nodejs, python, mkdocs)
 - Databases (postgres, redis)
 - Observability (otel-collector, jaeger, prometheus, grafana, loki)
@@ -60,21 +67,25 @@ Includes:
 Templates are designed to work with the overlay system. Common combinations:
 
 ### Web API with Database
+
 ```bash
 # compose + nodejs + postgres + redis
 ```
 
 ### Microservice with Observability
+
 ```bash
 # compose + dotnet + postgres + otel-collector + jaeger + prometheus + grafana
 ```
 
 ### Documentation Site
+
 ```bash
 # plain + mkdocs
 ```
 
 ### Fullstack Application
+
 ```bash
 # compose + nodejs + python + postgres + redis + otel-collector + jaeger + grafana + loki
 ```
@@ -89,6 +100,7 @@ npx @veggerby/container-superposition init
 ```
 
 The tool will guide you through:
+
 1. Selecting a base template (plain or compose)
 2. Choosing language/framework
 3. Adding databases
@@ -98,6 +110,7 @@ The tool will guide you through:
 ### Manual Setup
 
 1. Copy a template:
+
 ```bash
 cp -r templates/compose/.devcontainer /path/to/my-project/
 ```
@@ -107,6 +120,7 @@ cp -r templates/compose/.devcontainer /path/to/my-project/
 4. Update devcontainer.json
 
 The `postCreateCommand` script will:
+
 - Install global tools
 - Install project dependencies (if package.json exists)
 - Configure the environment
@@ -124,10 +138,10 @@ Browse [containers.dev/features](https://containers.dev/features) and add to `de
 
 ```json
 {
-  "features": {
-    "ghcr.io/devcontainers/features/aws-cli:1": {},
-    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
-  }
+    "features": {
+        "ghcr.io/devcontainers/features/aws-cli:1": {},
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
+    }
 }
 ```
 
@@ -135,19 +149,18 @@ Browse [containers.dev/features](https://containers.dev/features) and add to `de
 
 ```json
 {
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "your.extension.id"
-      ]
+    "customizations": {
+        "vscode": {
+            "extensions": ["your.extension.id"]
+        }
     }
-  }
 }
 ```
 
 ### Change Base Image
 
 Replace the `image` in `devcontainer.json` with any image from:
+
 - [containers.dev/images](https://containers.dev/images)
 - [Docker Hub](https://hub.docker.com)
 - Your custom image
@@ -155,6 +168,7 @@ Replace the `image` in `devcontainer.json` with any image from:
 ### Modify Post-Create Script
 
 Edit `.devcontainer/post-create.sh` to:
+
 - Install additional global tools
 - Run custom initialization
 - Configure git
@@ -173,20 +187,22 @@ Example: Start with `node-typescript`, add PostgreSQL from `full-stack-postgres`
 
 ## Template Comparison
 
-| Template | Language | Purpose | Complexity | Best For |
-|----------|----------|---------|------------|----------|
-| node-typescript | JavaScript/TS | Web Development | Simple | APIs, SPAs, Full-stack apps |
-| dotnet-webapi | C# | Backend APIs | Simple | Enterprise APIs, Microservices |
-| python-mkdocs | Python | Documentation | Simple | Tech docs, Wikis, Guides |
+| Template        | Language      | Purpose         | Complexity | Best For                       |
+| --------------- | ------------- | --------------- | ---------- | ------------------------------ |
+| node-typescript | JavaScript/TS | Web Development | Simple     | APIs, SPAs, Full-stack apps    |
+| dotnet-webapi   | C#            | Backend APIs    | Simple     | Enterprise APIs, Microservices |
+| python-mkdocs   | Python        | Documentation   | Simple     | Tech docs, Wikis, Guides       |
 
 ## Requirements
 
 ### System Requirements
+
 - **VS Code** with [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 - **Docker Desktop** or Docker Engine
 - **Git** (for cloning and version control)
 
 ### Recommended
+
 - 8GB+ RAM (16GB for complex templates)
 - SSD for faster container builds
 - Good internet connection (first build downloads images)
@@ -194,16 +210,19 @@ Example: Start with `node-typescript`, add PostgreSQL from `full-stack-postgres`
 ## Performance Tips
 
 ### Fast Builds
+
 - Templates use official images (cached by Docker)
 - Layer caching optimizes rebuilds
 - Volume mounts persist data across rebuilds
 
 ### Resource Usage
+
 - Adjust Docker Desktop memory/CPU limits
 - Use `.dockerignore` to exclude unnecessary files
 - Clean up unused containers: `docker system prune`
 
 ### Development Speed
+
 - Keep the container running (don't rebuild unnecessarily)
 - Use hot reload (all templates support it)
 - Leverage Nx cache for monorepos
@@ -211,20 +230,24 @@ Example: Start with `node-typescript`, add PostgreSQL from `full-stack-postgres`
 ## Troubleshooting
 
 ### Build Fails
+
 - Check Docker Desktop is running
 - Ensure you have internet connection
 - Try: `Rebuild Container` from command palette
 
 ### Extensions Not Loading
+
 - Rebuild container: `Cmd/Ctrl + Shift + P` → "Rebuild Container"
 - Check extensions are supported in containers
 
 ### Slow Performance
+
 - Increase Docker Desktop resources
 - Use `.dockerignore` to reduce context size
 - Check antivirus isn't scanning Docker files
 
 ### Port Already in Use
+
 - Change `forwardPorts` in `devcontainer.json`
 - Stop other services using the port
 - Use different ports for multiple projects
@@ -234,6 +257,7 @@ Example: Start with `node-typescript`, add PostgreSQL from `full-stack-postgres`
 Have improvements or new templates?
 
 **Good template additions:**
+
 - Solve a specific, common use case
 - Use official images and features
 - Include comprehensive documentation
@@ -241,6 +265,7 @@ Have improvements or new templates?
 - Follow existing template structure
 
 **Template structure:**
+
 ```
 templates/your-template/
 ├── .devcontainer/

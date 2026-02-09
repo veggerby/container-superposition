@@ -7,8 +7,8 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - cloud
-  - iac
-  - pulumi
-  - infrastructure
+    - cloud
+    - iac
+    - pulumi
+    - infrastructure
 ports: []

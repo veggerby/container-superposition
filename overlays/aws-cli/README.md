@@ -42,6 +42,7 @@ export AWS_DEFAULT_REGION=us-east-1
 ### Credential Files
 
 Create `~/.aws/credentials`:
+
 ```ini
 [default]
 aws_access_key_id = AKIAIOSFODNN7EXAMPLE
@@ -53,6 +54,7 @@ aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 
 Create `~/.aws/config`:
+
 ```ini
 [default]
 region = us-east-1
@@ -271,21 +273,25 @@ aws ec2 describe-instances \
 ## Use Cases
 
 ### Infrastructure Management
+
 - Launch and manage EC2 instances
 - Configure load balancers and auto-scaling
 - Manage VPCs and security groups
 
 ### Application Deployment
+
 - Deploy Lambda functions
 - Update ECS services
 - Manage CloudFormation stacks
 
 ### Data Management
+
 - Upload/download files to S3
 - Backup RDS databases
 - Manage DynamoDB tables
 
 ### CI/CD Integration
+
 - Automated deployments
 - Infrastructure provisioning
 - Credential management in pipelines
@@ -299,26 +305,28 @@ aws ec2 describe-instances \
 **Secure Methods:**
 
 1. **Environment Variables** - Set in `.env` (excluded from git)
-   ```bash
-   AWS_ACCESS_KEY_ID=xxxxx
-   AWS_SECRET_ACCESS_KEY=xxxxx
-   AWS_DEFAULT_REGION=us-east-1
-   ```
+
+    ```bash
+    AWS_ACCESS_KEY_ID=xxxxx
+    AWS_SECRET_ACCESS_KEY=xxxxx
+    AWS_DEFAULT_REGION=us-east-1
+    ```
 
 2. **AWS SSO** - Use for organizational accounts
-   ```bash
-   aws configure sso
-   aws sso login
-   ```
+
+    ```bash
+    aws configure sso
+    aws sso login
+    ```
 
 3. **IAM Roles** - Use when running in AWS (EC2, ECS, Lambda)
-   - No credentials needed
-   - Automatically rotated
+    - No credentials needed
+    - Automatically rotated
 
 4. **AWS Vault** - Secure credential storage
-   ```bash
-   aws-vault exec dev -- aws s3 ls
-   ```
+    ```bash
+    aws-vault exec dev -- aws s3 ls
+    ```
 
 ### Least Privilege
 
@@ -326,17 +334,14 @@ Always grant minimum required permissions:
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject"
-      ],
-      "Resource": "arn:aws:s3:::my-bucket/*"
-    }
-  ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": ["s3:GetObject", "s3:PutObject"],
+            "Resource": "arn:aws:s3:::my-bucket/*"
+        }
+    ]
 }
 ```
 
@@ -361,6 +366,7 @@ export AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaD...
 ### aws command not found
 
 Rebuild container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### Invalid credentials
@@ -443,7 +449,7 @@ Set CLI defaults in `~/.aws/config`:
 [default]
 region = us-east-1
 output = json
-cli_pager = 
+cli_pager =
 
 [profile dev]
 region = us-west-2

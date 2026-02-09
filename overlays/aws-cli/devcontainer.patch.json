@@ -1,15 +1,13 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/devcontainers/features/aws-cli:1": {
-      "version": "latest"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/devcontainers/features/aws-cli:1": {
+            "version": "latest"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["amazonwebservices.aws-toolkit-vscode"]
+        }
     }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "amazonwebservices.aws-toolkit-vscode"
-      ]
-    }
-  }
 }

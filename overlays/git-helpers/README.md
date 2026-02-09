@@ -10,9 +10,9 @@ Comprehensive Git tooling with GPG/SSH support, Git LFS, and GitHub CLI.
 - **SSH Agent Forwarding** - Mounts host SSH keys (read-only)
 - **GPG Support** - Mounts host GPG keys for commit signing
 - **VS Code Extensions**:
-  - GitLens - Enhanced Git visualization
-  - GitHub Pull Requests - PR management in VS Code
-  - Git Graph - Interactive git graph visualization
+    - GitLens - Enhanced Git visualization
+    - GitHub Pull Requests - PR management in VS Code
+    - Git Graph - Interactive git graph visualization
 
 ## Configuration
 
@@ -52,22 +52,22 @@ GPG commit signing is supported but requires manual setup:
 
 1. Import your GPG keys into the container, or generate new ones:
 
-   ```bash
-   # Generate a new key
-   gpg --full-generate-key
+    ```bash
+    # Generate a new key
+    gpg --full-generate-key
 
-   # Or import from your host (copy your key ID first on host with: gpg --list-secret-keys)
-   # On host: gpg --export-secret-keys YOUR_KEY_ID > key.gpg
-   # In container: gpg --import key.gpg
-   ```
+    # Or import from your host (copy your key ID first on host with: gpg --list-secret-keys)
+    # On host: gpg --export-secret-keys YOUR_KEY_ID > key.gpg
+    # In container: gpg --import key.gpg
+    ```
 
 2. Configure Git to use your signing key:
 
-   ```bash
-   git config --global user.signingkey YOUR_KEY_ID
-   git config --global commit.gpgsign true
-   git config --global tag.gpgsign true
-   ```
+    ```bash
+    git config --global user.signingkey YOUR_KEY_ID
+    git config --global commit.gpgsign true
+    git config --global tag.gpgsign true
+    ```
 
 **Note**: GPG keys are not automatically mounted to avoid container startup failures when `~/.gnupg` doesn't exist on the host.
 

@@ -62,6 +62,7 @@ Each overlay directory contains:
 Each overlay can provide its own `.env.example` file with relevant environment variables. The init tool automatically merges all `.env.example` files from selected overlays into a single `.env.example` in your project.
 
 ### PostgreSQL Variables
+
 - `POSTGRES_VERSION` - PostgreSQL version (default: 16)
 - `POSTGRES_DB` - Database name (default: devdb)
 - `POSTGRES_USER` - Database user (default: postgres)
@@ -69,6 +70,7 @@ Each overlay can provide its own `.env.example` file with relevant environment v
 - `POSTGRES_PORT` - Port mapping (default: 5432)
 
 ### Redis Variables
+
 - `REDIS_VERSION` - Redis version (default: 7)
 - `REDIS_PORT` - Port mapping (default: 6379)
 - `REDIS_PASSWORD` - Optional password for Redis authentication
@@ -76,20 +78,25 @@ Each overlay can provide its own `.env.example` file with relevant environment v
 ### Observability Variables
 
 #### OpenTelemetry Collector
+
 - `OTEL_COLLECTOR_VERSION` - Collector version (default: latest)
 
 #### Jaeger
+
 - `JAEGER_VERSION` - Jaeger version (default: latest)
 
 #### Prometheus
+
 - `PROMETHEUS_VERSION` - Prometheus version (default: latest)
 
 #### Grafana
+
 - `GRAFANA_VERSION` - Grafana version (default: latest)
 - `GRAFANA_ADMIN_USER` - Admin username (default: admin)
 - `GRAFANA_ADMIN_PASSWORD` - Admin password (default: admin)
 
 #### Loki
+
 - `LOKI_VERSION` - Loki version (default: latest)
 
 ### Using .env
@@ -100,6 +107,7 @@ Each overlay can provide its own `.env.example` file with relevant environment v
 4. Restart your dev container
 
 Example `.env`:
+
 ```bash
 POSTGRES_PASSWORD=my-secure-password
 REDIS_PASSWORD=another-secure-password

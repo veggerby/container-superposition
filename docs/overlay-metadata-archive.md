@@ -48,6 +48,7 @@ The overlay loader (`tool/schema/overlay-loader.ts`) scans the `overlays/` direc
 This archived file is kept for reference but is no longer read by the system. To add or modify overlays, create or edit the `overlay.yml` file in the overlay's directory.
 
 See:
+
 - `.github/instructions/overlay-authoring.instructions.md` - Guide for creating overlays
 - `.github/instructions/overlay-index.instructions.md` - Guide for overlay.yml manifests
 - `scripts/migrate-to-manifests.ts` - Migration script used to create individual manifests

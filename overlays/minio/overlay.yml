@@ -3,16 +3,16 @@ name: MinIO
 description: S3-compatible object storage with web console
 category: database
 supports:
-  - compose
+    - compose
 requires: []
 suggests: []
 conflicts: []
 tags:
-  - database
-  - storage
-  - s3
-  - object-storage
-  - minio
+    - database
+    - storage
+    - s3
+    - object-storage
+    - minio
 ports:
-  - 9000
-  - 9001
+    - 9000
+    - 9001

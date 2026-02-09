@@ -27,16 +27,12 @@ Create a custom devcontainer patch:
 ```json
 // .devcontainer/custom/devcontainer.patch.json
 {
-  "mounts": [
-    "source=${localWorkspaceFolder}/../shared-libs,target=/workspace/shared,type=bind"
-  ],
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "eamodio.gitlens"
-      ]
+    "mounts": ["source=${localWorkspaceFolder}/../shared-libs,target=/workspace/shared,type=bind"],
+    "customizations": {
+        "vscode": {
+            "extensions": ["eamodio.gitlens"]
+        }
     }
-  }
 }
 ```
 
@@ -59,6 +55,7 @@ The `.devcontainer/custom/` directory supports the following files:
 Patches to merge into the generated `devcontainer.json`.
 
 **Use cases:**
+
 - Add custom mounts
 - Add custom environment variables
 - Add custom VS Code extensions
@@ -68,25 +65,22 @@ Patches to merge into the generated `devcontainer.json`.
 
 ```json
 {
-  "mounts": [
-    "source=${localWorkspaceFolder}/../shared,target=/workspace/shared,type=bind",
-    "source=${localWorkspaceFolder}/../cache,target=/workspace/cache,type=bind"
-  ],
-  "remoteEnv": {
-    "MY_CUSTOM_VAR": "value",
-    "API_ENDPOINT": "https://api.example.com"
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "eamodio.gitlens",
-        "myorg.custom-extension"
-      ],
-      "settings": {
-        "editor.formatOnSave": true
-      }
+    "mounts": [
+        "source=${localWorkspaceFolder}/../shared,target=/workspace/shared,type=bind",
+        "source=${localWorkspaceFolder}/../cache,target=/workspace/cache,type=bind"
+    ],
+    "remoteEnv": {
+        "MY_CUSTOM_VAR": "value",
+        "API_ENDPOINT": "https://api.example.com"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["eamodio.gitlens", "myorg.custom-extension"],
+            "settings": {
+                "editor.formatOnSave": true
+            }
+        }
     }
-  }
 }
 ```
 
@@ -95,6 +89,7 @@ Patches to merge into the generated `devcontainer.json`.
 Patches to merge into the generated `docker-compose.yml` (for compose-based stacks only).
 
 **Use cases:**
+
 - Add custom services
 - Add custom volumes
 - Modify existing services
@@ -103,24 +98,24 @@ Patches to merge into the generated `docker-compose.yml` (for compose-based stac
 
 ```yaml
 services:
-  redis:
-    image: redis:alpine
-    ports:
-      - "6379:6379"
-    networks:
-      - devnet
-  
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    networks:
-      - devnet
+    redis:
+        image: redis:alpine
+        ports:
+            - '6379:6379'
+        networks:
+            - devnet
+
+    minio:
+        image: minio/minio:latest
+        command: server /data --console-address ":9001"
+        environment:
+            MINIO_ROOT_USER: minioadmin
+            MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+            - '9000:9000'
+            - '9001:9001'
+        networks:
+            - devnet
 ```
 
 ### 3. `environment.env`
@@ -128,6 +123,7 @@ services:
 Custom environment variables to append to `.env.example`.
 
 **Use cases:**
+
 - Add API keys
 - Add feature flags
 - Add custom configuration
@@ -146,6 +142,7 @@ DATABASE_URL=postgresql://localhost:5432/mydb
 Custom script to run after container creation (one-time setup).
 
 **Use cases:**
+
 - Download proprietary tools
 - Set up local databases
 - Initialize project-specific dependencies
@@ -173,6 +170,7 @@ echo "✅ Custom initialization complete"
 Custom script to run every time the container starts.
 
 **Use cases:**
+
 - Start background services
 - Refresh credentials
 - Check environment health
@@ -199,6 +197,7 @@ echo "✅ Startup tasks complete"
 Directory for additional files to copy into the devcontainer.
 
 **Use cases:**
+
 - Custom configuration files
 - Project-specific scripts
 - Seed data
@@ -236,6 +235,7 @@ Custom patches are applied **after** all overlay merging, using the following st
 ### Preservation During Regeneration
 
 The `.devcontainer/custom/` directory is:
+
 - ✅ **Preserved** during regeneration (never deleted)
 - ✅ **Automatically merged** into generated files
 - ✅ **Tracked** in `superposition.json` manifest
@@ -251,9 +251,9 @@ The `.devcontainer/custom/` directory is:
 ```json
 // .devcontainer/custom/devcontainer.patch.json
 {
-  "mounts": [
-    "source=${localWorkspaceFolder}/../shared-libs,target=/workspace/libs,type=bind,readonly"
-  ]
+    "mounts": [
+        "source=${localWorkspaceFolder}/../shared-libs,target=/workspace/libs,type=bind,readonly"
+    ]
 }
 ```
 
@@ -279,14 +279,14 @@ echo "Initializing proprietary tools..."
 ```yaml
 # .devcontainer/custom/docker-compose.patch.yml
 services:
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    networks:
-      - devnet
+    minio:
+        image: minio/minio:latest
+        command: server /data --console-address ":9001"
+        ports:
+            - '9000:9000'
+            - '9001:9001'
+        networks:
+            - devnet
 ```
 
 ### Use Case 4: Team Config vs Personal Config
@@ -298,17 +298,14 @@ services:
 ```json
 // .devcontainer/custom/devcontainer.patch.json (in .gitignore)
 {
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "eamodio.gitlens",
-        "myorg.personal-extension"
-      ],
-      "settings": {
-        "editor.fontSize": 14
-      }
+    "customizations": {
+        "vscode": {
+            "extensions": ["eamodio.gitlens", "myorg.personal-extension"],
+            "settings": {
+                "editor.fontSize": 14
+            }
+        }
     }
-  }
 }
 ```
 
@@ -405,10 +402,12 @@ Files in `.devcontainer/custom/files/` are automatically copied during generatio
 Lifecycle scripts are executed in this order:
 
 **postCreateCommand** (one-time):
+
 1. Overlay setup scripts (e.g., `setup-nodejs.sh`)
 2. Custom post-create script (`custom/scripts/post-create.sh`)
 
 **postStartCommand** (every start):
+
 1. Overlay verify scripts (e.g., `verify-nodejs.sh`)
 2. Custom post-start script (`custom/scripts/post-start.sh`)
 
@@ -418,13 +417,13 @@ The `superposition.json` manifest tracks whether customizations are present:
 
 ```json
 {
-  "version": "0.1.0",
-  "baseTemplate": "compose",
-  "overlays": ["nodejs", "postgres"],
-  "customizations": {
-    "enabled": true,
-    "location": ".devcontainer/custom"
-  }
+    "version": "0.1.0",
+    "baseTemplate": "compose",
+    "overlays": ["nodejs", "postgres"],
+    "customizations": {
+        "enabled": true,
+        "location": ".devcontainer/custom"
+    }
 }
 ```
 
@@ -454,6 +453,7 @@ This helps tools understand that custom patches are in use.
 **Symptom**: Regeneration doesn't include custom changes.
 
 **Solution**:
+
 1. Verify custom directory exists: `ls .devcontainer/custom/`
 2. Check patch file syntax: `jq . .devcontainer/custom/devcontainer.patch.json`
 3. Look for error messages during generation
@@ -464,6 +464,7 @@ This helps tools understand that custom patches are in use.
 **Symptom**: Custom patch conflicts with overlay settings.
 
 **Solution**:
+
 - Custom patches are applied **last**, so they take precedence
 - If conflicts occur, check console output for warnings
 - Use deep merge strategy - objects merge, primitives override
@@ -473,11 +474,12 @@ This helps tools understand that custom patches are in use.
 **Symptom**: Custom scripts don't run.
 
 **Solution**:
+
 1. Ensure scripts are executable: `chmod +x .devcontainer/custom/scripts/*.sh`
 2. Verify scripts are referenced in devcontainer.json:
-   ```bash
-   cat .devcontainer/devcontainer.json | jq '.postCreateCommand'
-   ```
+    ```bash
+    cat .devcontainer/devcontainer.json | jq '.postCreateCommand'
+    ```
 3. Check script paths are correct (relative to workspace root)
 
 ## Examples
@@ -487,13 +489,13 @@ This helps tools understand that custom patches are in use.
 ```json
 // .devcontainer/custom/devcontainer.patch.json
 {
-  "mounts": [
-    "source=${localWorkspaceFolder}/../packages/shared,target=/workspace/shared,type=bind,readonly",
-    "source=${localWorkspaceFolder}/../packages/utils,target=/workspace/utils,type=bind,readonly"
-  ],
-  "remoteEnv": {
-    "MONOREPO_ROOT": "/workspace"
-  }
+    "mounts": [
+        "source=${localWorkspaceFolder}/../packages/shared,target=/workspace/shared,type=bind,readonly",
+        "source=${localWorkspaceFolder}/../packages/utils,target=/workspace/utils,type=bind,readonly"
+    ],
+    "remoteEnv": {
+        "MONOREPO_ROOT": "/workspace"
+    }
 }
 ```
 

@@ -13,16 +13,16 @@ id: nodejs
 name: Node.js
 description: Node.js LTS with TypeScript and tooling
 category: language
-supports: []              # Empty = all stacks, or [plain], [compose]
-requires: []              # Hard dependencies
-suggests: []              # Recommended overlays
-conflicts: []             # Incompatible overlays
+supports: [] # Empty = all stacks, or [plain], [compose]
+requires: [] # Hard dependencies
+suggests: [] # Recommended overlays
+conflicts: [] # Incompatible overlays
 tags:
-  - language
-  - nodejs
-  - javascript
-  - typescript
-ports: []                 # Ports used (for offset calculation)
+    - language
+    - nodejs
+    - javascript
+    - typescript
+ports: [] # Ports used (for offset calculation)
 ```
 
 ### Required Fields
@@ -84,6 +84,7 @@ const config = buildOverlaysConfigFromManifests(overlaysDir);
 ```
 
 The loader:
+
 - Skips directories starting with `.` (e.g., `.registry`)
 - Validates `id` matches directory name
 - Sets default empty arrays for optional fields
@@ -92,6 +93,7 @@ The loader:
 ### Preset Handling
 
 Presets are meta-overlays defined in `overlays/presets/*.yml`. Each preset file contains:
+
 - Metadata (id, name, description, tags, supports)
 - Selection rules (required overlays, user choices)
 - Glue configuration (environment variables, port mappings, README content)
@@ -101,6 +103,7 @@ The loader reads preset metadata separately and populates `preset_overlays` in t
 ### Backward Compatibility
 
 The loader supports both approaches:
+
 1. **Preferred**: Loads from individual manifests (checks for `.registry/` directory)
 2. **Fallback**: Loads from `overlays/index.yml` if present and `.registry/` absent
 
@@ -128,8 +131,8 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - language
-  - my-overlay
+    - language
+    - my-overlay
 ports: []
 ```
 
@@ -170,6 +173,7 @@ mv overlays/index.yml overlays/index.yml.archived
 ```
 
 The migration tool:
+
 - Splits central index.yml into individual manifests
 - Creates `.registry/` directory with base images/templates
 - Validates bidirectional conflicts
@@ -188,6 +192,7 @@ The migration tool:
 ## Validation
 
 Manifests are validated at runtime:
+
 - Required fields presence
 - ID matches directory name
 - Array fields are actual arrays
@@ -195,6 +200,7 @@ Manifests are validated at runtime:
 - Port consistency with devcontainer.patch.json
 
 For stricter validation, JSON schemas are available:
+
 - `tool/schema/overlay-manifest.schema.json`
 - `tool/schema/base-images.schema.json`
 - `tool/schema/base-templates.schema.json`

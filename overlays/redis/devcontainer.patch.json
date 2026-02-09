@@ -1,21 +1,21 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "redis-tools",
-      "apk": "redis"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "redis-tools",
+            "apk": "redis"
+        }
+    },
+    "runServices": ["redis"],
+    "forwardPorts": [6379],
+    "portsAttributes": {
+        "6379": {
+            "label": "Redis",
+            "onAutoForward": "notify"
+        }
+    },
+    "remoteEnv": {
+        "REDIS_HOST": "redis",
+        "REDIS_PORT": "6379"
     }
-  },
-  "runServices": ["redis"],
-  "forwardPorts": [6379],
-  "portsAttributes": {
-    "6379": {
-      "label": "Redis",
-      "onAutoForward": "notify"
-    }
-  },
-  "remoteEnv": {
-    "REDIS_HOST": "redis",
-    "REDIS_PORT": "6379"
-  }
 }

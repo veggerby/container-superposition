@@ -7,7 +7,7 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - cloud
-  - kubernetes
-  - helm
+    - cloud
+    - kubernetes
+    - helm
 ports: []

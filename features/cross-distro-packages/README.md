@@ -15,83 +15,87 @@ A devcontainer feature that installs system packages with automatic distribution
 
 ```json
 {
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "build-essential python3-dev",
-      "apk": "build-base python3-dev"
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "build-essential python3-dev",
+            "apk": "build-base python3-dev"
+        }
     }
-  }
 }
 ```
 
 ### Real-World Examples
 
 **Node.js Build Tools:**
+
 ```json
 {
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "build-essential",
-      "apk": "build-base"
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "build-essential",
+            "apk": "build-base"
+        }
     }
-  }
 }
 ```
 
 **Python Development:**
+
 ```json
 {
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "build-essential python3-dev",
-      "apk": "build-base python3-dev"
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "build-essential python3-dev",
+            "apk": "build-base python3-dev"
+        }
     }
-  }
 }
 ```
 
 **Redis CLI Tools:**
+
 ```json
 {
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "redis-tools",
-      "apk": "redis"
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "redis-tools",
+            "apk": "redis"
+        }
     }
-  }
 }
 ```
 
 **.NET Dependencies:**
+
 ```json
 {
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "xdg-utils pass sshpass build-essential netcat-traditional iputils-ping dnsutils git-lfs sqlite3",
-      "apk": "xdg-utils pass sshpass build-base netcat-openbsd iputils bind-tools git-lfs sqlite"
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "xdg-utils pass sshpass build-essential netcat-traditional iputils-ping dnsutils git-lfs sqlite3",
+            "apk": "xdg-utils pass sshpass build-base netcat-openbsd iputils bind-tools git-lfs sqlite"
+        }
     }
-  }
 }
 ```
 
 ## Options
 
-| Option | Type   | Default | Description |
-|--------|--------|---------|-------------|
+| Option | Type   | Default | Description                                                                   |
+| ------ | ------ | ------- | ----------------------------------------------------------------------------- |
 | `apt`  | string | `""`    | Space-separated list of packages for apt-based distributions (Debian, Ubuntu) |
-| `apk`  | string | `""`    | Space-separated list of packages for apk-based distributions (Alpine Linux) |
+| `apk`  | string | `""`    | Space-separated list of packages for apk-based distributions (Alpine Linux)   |
 
 ## Package Name Differences
 
 Common packages that have different names across distributions:
 
-| Debian/Ubuntu (apt) | Alpine (apk) | Purpose |
-|---------------------|--------------|---------|
-| `build-essential` | `build-base` | C/C++ compiler toolchain |
-| `dnsutils` | `bind-tools` | DNS utilities (dig, nslookup) |
-| `netcat-traditional` | `netcat-openbsd` | Network utility |
-| `sqlite3` | `sqlite` | SQLite database |
-| `redis-tools` | `redis` | Redis CLI tools |
+| Debian/Ubuntu (apt)  | Alpine (apk)     | Purpose                       |
+| -------------------- | ---------------- | ----------------------------- |
+| `build-essential`    | `build-base`     | C/C++ compiler toolchain      |
+| `dnsutils`           | `bind-tools`     | DNS utilities (dig, nslookup) |
+| `netcat-traditional` | `netcat-openbsd` | Network utility               |
+| `sqlite3`            | `sqlite`         | SQLite database               |
+| `redis-tools`        | `redis`          | Redis CLI tools               |
 
 ## How It Works
 
@@ -109,6 +113,7 @@ When using multiple overlays that reference this feature, packages are **automat
 2. **Runtime deduplication**: The install script also deduplicates packages as a safety measure
 
 **Example:**
+
 ```json
 // nodejs overlay adds:
 "./features/cross-distro-packages": {

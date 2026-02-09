@@ -16,6 +16,7 @@ PostgreSQL 16 database server for development and testing.
 This overlay adds a PostgreSQL 16 database server as a separate Docker Compose service. The database runs in its own container and is accessible from your development container via the hostname `postgres`.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container<br/>Your application code<br/>psql client<br/>Connects to postgres:5432] -->|Docker network devnet| B[PostgreSQL Container<br/>PostgreSQL 16 server<br/>Port 5432<br/>Data volume]
@@ -33,6 +34,7 @@ cp .env.example .env
 ```
 
 **Default values (.env.example):**
+
 ```bash
 # PostgreSQL Configuration
 POSTGRES_USER=postgres
@@ -261,11 +263,11 @@ npm install pg
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  host: 'postgres',
-  port: 5432,
-  database: 'devdb',
-  user: 'postgres',
-  password: 'postgres',
+    host: 'postgres',
+    port: 5432,
+    database: 'devdb',
+    user: 'postgres',
+    password: 'postgres',
 });
 
 // Query
@@ -273,10 +275,10 @@ const result = await pool.query('SELECT * FROM users WHERE id = $1', [1]);
 console.log(result.rows);
 
 // Insert
-await pool.query(
-  'INSERT INTO users (username, email) VALUES ($1, $2)',
-  ['john', 'john@example.com']
-);
+await pool.query('INSERT INTO users (username, email) VALUES ($1, $2)', [
+    'john',
+    'john@example.com',
+]);
 ```
 
 ### Python (psycopg2)
@@ -372,21 +374,25 @@ func main() {
 ## Use Cases
 
 ### Application Development
+
 - Local database for web applications
 - API backend data storage
 - Microservices data persistence
 
 ### Testing
+
 - Integration tests with real database
 - Schema migration testing
 - Performance testing
 
 ### Learning SQL
+
 - Practice SQL queries
 - Database design
 - PostgreSQL-specific features
 
 ### Data Analysis
+
 - Local data warehouse
 - ETL pipeline development
 - SQL query optimization
@@ -497,13 +503,15 @@ docker-compose up -d
 For development, PostgreSQL uses default settings. For better performance:
 
 **Increase shared buffers (add to docker-compose.yml):**
+
 ```yaml
 services:
-  postgres:
-    command: postgres -c shared_buffers=256MB -c max_connections=200
+    postgres:
+        command: postgres -c shared_buffers=256MB -c max_connections=200
 ```
 
 **Or create custom postgresql.conf:**
+
 ```ini
 # Memory
 shared_buffers = 256MB

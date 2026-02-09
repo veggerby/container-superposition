@@ -1,41 +1,41 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "build-essential python3-dev",
-      "apk": "build-base python3-dev"
-    },
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.12",
-      "installTools": true
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-python.black-formatter",
-        "charliermarsh.ruff"
-      ],
-      "settings": {
-        "[python]": {
-          "editor.defaultFormatter": "ms-python.black-formatter",
-          "editor.formatOnSave": true,
-          "editor.codeActionsOnSave": {
-            "source.organizeImports": "explicit"
-          }
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "build-essential python3-dev",
+            "apk": "build-base python3-dev"
         },
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "files.exclude": {
-          "**/__pycache__": true,
-          "**/.pytest_cache": true
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.12",
+            "installTools": true
         }
-      }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "charliermarsh.ruff"
+            ],
+            "settings": {
+                "[python]": {
+                    "editor.defaultFormatter": "ms-python.black-formatter",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "explicit"
+                    }
+                },
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "files.exclude": {
+                    "**/__pycache__": true,
+                    "**/.pytest_cache": true
+                }
+            }
+        }
+    },
+    "remoteEnv": {
+        "PATH": "${containerEnv:HOME}/.local/bin:${containerEnv:PATH}",
+        "PYTHONPATH": "${containerWorkspaceFolder}"
     }
-  },
-  "remoteEnv": {
-    "PATH": "${containerEnv:HOME}/.local/bin:${containerEnv:PATH}",
-    "PYTHONPATH": "${containerWorkspaceFolder}"
-  }
 }

@@ -7,9 +7,9 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - language
-  - go
-  - golang
+    - language
+    - go
+    - golang
 ports:
-  - 8080
-  - 8081
+    - 8080
+    - 8081

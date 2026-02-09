@@ -24,34 +24,38 @@ direnv automatically loads/unloads environment variables when you enter/leave a 
 ## Quick Start
 
 1. **Edit .envrc** in your project root:
-   ```bash
-   export DATABASE_URL="postgresql://localhost:5432/mydb"
-   export API_KEY="dev-key-123"
-   ```
+
+    ```bash
+    export DATABASE_URL="postgresql://localhost:5432/mydb"
+    export API_KEY="dev-key-123"
+    ```
 
 2. **Allow the configuration**:
-   ```bash
-   direnv allow
-   ```
+
+    ```bash
+    direnv allow
+    ```
 
 3. **Variables are automatically loaded** when you `cd` into the directory:
-   ```bash
-   cd /workspace
-   # direnv: loading .envrc
-   # ✓ Environment loaded
-   
-   echo $DATABASE_URL
-   # postgresql://localhost:5432/mydb
-   ```
+
+    ```bash
+    cd /workspace
+    # direnv: loading .envrc
+    # ✓ Environment loaded
+
+    echo $DATABASE_URL
+    # postgresql://localhost:5432/mydb
+    ```
 
 4. **Variables are unloaded** when you leave:
-   ```bash
-   cd /tmp
-   # direnv: unloading
-   
-   echo $DATABASE_URL
-   # (empty)
-   ```
+
+    ```bash
+    cd /tmp
+    # direnv: unloading
+
+    echo $DATABASE_URL
+    # (empty)
+    ```
 
 ## .envrc Syntax
 
@@ -211,6 +215,7 @@ source_env_if_exists .envrc.local
 ```
 
 Create `.envrc.local` (add to `.gitignore`):
+
 ```bash
 export PERSONAL_API_KEY="my-secret-key"
 export DEBUG_MODE="true"
@@ -278,6 +283,7 @@ setup_aws
 ### Never Commit Secrets
 
 **.envrc** - Commit to version control (no secrets):
+
 ```bash
 # Safe to commit
 export PROJECT_NAME="myapp"
@@ -288,6 +294,7 @@ dotenv_if_exists .env
 ```
 
 **.env** - Do NOT commit (add to `.gitignore`):
+
 ```bash
 # Secrets - never commit
 API_KEY="sk_live_abc123"
@@ -305,6 +312,7 @@ DATABASE_PASSWORD=your-password-here
 ```
 
 Users copy and fill in:
+
 ```bash
 cp .env.example .env
 # Edit .env with real values
@@ -368,24 +376,27 @@ direnv exec . bash    # Start shell with environment
 ### .envrc Not Loading
 
 1. Check if direnv is hooked:
-   ```bash
-   echo $DIRENV_DIR
-   # Should show current directory
-   ```
+
+    ```bash
+    echo $DIRENV_DIR
+    # Should show current directory
+    ```
 
 2. Reload shell configuration:
-   ```bash
-   source ~/.bashrc
-   ```
+
+    ```bash
+    source ~/.bashrc
+    ```
 
 3. Allow .envrc explicitly:
-   ```bash
-   direnv allow
-   ```
+    ```bash
+    direnv allow
+    ```
 
 ### Variables Not Exported
 
 Ensure you use `export`:
+
 ```bash
 # ✗ Won't work outside .envrc
 MY_VAR="value"
@@ -397,12 +408,14 @@ export MY_VAR="value"
 ### Performance Issues
 
 Disable logging:
+
 ```bash
 # In .envrc or environment
 export DIRENV_LOG_FORMAT=""
 ```
 
 Cache expensive operations:
+
 ```bash
 # .envrc
 CACHE_FILE=".direnv/cache"
@@ -416,6 +429,7 @@ export VALUE=$(cat "$CACHE_FILE")
 ### Conflicts with Other Tools
 
 Load direnv last in shell config:
+
 ```bash
 # .bashrc
 eval "$(rbenv init -)"
@@ -428,11 +442,13 @@ eval "$(direnv hook bash)"  # Last
 ### VS Code
 
 Settings are automatically loaded. Reload window if needed:
+
 - `Cmd/Ctrl + Shift + P` → "Developer: Reload Window"
 
 ### Git
 
 Prevent committing secrets:
+
 ```bash
 # .gitignore
 .env
@@ -450,21 +466,23 @@ dotenv_if_exists .env
 ```
 
 Variables are available to `docker-compose.yml`:
+
 ```yaml
 services:
-  app:
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
+    app:
+        environment:
+            - DATABASE_URL=${DATABASE_URL}
 ```
 
 ### CI/CD
 
 Set variables in CI instead of loading .envrc:
+
 ```yaml
 # .github/workflows/test.yml
 env:
-  NODE_ENV: test
-  DATABASE_URL: postgresql://localhost/test
+    NODE_ENV: test
+    DATABASE_URL: postgresql://localhost/test
 ```
 
 ## Best Practices

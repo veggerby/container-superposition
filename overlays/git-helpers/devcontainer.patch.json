@@ -1,33 +1,33 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/devcontainers/features/git:1": {
-      "ppa": true,
-      "version": "os-provided"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {
+            "ppa": true,
+            "version": "os-provided"
+        },
+        "ghcr.io/devcontainers/features/git-lfs:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/github-cli:1": {
+            "version": "latest"
+        }
     },
-    "ghcr.io/devcontainers/features/git-lfs:1": {
-      "version": "latest"
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "github.vscode-pull-request-github",
+                "mhutchie.git-graph"
+            ],
+            "settings": {
+                "git.enableCommitSigning": false,
+                "git.enableSmartCommit": true,
+                "git.confirmSync": false,
+                "git.autofetch": true
+            }
+        }
     },
-    "ghcr.io/devcontainers/features/github-cli:1": {
-      "version": "latest"
+    "postStartCommand": {
+        "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
     }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "eamodio.gitlens",
-        "github.vscode-pull-request-github",
-        "mhutchie.git-graph"
-      ],
-      "settings": {
-        "git.enableCommitSigning": false,
-        "git.enableSmartCommit": true,
-        "git.confirmSync": false,
-        "git.autofetch": true
-      }
-    }
-  },
-  "postStartCommand": {
-    "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
-  }
 }

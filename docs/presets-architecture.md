@@ -24,42 +24,42 @@ Presets are **meta-overlays** that represent pre-configured combinations of over
 
 ```typescript
 interface MetaOverlay {
-  // Basic metadata (inherited from Overlay)
-  id: string;
-  name: string;
-  description: string;
-  type: 'meta';
-  category: 'preset';
+    // Basic metadata (inherited from Overlay)
+    id: string;
+    name: string;
+    description: string;
+    type: 'meta';
+    category: 'preset';
 
-  // Preset-specific configuration
-  selects: {
-    // Always-included overlays
-    required: string[];
+    // Preset-specific configuration
+    selects: {
+        // Always-included overlays
+        required: string[];
 
-    // Interactive user choices
-    userChoice?: Record<string, PresetUserChoice>;
-  };
+        // Interactive user choices
+        userChoice?: Record<string, PresetUserChoice>;
+    };
 
-  // Service integration configuration
-  glueConfig?: PresetGlueConfig;
+    // Service integration configuration
+    glueConfig?: PresetGlueConfig;
 }
 
 interface PresetUserChoice {
-  id: string;
-  prompt: string;
-  options: string[];
-  defaultOption?: string;
+    id: string;
+    prompt: string;
+    options: string[];
+    defaultOption?: string;
 }
 
 interface PresetGlueConfig {
-  // Environment variables for service integration
-  environment?: Record<string, string>;
+    // Environment variables for service integration
+    environment?: Record<string, string>;
 
-  // Suggested port mappings
-  portMappings?: Record<string, number>;
+    // Suggested port mappings
+    portMappings?: Record<string, number>;
 
-  // Usage guide for generated environment
-  readme?: string;
+    // Usage guide for generated environment
+    readme?: string;
 }
 ```
 
@@ -78,42 +78,42 @@ supports: [compose]
 tags: [preset, web, api, database]
 
 selects:
-  # Always included
-  required:
-    - postgres
-    - redis
-    - otel-collector
-    - prometheus
-    - grafana
-    - loki
+    # Always included
+    required:
+        - postgres
+        - redis
+        - otel-collector
+        - prometheus
+        - grafana
+        - loki
 
-  # User chooses language
-  userChoice:
-    language:
-      id: language
-      prompt: "Select your backend language"
-      options: [dotnet, nodejs, python, go, java]
-      defaultOption: nodejs
+    # User chooses language
+    userChoice:
+        language:
+            id: language
+            prompt: 'Select your backend language'
+            options: [dotnet, nodejs, python, go, java]
+            defaultOption: nodejs
 
 glueConfig:
-  environment:
-    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/app"
-    REDIS_URL: "redis://redis:6379"
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+    environment:
+        DATABASE_URL: 'postgresql://postgres:postgres@postgres:5432/app'
+        REDIS_URL: 'redis://redis:6379'
+        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel-collector:4318'
 
-  portMappings:
-    api: 8000
-    grafana: 3000
+    portMappings:
+        api: 8000
+        grafana: 3000
 
-  readme: |
-    # Web API Stack
+    readme: |
+        # Web API Stack
 
-    Your API service should expose port 8000.
+        Your API service should expose port 8000.
 
-    ## Services
-    - Grafana: http://localhost:3000 (admin/admin)
-    - PostgreSQL: localhost:5432
-    - Redis: localhost:6379
+        ## Services
+        - Grafana: http://localhost:3000 (admin/admin)
+        - PostgreSQL: localhost:5432
+        - Redis: localhost:6379
 ```
 
 ### Composition Flow
@@ -147,38 +147,35 @@ The preset system integrates into the existing composition pipeline:
 ```typescript
 // 1. Preset selection
 const mode = await select({
-  message: 'How would you like to start?',
-  choices: [
-    { value: 'preset', name: 'Start from preset' },
-    { value: 'custom', name: 'Custom configuration' }
-  ]
+    message: 'How would you like to start?',
+    choices: [
+        { value: 'preset', name: 'Start from preset' },
+        { value: 'custom', name: 'Custom configuration' },
+    ],
 });
 
 if (mode === 'preset') {
-  // 2. Load preset
-  const preset = await loadPreset(presetId);
+    // 2. Load preset
+    const preset = await loadPreset(presetId);
 
-  // 3. Handle user choices
-  for (const [key, choice] of Object.entries(preset.selects.userChoice)) {
-    const answer = await select({
-      message: choice.prompt,
-      choices: choice.options,
-      default: choice.defaultOption
+    // 3. Handle user choices
+    for (const [key, choice] of Object.entries(preset.selects.userChoice)) {
+        const answer = await select({
+            message: choice.prompt,
+            choices: choice.options,
+            default: choice.defaultOption,
+        });
+        answers.presetChoices[key] = answer;
+    }
+
+    // 4. Expand preset to overlays
+    const selectedOverlays = [...preset.selects.required, ...Object.values(answers.presetChoices)];
+
+    // 5. Optional customization
+    const customize = await confirm({
+        message: 'Customize overlay selection?',
+        default: false,
     });
-    answers.presetChoices[key] = answer;
-  }
-
-  // 4. Expand preset to overlays
-  const selectedOverlays = [
-    ...preset.selects.required,
-    ...Object.values(answers.presetChoices)
-  ];
-
-  // 5. Optional customization
-  const customize = await confirm({
-    message: 'Customize overlay selection?',
-    default: false
-  });
 }
 ```
 
@@ -186,36 +183,29 @@ if (mode === 'preset') {
 
 ```typescript
 // Apply glue configuration after all overlays
-async function applyGlueConfig(
-  glueConfig: PresetGlueConfig,
-  envPath: string,
-  outputPath: string
-) {
-  // 1. Inject environment variables
-  if (glueConfig.environment) {
-    const envContent = [];
-    envContent.push('# Preset Configuration');
-    for (const [key, value] of Object.entries(glueConfig.environment)) {
-      envContent.push(`${key}=${value}`);
+async function applyGlueConfig(glueConfig: PresetGlueConfig, envPath: string, outputPath: string) {
+    // 1. Inject environment variables
+    if (glueConfig.environment) {
+        const envContent = [];
+        envContent.push('# Preset Configuration');
+        for (const [key, value] of Object.entries(glueConfig.environment)) {
+            envContent.push(`${key}=${value}`);
+        }
+        await fs.promises.appendFile(envPath, envContent.join('\n'));
     }
-    await fs.promises.appendFile(envPath, envContent.join('\n'));
-  }
 
-  // 2. Log port mappings
-  if (glueConfig.portMappings) {
-    console.log('Suggested port mappings:');
-    for (const [service, port] of Object.entries(glueConfig.portMappings)) {
-      console.log(`  ${service}: ${port}`);
+    // 2. Log port mappings
+    if (glueConfig.portMappings) {
+        console.log('Suggested port mappings:');
+        for (const [service, port] of Object.entries(glueConfig.portMappings)) {
+            console.log(`  ${service}: ${port}`);
+        }
     }
-  }
 
-  // 3. Generate preset README
-  if (glueConfig.readme) {
-    await fs.promises.writeFile(
-      path.join(outputPath, 'PRESET-README.md'),
-      glueConfig.readme
-    );
-  }
+    // 3. Generate preset README
+    if (glueConfig.readme) {
+        await fs.promises.writeFile(path.join(outputPath, 'PRESET-README.md'), glueConfig.readme);
+    }
 }
 ```
 
@@ -223,24 +213,16 @@ async function applyGlueConfig(
 
 ```json
 {
-  "version": "0.1.0",
-  "generatedAt": "2026-02-08T10:00:00Z",
-  "baseTemplate": "compose",
+    "version": "0.1.0",
+    "generatedAt": "2026-02-08T10:00:00Z",
+    "baseTemplate": "compose",
 
-  "preset": "web-api",
-  "presetChoices": {
-    "language": "nodejs"
-  },
+    "preset": "web-api",
+    "presetChoices": {
+        "language": "nodejs"
+    },
 
-  "overlays": [
-    "nodejs",
-    "postgres",
-    "redis",
-    "otel-collector",
-    "prometheus",
-    "grafana",
-    "loki"
-  ]
+    "overlays": ["nodejs", "postgres", "redis", "otel-collector", "prometheus", "grafana", "loki"]
 }
 ```
 
@@ -252,20 +234,20 @@ Includes frontend, backend, data, and observability layers:
 
 ```yaml
 selects:
-  required:
-    - nodejs          # Frontend
-    - postgres        # Database
-    - redis           # Cache
-    - minio           # Object storage
-    - otel-collector  # Observability
-    - prometheus
-    - grafana
-    - loki
+    required:
+        - nodejs # Frontend
+        - postgres # Database
+        - redis # Cache
+        - minio # Object storage
+        - otel-collector # Observability
+        - prometheus
+        - grafana
+        - loki
 
-  userChoice:
-    backend:
-      prompt: "Select backend language"
-      options: [dotnet, python, go, java]
+    userChoice:
+        backend:
+            prompt: 'Select backend language'
+            options: [dotnet, python, go, java]
 ```
 
 ### 2. Microservices Preset
@@ -274,18 +256,18 @@ Focuses on service-to-service communication:
 
 ```yaml
 selects:
-  required:
-    - otel-collector
-    - jaeger
-    - prometheus
-    - grafana
+    required:
+        - otel-collector
+        - jaeger
+        - prometheus
+        - grafana
 
-  userChoice:
-    language:
-      options: [dotnet, nodejs, python, go, java]
-    messaging:
-      prompt: "Select message broker"
-      options: [rabbitmq, redpanda, nats]
+    userChoice:
+        language:
+            options: [dotnet, nodejs, python, go, java]
+        messaging:
+            prompt: 'Select message broker'
+            options: [rabbitmq, redpanda, nats]
 ```
 
 ### 3. Documentation Preset
@@ -294,19 +276,19 @@ Single-purpose, no user choices:
 
 ```yaml
 selects:
-  required:
-    - mkdocs
-    - pre-commit
-    - modern-cli-tools
+    required:
+        - mkdocs
+        - pre-commit
+        - modern-cli-tools
 
-  # No user choices - fully pre-configured
+    # No user choices - fully pre-configured
 
 glueConfig:
-  readme: |
-    # Documentation Site
+    readme: |
+        # Documentation Site
 
-    Run: mkdocs serve
-    Build: mkdocs build
+        Run: mkdocs serve
+        Build: mkdocs build
 ```
 
 ## Glue Configuration Design
@@ -326,21 +308,21 @@ Glue configuration solves the "integration gap" where users must:
 
 ```yaml
 glueConfig:
-  environment:
-    # Database
-    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/app"
-    POSTGRES_HOST: "postgres"
-    POSTGRES_PORT: "5432"
+    environment:
+        # Database
+        DATABASE_URL: 'postgresql://postgres:postgres@postgres:5432/app'
+        POSTGRES_HOST: 'postgres'
+        POSTGRES_PORT: '5432'
 
-    # Cache
-    REDIS_URL: "redis://redis:6379"
+        # Cache
+        REDIS_URL: 'redis://redis:6379'
 
-    # Messaging
-    RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+        # Messaging
+        RABBITMQ_URL: 'amqp://guest:guest@rabbitmq:5672'
 
-    # Observability
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
-    JAEGER_AGENT_HOST: "jaeger"
+        # Observability
+        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel-collector:4318'
+        JAEGER_AGENT_HOST: 'jaeger'
 ```
 
 **Implementation**: Appended to `.env.example` with clear section marker:
@@ -357,10 +339,10 @@ REDIS_URL=redis://redis:6379
 
 ```yaml
 glueConfig:
-  portMappings:
-    api: 8000
-    grafana: 3000
-    jaeger: 16686
+    portMappings:
+        api: 8000
+        grafana: 3000
+        jaeger: 16686
 ```
 
 **Purpose**: Help users understand:
@@ -375,23 +357,23 @@ glueConfig:
 
 ```yaml
 glueConfig:
-  readme: |
-    # [Preset Name]
+    readme: |
+        # [Preset Name]
 
-    ## Services
-    - [Service 1]: [URL] ([credentials])
-    - [Service 2]: [URL]
+        ## Services
+        - [Service 1]: [URL] ([credentials])
+        - [Service 2]: [URL]
 
-    ## Connection Strings
-    See .env.example for pre-configured values.
+        ## Connection Strings
+        See .env.example for pre-configured values.
 
-    ## Quick Start
-    1. [Step 1]
-    2. [Step 2]
+        ## Quick Start
+        1. [Step 1]
+        2. [Step 2]
 
-    ## Next Steps
-    - [Suggestion 1]
-    - [Suggestion 2]
+        ## Next Steps
+        - [Suggestion 1]
+        - [Suggestion 2]
 ```
 
 **Output**: `PRESET-README.md` in project root alongside `superposition.json`
@@ -440,17 +422,17 @@ User choices can select from any overlay in the same category:
 
 ```yaml
 userChoice:
-  language:
-    prompt: "Select language"
-    options: [dotnet, nodejs, python, go, java, rust]
+    language:
+        prompt: 'Select language'
+        options: [dotnet, nodejs, python, go, java, rust]
 
-  database:
-    prompt: "Select database"
-    options: [postgres, mysql, mongodb, sqlserver]
+    database:
+        prompt: 'Select database'
+        options: [postgres, mysql, mongodb, sqlserver]
 
-  messaging:
-    prompt: "Select message broker"
-    options: [rabbitmq, redpanda, nats]
+    messaging:
+        prompt: 'Select message broker'
+        options: [rabbitmq, redpanda, nats]
 ```
 
 ## Benefits

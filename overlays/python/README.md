@@ -6,20 +6,20 @@ Adds Python 3.12 with development tools, linting, and formatting.
 
 - **Python 3.12** with pip, setuptools, and wheel
 - **VS Code Extensions:**
-  - Python (ms-python.python)
-  - Pylance (ms-python.vscode-pylance)
-  - Black Formatter (ms-python.black-formatter)
-  - Ruff (charliermarsh.ruff)
+    - Python (ms-python.python)
+    - Pylance (ms-python.vscode-pylance)
+    - Black Formatter (ms-python.black-formatter)
+    - Ruff (charliermarsh.ruff)
 - **Automatic dependency installation** from:
-  - `requirements.txt`
-  - `requirements-dev.txt`
-  - `pyproject.toml` (editable install)
-  - `setup.py` (legacy support)
+    - `requirements.txt`
+    - `requirements-dev.txt`
+    - `pyproject.toml` (editable install)
+    - `setup.py` (legacy support)
 - **Pre-configured settings:**
-  - Black as default formatter
-  - Format on save enabled
-  - Auto-organize imports
-  - PYTHONPATH set to workspace root
+    - Black as default formatter
+    - Format on save enabled
+    - Auto-organize imports
+    - PYTHONPATH set to workspace root
 
 ## Virtual Environment Philosophy
 
@@ -35,11 +35,13 @@ This overlay uses **user-level pip installations** (`pip install --user`) instea
 ### When to Use venv
 
 Use a virtual environment if you need:
+
 - Multiple Python versions in the same container
 - Strict dependency isolation for testing
 - Exact production parity (though containers already provide this)
 
 To create a venv manually:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -47,9 +49,10 @@ pip install -r requirements.txt
 ```
 
 Then update VS Code settings:
+
 ```json
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
 }
 ```
 
@@ -69,6 +72,7 @@ The overlay automatically runs on container creation:
 The overlay includes a `requirements-overlay.txt` file in `.devcontainer/` that you can customize:
 
 **`.devcontainer/requirements-overlay.txt`:**
+
 ```
 # Python overlay default packages
 # Customize this file to add or remove packages for your project
@@ -82,6 +86,7 @@ jupyter>=1.0.0
 ```
 
 **When to use:**
+
 - Add common development tools you always want
 - Install packages needed across all environments
 - Pre-install heavy dependencies (pandas, numpy, etc.)
@@ -132,6 +137,7 @@ my-project/
 ### Data Science / Notebooks
 
 Add to `requirements.txt`:
+
 ```
 jupyter
 pandas
@@ -143,6 +149,7 @@ scikit-learn
 ### Web Development (FastAPI)
 
 Add to `requirements.txt`:
+
 ```
 fastapi
 uvicorn[standard]
@@ -153,6 +160,7 @@ sqlalchemy
 ### CLI Tools
 
 Use `pyproject.toml`:
+
 ```toml
 [project]
 name = "mytool"
@@ -175,34 +183,37 @@ mytool = "mytool.cli:main"
 ### "Module not found" after adding dependency
 
 Container caches are not refreshed. Rebuild the container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### Need different Python version?
 
 Update `devcontainer.patch.json`:
+
 ```json
 {
-  "features": {
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.11"  // or "3.10", "3.13", etc.
+    "features": {
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.11" // or "3.10", "3.13", etc.
+        }
     }
-  }
 }
 ```
 
 ### Want to use venv anyway?
 
 Add to your project's `.devcontainer/devcontainer.json`:
+
 ```json
 {
-  "postCreateCommand": "python -m venv .venv && .venv/bin/pip install -r requirements.txt",
-  "customizations": {
-    "vscode": {
-      "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
-      }
+    "postCreateCommand": "python -m venv .venv && .venv/bin/pip install -r requirements.txt",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -283,6 +294,7 @@ python -c "import sys; print('\n'.join(sys.path))"
 ### pytest
 
 Add to `requirements-dev.txt`:
+
 ```
 pytest>=7.4.0
 pytest-cov>=4.1.0
@@ -290,6 +302,7 @@ pytest-asyncio>=0.21.0
 ```
 
 **Run tests:**
+
 ```bash
 # Run all tests
 pytest
@@ -311,6 +324,7 @@ pytest -n auto
 ```
 
 **Example test:**
+
 ```python
 # tests/test_math.py
 def test_addition():
@@ -330,7 +344,7 @@ import unittest
 class TestMath(unittest.TestCase):
     def test_addition(self):
         self.assertEqual(1 + 1, 2)
-    
+
     def test_subtraction(self):
         result = 10 - 5
         self.assertEqual(result, 5)
@@ -340,6 +354,7 @@ if __name__ == '__main__':
 ```
 
 **Run tests:**
+
 ```bash
 # Discover and run all tests
 python -m unittest discover
@@ -372,6 +387,7 @@ black --diff src/
 ```
 
 **Configuration (.pyproject.toml):**
+
 ```toml
 [tool.black]
 line-length = 100
@@ -408,6 +424,7 @@ ruff format .
 ```
 
 **Configuration (.pyproject.toml):**
+
 ```toml
 [tool.ruff]
 line-length = 100
@@ -438,6 +455,7 @@ mypy --strict src/
 ```
 
 **Configuration (pyproject.toml):**
+
 ```toml
 [tool.mypy]
 python_version = "3.12"
@@ -451,6 +469,7 @@ disallow_untyped_defs = true
 ### Web Development with FastAPI
 
 **requirements.txt:**
+
 ```
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
@@ -459,6 +478,7 @@ sqlalchemy>=2.0.0
 ```
 
 **main.py:**
+
 ```python
 from fastapi import FastAPI
 
@@ -474,6 +494,7 @@ async def read_item(item_id: int):
 ```
 
 **Run:**
+
 ```bash
 uvicorn main:app --reload
 ```
@@ -481,6 +502,7 @@ uvicorn main:app --reload
 ### Data Science with Pandas
 
 **requirements.txt:**
+
 ```
 pandas>=2.1.0
 numpy>=1.26.0
@@ -490,6 +512,7 @@ scikit-learn>=1.3.0
 ```
 
 **Example:**
+
 ```python
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -509,11 +532,13 @@ plt.show()
 ### CLI Tools with Click
 
 **requirements.txt:**
+
 ```
 click>=8.1.0
 ```
 
 **cli.py:**
+
 ```python
 import click
 
@@ -530,6 +555,7 @@ if __name__ == '__main__':
 ```
 
 **Run:**
+
 ```bash
 python cli.py --name Alice --count 3
 ```
@@ -593,6 +619,7 @@ my-package/
 ```
 
 **pyproject.toml:**
+
 ```toml
 [build-system]
 requires = ["hatchling"]
@@ -788,6 +815,7 @@ def buggy_function(x):
 ```
 
 **pdb Commands:**
+
 ```
 n - next line
 s - step into
@@ -799,29 +827,30 @@ q - quit
 
 ### VS Code Debugger
 
-Already configured with Python extension. 
+Already configured with Python extension.
 
 **launch.json:**
+
 ```json
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Python: Current File",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Python: FastAPI",
-      "type": "python",
-      "request": "launch",
-      "module": "uvicorn",
-      "args": ["main:app", "--reload"],
-      "jinja": true
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: FastAPI",
+            "type": "python",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": ["main:app", "--reload"],
+            "jinja": true
+        }
+    ]
 }
 ```
 

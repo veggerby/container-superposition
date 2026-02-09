@@ -362,21 +362,25 @@ az vm list --query "[?location=='eastus']" --output table
 ## Use Cases
 
 ### Cloud Infrastructure Management
+
 - Deploy and manage virtual machines
 - Configure load balancers and networking
 - Manage storage accounts and databases
 
 ### Container and Kubernetes Operations
+
 - Deploy to Azure Container Instances
 - Manage AKS clusters
 - Push images to Azure Container Registry
 
 ### Application Deployment
+
 - Deploy web apps and functions
 - Configure CI/CD pipelines
 - Manage application settings
 
 ### DevOps and Automation
+
 - Infrastructure as Code with ARM templates
 - Automated resource provisioning
 - Integration with CI/CD pipelines
@@ -405,34 +409,37 @@ az interactive
 **Secure Methods:**
 
 1. **Interactive Login** - For development
-   ```bash
-   az login
-   ```
+
+    ```bash
+    az login
+    ```
 
 2. **Service Principal** - For automation
-   ```bash
-   # Create with limited permissions
-   az ad sp create-for-rbac \
-     --name myapp \
-     --role Reader \
-     --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group}
-   ```
+
+    ```bash
+    # Create with limited permissions
+    az ad sp create-for-rbac \
+      --name myapp \
+      --role Reader \
+      --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group}
+    ```
 
 3. **Managed Identity** - For Azure resources
-   - No credentials needed
-   - Automatically managed by Azure
+    - No credentials needed
+    - Automatically managed by Azure
 
 4. **Azure Key Vault** - Store secrets
-   ```bash
-   # Create key vault
-   az keyvault create --name myKeyVault --resource-group myResourceGroup
-   
-   # Store secret
-   az keyvault secret set --vault-name myKeyVault --name mySecret --value "secretValue"
-   
-   # Retrieve secret
-   az keyvault secret show --vault-name myKeyVault --name mySecret --query value -o tsv
-   ```
+
+    ```bash
+    # Create key vault
+    az keyvault create --name myKeyVault --resource-group myResourceGroup
+
+    # Store secret
+    az keyvault secret set --vault-name myKeyVault --name mySecret --value "secretValue"
+
+    # Retrieve secret
+    az keyvault secret show --vault-name myKeyVault --name mySecret --query value -o tsv
+    ```
 
 ### Least Privilege
 
@@ -454,6 +461,7 @@ az role definition list --output table
 ### az command not found
 
 Rebuild container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### Authentication failures
@@ -521,6 +529,7 @@ az extension list
 ```
 
 Popular extensions:
+
 - **azure-devops** - Azure DevOps integration
 - **aks-preview** - AKS preview features
 - **application-insights** - Application Insights management

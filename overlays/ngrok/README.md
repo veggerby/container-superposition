@@ -38,6 +38,7 @@ ngrok http 3000
 ```
 
 Output:
+
 ```
 Session Status                online
 Account                       your@email.com
@@ -122,7 +123,7 @@ Located at `~/.config/ngrok/ngrok.yml`:
 ### Basic Configuration
 
 ```yaml
-version: "2"
+version: '2'
 authtoken: YOUR_AUTHTOKEN
 region: us
 console_ui: true
@@ -133,55 +134,55 @@ log_level: info
 
 ```yaml
 tunnels:
-  web:
-    proto: http
-    addr: 3000
-    inspect: true
-    
-  api:
-    proto: http
-    addr: 8080
-    subdomain: myapi  # Paid feature
-    auth: "user:pass"  # Basic auth
-    
-  database:
-    proto: tcp
-    addr: 5432
+    web:
+        proto: http
+        addr: 3000
+        inspect: true
+
+    api:
+        proto: http
+        addr: 8080
+        subdomain: myapi # Paid feature
+        auth: 'user:pass' # Basic auth
+
+    database:
+        proto: tcp
+        addr: 5432
 ```
 
 ### Advanced Options
 
 ```yaml
 tunnels:
-  web:
-    proto: http
-    addr: 3000
-    
-    # Request/response modification
-    request_header:
-      add:
-        - "X-Custom-Header: value"
-      remove:
-        - "X-Unwanted-Header"
-    
-    response_header:
-      add:
-        - "X-Response-Header: value"
-    
-    # IP restrictions (paid feature)
-    ip_restriction:
-      allow_cidrs:
-        - "1.2.3.4/32"
-        - "10.0.0.0/8"
-    
-    # Circuit breaker (paid feature)
-    circuit_breaker: 0.5  # Open if >50% errors
-    
-    # Compression
-    compression: true
-    
-    # Mutual TLS (paid feature)
-    mutual_tls_cas: /path/to/ca.crt
+    web:
+        proto: http
+        addr: 3000
+
+        # Request/response modification
+        request_header:
+            add:
+                - 'X-Custom-Header: value'
+            remove:
+                - 'X-Unwanted-Header'
+
+        response_header:
+            add:
+                - 'X-Response-Header: value'
+
+        # IP restrictions (paid feature)
+        ip_restriction:
+            allow_cidrs:
+                - '1.2.3.4/32'
+                - '10.0.0.0/8'
+
+        # Circuit breaker (paid feature)
+        circuit_breaker: 0.5 # Open if >50% errors
+
+        # Compression
+        compression: true
+
+        # Mutual TLS (paid feature)
+        mutual_tls_cas: /path/to/ca.crt
 ```
 
 ## Web Interface
@@ -189,6 +190,7 @@ tunnels:
 Access at `http://localhost:4040` while tunnel is active.
 
 Features:
+
 - **Request history** - All HTTP requests/responses
 - **Request replay** - Replay requests for testing
 - **Metrics** - Connection stats, latency
@@ -208,20 +210,21 @@ curl -X POST http://localhost:4040/api/requests/http/[request-id]/replay
 ### GitHub Webhooks
 
 1. Start tunnel:
-   ```bash
-   ngrok http 3000
-   ```
+
+    ```bash
+    ngrok http 3000
+    ```
 
 2. Configure webhook in GitHub:
-   - Go to repository Settings → Webhooks
-   - URL: `https://abc123.ngrok.io/webhook`
-   - Events: Push, Pull Request, etc.
+    - Go to repository Settings → Webhooks
+    - URL: `https://abc123.ngrok.io/webhook`
+    - Events: Push, Pull Request, etc.
 
 3. Test locally:
-   ```bash
-   # Your webhook handler runs on localhost:3000
-   # GitHub POSTs to https://abc123.ngrok.io/webhook
-   ```
+    ```bash
+    # Your webhook handler runs on localhost:3000
+    # GitHub POSTs to https://abc123.ngrok.io/webhook
+    ```
 
 ### Stripe Webhooks
 
@@ -258,6 +261,7 @@ ngrok http 3000
 ```
 
 Benefits:
+
 - Test on real devices
 - Test over cellular networks
 - No need for complex network setup
@@ -330,36 +334,36 @@ tunnels:
 
 ```yaml
 tunnels:
-  api:
-    proto: http
-    addr: 8080
-    ip_restriction:
-      allow_cidrs:
-        - "1.2.3.4/32"      # Single IP
-        - "10.0.0.0/8"       # Private network
+    api:
+        proto: http
+        addr: 8080
+        ip_restriction:
+            allow_cidrs:
+                - '1.2.3.4/32' # Single IP
+                - '10.0.0.0/8' # Private network
 ```
 
 ### OAuth Protection (Paid)
 
 ```yaml
 tunnels:
-  web:
-    proto: http
-    addr: 3000
-    oauth:
-      provider: google
-      allow_emails:
-        - user@example.com
+    web:
+        proto: http
+        addr: 3000
+        oauth:
+            provider: google
+            allow_emails:
+                - user@example.com
 ```
 
 ### Mutual TLS (Paid)
 
 ```yaml
 tunnels:
-  secure:
-    proto: tls
-    addr: 443
-    mutual_tls_cas: /path/to/ca-certificates.crt
+    secure:
+        proto: tls
+        addr: 443
+        mutual_tls_cas: /path/to/ca-certificates.crt
 ```
 
 ## Automation
@@ -392,15 +396,16 @@ curl -s http://localhost:4040/api/tunnels | \
 # .github/workflows/test.yml
 - name: Start ngrok
   run: |
-    ngrok http 3000 &
-    sleep 5
-    PUBLIC_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
-    echo "NGROK_URL=$PUBLIC_URL" >> $GITHUB_ENV
+      ngrok http 3000 &
+      sleep 5
+      PUBLIC_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+      echo "NGROK_URL=$PUBLIC_URL" >> $GITHUB_ENV
 ```
 
 ## Regions
 
 Available regions:
+
 - `us` - United States (default)
 - `eu` - Europe
 - `ap` - Asia/Pacific
@@ -427,6 +432,7 @@ ngrok http 3000 --region eu
 ## Free vs Paid Plans
 
 ### Free Plan
+
 - 1 online ngrok agent
 - 4 tunnels per agent
 - 40 connections/minute
@@ -434,6 +440,7 @@ ngrok http 3000 --region eu
 - HTTP/TCP tunnels
 
 ### Paid Plans
+
 - Reserved domains
 - Custom subdomains
 - IP whitelisting
@@ -457,6 +464,7 @@ cat ~/.config/ngrok/ngrok.yml | grep authtoken
 ### Tunnel Connection Failed
 
 Check logs:
+
 ```bash
 tail -f /tmp/ngrok.log
 ```

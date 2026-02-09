@@ -105,6 +105,7 @@ Adds Google Cloud SDK (gcloud) with comprehensive tooling for GCP development.
 This overlay adds PostgreSQL 16 as a Docker Compose service that runs alongside your development container.
 
 **Service configuration:**
+
 - Image: `postgres:16-alpine`
 - Network: `devnet` (shared with dev container)
 - Persistence: `postgres-data` volume for database files
@@ -126,27 +127,32 @@ The service is accessible from the dev container using the hostname `postgres`.
 
 **Example:**
 
-```markdown
+````markdown
 ## Authentication
 
 ### Interactive Login (Development)
 
 \```bash
+
 # Login with browser-based OAuth
+
 gcloud auth login
 
 # Set default project
+
 gcloud config set project YOUR_PROJECT_ID
 \```
 
 ### Service Account (CI/CD)
 
 \```bash
+
 # Using service account JSON key
+
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 \```
-```
+````
 
 ### 5. Common Commands
 
@@ -154,25 +160,30 @@ gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIAL
 
 **Format:**
 
-```markdown
+````markdown
 ## Common Commands
 
 ### [Task Category 1]
 
 \```bash
+
 # Comment explaining the command
+
 command --with --flags
 
 # Another example with different options
+
 command --alternative --approach
 \```
 
 ### [Task Category 2]
 
 \```bash
+
 # More examples
+
 \```
-```
+````
 
 **Guidelines:**
 
@@ -184,32 +195,39 @@ command --alternative --approach
 
 **Example:**
 
-```markdown
+````markdown
 ## Common Commands
 
 ### Database Management
 
 \```bash
+
 # Connect to database
+
 psql -h postgres -U postgres -d myapp
 
 # Run SQL file
+
 psql -h postgres -U postgres -d myapp -f schema.sql
 
 # Dump database
+
 pg_dump -h postgres -U postgres myapp > backup.sql
 \```
 
 ### Query Execution
 
 \```bash
+
 # Interactive shell
+
 psql -h postgres -U postgres -d myapp
 
 # Run single query
-psql -h postgres -U postgres -d myapp -c "SELECT * FROM users;"
+
+psql -h postgres -U postgres -d myapp -c "SELECT \* FROM users;"
 \```
-```
+````
 
 ### 6. Use Cases
 
@@ -232,6 +250,7 @@ psql -h postgres -U postgres -d myapp -c "SELECT * FROM users;"
 - **Learning** - Practice SQL and database design
 
 **Integrates well with:**
+
 - Node.js, Python, .NET (application development)
 - Grafana (database metrics visualization)
 - OTEL Collector (query performance monitoring)
@@ -248,7 +267,7 @@ psql -h postgres -U postgres -d myapp -c "SELECT * FROM users;"
 
 **Example:**
 
-```markdown
+````markdown
 ## Configuration
 
 ### Environment Variables
@@ -266,7 +285,9 @@ Copy to `.env` and customize:
 \```bash
 cd .devcontainer
 cp .env.example .env
+
 # Edit .env with your values
+
 \```
 
 ### Port Customization
@@ -276,9 +297,11 @@ Default port: `5432`
 Customize with port offset:
 \```bash
 npm run init -- --stack compose --database postgres --port-offset 100
+
 # PostgreSQL will be on port 5532
+
 \```
-```
+````
 
 ### 8. Benefits vs Alternatives (optional but recommended)
 
@@ -295,12 +318,12 @@ npm run init -- --stack compose --database postgres --port-offset 100
 ```markdown
 ## Benefits vs Docker-in-Docker
 
-| Feature | Docker-outside-of-Docker (This) | Docker-in-Docker |
-|---------|--------------------------------|------------------|
-| **Performance** | ✅ Fast (shared cache) | ⚠️ Slower |
-| **Disk Usage** | ✅ Efficient (shared images) | ❌ Duplicates images |
-| **Security** | ⚠️ Host access | ✅ Isolated |
-| **Portability** | ⚠️ Local only | ✅ Works in Codespaces |
+| Feature         | Docker-outside-of-Docker (This) | Docker-in-Docker       |
+| --------------- | ------------------------------- | ---------------------- |
+| **Performance** | ✅ Fast (shared cache)          | ⚠️ Slower              |
+| **Disk Usage**  | ✅ Efficient (shared images)    | ❌ Duplicates images   |
+| **Security**    | ⚠️ Host access                  | ✅ Isolated            |
+| **Portability** | ⚠️ Local only                   | ✅ Works in Codespaces |
 ```
 
 ### 9. Troubleshooting (if applicable)
@@ -314,21 +337,24 @@ npm run init -- --stack compose --database postgres --port-offset 100
 
 **Format:**
 
-```markdown
+````markdown
 ## Troubleshooting
 
 ### Issue: [Problem Description]
 
 **Symptoms:**
+
 - [What the user sees]
 
 **Solution:**
 \```bash
+
 # Commands or steps to fix
+
 \```
 
 **Explanation:** [Why this works]
-```
+````
 
 ### 10. Security Considerations (if applicable)
 
@@ -346,11 +372,13 @@ npm run init -- --stack compose --database postgres --port-offset 100
 ⚠️ **Warning:** This overlay mounts the host Docker socket, giving the container full control over the host's Docker daemon.
 
 **Risks:**
+
 - Container escape vulnerabilities
 - Accidental deletion of host containers
 - Access to all Docker resources
 
 **Mitigation:**
+
 - Use only in trusted development environments
 - Never expose devcontainer ports publicly
 - Consider Docker-in-Docker for untrusted code
@@ -374,6 +402,7 @@ npm run init -- --stack compose --database postgres --port-offset 100
 - [SQL Tutorial](https://www.postgresqltutorial.com/)
 
 **Related Overlays:**
+
 - `nodejs` - Node.js with pg driver
 - `python` - Python with psycopg2
 - `grafana` - Visualize database metrics
@@ -406,7 +435,7 @@ Always specify the language:
 ### Emphasis
 
 - **Bold** for tool names, important terms, section headers in lists
-- *Italic* for file paths, variable names (rarely needed)
+- _Italic_ for file paths, variable names (rarely needed)
 - `Code` for commands, file names, environment variables
 
 ### Lists

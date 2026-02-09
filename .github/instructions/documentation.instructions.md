@@ -13,6 +13,7 @@ This file provides instructions for GitHub Copilot when creating or modifying do
 All markdown files MUST use **lowercase kebab-case** filenames, with the following exceptions:
 
 **Standard Exceptions** (uppercase allowed):
+
 - `README.md` - Project/directory documentation
 - `CONTRIBUTING.md` - Contribution guidelines
 - `CHANGELOG.md` - Version history
@@ -23,6 +24,7 @@ All markdown files MUST use **lowercase kebab-case** filenames, with the followi
 **All other markdown files MUST use lowercase kebab-case:**
 
 ✅ **Correct:**
+
 - `messaging-comparison.md`
 - `presets-architecture.md`
 - `overlay-authoring.instructions.md`
@@ -30,6 +32,7 @@ All markdown files MUST use **lowercase kebab-case** filenames, with the followi
 - `api-reference.md`
 
 ❌ **Incorrect:**
+
 - `MESSAGING-COMPARISON.md`
 - `IMPLEMENTATION_SUMMARY.md`
 - `API-REFERENCE.md`
@@ -50,6 +53,7 @@ All markdown files MUST use **lowercase kebab-case** filenames, with the followi
 Documentation files should be organized by purpose:
 
 **`/docs/` directory** - User-facing documentation:
+
 - Architecture and design documents
 - User guides and tutorials
 - API references
@@ -57,15 +61,18 @@ Documentation files should be organized by purpose:
 - Workflow guides
 
 **`/overlays/` directory** - Overlay-specific documentation:
+
 - `README.md` only (following overlay-docs.instructions.md)
 - No other markdown files in overlay directories
 
 **`/.github/instructions/` directory** - Internal instructions:
+
 - Copilot agent instructions
 - Must end with `.instructions.md`
 - Must use kebab-case before `.instructions.md`
 
 **Root directory** - Project-level documentation:
+
 - `README.md`
 - `CONTRIBUTING.md`
 - `CHANGELOG.md`
@@ -76,12 +83,14 @@ Documentation files should be organized by purpose:
 #### Focus on Outcomes, Not Actions
 
 Documentation should explain:
+
 - **What** the feature/system does
 - **How** it works (architecture/design)
 - **Why** design decisions were made
 - **When** to use it (use cases)
 
 Documentation should NOT:
+
 - List implementation steps taken ("First I did X, then Y")
 - Include timestamps or dates of work
 - Focus on development history
@@ -107,7 +116,7 @@ Documentation should NOT:
 
 **Example - Good (outcome-focused):**
 
-```markdown
+````markdown
 # Presets Architecture
 
 ## Overview
@@ -123,16 +132,18 @@ The preset system uses a declarative YAML format...
 
 ```typescript
 interface PresetMetadata {
-  // ...
+    // ...
 }
 ```
+````
 
 ### Composition Flow
 
 1. User selects preset
 2. Preset expands to overlay list
 3. Normal composition proceeds
-```
+
+````
 
 #### Use Proper Markdown Structure
 
@@ -162,7 +173,7 @@ interface PresetMetadata {
   name: string;
 }
 \`\`\`
-```
+````
 
 #### Internal Links
 
@@ -183,6 +194,7 @@ Reference the [RabbitMQ overlay](../overlays/rabbitmq/README.md).
 **Naming**: `{feature}-architecture.md`
 
 **Structure**:
+
 1. Overview
 2. Core concepts
 3. Architecture/design
@@ -200,6 +212,7 @@ Reference the [RabbitMQ overlay](../overlays/rabbitmq/README.md).
 **Naming**: `{topic}-comparison.md`
 
 **Structure**:
+
 1. Quick comparison table
 2. When to use each option
 3. Performance characteristics
@@ -215,6 +228,7 @@ Reference the [RabbitMQ overlay](../overlays/rabbitmq/README.md).
 **Naming**: `{workflow}-workflow.md`
 
 **Structure**:
+
 1. Overview
 2. Prerequisites
 3. Step-by-step instructions
@@ -230,6 +244,7 @@ Reference the [RabbitMQ overlay](../overlays/rabbitmq/README.md).
 **Naming**: `{topic}-quick-reference.md` or `quick-reference.md`
 
 **Structure**:
+
 - Concise command tables
 - Common patterns
 - Tips and tricks

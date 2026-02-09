@@ -6,8 +6,8 @@ supports: []
 requires: []
 suggests: []
 conflicts:
-  - docker-in-docker
+    - docker-in-docker
 tags:
-  - dev
-  - docker
+    - dev
+    - docker
 ports: []

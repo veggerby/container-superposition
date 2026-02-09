@@ -1,24 +1,22 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/devcontainers/features/powershell:1": {
-      "version": "latest"
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-vscode.powershell"
-      ],
-      "settings": {
-        "powershell.integratedConsole.focusConsoleOnExecute": false,
-        "[powershell]": {
-          "editor.formatOnSave": true
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/devcontainers/features/powershell:1": {
+            "version": "latest"
         }
-      }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["ms-vscode.powershell"],
+            "settings": {
+                "powershell.integratedConsole.focusConsoleOnExecute": false,
+                "[powershell]": {
+                    "editor.formatOnSave": true
+                }
+            }
+        }
+    },
+    "remoteEnv": {
+        "PSModulePath": "${containerEnv:HOME}/.local/share/powershell/Modules:${containerEnv:PSModulePath}"
     }
-  },
-  "remoteEnv": {
-    "PSModulePath": "${containerEnv:HOME}/.local/share/powershell/Modules:${containerEnv:PSModulePath}"
-  }
 }

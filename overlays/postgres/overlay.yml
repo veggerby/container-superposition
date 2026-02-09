@@ -3,13 +3,13 @@ name: PostgreSQL
 description: PostgreSQL 16 database
 category: database
 supports:
-  - compose
+    - compose
 requires: []
 suggests: []
 conflicts: []
 tags:
-  - database
-  - sql
-  - postgres
+    - database
+    - sql
+    - postgres
 ports:
-  - 5432
+    - 5432

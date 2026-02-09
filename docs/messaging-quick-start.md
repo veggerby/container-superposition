@@ -343,9 +343,9 @@ curl http://localhost:8222/varz
 1. Review generated `.devcontainer/devcontainer.json`
 2. Customize `.env` file (copy from `.env.example`)
 3. Review service-specific READMEs:
-   - `overlays/rabbitmq/README.md`
-   - `overlays/redpanda/README.md`
-   - `overlays/nats/README.md`
+    - `overlays/rabbitmq/README.md`
+    - `overlays/redpanda/README.md`
+    - `overlays/nats/README.md`
 4. Check [messaging-comparison.md](messaging-comparison.md) for choosing between systems
 5. Start coding!
 

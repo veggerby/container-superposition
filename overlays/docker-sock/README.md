@@ -14,9 +14,10 @@ Access the host Docker daemon by mounting the Docker socket. This is Docker-outs
 This overlay mounts the host's Docker socket into the container, allowing the container to control the host's Docker daemon directly. This is also known as "Docker-outside-of-Docker" (DooD).
 
 **Mount configuration:**
+
 ```yaml
 volumes:
-  - /var/run/docker.sock:/var/run/docker-host.sock
+    - /var/run/docker.sock:/var/run/docker-host.sock
 ```
 
 ## Use Cases
@@ -28,13 +29,13 @@ volumes:
 
 ## Benefits vs Docker-in-Docker
 
-| Feature | Docker-outside-of-Docker (This) | Docker-in-Docker |
-|---------|--------------------------------|------------------|
-| **Performance** | ✅ Fast (shared cache) | ⚠️ Slower |
-| **Disk Usage** | ✅ Efficient (shared images) | ❌ Duplicates images |
-| **Networking** | ✅ Simple | ⚠️ Complex |
-| **Security** | ⚠️ Host access | ✅ Isolated |
-| **Portability** | ⚠️ Local only | ✅ Works in Codespaces |
+| Feature         | Docker-outside-of-Docker (This) | Docker-in-Docker       |
+| --------------- | ------------------------------- | ---------------------- |
+| **Performance** | ✅ Fast (shared cache)          | ⚠️ Slower              |
+| **Disk Usage**  | ✅ Efficient (shared images)    | ❌ Duplicates images   |
+| **Networking**  | ✅ Simple                       | ⚠️ Complex             |
+| **Security**    | ⚠️ Host access                  | ✅ Isolated            |
+| **Portability** | ⚠️ Local only                   | ✅ Works in Codespaces |
 
 ## Common Commands
 
@@ -179,6 +180,7 @@ docker network rm NETWORK_NAME
 ### Can't connect to containers
 
 When running containers from within the dev container, they are on the host's Docker network. Access them via:
+
 - **`localhost`** - For published ports (e.g., `-p 8080:80`)
 - **Container name** - If using custom networks
 - **Host IP** - Check with `ip addr show docker0`
@@ -193,6 +195,7 @@ If you need isolation or are working in GitHub Codespaces, use the **docker-in-d
 - ❌ **Larger** - Duplicates images
 
 **Switch overlays:**
+
 ```bash
 # Remove this overlay, add docker-in-docker
 # Conflicts are enforced in index.yml

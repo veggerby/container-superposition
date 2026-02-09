@@ -7,6 +7,7 @@ Composable devcontainer scaffolds that collapse into working environments.
 Container Superposition provides a **modular, overlay-based system** for building devcontainer configurations. Start with a minimal base template, then compose it with language frameworks, databases, observability tools, and cloud utilities to create your ideal development environment.
 
 **Key Principles:**
+
 - **Leverage, Don't Duplicate** - Use official images and features from containers.dev
 - **Minimal Base + Composable Overlays** - Start simple, add what you need
 - **Copy-Paste Ready** - Works immediately, customize as needed
@@ -22,12 +23,14 @@ This tool is **opinionated by design**, providing carefully curated configuratio
 - **📝 Editable Output** - Generated configurations are plain JSON/YAML you can modify post-generation
 
 **Default Base Image**: `mcr.microsoft.com/devcontainers/base:bookworm` (Debian Bookworm)
+
 - Well-maintained by Microsoft
 - Broad compatibility with devcontainer features
 - Regular security updates
 - Proven stability across diverse projects
 
 **Alternative Base Images**:
+
 - **Debian Trixie**: Newer packages, testing stability
 - **Alpine Linux**: Minimal footprint (~5MB), ideal for resource-constrained environments
 - **Ubuntu LTS**: Popular, familiar, extensive package ecosystem
@@ -98,12 +101,15 @@ Each template is minimal by design. Capabilities are added via overlays.
 Overlays are modular configuration fragments organized by category:
 
 **Language & Framework:**
+
 - dotnet, nodejs, python, mkdocs
 
 **Databases:**
+
 - postgres, redis
 
 **Observability:**
+
 - otel-collector (OpenTelemetry Collector)
 - jaeger (Distributed tracing)
 - prometheus (Metrics)
@@ -111,12 +117,15 @@ Overlays are modular configuration fragments organized by category:
 - loki (Log aggregation)
 
 **Cloud Tools:**
+
 - aws-cli, azure-cli, kubectl-helm
 
 **Dev Tools:**
+
 - docker-in-docker, docker-sock, playwright, codex
 
 Each overlay includes:
+
 - `devcontainer.patch.json` - Configuration to merge
 - `docker-compose.yml` (if needed) - Service definitions
 - `.env.example` - Environment variables
@@ -126,6 +135,7 @@ Each overlay includes:
 ### `/features` - Custom Building Blocks
 
 Custom devcontainer features that add value beyond containers.dev:
+
 - **project-scaffolder** - Interactive project initialization
 - **team-conventions** - Shared linting, formatting, commit standards
 - **local-secrets-manager** - Safe local development secrets
@@ -149,6 +159,7 @@ npm run init
 ```
 
 The questionnaire guides you through:
+
 1. **Preset or Custom** - Start from a pre-configured stack or build custom?
 2. **Base template** - plain or compose?
 3. **Overlays** - All available overlays in one multi-select (language, databases, observability, cloud tools, dev tools)
@@ -159,24 +170,28 @@ The questionnaire guides you through:
 Quickly get started with common development scenarios:
 
 **🌐 Web API Stack**
+
 - Language choice (Node.js, .NET, Python, Go, Java)
 - PostgreSQL + Redis
 - Full observability (OTEL, Prometheus, Grafana, Loki)
 - Pre-configured connection strings
 
 **🔀 Microservice Stack**
+
 - Language choice
 - Message broker (RabbitMQ, Redpanda, NATS)
 - Distributed tracing (Jaeger)
 - Metrics & monitoring (Prometheus, Grafana)
 
 **📚 Documentation Site**
+
 - MkDocs + Python
 - Pre-commit hooks
 - Modern CLI tools
 - GitHub Pages ready
 
 **🎨 Full-Stack Application**
+
 - Node.js frontend + Backend language choice
 - PostgreSQL + Redis + MinIO
 - Complete observability stack
@@ -349,16 +364,18 @@ See **[Custom Patches Guide](docs/custom-patches.md)** for complete documentatio
 ### Option 2: Manual Composition
 
 1. **Copy a base template:**
-   ```bash
-   cp -r templates/compose/.devcontainer /path/to/your/project/
-   ```
+
+    ```bash
+    cp -r templates/compose/.devcontainer /path/to/your/project/
+    ```
 
 2. **Add overlay configurations:**
-   ```bash
-   # Merge devcontainer.patch.json files
-   # Copy docker-compose.yml files as docker-compose.{overlay}.yml
-   # Merge .env.example files
-   ```
+
+    ```bash
+    # Merge devcontainer.patch.json files
+    # Copy docker-compose.yml files as docker-compose.{overlay}.yml
+    # Merge .env.example files
+    ```
 
 3. **Open in VS Code** and reopen in container
 
@@ -370,6 +387,7 @@ See **[Custom Patches Guide](docs/custom-patches.md)** for complete documentatio
 - **Overlays**: Add-ons for databases (Postgres, Redis), Playwright, cloud tools, etc.
 
 **Key Design Decisions:**
+
 - ✅ Generate once, edit forever (no "sync" or "update")
 - ✅ Output is standard JSON — no proprietary formats
 - ✅ Tool is optional — templates work standalone
@@ -382,20 +400,22 @@ All overlays are defined in [overlays/index.yml](overlays/index.yml):
 
 ```yaml
 observability_overlays:
-  - id: otel-collector
-    name: OpenTelemetry Collector
-    description: Telemetry collection pipeline
-    category: observability
-    order: 2  # Start after backends
+    - id: otel-collector
+      name: OpenTelemetry Collector
+      description: Telemetry collection pipeline
+      category: observability
+      order: 2 # Start after backends
 ```
 
 **Benefits:**
+
 - Add new overlays without code changes
 - Consistent naming and descriptions
 - Control display order and categorization
 - Easy maintenance and documentation
 
 **Overlay Categories:**
+
 - `base_templates` - plain, compose
 - `language_overlays` - dotnet, nodejs, python, mkdocs
 - `database_overlays` - postgres, redis
@@ -410,11 +430,13 @@ See [tool/docs/questionnaire-updates.md](tool/docs/questionnaire-updates.md) for
 Container Superposition includes an intelligent dependency model that automatically resolves required dependencies:
 
 **Dependency Types:**
+
 - **`requires`** - Hard dependencies that are automatically added
 - **`suggests`** - Soft dependencies that work well together
 - **`conflicts`** - Mutually exclusive overlays
 
 **Auto-Resolution Example:**
+
 ```bash
 # Select grafana, and prometheus is automatically added
 npm run init -- --stack compose --observability grafana
@@ -425,18 +447,20 @@ npm run init -- --stack compose --observability grafana
 ```
 
 **Explicit Metadata in overlays/index.yml:**
+
 ```yaml
 observability_overlays:
-  - id: grafana
-    name: Grafana
-    requires: [prometheus]  # Auto-add prometheus
-    suggests: [loki, jaeger]  # Could work well together
-    conflicts: []
-    tags: [observability, ui]
-    ports: [3000]  # Explicit port declarations
+    - id: grafana
+      name: Grafana
+      requires: [prometheus] # Auto-add prometheus
+      suggests: [loki, jaeger] # Could work well together
+      conflicts: []
+      tags: [observability, ui]
+      ports: [3000] # Explicit port declarations
 ```
 
 **Benefits:**
+
 - ✅ Predictable behavior - no hidden "if overlay == ..." logic
 - ✅ Automatic dependency resolution
 - ✅ Clear conflict detection
@@ -448,16 +472,16 @@ Every generated configuration includes a `superposition.json` manifest for debug
 
 ```json
 {
-  "version": "0.1.0",
-  "generated": "2026-02-04T10:30:00Z",
-  "baseTemplate": "compose",
-  "baseImage": "bookworm",
-  "overlays": ["dotnet", "postgres", "prometheus", "grafana"],
-  "portOffset": 100,
-  "autoResolved": {
-    "added": ["prometheus"],
-    "reason": "prometheus (required by grafana)"
-  }
+    "version": "0.1.0",
+    "generated": "2026-02-04T10:30:00Z",
+    "baseTemplate": "compose",
+    "baseImage": "bookworm",
+    "overlays": ["dotnet", "postgres", "prometheus", "grafana"],
+    "portOffset": 100,
+    "autoResolved": {
+        "added": ["prometheus"],
+        "reason": "prometheus (required by grafana)"
+    }
 }
 ```
 
@@ -486,11 +510,11 @@ All templates use official features from [containers.dev/features](https://conta
 
 ```json
 {
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {}
-  }
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    }
 }
 ```
 
@@ -500,16 +524,17 @@ Use our custom features for specialized needs:
 
 ```json
 {
-  "features": {
-    "./features/project-scaffolder": {"template": "express-api"},
-    "./features/team-conventions": {"preset": "airbnb"}
-  }
+    "features": {
+        "./features/project-scaffolder": { "template": "express-api" },
+        "./features/team-conventions": { "preset": "airbnb" }
+    }
 }
 ```
 
 ### Mixing Templates
 
 Start with one template and enhance it:
+
 - Add features from containers.dev
 - Include custom features from this repo
 - Copy useful scripts from other templates
@@ -532,6 +557,7 @@ npm run test:smoke
 ```
 
 **Test Coverage:**
+
 - ✅ Dependency resolution logic
 - ✅ devcontainer.json merging
 - ✅ docker-compose.yml merging
@@ -551,12 +577,14 @@ bash ./verify-grafana.sh
 ```
 
 **Verification scripts check:**
+
 - ✅ Tool/service is installed
 - ✅ Version information
 - ✅ Service connectivity (for compose overlays)
 - ✅ Port accessibility
 
 Example output:
+
 ```
 🔍 Verifying PostgreSQL overlay...
 
@@ -592,20 +620,21 @@ Create a custom template for your team or project:
 6. **Document** - explain what's included and why
 
 Example `devcontainer.json` structure:
+
 ```json
 {
-  "name": "My Custom Template",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "./features/team-conventions": {}
-  },
-  "postCreateCommand": "npm install && npm run setup",
-  "customizations": {
-    "vscode": {
-      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    "name": "My Custom Template",
+    "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "./features/team-conventions": {}
+    },
+    "postCreateCommand": "npm install && npm run setup",
+    "customizations": {
+        "vscode": {
+            "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+        }
     }
-  }
 }
 ```
 
@@ -622,6 +651,7 @@ Complete documentation is available in the [docs/](docs/) folder:
 - **[Examples](docs/examples.md)** - Common usage patterns
 
 Additional resources:
+
 - [VS Code Dev Containers Documentation](https://code.visualstudio.com/docs/devcontainers/containers)
 - [Dev Container Specification](https://containers.dev/)
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
@@ -631,6 +661,7 @@ Additional resources:
 Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 Keep contributions:
+
 - Minimal and focused
 - Well-documented
 - Fast to build

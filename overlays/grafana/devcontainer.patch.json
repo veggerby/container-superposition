@@ -1,12 +1,12 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "runServices": ["grafana"],
-  "_serviceOrder": 3,
-  "forwardPorts": [3000],
-  "portsAttributes": {
-    "3000": {
-      "label": "Grafana",
-      "onAutoForward": "openBrowser"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["grafana"],
+    "_serviceOrder": 3,
+    "forwardPorts": [3000],
+    "portsAttributes": {
+        "3000": {
+            "label": "Grafana",
+            "onAutoForward": "openBrowser"
+        }
     }
-  }
 }

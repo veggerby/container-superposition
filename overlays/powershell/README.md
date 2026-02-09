@@ -16,6 +16,7 @@ Adds PowerShell Core (cross-platform) for scripting, automation, and cloud manag
 This overlay installs PowerShell Core via the official devcontainers feature. PowerShell Core is the cross-platform version of PowerShell that runs on Linux, macOS, and Windows. The setup script installs essential modules for development and testing.
 
 **Installation method:**
+
 - PowerShell Core via devcontainer feature
 - Modules via PowerShellGet
 - Modules stored in user profile
@@ -123,6 +124,7 @@ Invoke-ScriptAnalyzer -Path ./script.ps1 -IncludeRule PSAvoidUsingCmdletAliases
 - **Windows interop** - Linux/WSL integration with Windows systems
 
 **Integrates well with:**
+
 - `azure-cli` - Azure CLI + PowerShell Az module
 - `aws-cli` - AWS CLI + PowerShell AWS.Tools
 - `kubectl-helm` - Kubernetes management scripts
@@ -242,9 +244,11 @@ $response = Invoke-RestMethod -Uri "https://api.example.com/users" -Method Post 
 ### Issue: Execution policy error
 
 **Symptoms:**
+
 - "Execution policy does not allow running scripts"
 
 **Solution:**
+
 ```powershell
 # Check current policy
 Get-ExecutionPolicy
@@ -259,9 +263,11 @@ pwsh -ExecutionPolicy Bypass -File ./script.ps1
 ### Issue: Module not found
 
 **Symptoms:**
+
 - "Module not found" error
 
 **Solution:**
+
 ```powershell
 # Check module path
 $env:PSModulePath
@@ -276,6 +282,7 @@ Import-Module ModuleName
 ### Issue: PowerShell version mismatch
 
 **Solution:**
+
 ```powershell
 # Check PowerShell version
 $PSVersionTable.PSVersion
@@ -294,6 +301,7 @@ which pwsh
 - [PSScriptAnalyzer](https://github.com/PowerShell/PSScriptAnalyzer) - Code analyzer
 
 **Related Overlays:**
+
 - `azure-cli` - Azure CLI (complementary to Az module)
 - `aws-cli` - AWS CLI (complementary to AWS.Tools)
 - `kubectl-helm` - Kubernetes management

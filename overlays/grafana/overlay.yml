@@ -3,19 +3,19 @@ name: Grafana
 description: Observability visualization dashboard with auto-provisioning
 category: observability
 supports:
-  - compose
+    - compose
 requires:
-  - prometheus
+    - prometheus
 suggests:
-  - loki
-  - jaeger
-  - tempo
-  - promtail
+    - loki
+    - jaeger
+    - tempo
+    - promtail
 conflicts: []
 tags:
-  - observability
-  - ui
-  - visualization
+    - observability
+    - ui
+    - visualization
 ports:
-  - 3000
+    - 3000
 order: 3

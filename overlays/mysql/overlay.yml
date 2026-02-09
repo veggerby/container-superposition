@@ -3,14 +3,14 @@ name: MySQL
 description: MySQL 8 with phpMyAdmin web UI
 category: database
 supports:
-  - compose
+    - compose
 requires: []
 suggests: []
 conflicts: []
 tags:
-  - database
-  - sql
-  - mysql
+    - database
+    - sql
+    - mysql
 ports:
-  - 3306
-  - 8080
+    - 3306
+    - 8080

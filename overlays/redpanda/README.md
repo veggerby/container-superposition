@@ -19,6 +19,7 @@ Kafka-compatible event streaming platform optimized for local development - ligh
 This overlay adds Redpanda as a Docker Compose service that provides Kafka-compatible event streaming. Redpanda is designed to be a drop-in replacement for Kafka but optimized for local development with lower resource requirements.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container<br/>Your application code<br/>Kafka client libraries<br/>Connects to redpanda:9092] -->|Docker network devnet| B[Redpanda Container<br/>Kafka API 9092<br/>Schema Registry 8081<br/>HTTP Proxy 8082<br/>Admin API 9644<br/>Event/message persistence]
@@ -37,6 +38,7 @@ cp .env.example .env
 ```
 
 **Default values (.env.example):**
+
 ```bash
 # Redpanda Configuration
 REDPANDA_VERSION=latest
@@ -68,6 +70,7 @@ container-superposition --port-offset 100
 ### From Development Container
 
 **Kafka API:**
+
 ```bash
 # Hostname: redpanda (Docker Compose service name)
 # Port: 9092
@@ -78,16 +81,19 @@ redpanda:9092
 ```
 
 **Schema Registry:**
+
 ```
 http://redpanda:8081
 ```
 
 **HTTP Proxy:**
+
 ```
 http://redpanda:8082
 ```
 
 **Console UI:**
+
 ```
 http://redpanda-console:8080
 ```
@@ -95,6 +101,7 @@ http://redpanda-console:8080
 ### From Host Machine
 
 **Kafka API:**
+
 ```bash
 # Hostname: localhost
 # Port: 9092 (or 9092 + port-offset)
@@ -104,6 +111,7 @@ localhost:9092
 ```
 
 **Console UI:**
+
 ```
 http://localhost:8080
 ```
@@ -113,6 +121,7 @@ http://localhost:8080
 ### Using Redpanda Console UI
 
 The Redpanda Console provides:
+
 - Topic creation and management
 - Message browsing and publishing
 - Consumer group monitoring
@@ -183,65 +192,68 @@ curl -X POST http://localhost:8081/subjects/my-topic-value/versions \
 ### Node.js Example
 
 Install KafkaJS (Kafka client):
+
 ```bash
 npm install kafkajs
 ```
 
 **Producer (producer.js):**
+
 ```javascript
 const { Kafka } = require('kafkajs');
 
 const kafka = new Kafka({
-  clientId: 'my-app',
-  brokers: ['redpanda:9092']
+    clientId: 'my-app',
+    brokers: ['redpanda:9092'],
 });
 
 const producer = kafka.producer();
 
 async function run() {
-  await producer.connect();
+    await producer.connect();
 
-  await producer.send({
-    topic: 'my-topic',
-    messages: [
-      { key: 'key1', value: 'Hello Redpanda!' },
-      { key: 'key2', value: 'Event streaming is awesome' },
-    ],
-  });
+    await producer.send({
+        topic: 'my-topic',
+        messages: [
+            { key: 'key1', value: 'Hello Redpanda!' },
+            { key: 'key2', value: 'Event streaming is awesome' },
+        ],
+    });
 
-  console.log('Messages sent successfully');
-  await producer.disconnect();
+    console.log('Messages sent successfully');
+    await producer.disconnect();
 }
 
 run().catch(console.error);
 ```
 
 **Consumer (consumer.js):**
+
 ```javascript
 const { Kafka } = require('kafkajs');
 
 const kafka = new Kafka({
-  clientId: 'my-app',
-  brokers: ['redpanda:9092']
+    clientId: 'my-app',
+    brokers: ['redpanda:9092'],
 });
 
 const consumer = kafka.consumer({ groupId: 'my-group' });
 
 async function run() {
-  await consumer.connect();
-  await consumer.subscribe({ topic: 'my-topic', fromBeginning: true });
+    await consumer.connect();
+    await consumer.subscribe({ topic: 'my-topic', fromBeginning: true });
 
-  await consumer.run({
-    eachMessage: async ({ topic, partition, message }) => {
-      console.log({
-        topic,
-        partition,
-        offset: message.offset,
-        key: message.key?.toString(),
-        value: message.value?.toString(),
-      });
-    },
-  });
+    await consumer.run({
+        eachMessage: async ({ topic, partition, message }) => {
+            console.log({
+                topic,
+                partition,
+                offset: message.offset,
+                key: message.key?.toString(),
+                value: message.value?.toString(),
+            });
+        },
+    });
 }
 
 run().catch(console.error);
@@ -250,11 +262,13 @@ run().catch(console.error);
 ### Python Example
 
 Install confluent-kafka (Kafka client):
+
 ```bash
 pip install confluent-kafka
 ```
 
 **Producer (producer.py):**
+
 ```python
 from confluent_kafka import Producer
 
@@ -280,6 +294,7 @@ producer.flush()
 ```
 
 **Consumer (consumer.py):**
+
 ```python
 from confluent_kafka import Consumer
 
@@ -313,11 +328,13 @@ finally:
 ### Go Example
 
 Install sarama (Kafka client):
+
 ```bash
 go get github.com/IBM/sarama
 ```
 
 **Producer (producer.go):**
+
 ```go
 package main
 
@@ -354,6 +371,7 @@ func main() {
 ```
 
 **Consumer (consumer.go):**
+
 ```go
 package main
 
@@ -404,11 +422,13 @@ func (h ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, 
 ### .NET Example
 
 Install Confluent.Kafka:
+
 ```bash
 dotnet add package Confluent.Kafka
 ```
 
 **Producer (Producer.cs):**
+
 ```csharp
 using Confluent.Kafka;
 
@@ -431,6 +451,7 @@ Console.WriteLine($"Message delivered to {result.TopicPartitionOffset}");
 ```
 
 **Consumer (Consumer.cs):**
+
 ```csharp
 using Confluent.Kafka;
 
@@ -476,56 +497,65 @@ catch (OperationCanceledException)
 - **Real-Time Analytics** - Process streaming data in real-time
 
 **Integrates well with:**
+
 - Language overlays (Node.js, Python, Go, .NET, Java) with Kafka clients
 - Observability stack (OTEL Collector, Prometheus) for metrics and monitoring
 - Microservice architectures requiring event streaming
 
 ## Redpanda vs Kafka
 
-| Feature | Redpanda | Apache Kafka |
-|---------|----------|--------------|
-| **Zookeeper** | ❌ Not required | ✅ Required (adds complexity) |
-| **Resource Usage** | ✅ Lower (1-2 GB RAM) | ⚠️ Higher (4+ GB RAM) |
-| **Startup Time** | ✅ Fast (~5 seconds) | ⚠️ Slower (~30 seconds) |
-| **API Compatibility** | ✅ 100% Kafka compatible | ✅ Native |
-| **Management UI** | ✅ Modern Redpanda Console | ⚠️ Requires separate tools |
-| **Schema Registry** | ✅ Built-in | ⚠️ Separate service |
-| **Production Ready** | ✅ Yes | ✅ Yes |
-| **Local Development** | ✅ Optimized | ⚠️ Resource heavy |
+| Feature               | Redpanda                   | Apache Kafka                  |
+| --------------------- | -------------------------- | ----------------------------- |
+| **Zookeeper**         | ❌ Not required            | ✅ Required (adds complexity) |
+| **Resource Usage**    | ✅ Lower (1-2 GB RAM)      | ⚠️ Higher (4+ GB RAM)         |
+| **Startup Time**      | ✅ Fast (~5 seconds)       | ⚠️ Slower (~30 seconds)       |
+| **API Compatibility** | ✅ 100% Kafka compatible   | ✅ Native                     |
+| **Management UI**     | ✅ Modern Redpanda Console | ⚠️ Requires separate tools    |
+| **Schema Registry**   | ✅ Built-in                | ⚠️ Separate service           |
+| **Production Ready**  | ✅ Yes                     | ✅ Yes                        |
+| **Local Development** | ✅ Optimized               | ⚠️ Resource heavy             |
 
 **Recommendation:** Use Redpanda for local development, testing, and smaller deployments. It's faster, lighter, and easier to operate than Kafka while maintaining full compatibility.
 
 ## Messaging Patterns
 
 ### Event Streaming
+
 ```
 Producer1 → Topic (partitioned) → Consumer Group 1
 Producer2 →                     → Consumer Group 2
 Producer3 →                     → Consumer Group 3
 ```
+
 Multiple consumers process events independently with ordering guarantees per partition.
 
 ### Event Sourcing
+
 ```
 Commands → Event Store Topic → Event Handlers
                              → Projections
                              → Snapshots
 ```
+
 Store all state changes as events for replay and audit trail.
 
 ### Change Data Capture
+
 ```
 Database → CDC Connector → Kafka Topic → Downstream Systems
 ```
+
 Stream database changes in real-time.
 
 ### Stream Processing
+
 ```
 Input Topic → Stream Processor → Output Topic
               (filter, map,
                aggregate,
                join)
 ```
+
 Transform and enrich events in real-time.
 
 ## Troubleshooting
@@ -533,12 +563,14 @@ Transform and enrich events in real-time.
 ### Service Not Starting
 
 **Check logs:**
+
 ```bash
 docker logs redpanda
 docker logs redpanda-console
 ```
 
 **Common issues:**
+
 - Port conflicts (9092, 8080, or other ports in use)
 - Insufficient memory (Redpanda needs at least 1 GB)
 - Volume permission issues
@@ -546,16 +578,19 @@ docker logs redpanda-console
 ### Cannot Connect to Redpanda
 
 **Verify service is running:**
+
 ```bash
 docker ps | grep redpanda
 ```
 
 **Check health:**
+
 ```bash
 docker exec redpanda rpk cluster health
 ```
 
 **Test connectivity:**
+
 ```bash
 # From dev container
 curl http://redpanda:9644/v1/cluster/health_overview
@@ -564,6 +599,7 @@ curl http://redpanda:9644/v1/cluster/health_overview
 ### Console UI Not Loading
 
 **Check console logs:**
+
 ```bash
 docker logs redpanda-console
 ```
@@ -577,16 +613,19 @@ Ensure port 8080 is forwarded in devcontainer configuration.
 ### Messages Not Being Consumed
 
 **Check consumer group status:**
+
 ```bash
 docker exec redpanda rpk group describe my-group
 ```
 
 **Verify topic exists:**
+
 ```bash
 docker exec redpanda rpk topic list
 ```
 
 **Check topic configuration:**
+
 ```bash
 docker exec redpanda rpk topic describe my-topic
 ```
@@ -594,6 +633,7 @@ docker exec redpanda rpk topic describe my-topic
 ### Performance Issues
 
 **Monitor cluster health:**
+
 ```bash
 docker exec redpanda rpk cluster health
 ```
@@ -602,6 +642,7 @@ docker exec redpanda rpk cluster health
 Edit `docker-compose.yml` and increase `--memory` flag.
 
 **Check partition distribution:**
+
 ```bash
 docker exec redpanda rpk topic describe my-topic
 ```
@@ -609,11 +650,13 @@ docker exec redpanda rpk topic describe my-topic
 ## Security Considerations
 
 ⚠️ **Development Configuration:**
+
 - No authentication enabled by default
 - Suitable for local development only
 - Do not expose ports publicly
 
 **Production Recommendations:**
+
 - Enable SASL authentication
 - Use TLS for encryption
 - Configure ACLs for authorization
@@ -627,10 +670,12 @@ Redpanda supports SASL/SCRAM authentication. See [Redpanda Security Documentatio
 ## Related Overlays
 
 **Alternative Messaging Systems:**
+
 - `rabbitmq` - AMQP message broker (better for task queues and RPC)
 - `nats` - Lightweight pub/sub (faster but simpler than Kafka)
 
 **Complementary Overlays:**
+
 - Language overlays - Application development with Kafka clients
 - `otel-collector` - Distributed tracing and metrics
 - `prometheus` - Metrics collection from Redpanda

@@ -24,6 +24,7 @@ Different border styles indicate different message types:
 ### Progress Feedback (ora)
 
 Animated spinners show progress during:
+
 - File generation
 - Template composition
 - Overlay application
@@ -45,6 +46,7 @@ Cyan-bordered box with centered title and subtitle, setting professional tone.
 ### Question Flow
 
 Each question follows this pattern:
+
 1. Bold cyan question with emoji number
 2. List of options (if applicable)
 3. Yellow prompt for input
@@ -54,6 +56,7 @@ Each question follows this pattern:
 ### Configuration Summary
 
 Green-bordered box showing all selections before generation:
+
 - Stack choice
 - Docker-in-Docker setting
 - Database selection
@@ -68,6 +71,7 @@ Spinner animation with cyan text during generation, followed by dimmed progress 
 ### Success Message
 
 Double-bordered green box with:
+
 - Bold success headline
 - Next steps numbered list
 - Note about configuration independence
@@ -75,6 +79,7 @@ Double-bordered green box with:
 ### Error Handling
 
 Red-bordered box with:
+
 - Bold error headline
 - Clear error message
 - No raw stack traces
@@ -82,6 +87,7 @@ Red-bordered box with:
 ## Non-Interactive Mode
 
 Same visual polish as interactive mode:
+
 - Blue box indicating non-interactive mode
 - Configuration summary box
 - Spinner during generation
@@ -125,18 +131,19 @@ Show one question at a time, confirm each selection, summarize before execution.
 
 ## Libraries
 
-| Library | Purpose | Usage |
-|---------|---------|-------|
-| **chalk** (^5.3.0) | Terminal styling | Colors, bold, dim |
-| **boxen** (^7.1.1) | Terminal boxes | Headers, summaries |
-| **ora** (^8.0.1) | Spinners | Progress feedback |
-| **commander** (^12.0.0) | CLI parsing | Arguments, help |
+| Library                 | Purpose          | Usage              |
+| ----------------------- | ---------------- | ------------------ |
+| **chalk** (^5.3.0)      | Terminal styling | Colors, bold, dim  |
+| **boxen** (^7.1.1)      | Terminal boxes   | Headers, summaries |
+| **ora** (^8.0.1)        | Spinners         | Progress feedback  |
+| **commander** (^12.0.0) | CLI parsing      | Arguments, help    |
 
 ## Accessibility
 
 ### Terminal Compatibility
 
 Works across different terminals:
+
 - Modern terminals (full color, Unicode)
 - Basic terminals (ASCII fallbacks)
 - CI environments (no animation)
@@ -144,6 +151,7 @@ Works across different terminals:
 ### Graceful Degradation
 
 If terminal doesn't support:
+
 - Colors → plain text
 - Spinners → simple dots
 - Unicode → ASCII characters

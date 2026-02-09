@@ -17,6 +17,7 @@ Browser automation and end-to-end testing framework with support for Chromium, F
 ## Getting Started
 
 Playwright is typically used with a programming language. Select appropriate overlay:
+
 - **nodejs** - For JavaScript/TypeScript (most common)
 - **python** - For Python
 - **dotnet** - For C#
@@ -162,25 +163,26 @@ npx playwright install
 ### Basic Test (JavaScript/TypeScript)
 
 **tests/example.spec.ts:**
+
 ```typescript
 import { test, expect } from '@playwright/test';
 
 test('homepage has title', async ({ page }) => {
-  // Navigate to URL
-  await page.goto('https://playwright.dev/');
+    // Navigate to URL
+    await page.goto('https://playwright.dev/');
 
-  // Assert title contains text
-  await expect(page).toHaveTitle(/Playwright/);
+    // Assert title contains text
+    await expect(page).toHaveTitle(/Playwright/);
 });
 
 test('get started link works', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
+    await page.goto('https://playwright.dev/');
 
-  // Click the get started link
-  await page.getByRole('link', { name: 'Get started' }).click();
+    // Click the get started link
+    await page.getByRole('link', { name: 'Get started' }).click();
 
-  // Verify URL
-  await expect(page).toHaveURL(/.*intro/);
+    // Verify URL
+    await expect(page).toHaveURL(/.*intro/);
 });
 ```
 
@@ -190,20 +192,20 @@ test('get started link works', async ({ page }) => {
 import { test, expect } from '@playwright/test';
 
 test('form submission', async ({ page }) => {
-  await page.goto('https://example.com/form');
+    await page.goto('https://example.com/form');
 
-  // Fill input fields
-  await page.fill('#username', 'john.doe');
-  await page.fill('#password', 'secret123');
+    // Fill input fields
+    await page.fill('#username', 'john.doe');
+    await page.fill('#password', 'secret123');
 
-  // Click button
-  await page.click('button[type="submit"]');
+    // Click button
+    await page.click('button[type="submit"]');
 
-  // Wait for navigation
-  await page.waitForURL('**/dashboard');
+    // Wait for navigation
+    await page.waitForURL('**/dashboard');
 
-  // Assert success message
-  await expect(page.locator('.success-message')).toBeVisible();
+    // Assert success message
+    await expect(page.locator('.success-message')).toBeVisible();
 });
 ```
 
@@ -213,22 +215,22 @@ test('form submission', async ({ page }) => {
 import { test, expect } from '@playwright/test';
 
 test('API test', async ({ request }) => {
-  // GET request
-  const response = await request.get('https://api.example.com/users');
-  expect(response.ok()).toBeTruthy();
-  expect(response.status()).toBe(200);
+    // GET request
+    const response = await request.get('https://api.example.com/users');
+    expect(response.ok()).toBeTruthy();
+    expect(response.status()).toBe(200);
 
-  const users = await response.json();
-  expect(users).toHaveLength(10);
+    const users = await response.json();
+    expect(users).toHaveLength(10);
 
-  // POST request
-  const newUser = await request.post('https://api.example.com/users', {
-    data: {
-      name: 'John Doe',
-      email: 'john@example.com'
-    }
-  });
-  expect(newUser.status()).toBe(201);
+    // POST request
+    const newUser = await request.post('https://api.example.com/users', {
+        data: {
+            name: 'John Doe',
+            email: 'john@example.com',
+        },
+    });
+    expect(newUser.status()).toBe(201);
 });
 ```
 
@@ -236,24 +238,25 @@ test('API test', async ({ request }) => {
 
 ```typescript
 test('take screenshot', async ({ page }) => {
-  await page.goto('https://example.com');
-  
-  // Screenshot full page
-  await page.screenshot({ path: 'screenshot.png', fullPage: true });
+    await page.goto('https://example.com');
 
-  // Screenshot element
-  const element = page.locator('.hero');
-  await element.screenshot({ path: 'element.png' });
+    // Screenshot full page
+    await page.screenshot({ path: 'screenshot.png', fullPage: true });
+
+    // Screenshot element
+    const element = page.locator('.hero');
+    await element.screenshot({ path: 'element.png' });
 });
 ```
 
 **Enable video recording in playwright.config.ts:**
+
 ```typescript
 export default defineConfig({
-  use: {
-    video: 'on',  // 'on' | 'off' | 'retain-on-failure' | 'on-first-retry'
-    screenshot: 'only-on-failure',
-  },
+    use: {
+        video: 'on', // 'on' | 'off' | 'retain-on-failure' | 'on-first-retry'
+        screenshot: 'only-on-failure',
+    },
 });
 ```
 
@@ -261,26 +264,24 @@ export default defineConfig({
 
 ```typescript
 test('mock API response', async ({ page }) => {
-  // Intercept API call
-  await page.route('**/api/users', route => {
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify([
-        { id: 1, name: 'Mocked User' }
-      ])
+    // Intercept API call
+    await page.route('**/api/users', (route) => {
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([{ id: 1, name: 'Mocked User' }]),
+        });
     });
-  });
 
-  await page.goto('https://example.com');
-  // Page will receive mocked data instead of real API
+    await page.goto('https://example.com');
+    // Page will receive mocked data instead of real API
 });
 
 test('block images', async ({ page }) => {
-  // Block all image requests
-  await page.route('**/*.{png,jpg,jpeg,gif}', route => route.abort());
-  
-  await page.goto('https://example.com');
+    // Block all image requests
+    await page.route('**/*.{png,jpg,jpeg,gif}', (route) => route.abort());
+
+    await page.goto('https://example.com');
 });
 ```
 
@@ -290,15 +291,15 @@ test('block images', async ({ page }) => {
 import { test, devices } from '@playwright/test';
 
 test.use({
-  ...devices['iPhone 13'],
+    ...devices['iPhone 13'],
 });
 
 test('mobile test', async ({ page }) => {
-  await page.goto('https://example.com');
-  
-  // Test is running in iPhone 13 viewport
-  const isMobile = await page.evaluate(() => window.innerWidth < 768);
-  expect(isMobile).toBeTruthy();
+    await page.goto('https://example.com');
+
+    // Test is running in iPhone 13 viewport
+    const isMobile = await page.evaluate(() => window.innerWidth < 768);
+    expect(isMobile).toBeTruthy();
 });
 ```
 
@@ -310,98 +311,103 @@ test('mobile test', async ({ page }) => {
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  // Test directory
-  testDir: './tests',
+    // Test directory
+    testDir: './tests',
 
-  // Maximum time one test can run
-  timeout: 30 * 1000,
+    // Maximum time one test can run
+    timeout: 30 * 1000,
 
-  // Run tests in parallel
-  fullyParallel: true,
+    // Run tests in parallel
+    fullyParallel: true,
 
-  // Fail the build on CI if you accidentally left test.only
-  forbidOnly: !!process.env.CI,
+    // Fail the build on CI if you accidentally left test.only
+    forbidOnly: !!process.env.CI,
 
-  // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
+    // Retry on CI only
+    retries: process.env.CI ? 2 : 0,
 
-  // Workers for parallel execution
-  workers: process.env.CI ? 1 : undefined,
+    // Workers for parallel execution
+    workers: process.env.CI ? 1 : undefined,
 
-  // Reporter
-  reporter: 'html',
+    // Reporter
+    reporter: 'html',
 
-  // Shared settings for all projects
-  use: {
-    // Base URL
-    baseURL: 'http://localhost:3000',
+    // Shared settings for all projects
+    use: {
+        // Base URL
+        baseURL: 'http://localhost:3000',
 
-    // Collect trace on failure
-    trace: 'on-first-retry',
+        // Collect trace on failure
+        trace: 'on-first-retry',
 
-    // Screenshot on failure
-    screenshot: 'only-on-failure',
+        // Screenshot on failure
+        screenshot: 'only-on-failure',
 
-    // Video on failure
-    video: 'retain-on-failure',
-  },
-
-  // Configure projects for major browsers
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+        // Video on failure
+        video: 'retain-on-failure',
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 13'] },
-    },
-  ],
 
-  // Run local dev server before tests
-  webServer: {
-    command: 'npm run start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-  },
+    // Configure projects for major browsers
+    projects: [
+        {
+            name: 'chromium',
+            use: { ...devices['Desktop Chrome'] },
+        },
+        {
+            name: 'firefox',
+            use: { ...devices['Desktop Firefox'] },
+        },
+        {
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'] },
+        },
+        {
+            name: 'Mobile Chrome',
+            use: { ...devices['Pixel 5'] },
+        },
+        {
+            name: 'Mobile Safari',
+            use: { ...devices['iPhone 13'] },
+        },
+    ],
+
+    // Run local dev server before tests
+    webServer: {
+        command: 'npm run start',
+        url: 'http://localhost:3000',
+        reuseExistingServer: !process.env.CI,
+    },
 });
 ```
 
 ## Use Cases
 
 ### End-to-End Testing
+
 - Test complete user workflows
 - Verify critical paths work correctly
 - Regression testing
 
 ### Cross-Browser Testing
+
 - Test on Chromium, Firefox, and WebKit
 - Ensure consistent behavior across browsers
 - Mobile and desktop testing
 
 ### Visual Regression Testing
+
 - Compare screenshots against baselines
 - Detect unintended UI changes
 - Pixel-perfect validation
 
 ### API Testing
+
 - Test REST APIs without UI
 - Validate response structures
 - Mock external services
 
 ### Performance Testing
+
 - Measure page load times
 - Track network requests
 - Monitor resource usage
@@ -415,33 +421,34 @@ export default defineConfig({
 import { chromium, FullConfig } from '@playwright/test';
 
 async function globalSetup(config: FullConfig) {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  
-  // Login
-  await page.goto('https://example.com/login');
-  await page.fill('#username', 'admin');
-  await page.fill('#password', 'password');
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
-  
-  // Save storage state
-  await page.context().storageState({ path: 'auth.json' });
-  await browser.close();
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+
+    // Login
+    await page.goto('https://example.com/login');
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'password');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('**/dashboard');
+
+    // Save storage state
+    await page.context().storageState({ path: 'auth.json' });
+    await browser.close();
 }
 
 export default globalSetup;
 ```
 
 **Use in tests:**
+
 ```typescript
 import { test } from '@playwright/test';
 
 test.use({ storageState: 'auth.json' });
 
 test('authenticated test', async ({ page }) => {
-  // Already logged in
-  await page.goto('https://example.com/dashboard');
+    // Already logged in
+    await page.goto('https://example.com/dashboard');
 });
 ```
 
@@ -460,13 +467,13 @@ npx playwright test
 
 ```typescript
 test('visual regression', async ({ page }) => {
-  await page.goto('https://example.com');
-  
-  // Compare screenshot with baseline
-  await expect(page).toHaveScreenshot('homepage.png');
-  
-  // Compare element
-  await expect(page.locator('.header')).toHaveScreenshot('header.png');
+    await page.goto('https://example.com');
+
+    // Compare screenshot with baseline
+    await expect(page).toHaveScreenshot('homepage.png');
+
+    // Compare element
+    await expect(page.locator('.header')).toHaveScreenshot('header.png');
 });
 ```
 
@@ -477,35 +484,35 @@ test('visual regression', async ({ page }) => {
 ```yaml
 name: Playwright Tests
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-      
-      - name: Run Playwright tests
-        run: npx playwright test
-      
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Install Playwright Browsers
+              run: npx playwright install --with-deps
+
+            - name: Run Playwright tests
+              run: npx playwright test
+
+            - name: Upload test results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-report
+                  path: playwright-report/
 ```
 
 ## Troubleshooting
@@ -529,13 +536,13 @@ npx playwright install
 ```typescript
 // Increase timeout in config
 export default defineConfig({
-  timeout: 60 * 1000, // 60 seconds
+    timeout: 60 * 1000, // 60 seconds
 });
 
 // Or per test
 test('slow test', async ({ page }) => {
-  test.setTimeout(60000);
-  await page.goto('https://slow-site.com');
+    test.setTimeout(60000);
+    await page.goto('https://slow-site.com');
 });
 ```
 
@@ -549,7 +556,7 @@ await page.waitForSelector('.my-element');
 await page.locator('.my-element').click();
 
 // Check if element exists
-const exists = await page.locator('.my-element').count() > 0;
+const exists = (await page.locator('.my-element').count()) > 0;
 ```
 
 ### Screenshots not working in headless mode
@@ -582,17 +589,17 @@ await page.screenshot({ path: 'screenshots/test.png' });
 ```typescript
 // pages/login-page.ts
 export class LoginPage {
-  constructor(private page: Page) {}
+    constructor(private page: Page) {}
 
-  async goto() {
-    await this.page.goto('/login');
-  }
+    async goto() {
+        await this.page.goto('/login');
+    }
 
-  async login(username: string, password: string) {
-    await this.page.fill('#username', username);
-    await this.page.fill('#password', password);
-    await this.page.click('button[type="submit"]');
-  }
+    async login(username: string, password: string) {
+        await this.page.fill('#username', username);
+        await this.page.fill('#password', password);
+        await this.page.click('button[type="submit"]');
+    }
 }
 
 // tests/login.spec.ts
@@ -600,9 +607,9 @@ import { test } from '@playwright/test';
 import { LoginPage } from '../pages/login-page';
 
 test('login', async ({ page }) => {
-  const loginPage = new LoginPage(page);
-  await loginPage.goto();
-  await loginPage.login('admin', 'password');
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.login('admin', 'password');
 });
 ```
 

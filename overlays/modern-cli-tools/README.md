@@ -202,6 +202,7 @@ bat src/**/*.js
 ### jq Advanced
 
 **Filters and Pipes:**
+
 ```bash
 # Chain operations
 jq '.users | map(.name) | sort | unique'
@@ -217,6 +218,7 @@ jq '{name: .firstName, email: .emailAddress}'
 ```
 
 **Working with Arrays:**
+
 ```bash
 # Map and filter
 echo '[1,2,3,4,5]' | jq 'map(select(. > 2))'
@@ -231,6 +233,7 @@ echo '[[1,2],[3,4]]' | jq 'flatten'
 ### yq Advanced
 
 **Multiple Documents:**
+
 ```bash
 # Process all YAML documents in file
 yq eval-all '. | select(.kind == "Deployment")' k8s.yml
@@ -240,6 +243,7 @@ yq eval-all '. as $item ireduce ({}; . * $item)' file1.yml file2.yml
 ```
 
 **Modify in Place:**
+
 ```bash
 # Update nested value
 yq -i '.metadata.labels.version = "2.0"' deploy.yml
@@ -254,6 +258,7 @@ yq -i 'del(.spec.template)' deploy.yml
 ### ripgrep Advanced
 
 **File Type Filtering:**
+
 ```bash
 # Search TypeScript/JavaScript
 rg 'export' -t ts -t js
@@ -266,6 +271,7 @@ rg 'error' -T json
 ```
 
 **Output Formatting:**
+
 ```bash
 # Only show matching content
 rg -o 'email: \S+@\S+'
@@ -283,6 +289,7 @@ rg --json 'pattern'
 ### fd Advanced
 
 **Execute Commands:**
+
 ```bash
 # Run command for each file
 fd -e js -x eslint
@@ -295,6 +302,7 @@ fd -e jpg -x convert {} -resize 50% resized-{}
 ```
 
 **Filter by Time:**
+
 ```bash
 # Modified in last 24 hours
 fd -e log --changed-within 24h
@@ -306,6 +314,7 @@ fd --changed-before '2024-01-01'
 ### bat Advanced
 
 **Themes:**
+
 ```bash
 # List available themes
 bat --list-themes
@@ -318,6 +327,7 @@ echo '--theme="Monokai Extended"' >> ~/.config/bat/config
 ```
 
 **Integration:**
+
 ```bash
 # Use as man pager
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
@@ -373,6 +383,7 @@ Create `~/.ripgreprc`:
 ```
 
 Use in shell:
+
 ```bash
 export RIPGREP_CONFIG_PATH=~/.ripgreprc
 ```
@@ -421,12 +432,12 @@ Search with ripgrep (already default in VS Code).
 
 ## Performance Comparisons
 
-| Task | Traditional | Modern | Speedup |
-|------|------------|---------|---------|
-| Search text | grep | ripgrep | 10-100x |
-| Find files | find | fd | 5-20x |
-| View file | cat | bat | +syntax |
-| Parse JSON | python -m json.tool | jq | 3-10x |
+| Task        | Traditional         | Modern  | Speedup |
+| ----------- | ------------------- | ------- | ------- |
+| Search text | grep                | ripgrep | 10-100x |
+| Find files  | find                | fd      | 5-20x   |
+| View file   | cat                 | bat     | +syntax |
+| Parse JSON  | python -m json.tool | jq      | 3-10x   |
 
 ## Cheat Sheets
 
@@ -496,6 +507,7 @@ bat -d old new            # Diff mode
 ### Aliases Not Working
 
 Reload shell configuration:
+
 ```bash
 source ~/.bashrc
 ```
@@ -505,11 +517,13 @@ Or start new shell session.
 ### bat Theme Not Applied
 
 List available themes:
+
 ```bash
 bat --list-themes
 ```
 
 Set in config:
+
 ```bash
 echo '--theme="Monokai Extended"' >> ~/.config/bat/config
 ```
@@ -517,6 +531,7 @@ echo '--theme="Monokai Extended"' >> ~/.config/bat/config
 ### ripgrep Too Slow
 
 Exclude large directories:
+
 ```bash
 rg 'pattern' --glob '!node_modules' --glob '!dist'
 ```
@@ -526,6 +541,7 @@ Or configure permanently in `~/.ripgreprc`.
 ### fd Not Finding Hidden Files
 
 Use `-H` flag:
+
 ```bash
 fd -H '.env'
 ```

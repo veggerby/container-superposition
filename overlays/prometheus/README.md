@@ -17,12 +17,14 @@ Time-series database and monitoring system for collecting and querying metrics f
 Prometheus is a pull-based monitoring system that periodically scrapes metrics from configured endpoints. It stores time-series data and provides a powerful query language (PromQL) for analysis and alerting.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Your Application<br/>Exposes /metrics endpoint<br/>Returns metrics in text fmt] -->|HTTP pull every 15s| B[Prometheus Server<br/>Scrapes metrics<br/>Stores in TSDB<br/>Evaluates rules<br/>Serves UI http://...:9090]
 ```
 
 **Metric Types:**
+
 - **Counter** - Monotonically increasing value (requests, errors)
 - **Gauge** - Value that can go up or down (memory, temperature)
 - **Histogram** - Distribution of values (request durations)
@@ -44,6 +46,7 @@ cp .env.example .env
 ```
 
 **Available variables:**
+
 ```bash
 # Prometheus version
 PROMETHEUS_VERSION=latest
@@ -58,17 +61,17 @@ Prometheus is configured via `prometheus.yml` with default scrape targets:
 
 ```yaml
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+    scrape_interval: 15s
+    evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
+    - job_name: 'prometheus'
+      static_configs:
+          - targets: ['localhost:9090']
 
-  - job_name: 'otel-collector'
-    static_configs:
-      - targets: ['otel-collector:8889']
+    - job_name: 'otel-collector'
+      static_configs:
+          - targets: ['otel-collector:8889']
 ```
 
 ### Adding Custom Scrape Targets
@@ -77,51 +80,54 @@ Edit `prometheus.yml` in your project's `.devcontainer` directory:
 
 ```yaml
 scrape_configs:
-  # ... existing configs ...
+    # ... existing configs ...
 
-  - job_name: 'my-app'
-    static_configs:
-      - targets: ['my-app:8080']
-    scrape_interval: 5s
-    scrape_timeout: 5s
-    metrics_path: '/metrics'
-    scheme: http
+    - job_name: 'my-app'
+      static_configs:
+          - targets: ['my-app:8080']
+      scrape_interval: 5s
+      scrape_timeout: 5s
+      metrics_path: '/metrics'
+      scheme: http
 ```
 
 ### Service Discovery
 
 **File-based service discovery:**
+
 ```yaml
 scrape_configs:
-  - job_name: 'services'
-    file_sd_configs:
-      - files:
-        - '/etc/prometheus/targets/*.json'
-        refresh_interval: 30s
+    - job_name: 'services'
+      file_sd_configs:
+          - files:
+                - '/etc/prometheus/targets/*.json'
+            refresh_interval: 30s
 ```
 
 **targets.json:**
+
 ```json
 [
-  {
-    "targets": ["service1:8080", "service2:8080"],
-    "labels": {
-      "env": "development",
-      "team": "backend"
+    {
+        "targets": ["service1:8080", "service2:8080"],
+        "labels": {
+            "env": "development",
+            "team": "backend"
+        }
     }
-  }
 ]
 ```
 
 **Docker service discovery:**
+
 ```yaml
 scrape_configs:
-  - job_name: 'docker'
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-    relabel_configs:
-      - source_labels: [__meta_docker_container_name]
-        target_label: container
+    - job_name: 'docker'
+      docker_sd_configs:
+          - host: unix:///var/run/docker.sock
+      relabel_configs:
+          - source_labels: [__meta_docker_container_name]
+            target_label: container
 ```
 
 ### Port Configuration
@@ -138,6 +144,7 @@ container-superposition --port-offset 100
 ## Accessing Prometheus UI
 
 Open your browser to:
+
 ```
 http://localhost:9090
 ```
@@ -145,28 +152,33 @@ http://localhost:9090
 ### UI Features
 
 **1. Expression Browser**
+
 - Execute PromQL queries
 - View instant values
 - Graph time series
 - Export to CSV/JSON
 
 **2. Targets**
+
 - View all scrape targets
 - Check target health (up/down)
 - See last scrape time
 - View scrape errors
 
 **3. Rules**
+
 - View recording rules
 - View alerting rules
 - Check rule evaluation
 
 **4. Alerts**
+
 - See active alerts
 - View alert history
 - Check alert conditions
 
 **5. Service Discovery**
+
 - View discovered targets
 - Check target labels
 - Inspect metadata
@@ -176,16 +188,19 @@ http://localhost:9090
 ### Basic Queries
 
 **Current value of metric:**
+
 ```promql
 http_requests_total
 ```
 
 **Filter by labels:**
+
 ```promql
 http_requests_total{method="GET", status="200"}
 ```
 
 **Regular expression matching:**
+
 ```promql
 http_requests_total{status=~"2.."}  # 2xx status codes
 http_requests_total{path!~"/health|/metrics"}  # Exclude paths
@@ -194,21 +209,25 @@ http_requests_total{path!~"/health|/metrics"}  # Exclude paths
 ### Rate and Increase
 
 **Request rate (per second over 5 minutes):**
+
 ```promql
 rate(http_requests_total[5m])
 ```
 
 **Request rate by status code:**
+
 ```promql
 sum by (status) (rate(http_requests_total[5m]))
 ```
 
 **Total requests in last hour:**
+
 ```promql
 increase(http_requests_total[1h])
 ```
 
 **Requests per minute:**
+
 ```promql
 rate(http_requests_total[1m]) * 60
 ```
@@ -216,26 +235,31 @@ rate(http_requests_total[1m]) * 60
 ### Aggregation
 
 **Total requests across all instances:**
+
 ```promql
 sum(rate(http_requests_total[5m]))
 ```
 
 **Average by service:**
+
 ```promql
 avg by (service) (http_request_duration_seconds)
 ```
 
 **Maximum value:**
+
 ```promql
 max(process_resident_memory_bytes)
 ```
 
 **Count number of instances:**
+
 ```promql
 count(up{job="my-app"})
 ```
 
 **Group by multiple labels:**
+
 ```promql
 sum by (service, method) (rate(http_requests_total[5m]))
 ```
@@ -243,11 +267,13 @@ sum by (service, method) (rate(http_requests_total[5m]))
 ### Percentiles and Histograms
 
 **95th percentile latency:**
+
 ```promql
 histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
 ```
 
 **99th percentile by endpoint:**
+
 ```promql
 histogram_quantile(0.99,
   sum by (le, endpoint) (rate(http_request_duration_seconds_bucket[5m]))
@@ -255,6 +281,7 @@ histogram_quantile(0.99,
 ```
 
 **Average request duration:**
+
 ```promql
 rate(http_request_duration_seconds_sum[5m]) /
 rate(http_request_duration_seconds_count[5m])
@@ -263,17 +290,20 @@ rate(http_request_duration_seconds_count[5m])
 ### Error Rate
 
 **Error rate (5xx responses):**
+
 ```promql
 rate(http_requests_total{status=~"5.."}[5m])
 ```
 
 **Error ratio:**
+
 ```promql
 sum(rate(http_requests_total{status=~"5.."}[5m])) /
 sum(rate(http_requests_total[5m]))
 ```
 
 **Percentage of errors:**
+
 ```promql
 100 * (
   sum(rate(http_requests_total{status=~"5.."}[5m])) /
@@ -284,11 +314,13 @@ sum(rate(http_requests_total[5m]))
 ### Prediction and Trending
 
 **Predict value in 1 hour:**
+
 ```promql
 predict_linear(disk_usage_bytes[1h], 3600)
 ```
 
 **Derive change over time:**
+
 ```promql
 deriv(cpu_usage_percent[5m])
 ```
@@ -296,17 +328,20 @@ deriv(cpu_usage_percent[5m])
 ### Mathematical Operations
 
 **Memory usage percentage:**
+
 ```promql
 100 * (1 - (node_memory_available_bytes / node_memory_total_bytes))
 ```
 
 **Rate difference:**
+
 ```promql
 rate(http_requests_total{status="200"}[5m]) -
 rate(http_requests_total{status="200"}[5m] offset 1h)
 ```
 
 **Compare with offset:**
+
 ```promql
 http_requests_total - http_requests_total offset 1h
 ```
@@ -316,11 +351,13 @@ http_requests_total - http_requests_total offset 1h
 ### Node.js (prom-client)
 
 Install dependency:
+
 ```bash
 npm install prom-client
 ```
 
 **Basic setup:**
+
 ```javascript
 const express = require('express');
 const promClient = require('prom-client');
@@ -332,64 +369,67 @@ const register = new promClient.Registry();
 
 // Collect default metrics (CPU, memory, etc.)
 promClient.collectDefaultMetrics({
-  register,
-  prefix: 'myapp_',
+    register,
+    prefix: 'myapp_',
 });
 
 // Create custom counter
 const httpRequestsTotal = new promClient.Counter({
-  name: 'http_requests_total',
-  help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'status_code'],
-  registers: [register]
+    name: 'http_requests_total',
+    help: 'Total number of HTTP requests',
+    labelNames: ['method', 'route', 'status_code'],
+    registers: [register],
 });
 
 // Create histogram for latency
 const httpRequestDuration = new promClient.Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'status_code'],
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
-  registers: [register]
+    name: 'http_request_duration_seconds',
+    help: 'Duration of HTTP requests in seconds',
+    labelNames: ['method', 'route', 'status_code'],
+    buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
+    registers: [register],
 });
 
 // Create gauge for active connections
 const activeConnections = new promClient.Gauge({
-  name: 'active_connections',
-  help: 'Number of active connections',
-  registers: [register]
+    name: 'active_connections',
+    help: 'Number of active connections',
+    registers: [register],
 });
 
 // Middleware to track metrics
 app.use((req, res, next) => {
-  const start = Date.now();
-  activeConnections.inc();
+    const start = Date.now();
+    activeConnections.inc();
 
-  res.on('finish', () => {
-    const duration = (Date.now() - start) / 1000;
+    res.on('finish', () => {
+        const duration = (Date.now() - start) / 1000;
 
-    httpRequestsTotal.inc({
-      method: req.method,
-      route: req.route?.path || req.path,
-      status_code: res.statusCode,
+        httpRequestsTotal.inc({
+            method: req.method,
+            route: req.route?.path || req.path,
+            status_code: res.statusCode,
+        });
+
+        httpRequestDuration.observe(
+            {
+                method: req.method,
+                route: req.route?.path || req.path,
+                status_code: res.statusCode,
+            },
+            duration
+        );
+
+        activeConnections.dec();
     });
 
-    httpRequestDuration.observe({
-      method: req.method,
-      route: req.route?.path || req.path,
-      status_code: res.statusCode,
-    }, duration);
-
-    activeConnections.dec();
-  });
-
-  next();
+    next();
 });
 
 // Expose metrics endpoint
 app.get('/metrics', async (req, res) => {
-  res.set('Content-Type', register.contentType);
-  res.end(await register.metrics());
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
 });
 
 app.listen(3000);
@@ -398,11 +438,13 @@ app.listen(3000);
 ### Python (prometheus_client)
 
 Install dependency:
+
 ```bash
 pip install prometheus-client
 ```
 
 **Flask application:**
+
 ```python
 from flask import Flask, Response
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, REGISTRY
@@ -473,11 +515,13 @@ if __name__ == '__main__':
 ### .NET (prometheus-net)
 
 Install package:
+
 ```bash
 dotnet add package prometheus-net.AspNetCore
 ```
 
 **ASP.NET Core configuration:**
+
 ```csharp
 using Prometheus;
 
@@ -551,12 +595,14 @@ app.Run();
 ### Go (prometheus/client_golang)
 
 Install package:
+
 ```bash
 go get github.com/prometheus/client_golang/prometheus
 go get github.com/prometheus/client_golang/prometheus/promhttp
 ```
 
 **HTTP server with metrics:**
+
 ```go
 package main
 
@@ -653,37 +699,39 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 Recording rules pre-compute expensive queries and store results as new time series.
 
 **prometheus.yml:**
+
 ```yaml
 rule_files:
-  - "/etc/prometheus/rules/*.yml"
+    - '/etc/prometheus/rules/*.yml'
 ```
 
 **rules/app_rules.yml:**
+
 ```yaml
 groups:
-  - name: app_rules
-    interval: 30s
-    rules:
-      # Pre-calculate request rate
-      - record: job:http_requests:rate5m
-        expr: sum by (job) (rate(http_requests_total[5m]))
+    - name: app_rules
+      interval: 30s
+      rules:
+          # Pre-calculate request rate
+          - record: job:http_requests:rate5m
+            expr: sum by (job) (rate(http_requests_total[5m]))
 
-      # Pre-calculate error rate
-      - record: job:http_errors:rate5m
-        expr: |
-          sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+          # Pre-calculate error rate
+          - record: job:http_errors:rate5m
+            expr: |
+                sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
 
-      # Pre-calculate error ratio
-      - record: job:http_errors:ratio5m
-        expr: |
-          job:http_errors:rate5m / job:http_requests:rate5m
+          # Pre-calculate error ratio
+          - record: job:http_errors:ratio5m
+            expr: |
+                job:http_errors:rate5m / job:http_requests:rate5m
 
-      # Pre-calculate 95th percentile latency
-      - record: job:http_request_duration:p95
-        expr: |
-          histogram_quantile(0.95,
-            sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))
-          )
+          # Pre-calculate 95th percentile latency
+          - record: job:http_request_duration:p95
+            expr: |
+                histogram_quantile(0.95,
+                  sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))
+                )
 ```
 
 ## Alerting Rules
@@ -691,61 +739,62 @@ groups:
 Define alerts that trigger when conditions are met.
 
 **rules/alerts.yml:**
+
 ```yaml
 groups:
-  - name: app_alerts
-    interval: 15s
-    rules:
-      # Alert when error rate is high
-      - alert: HighErrorRate
-        expr: |
-          (
-            sum(rate(http_requests_total{status=~"5.."}[5m])) /
-            sum(rate(http_requests_total[5m]))
-          ) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High error rate detected"
-          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+    - name: app_alerts
+      interval: 15s
+      rules:
+          # Alert when error rate is high
+          - alert: HighErrorRate
+            expr: |
+                (
+                  sum(rate(http_requests_total{status=~"5.."}[5m])) /
+                  sum(rate(http_requests_total[5m]))
+                ) > 0.05
+            for: 5m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'High error rate detected'
+                description: 'Error rate is {{ $value | humanizePercentage }} (threshold: 5%)'
 
-      # Alert when latency is high
-      - alert: HighLatency
-        expr: |
-          histogram_quantile(0.95,
-            sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
-          ) > 1.0
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High latency detected"
-          description: "95th percentile latency is {{ $value }}s"
+          # Alert when latency is high
+          - alert: HighLatency
+            expr: |
+                histogram_quantile(0.95,
+                  sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+                ) > 1.0
+            for: 10m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'High latency detected'
+                description: '95th percentile latency is {{ $value }}s'
 
-      # Alert when service is down
-      - alert: ServiceDown
-        expr: up{job="my-app"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Service {{ $labels.job }} is down"
-          description: "{{ $labels.instance }} has been down for more than 1 minute"
+          # Alert when service is down
+          - alert: ServiceDown
+            expr: up{job="my-app"} == 0
+            for: 1m
+            labels:
+                severity: critical
+            annotations:
+                summary: 'Service {{ $labels.job }} is down'
+                description: '{{ $labels.instance }} has been down for more than 1 minute'
 
-      # Alert when disk space is low
-      - alert: DiskSpaceLow
-        expr: |
-          (
-            node_filesystem_avail_bytes{mountpoint="/"} /
-            node_filesystem_size_bytes{mountpoint="/"}
-          ) < 0.1
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Disk space is running low"
-          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+          # Alert when disk space is low
+          - alert: DiskSpaceLow
+            expr: |
+                (
+                  node_filesystem_avail_bytes{mountpoint="/"} /
+                  node_filesystem_size_bytes{mountpoint="/"}
+                ) < 0.1
+            for: 5m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'Disk space is running low'
+                description: 'Only {{ $value | humanizePercentage }} disk space remaining'
 ```
 
 ## Grafana Integration
@@ -763,41 +812,41 @@ groups:
 
 ```json
 {
-  "dashboard": {
-    "title": "Application Metrics",
-    "panels": [
-      {
-        "title": "Request Rate",
-        "targets": [
-          {
-            "expr": "rate(http_requests_total[5m])",
-            "legendFormat": "{{method}} {{status}}"
-          }
-        ],
-        "type": "graph"
-      },
-      {
-        "title": "Error Rate",
-        "targets": [
-          {
-            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))",
-            "legendFormat": "Errors"
-          }
-        ],
-        "type": "graph"
-      },
-      {
-        "title": "Latency (95th percentile)",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
-            "legendFormat": "p95"
-          }
-        ],
-        "type": "graph"
-      }
-    ]
-  }
+    "dashboard": {
+        "title": "Application Metrics",
+        "panels": [
+            {
+                "title": "Request Rate",
+                "targets": [
+                    {
+                        "expr": "rate(http_requests_total[5m])",
+                        "legendFormat": "{{method}} {{status}}"
+                    }
+                ],
+                "type": "graph"
+            },
+            {
+                "title": "Error Rate",
+                "targets": [
+                    {
+                        "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))",
+                        "legendFormat": "Errors"
+                    }
+                ],
+                "type": "graph"
+            },
+            {
+                "title": "Latency (95th percentile)",
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                        "legendFormat": "p95"
+                    }
+                ],
+                "type": "graph"
+            }
+        ]
+    }
 }
 ```
 
@@ -806,12 +855,14 @@ groups:
 ### Metric Naming Conventions
 
 **✅ Good names:**
+
 - `http_requests_total` - Counter with `_total` suffix
 - `http_request_duration_seconds` - Histogram with unit
 - `active_connections` - Gauge, no suffix
 - `process_cpu_seconds_total` - Counter with unit and `_total`
 
 **❌ Bad names:**
+
 - `requests` - Too generic, no type/unit
 - `http_request_duration` - Missing unit
 - `activeConnections` - Use snake_case, not camelCase
@@ -820,18 +871,21 @@ groups:
 ### Label Best Practices
 
 **✅ Good labels:**
+
 ```promql
 http_requests_total{method="GET", status="200", service="api"}
 # Low cardinality, meaningful dimensions
 ```
 
 **❌ Bad labels:**
+
 ```promql
 http_requests_total{user_id="12345", timestamp="1234567890"}
 # High cardinality, creates millions of time series
 ```
 
 **Keep label cardinality low:**
+
 - ✅ `status="200"` - ~5-10 values
 - ✅ `method="GET"` - ~10 values
 - ✅ `service="api"` - ~10-100 values
@@ -842,6 +896,7 @@ http_requests_total{user_id="12345", timestamp="1234567890"}
 ### Metric Types Usage
 
 **Counter** - Always increasing values:
+
 ```python
 # ✅ Correct
 requests_total.inc()
@@ -853,6 +908,7 @@ active_connections.inc()  # Use Gauge instead
 ```
 
 **Gauge** - Values that go up and down:
+
 ```python
 # ✅ Correct
 temperature.set(23.5)
@@ -865,6 +921,7 @@ requests_total.set(100)  # Use Counter instead
 ```
 
 **Histogram** - Distribution of values:
+
 ```python
 # ✅ Correct
 request_duration.observe(0.234)
@@ -878,6 +935,7 @@ Histogram('http_request_duration_seconds',
 ### Query Optimization
 
 **Use recording rules for expensive queries:**
+
 ```yaml
 # Instead of running this complex query repeatedly:
 histogram_quantile(0.95,
@@ -893,6 +951,7 @@ histogram_quantile(0.95,
 ```
 
 **Filter early, aggregate late:**
+
 ```promql
 # ✅ Good - Filter first
 sum(rate(http_requests_total{service="api", status="200"}[5m]))
@@ -906,55 +965,60 @@ sum(rate(http_requests_total[5m])) and {service="api"}
 ### Storage Optimization
 
 **Adjust retention:**
+
 ```yaml
 # docker-compose.yml
 services:
-  prometheus:
-    command:
-      - '--storage.tsdb.retention.time=30d'  # Keep 30 days
-      - '--storage.tsdb.retention.size=10GB'  # Max 10GB
+    prometheus:
+        command:
+            - '--storage.tsdb.retention.time=30d' # Keep 30 days
+            - '--storage.tsdb.retention.size=10GB' # Max 10GB
 ```
 
 **Tune for write performance:**
+
 ```yaml
 command:
-  - '--storage.tsdb.min-block-duration=2h'
-  - '--storage.tsdb.max-block-duration=2h'
+    - '--storage.tsdb.min-block-duration=2h'
+    - '--storage.tsdb.max-block-duration=2h'
 ```
 
 ### Scrape Configuration
 
 **Adjust scrape intervals:**
+
 ```yaml
 global:
-  scrape_interval: 15s      # Default
-  scrape_timeout: 10s
-  evaluation_interval: 15s  # How often to evaluate rules
+    scrape_interval: 15s # Default
+    scrape_timeout: 10s
+    evaluation_interval: 15s # How often to evaluate rules
 
 scrape_configs:
-  - job_name: 'high-frequency'
-    scrape_interval: 5s     # Override for specific job
-    static_configs:
-      - targets: ['app:8080']
+    - job_name: 'high-frequency'
+      scrape_interval: 5s # Override for specific job
+      static_configs:
+          - targets: ['app:8080']
 
-  - job_name: 'low-frequency'
-    scrape_interval: 60s    # Less frequent scraping
-    static_configs:
-      - targets: ['batch:8080']
+    - job_name: 'low-frequency'
+      scrape_interval: 60s # Less frequent scraping
+      static_configs:
+          - targets: ['batch:8080']
 ```
 
 ### Memory Management
 
 **Limit memory usage in docker-compose.yml:**
+
 ```yaml
 services:
-  prometheus:
-    mem_limit: 2g
-    environment:
-      - GOGC=50  # More aggressive garbage collection
+    prometheus:
+        mem_limit: 2g
+        environment:
+            - GOGC=50 # More aggressive garbage collection
 ```
 
 **Monitor Prometheus itself:**
+
 ```promql
 # TSDB size
 prometheus_tsdb_storage_blocks_bytes
@@ -971,25 +1035,26 @@ rate(prometheus_tsdb_head_samples_appended_total[5m])
 ### Remote Write to Long-term Storage
 
 **prometheus.yml:**
+
 ```yaml
 remote_write:
-  - url: "http://remote-storage:9201/write"
-    queue_config:
-      capacity: 10000
-      max_shards: 50
-      max_samples_per_send: 5000
-    write_relabel_configs:
-      - source_labels: [__name__]
-        regex: 'expensive_.*'
-        action: drop
+    - url: 'http://remote-storage:9201/write'
+      queue_config:
+          capacity: 10000
+          max_shards: 50
+          max_samples_per_send: 5000
+      write_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'expensive_.*'
+            action: drop
 ```
 
 ### Remote Read
 
 ```yaml
 remote_read:
-  - url: "http://remote-storage:9201/read"
-    read_recent: true
+    - url: 'http://remote-storage:9201/read'
+      read_recent: true
 ```
 
 ## Troubleshooting
@@ -997,11 +1062,13 @@ remote_read:
 ### Target not being scraped
 
 **Check targets page:**
+
 ```
 http://localhost:9090/targets
 ```
 
 **Verify target is reachable:**
+
 ```bash
 # From Prometheus container
 docker-compose exec prometheus wget -O- http://my-app:8080/metrics
@@ -1011,11 +1078,13 @@ curl http://my-app:8080/metrics
 ```
 
 **Check logs:**
+
 ```bash
 docker-compose logs prometheus | grep -i error
 ```
 
 **Common issues:**
+
 - Wrong hostname (use Docker service name, not localhost)
 - Wrong port
 - Metrics endpoint not implemented
@@ -1024,11 +1093,13 @@ docker-compose logs prometheus | grep -i error
 ### Metrics not appearing
 
 **Verify metric format:**
+
 ```bash
 curl http://localhost:8080/metrics
 ```
 
 **Should return:**
+
 ```
 # HELP http_requests_total Total HTTP requests
 # TYPE http_requests_total counter
@@ -1036,6 +1107,7 @@ http_requests_total{method="GET",status="200"} 1234
 ```
 
 **Check:**
+
 - Correct Content-Type: `text/plain; version=0.0.4`
 - Metric names follow conventions (snake_case)
 - Counter names end with `_total`
@@ -1044,36 +1116,41 @@ http_requests_total{method="GET",status="200"} 1234
 ### High memory usage
 
 **Check time series count:**
+
 ```promql
 prometheus_tsdb_head_series
 ```
 
 **If too high (>1 million):**
+
 1. Reduce label cardinality
 2. Drop unnecessary metrics with relabel configs
 3. Decrease retention time
 4. Use recording rules
 
 **Drop metrics:**
+
 ```yaml
 scrape_configs:
-  - job_name: 'my-app'
-    static_configs:
-      - targets: ['my-app:8080']
-    metric_relabel_configs:
-      - source_labels: [__name__]
-        regex: 'go_.*|process_.*'  # Drop Go runtime metrics
-        action: drop
+    - job_name: 'my-app'
+      static_configs:
+          - targets: ['my-app:8080']
+      metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'go_.*|process_.*' # Drop Go runtime metrics
+            action: drop
 ```
 
 ### Slow queries
 
 **Check query stats:**
+
 ```
 http://localhost:9090/tsdb-status
 ```
 
 **Optimize queries:**
+
 ```promql
 # ❌ Slow - Processes all data then filters
 rate(http_requests_total[5m]){status="200"}
@@ -1083,6 +1160,7 @@ rate(http_requests_total{status="200"}[5m])
 ```
 
 **Use recording rules for repeated queries:**
+
 ```yaml
 - record: job:http_requests:rate5m
   expr: sum by (job) (rate(http_requests_total[5m]))
@@ -1091,43 +1169,49 @@ rate(http_requests_total{status="200"}[5m])
 ### Data not persisting
 
 **Check volume mount:**
+
 ```bash
 docker volume ls
 docker volume inspect <prometheus_volume>
 ```
 
 **Verify in docker-compose.yml:**
+
 ```yaml
 services:
-  prometheus:
-    volumes:
-      - prometheus_data:/prometheus
+    prometheus:
+        volumes:
+            - prometheus_data:/prometheus
 
 volumes:
-  prometheus_data:
+    prometheus_data:
 ```
 
 ## Use Cases
 
 ### Application Monitoring
+
 - Track request rates and latencies
 - Monitor error rates
 - Measure business metrics (orders, sign-ups)
 - Track API usage
 
 ### Infrastructure Monitoring
+
 - CPU, memory, disk usage
 - Network traffic
 - Container metrics
 - Database performance
 
 ### SLI/SLO Tracking
+
 - Service availability
 - Request latency percentiles
 - Error budget consumption
 - SLA compliance
 
 ### Capacity Planning
+
 - Resource utilization trends
 - Growth predictions
 - Scaling triggers

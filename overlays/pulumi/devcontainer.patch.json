@@ -1,15 +1,13 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/devcontainers/features/pulumi:1": {
-      "version": "latest"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/devcontainers/features/pulumi:1": {
+            "version": "latest"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["pulumi.pulumi-lsp-client"]
+        }
     }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "pulumi.pulumi-lsp-client"
-      ]
-    }
-  }
 }

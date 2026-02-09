@@ -1,28 +1,32 @@
 version: '3.8'
 
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:${MSSQL_VERSION:-2022-latest}
-    restart: unless-stopped
-    volumes:
-      - sqlserver-data:/var/opt/mssql
-    environment:
-      ACCEPT_EULA: Y
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}
-      MSSQL_PID: ${MSSQL_PID:-Developer}
-    ports:
-      - "${MSSQL_PORT:-1433}:1433"
-    networks:
-      - devnet
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}' -Q 'SELECT 1' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    sqlserver:
+        image: mcr.microsoft.com/mssql/server:${MSSQL_VERSION:-2022-latest}
+        restart: unless-stopped
+        volumes:
+            - sqlserver-data:/var/opt/mssql
+        environment:
+            ACCEPT_EULA: Y
+            MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}
+            MSSQL_PID: ${MSSQL_PID:-Developer}
+        ports:
+            - '${MSSQL_PORT:-1433}:1433'
+        networks:
+            - devnet
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}' -Q 'SELECT 1' || exit 1",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 30s
 
 volumes:
-  sqlserver-data:
+    sqlserver-data:
 
 networks:
-  devnet:
+    devnet:

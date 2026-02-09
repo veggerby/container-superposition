@@ -16,23 +16,27 @@ Sample Node.js application fully instrumented with OpenTelemetry to demonstrate 
 This demo application showcases the three pillars of observability:
 
 **1. Traces (Distributed Tracing):**
+
 - Auto-instrumented HTTP server
 - Custom spans for business logic
 - Trace context propagation
 - Parent-child span relationships
 
 **2. Metrics (Time-Series Data):**
+
 - `http_requests_total` - Counter of all HTTP requests
 - `http_request_duration_seconds` - Histogram of request latencies
 - `http_requests_active` - Gauge of concurrent requests
 
 **3. Logs (Structured Logging):**
+
 - JSON formatted logs
 - Trace ID and span ID correlation
 - Log levels (info, warn, error)
 - Searchable in Loki
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[OTel Demo App Node.js<br/>HTTP server on port 8080<br/>OpenTelemetry SDK<br/>Auto-instrumentation] -->|OTLP gRPC| B[OpenTelemetry Collector<br/>Receives OTLP data<br/>Routes to backends]
@@ -63,6 +67,7 @@ OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0,deployment.environment=dev
 ### Dependencies
 
 Requires:
+
 - **otel-collector** - Required to receive and route telemetry
 - **jaeger** or **tempo** - Recommended for trace visualization
 - **prometheus** - Recommended for metrics visualization
@@ -88,18 +93,19 @@ curl http://localhost:8080/api/data
 ```
 
 **Example response:**
+
 ```json
 {
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "items": [
-    { "id": 1, "name": "Item 1", "value": 42.5 },
-    { "id": 2, "name": "Item 2", "value": 78.3 },
-    { "id": 3, "name": "Item 3", "value": 15.9 }
-  ],
-  "trace": {
-    "traceId": "a1b2c3d4e5f6...",
-    "spanId": "123abc..."
-  }
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "items": [
+        { "id": 1, "name": "Item 1", "value": 42.5 },
+        { "id": 2, "name": "Item 2", "value": 78.3 },
+        { "id": 3, "name": "Item 3", "value": 15.9 }
+    ],
+    "trace": {
+        "traceId": "a1b2c3d4e5f6...",
+        "spanId": "123abc..."
+    }
 }
 ```
 
@@ -135,15 +141,17 @@ curl http://localhost:8080/health
 2. Go to **Explore**
 3. Select **Jaeger** or **Tempo** datasource
 4. Search for traces:
-   - Service: `otel-demo-nodejs`
-   - Operation: `GET /api/data`
+    - Service: `otel-demo-nodejs`
+    - Operation: `GET /api/data`
 
 **TraceQL query (for Tempo):**
+
 ```traceql
 { service.name = "otel-demo-nodejs" }
 ```
 
 **What you'll see:**
+
 - Request spans with timing
 - Parent-child relationships
 - HTTP metadata (method, status, URL)
@@ -157,11 +165,13 @@ curl http://localhost:8080/health
 4. Query metrics:
 
 **Request rate:**
+
 ```promql
 rate(http_requests_total{service="otel-demo-nodejs"}[5m])
 ```
 
 **Request duration (p99):**
+
 ```promql
 histogram_quantile(0.99,
   rate(http_request_duration_seconds_bucket{service="otel-demo-nodejs"}[5m])
@@ -169,11 +179,13 @@ histogram_quantile(0.99,
 ```
 
 **Active requests:**
+
 ```promql
 http_requests_active{service="otel-demo-nodejs"}
 ```
 
 **Error rate:**
+
 ```promql
 rate(http_requests_total{service="otel-demo-nodejs", status="500"}[5m])
 ```
@@ -186,21 +198,25 @@ rate(http_requests_total{service="otel-demo-nodejs", status="500"}[5m])
 4. Query logs:
 
 **All logs from service:**
+
 ```logql
 {service="otel-demo-nodejs"}
 ```
 
 **Error logs only:**
+
 ```logql
 {service="otel-demo-nodejs"} | json | level="error"
 ```
 
 **Logs for specific trace:**
+
 ```logql
 {service="otel-demo-nodejs"} | json | `trace.id`="a1b2c3d4..."
 ```
 
 **Logs with rate:**
+
 ```logql
 rate({service="otel-demo-nodejs"} | json | level="error" [5m])
 ```
@@ -216,6 +232,7 @@ rate({service="otel-demo-nodejs"} | json | level="error" [5m])
 ## Testing the Complete Stack
 
 **1. Generate traffic:**
+
 ```bash
 # Normal requests
 for i in {1..10}; do curl http://localhost:8080/api/data; done
@@ -228,21 +245,25 @@ for i in {1..3}; do curl http://localhost:8080/api/error; done
 ```
 
 **2. View traces:**
+
 - Open Grafana → Explore → Jaeger/Tempo
 - Search for `otel-demo-nodejs`
 - Click on traces to see spans
 
 **3. View metrics:**
+
 - Open Grafana → Explore → Prometheus
 - Query: `rate(http_requests_total[5m])`
 - Create dashboard with panels
 
 **4. View logs:**
+
 - Open Grafana → Explore → Loki
 - Query: `{service="otel-demo-nodejs"}`
 - Filter by trace ID from spans
 
 **5. Correlate data:**
+
 - Click trace ID in logs → jumps to trace
 - Click "Logs for this span" in trace → jumps to logs
 - View metrics dashboard with trace exemplars
@@ -256,15 +277,15 @@ const { trace } = require('@opentelemetry/api');
 const tracer = trace.getTracer('my-app');
 
 function myFunction() {
-  const span = tracer.startSpan('my_operation');
+    const span = tracer.startSpan('my_operation');
 
-  try {
-    // Your code here
-    span.setAttribute('key', 'value');
-    span.addEvent('Something happened');
-  } finally {
-    span.end();
-  }
+    try {
+        // Your code here
+        span.setAttribute('key', 'value');
+        span.addEvent('Something happened');
+    } finally {
+        span.end();
+    }
 }
 ```
 
@@ -275,7 +296,7 @@ const { metrics } = require('@opentelemetry/api');
 const meter = metrics.getMeter('my-app');
 
 const myCounter = meter.createCounter('my_counter', {
-  description: 'Counts something',
+    description: 'Counts something',
 });
 
 myCounter.add(1, { label: 'value' });
@@ -285,10 +306,10 @@ myCounter.add(1, { label: 'value' });
 
 ```javascript
 logger.info({
-  msg: 'User action',
-  userId: '123',
-  action: 'login',
-  'trace.id': span.spanContext().traceId,
+    msg: 'User action',
+    userId: '123',
+    action: 'login',
+    'trace.id': span.spanContext().traceId,
 });
 ```
 
@@ -297,9 +318,11 @@ logger.info({
 ### Issue: No Traces Appearing
 
 **Symptoms:**
+
 - App running but no traces in Jaeger/Tempo
 
 **Solutions:**
+
 ```bash
 # Check OTLP endpoint is reachable
 docker exec otel-demo-nodejs wget -O- http://otel-collector:4317
@@ -317,9 +340,11 @@ docker exec otel-collector cat /etc/otel-collector-config.yaml
 ### Issue: No Metrics Appearing
 
 **Symptoms:**
+
 - Traces work but metrics don't show in Prometheus
 
 **Solutions:**
+
 ```bash
 # Check otel-collector exports to Prometheus
 # Look for prometheusexporter in otel-collector config
@@ -334,9 +359,11 @@ docker logs otel-demo-nodejs | grep "metric"
 ### Issue: No Logs in Loki
 
 **Symptoms:**
+
 - App logs to stdout but not in Loki
 
 **Solutions:**
+
 ```bash
 # Check promtail is running (if using promtail)
 docker ps | grep promtail
@@ -354,11 +381,13 @@ docker logs promtail | grep otel-demo-nodejs
 ## Performance Considerations
 
 **Resource Usage:**
+
 - **CPU:** ~10-20% during load (single-core)
 - **Memory:** ~150MB (Node.js + OpenTelemetry SDK)
 - **Network:** Minimal (batched OTLP exports)
 
 **For production-like testing:**
+
 - Increase traffic volume with load testing tools
 - Adjust export intervals in `tracing.js`
 - Configure sampling for high-traffic scenarios
@@ -371,6 +400,7 @@ docker logs promtail | grep otel-demo-nodejs
 - [Auto-instrumentation](https://opentelemetry.io/docs/instrumentation/js/automatic/)
 
 **Related Overlays:**
+
 - `otel-collector` - Required for receiving telemetry
 - `jaeger` or `tempo` - Trace visualization
 - `prometheus` - Metrics storage

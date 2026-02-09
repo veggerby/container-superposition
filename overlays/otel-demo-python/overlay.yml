@@ -3,21 +3,21 @@ name: OTel Demo (Python)
 description: Sample Python Flask app with OpenTelemetry instrumentation
 category: observability
 supports:
-  - compose
+    - compose
 requires:
-  - otel-collector
+    - otel-collector
 suggests:
-  - jaeger
-  - tempo
-  - prometheus
-  - loki
-  - grafana
+    - jaeger
+    - tempo
+    - prometheus
+    - loki
+    - grafana
 conflicts: []
 tags:
-  - observability
-  - demo
-  - python
-  - opentelemetry
+    - observability
+    - demo
+    - python
+    - opentelemetry
 ports:
-  - 8081
+    - 8081
 order: 4

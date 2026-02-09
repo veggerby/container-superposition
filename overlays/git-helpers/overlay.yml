@@ -7,9 +7,9 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - dev
-  - git
-  - security
-  - ssh
-  - gpg
+    - dev
+    - git
+    - security
+    - ssh
+    - gpg
 ports: []

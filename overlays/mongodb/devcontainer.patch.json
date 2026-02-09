@@ -1,34 +1,32 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "mongodb-mongosh",
-      "apk": "mongodb-tools"
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "mongodb.mongodb-vscode"
-      ]
-    }
-  },
-  "runServices": ["mongodb", "mongo-express"],
-  "forwardPorts": [27017, 8081],
-  "portsAttributes": {
-    "27017": {
-      "label": "MongoDB",
-      "onAutoForward": "notify"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "mongodb-mongosh",
+            "apk": "mongodb-tools"
+        }
     },
-    "8081": {
-      "label": "Mongo Express",
-      "onAutoForward": "openBrowser"
+    "customizations": {
+        "vscode": {
+            "extensions": ["mongodb.mongodb-vscode"]
+        }
+    },
+    "runServices": ["mongodb", "mongo-express"],
+    "forwardPorts": [27017, 8081],
+    "portsAttributes": {
+        "27017": {
+            "label": "MongoDB",
+            "onAutoForward": "notify"
+        },
+        "8081": {
+            "label": "Mongo Express",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "remoteEnv": {
+        "MONGODB_HOST": "mongodb",
+        "MONGODB_PORT": "27017",
+        "MONGODB_USER": "root",
+        "MONGODB_PASSWORD": "example"
     }
-  },
-  "remoteEnv": {
-    "MONGODB_HOST": "mongodb",
-    "MONGODB_PORT": "27017",
-    "MONGODB_USER": "root",
-    "MONGODB_PASSWORD": "example"
-  }
 }

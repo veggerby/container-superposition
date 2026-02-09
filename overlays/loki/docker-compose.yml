@@ -1,18 +1,18 @@
-version: "3.8"
+version: '3.8'
 services:
-  loki:
-    image: grafana/loki:${LOKI_VERSION:-latest}
-    command: -config.file=/etc/loki/loki-config.yaml
-    volumes:
-      - ./loki-config-loki.yaml:/etc/loki/loki-config.yaml
-      - loki_data:/loki
-    ports:
-      - "${LOKI_PORT:-3100}:3100"
-    networks:
-      - devnet
+    loki:
+        image: grafana/loki:${LOKI_VERSION:-latest}
+        command: -config.file=/etc/loki/loki-config.yaml
+        volumes:
+            - ./loki-config-loki.yaml:/etc/loki/loki-config.yaml
+            - loki_data:/loki
+        ports:
+            - '${LOKI_PORT:-3100}:3100'
+        networks:
+            - devnet
 
 volumes:
-  loki_data:
+    loki_data:
 
 networks:
-  devnet:
+    devnet:

@@ -16,6 +16,7 @@ Microsoft SQL Server 2022 for Linux - enterprise-grade relational database for .
 This overlay adds Microsoft SQL Server 2022 for Linux as a Docker Compose service. The database runs in its own container and is accessible from your development container via the hostname `sqlserver`.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container<br/>Your application code<br/>VS Code mssql extension<br/>Connects to sqlserver:1433] -->|Docker network devnet| B[SQL Server Container<br/>SQL Server 2022<br/>Port 1433<br/>Data volume]
@@ -33,6 +34,7 @@ cp .env.example .env
 ```
 
 **Default values (.env.example):**
+
 ```bash
 # SQL Server Configuration
 MSSQL_VERSION=2022-latest
@@ -42,6 +44,7 @@ MSSQL_PORT=1433
 ```
 
 ⚠️ **Password Requirements:** SQL Server requires passwords with:
+
 - At least 8 characters
 - At least one uppercase letter
 - At least one lowercase letter
@@ -95,19 +98,20 @@ Server=localhost,1433;Database=master;User Id=sa;Password=YourStrong@Passw0rd;Tr
 1. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
 2. Select "MS SQL: Connect"
 3. Create a new connection profile:
-   - **Server:** sqlserver,1433
-   - **Database:** master (or your database name)
-   - **Authentication:** SQL Login
-   - **User:** sa
-   - **Password:** YourStrong@Passw0rd
-   - **Save Password:** Yes
-   - **Profile Name:** SQL Server Dev
+    - **Server:** sqlserver,1433
+    - **Database:** master (or your database name)
+    - **Authentication:** SQL Login
+    - **User:** sa
+    - **Password:** YourStrong@Passw0rd
+    - **Save Password:** Yes
+    - **Profile Name:** SQL Server Dev
 
 ## Common Commands
 
 ### Using VS Code Extension
 
 The MS SQL extension provides:
+
 - Query editor with IntelliSense
 - Execute queries (Ctrl+Shift+E / Cmd+Shift+E)
 - View databases and tables in sidebar
@@ -277,32 +281,32 @@ npm install mssql
 const sql = require('mssql');
 
 const config = {
-  server: 'sqlserver',
-  port: 1433,
-  database: 'MyApp',
-  user: 'sa',
-  password: 'YourStrong@Passw0rd',
-  options: {
-    trustServerCertificate: true,
-    enableArithAbort: true
-  }
+    server: 'sqlserver',
+    port: 1433,
+    database: 'MyApp',
+    user: 'sa',
+    password: 'YourStrong@Passw0rd',
+    options: {
+        trustServerCertificate: true,
+        enableArithAbort: true,
+    },
 };
 
 async function main() {
-  const pool = await sql.connect(config);
+    const pool = await sql.connect(config);
 
-  // Query
-  const result = await pool.request()
-    .query('SELECT * FROM Users');
-  console.log(result.recordset);
+    // Query
+    const result = await pool.request().query('SELECT * FROM Users');
+    console.log(result.recordset);
 
-  // Insert
-  await pool.request()
-    .input('name', sql.NVarChar, 'Alice')
-    .input('email', sql.NVarChar, 'alice@example.com')
-    .query('INSERT INTO Users (Name, Email) VALUES (@name, @email)');
+    // Insert
+    await pool
+        .request()
+        .input('name', sql.NVarChar, 'Alice')
+        .input('email', sql.NVarChar, 'alice@example.com')
+        .query('INSERT INTO Users (Name, Email) VALUES (@name, @email)');
 
-  await pool.close();
+    await pool.close();
 }
 
 main();
@@ -394,6 +398,7 @@ func main() {
 - **Business intelligence** - SSRS, SSAS integration
 
 **Integrates well with:**
+
 - .NET (dotnet overlay) - Primary development platform
 - Azure CLI (azure-cli overlay) - Cloud deployment
 - Grafana (grafana overlay) - Database metrics visualization
@@ -404,10 +409,12 @@ func main() {
 ### Issue: Cannot connect to SQL Server
 
 **Symptoms:**
+
 - Connection refused errors
 - Timeout when connecting
 
 **Solution:**
+
 ```bash
 # Check if service is running
 docker-compose ps
@@ -430,10 +437,12 @@ docker exec -it $(docker ps -qf "name=sqlserver") \
 ### Issue: Login failed for user 'sa'
 
 **Symptoms:**
+
 - "Login failed for user 'sa'"
 - Authentication errors
 
 **Solution:**
+
 ```bash
 # Verify password in .env file
 cat .devcontainer/.env
@@ -448,9 +457,11 @@ docker-compose up -d
 ### Issue: TrustServerCertificate error
 
 **Symptoms:**
+
 - "The certificate chain was issued by an authority that is not trusted"
 
 **Solution:**
+
 ```bash
 # Add TrustServerCertificate=True to connection string
 # Or use TrustServerCertificate=yes for ODBC
@@ -462,9 +473,11 @@ docker-compose up -d
 ### Issue: Database not found
 
 **Symptoms:**
+
 - "Cannot open database 'MyApp' requested by the login"
 
 **Solution:**
+
 ```sql
 -- Connect to master database first
 -- Then create your database
@@ -475,9 +488,11 @@ USE MyApp;
 ### Issue: Data not persisting
 
 **Symptoms:**
+
 - Data lost after container restart
 
 **Solution:**
+
 ```bash
 # Verify volumes exist
 docker volume ls | grep sqlserver
@@ -492,9 +507,11 @@ docker-compose config
 ### Issue: Container exits immediately
 
 **Symptoms:**
+
 - SQL Server container keeps restarting
 
 **Solution:**
+
 ```bash
 # Check logs for error messages
 docker-compose logs sqlserver
@@ -518,34 +535,36 @@ docker-compose logs sqlserver
 **For production:**
 
 1. **Change SA password:**
-   ```bash
-   # Use strong password meeting complexity requirements
-   MSSQL_SA_PASSWORD=<ComplexPassword123!>
-   ```
+
+    ```bash
+    # Use strong password meeting complexity requirements
+    MSSQL_SA_PASSWORD=<ComplexPassword123!>
+    ```
 
 2. **Create application-specific users:**
-   ```sql
-   -- Don't use SA for applications
-   CREATE LOGIN appuser WITH PASSWORD = 'ComplexPassword123!';
-   CREATE USER appuser FOR LOGIN appuser;
-   GRANT SELECT, INSERT, UPDATE, DELETE ON DATABASE::MyApp TO appuser;
-   ```
+
+    ```sql
+    -- Don't use SA for applications
+    CREATE LOGIN appuser WITH PASSWORD = 'ComplexPassword123!';
+    CREATE USER appuser FOR LOGIN appuser;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON DATABASE::MyApp TO appuser;
+    ```
 
 3. **Restrict network access:**
-   - Don't expose ports publicly
-   - Use firewall rules
-   - Enable TLS/SSL encryption
+    - Don't expose ports publicly
+    - Use firewall rules
+    - Enable TLS/SSL encryption
 
 4. **Use Windows Authentication (if applicable):**
-   - Configure Active Directory integration
-   - Disable SQL authentication for production
+    - Configure Active Directory integration
+    - Disable SQL authentication for production
 
 5. **Enable auditing:**
-   ```sql
-   -- Enable server audit
-   CREATE SERVER AUDIT MyAudit TO FILE (FILEPATH = '/var/opt/mssql/audit/');
-   ALTER SERVER AUDIT MyAudit WITH (STATE = ON);
-   ```
+    ```sql
+    -- Enable server audit
+    CREATE SERVER AUDIT MyAudit TO FILE (FILEPATH = '/var/opt/mssql/audit/');
+    ALTER SERVER AUDIT MyAudit WITH (STATE = ON);
+    ```
 
 ## Related Overlays
 

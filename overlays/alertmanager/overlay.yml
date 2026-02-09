@@ -3,15 +3,15 @@ name: Alertmanager
 description: Alert routing and notification management for Prometheus
 category: observability
 supports:
-  - compose
+    - compose
 requires:
-  - prometheus
+    - prometheus
 suggests: []
 conflicts: []
 tags:
-  - observability
-  - alerts
-  - prometheus
+    - observability
+    - alerts
+    - prometheus
 ports:
-  - 9093
+    - 9093
 order: 2

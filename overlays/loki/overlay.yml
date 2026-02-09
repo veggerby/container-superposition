@@ -3,15 +3,15 @@ name: Loki
 description: Log aggregation system
 category: observability
 supports:
-  - compose
+    - compose
 requires: []
 suggests:
-  - promtail
+    - promtail
 conflicts: []
 tags:
-  - observability
-  - logs
-  - loki
+    - observability
+    - logs
+    - loki
 ports:
-  - 3100
+    - 3100
 order: 1

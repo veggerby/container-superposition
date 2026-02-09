@@ -1,43 +1,43 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://container-superposition.dev/schema/base-images.json",
-  "title": "Base Images Configuration",
-  "description": "Available base container images",
-  "type": "object",
-  "required": ["base_images"],
-  "properties": {
-    "base_images": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "name", "description", "image"],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique identifier for the base image",
-            "pattern": "^[a-z0-9-]+$"
-          },
-          "name": {
-            "type": "string",
-            "description": "Human-readable name"
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the base image"
-          },
-          "image": {
-            "type": ["string", "null"],
-            "description": "Docker image reference (null for custom)"
-          },
-          "package_manager": {
-            "type": "string",
-            "description": "Package manager for this image",
-            "enum": ["apt", "apk"]
-          }
-        },
-        "additionalProperties": false
-      }
-    }
-  },
-  "additionalProperties": false
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://container-superposition.dev/schema/base-images.json",
+    "title": "Base Images Configuration",
+    "description": "Available base container images",
+    "type": "object",
+    "required": ["base_images"],
+    "properties": {
+        "base_images": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["id", "name", "description", "image"],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique identifier for the base image",
+                        "pattern": "^[a-z0-9-]+$"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Human-readable name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description of the base image"
+                    },
+                    "image": {
+                        "type": ["string", "null"],
+                        "description": "Docker image reference (null for custom)"
+                    },
+                    "package_manager": {
+                        "type": "string",
+                        "description": "Package manager for this image",
+                        "enum": ["apt", "apk"]
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    },
+    "additionalProperties": false
 }

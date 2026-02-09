@@ -6,15 +6,15 @@ Material for MkDocs - professional documentation generator.
 
 - **MkDocs** with Material theme (via official devcontainers-extra feature)
 - **Common MkDocs plugins:**
-  - mkdocs-material
-  - mkdocs-minify-plugin
-  - mkdocs-redirects
-  - pymdown-extensions
+    - mkdocs-material
+    - mkdocs-minify-plugin
+    - mkdocs-redirects
+    - pymdown-extensions
 - **Python dependency:** Automatically includes Python overlay (required)
 - **VS Code Extensions:**
-  - Markdown All in One
-  - Markdown Lint
-  - Markdown Mermaid
+    - Markdown All in One
+    - Markdown Lint
+    - Markdown Mermaid
 - **Port forwarding:** 8000 (MkDocs dev server, auto-opens in browser)
 
 ## Dependencies
@@ -74,37 +74,37 @@ mkdocs build
 ```yaml
 site_name: My Documentation
 theme:
-  name: material
-  palette:
-    scheme: default
-    primary: indigo
-    accent: indigo
-  features:
-    - navigation.sections
-    - navigation.expand
-    - toc.integrate
+    name: material
+    palette:
+        scheme: default
+        primary: indigo
+        accent: indigo
+    features:
+        - navigation.sections
+        - navigation.expand
+        - toc.integrate
 
 nav:
-  - Home: index.md
-  - About: about.md
+    - Home: index.md
+    - About: about.md
 
 markdown_extensions:
-  - pymdownx.highlight
-  - pymdownx.superfences
-  - pymdownx.tabbed
-  - admonition
+    - pymdownx.highlight
+    - pymdownx.superfences
+    - pymdownx.tabbed
+    - admonition
 ```
 
 ### Common Plugins
 
 ```yaml
 plugins:
-  - search
-  - minify:
-      minify_html: true
-  - redirects:
-      redirect_maps:
-        'old-page.md': 'new-page.md'
+    - search
+    - minify:
+          minify_html: true
+    - redirects:
+          redirect_maps:
+              'old-page.md': 'new-page.md'
 ```
 
 ## Project Structure
@@ -129,6 +129,7 @@ If you need extra Python packages for MkDocs plugins, you have two options:
 ### Option 1: Edit requirements-overlay.txt (Recommended)
 
 Edit `.devcontainer/requirements-overlay.txt`:
+
 ```
 mkdocs>=1.5.0
 mkdocs-material>=9.0.0
@@ -142,6 +143,7 @@ Rebuild the container to install.
 ### Option 2: Project requirements.txt
 
 Create `requirements.txt` in your project root:
+
 ```
 mkdocs-git-revision-date-localized-plugin
 mkdocs-awesome-pages-plugin
@@ -157,38 +159,38 @@ This is useful if you want to version control plugin dependencies separately.
 ```yaml
 # mkdocs.yml
 plugins:
-  - search
-  - git-revision-date-localized:
-      type: date
-  - macros  # Use variables and macros
+    - search
+    - git-revision-date-localized:
+          type: date
+    - macros # Use variables and macros
 ```
 
 ### API Documentation
 
 ```yaml
 markdown_extensions:
-  - pymdownx.highlight:
-      linenums: true
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+    - pymdownx.highlight:
+          linenums: true
+    - pymdownx.superfences:
+          custom_fences:
+              - name: mermaid
+                class: mermaid
+                format: !!python/name:pymdownx.superfences.fence_code_format
 ```
 
 ### Multi-language Docs
 
 ```yaml
 plugins:
-  - search:
-      lang:
-        - en
-        - es
-  - i18n:
-      default_language: en
-      languages:
-        en: English
-        es: Español
+    - search:
+          lang:
+              - en
+              - es
+    - i18n:
+          default_language: en
+          languages:
+              en: English
+              es: Español
 ```
 
 ## Building and Deploying
@@ -212,19 +214,19 @@ mkdocs gh-deploy
 ```yaml
 name: Deploy Docs
 on:
-  push:
-    branches: [main]
+    push:
+        branches: [main]
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.12
-      - run: pip install mkdocs mkdocs-material
-      - run: mkdocs gh-deploy --force
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: 3.12
+            - run: pip install mkdocs mkdocs-material
+            - run: mkdocs gh-deploy --force
 ```
 
 ## Material Theme Features
@@ -233,31 +235,31 @@ jobs:
 
 ```yaml
 theme:
-  features:
-    - navigation.instant      # Instant loading
-    - navigation.sections     # Group pages
-    - navigation.tabs         # Top-level tabs
-    - toc.integrate           # Integrated ToC
+    features:
+        - navigation.instant # Instant loading
+        - navigation.sections # Group pages
+        - navigation.tabs # Top-level tabs
+        - toc.integrate # Integrated ToC
 ```
 
 ### Search
 
 ```yaml
 theme:
-  features:
-    - search.suggest
-    - search.highlight
+    features:
+        - search.suggest
+        - search.highlight
 ```
 
 ### Code Blocks
 
 ```yaml
 markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
+    - pymdownx.highlight:
+          anchor_linenums: true
+    - pymdownx.inlinehilite
+    - pymdownx.snippets
+    - pymdownx.superfences
 ```
 
 ## Best Practices
@@ -273,11 +275,13 @@ markdown_extensions:
 ### Module not found after adding plugin
 
 Rebuild the container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### MkDocs command not found
 
 Setup script may have failed. Run manually:
+
 ```bash
 pip install --user mkdocs mkdocs-material
 ```
@@ -285,6 +289,7 @@ pip install --user mkdocs mkdocs-material
 ### Port 8000 already in use
 
 Change the port in mkdocs.yml:
+
 ```yaml
 dev_addr: '0.0.0.0:8001'
 ```
