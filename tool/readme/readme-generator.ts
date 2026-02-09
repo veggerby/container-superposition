@@ -9,7 +9,6 @@ import type { QuestionnaireAnswers, OverlayMetadata } from '../schema/types.js';
 import {
     parseMarkdown,
     findSection,
-    extractSectionAsMarkdown,
     getFirstParagraph,
     type MarkdownSection,
 } from './markdown-parser.js';
@@ -213,7 +212,12 @@ function generateHeader(answers: QuestionnaireAnswers): string {
 
     let metadata = `> Template: ${answers.stack}`;
     if (answers.baseImage && answers.baseImage !== 'bookworm') {
-        metadata += ` | Base Image: ${answers.baseImage}`;
+        // When a custom base image is selected, surface the actual image value instead of "custom"
+        if (answers.baseImage === 'custom' && answers.customImage) {
+            metadata += ` | Base Image: ${answers.customImage}`;
+        } else {
+            metadata += ` | Base Image: ${answers.baseImage}`;
+        }
     }
     if (answers.preset) {
         metadata += ` | Preset: ${answers.preset}`;
@@ -258,15 +262,41 @@ function generateQuickStart(answers: QuestionnaireAnswers): string {
 }
 
 /**
+ * Compute relative path from output directory to repo root for documentation links.
+ * If output is outside the repo, falls back to assuming standard .devcontainer location.
+ */
+function getRelativePathToRepo(outputPath: string): string {
+    const normalizedOutput = path.normalize(outputPath);
+    const normalizedRepo = path.normalize(REPO_ROOT);
+    
+    // Check if output path is inside the repository
+    if (normalizedOutput.startsWith(normalizedRepo)) {
+        // Compute proper relative path
+        return path.posix.relative(
+            path.posix.normalize(outputPath.replace(/\\/g, '/')),
+            path.posix.normalize(REPO_ROOT.replace(/\\/g, '/'))
+        );
+    } else {
+        // Output is outside repo - assume standard .devcontainer location for links
+        // This is a reasonable fallback since overlays won't be accessible anyway
+        return '..';
+    }
+}
+
+/**
  * Generate services section with extracted overlay documentation
  */
 function generateServices(
     overlayDocs: OverlayDocs[],
-    overlayMetadata: Map<string, OverlayMetadata>
+    overlayMetadata: Map<string, OverlayMetadata>,
+    outputPath: string
 ): string {
     if (overlayDocs.length === 0) {
         return '';
     }
+
+    // Compute relative path from output directory to repo root
+    const relativeToRepo = getRelativePathToRepo(outputPath);
 
     const parts: string[] = [];
     parts.push('## Services and Tools');
@@ -315,17 +345,23 @@ function generateServices(
                 parts.push('');
             }
 
-            // Extract and include relevant sections
+            // Extract and include relevant sections (excluding Troubleshooting to avoid duplication)
             for (const [sectionTitle, sectionContent] of docs.sections) {
+                // Skip Troubleshooting section here since it's aggregated later
+                if (sectionTitle.toLowerCase().includes('troubleshoot')) {
+                    continue;
+                }
+                
                 parts.push(`**${sectionTitle}**`);
                 parts.push('');
                 parts.push(sectionContent);
                 parts.push('');
             }
 
-            // Add link to full README
+            // Add link to full README using computed relative path
+            const overlayReadmePath = path.posix.join(relativeToRepo, 'overlays', docs.id, 'README.md');
             parts.push(
-                `*For complete documentation, see [${docs.name} overlay](../overlays/${docs.id}/README.md)*`
+                `*For complete documentation, see [${docs.name} overlay](${overlayReadmePath})*`
             );
             parts.push('');
         }
@@ -390,7 +426,10 @@ function generateTroubleshooting(overlayDocs: OverlayDocs[]): string {
 /**
  * Generate references section
  */
-function generateReferences(overlayIds: string[]): string {
+function generateReferences(overlayIds: string[], outputPath: string): string {
+    // Compute relative path from output directory to repo root
+    const relativeToRepo = getRelativePathToRepo(outputPath);
+
     const parts: string[] = [];
     parts.push('## References');
     parts.push('');
@@ -398,14 +437,17 @@ function generateReferences(overlayIds: string[]): string {
     parts.push('');
 
     for (const overlayId of overlayIds) {
-        parts.push(`- [${overlayId}](../overlays/${overlayId}/README.md)`);
+        const overlayReadmePath = path.posix.join(relativeToRepo, 'overlays', overlayId, 'README.md');
+        parts.push(`- [${overlayId}](${overlayReadmePath})`);
     }
 
     parts.push('');
     parts.push('**Project Documentation:**');
     parts.push('');
-    parts.push('- [Container Superposition](../README.md)');
-    parts.push('- [Documentation](../docs/README.md)');
+    const mainReadmePath = path.posix.join(relativeToRepo, 'README.md');
+    const docsReadmePath = path.posix.join(relativeToRepo, 'docs', 'README.md');
+    parts.push(`- [Container Superposition](${mainReadmePath})`);
+    parts.push(`- [Documentation](${docsReadmePath})`);
     parts.push('');
 
     return parts.join('\n');
@@ -444,7 +486,7 @@ export function generateReadme(
 
     // 4. Services and Tools section
     if (overlayDocs.length > 0) {
-        parts.push(generateServices(overlayDocs, overlayMetadata));
+        parts.push(generateServices(overlayDocs, overlayMetadata, outputPath));
     }
 
     // 5. Environment Variables section
@@ -460,7 +502,7 @@ export function generateReadme(
     }
 
     // 7. References
-    parts.push(generateReferences(overlays));
+    parts.push(generateReferences(overlays, outputPath));
 
     // Write README.md
     const readmePath = path.join(outputPath, 'README.md');
