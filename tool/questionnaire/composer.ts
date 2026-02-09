@@ -488,7 +488,7 @@ function copyOverlayFiles(outputPath: string, overlayName: string, registry: Fil
 /**
  * Merge .env.example files from overlays and apply glue config
  */
-function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: number, glueConfig?: PresetGlueConfig, presetName?: string): void {
+function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: number, glueConfig?: PresetGlueConfig, presetName?: string): boolean {
   const envSections: string[] = [];
 
   for (const overlay of overlays) {
@@ -514,7 +514,7 @@ function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: n
   }
 
   if (envSections.length === 0) {
-    return;
+    return false;
   }
 
   // Create combined .env.example
@@ -548,6 +548,8 @@ function mergeEnvExamples(outputPath: string, overlays: string[], portOffset?: n
     fs.writeFileSync(envFilePath, envContent);
     console.log(chalk.dim(`   🔧 Created .env with port offset of ${portOffset}`));
   }
+
+  return true;
 }
 
 /**
@@ -574,13 +576,16 @@ function applyPortOffsetToEnv(envContent: string, offset: number): string {
  * Apply preset glue configuration (README and port mappings)
  * Note: Environment variables are handled in mergeEnvExamples to ensure proper port offset application
  */
-function applyGlueConfig(outputPath: string, glueConfig: PresetGlueConfig, presetName?: string): void {
+function applyGlueConfig(outputPath: string, glueConfig: PresetGlueConfig, presetName?: string, fileRegistry?: FileRegistry): void {
   console.log(chalk.cyan(`\n📦 Applying preset glue configuration...\n`));
 
   // 1. Create preset README if provided
   if (glueConfig.readme) {
     const readmePath = path.join(outputPath, 'PRESET-README.md');
     fs.writeFileSync(readmePath, glueConfig.readme);
+    if (fileRegistry) {
+      fileRegistry.addFile('PRESET-README.md');
+    }
     console.log(chalk.dim(`   ✓ Created PRESET-README.md with usage instructions`));
   }
 
@@ -874,7 +879,8 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
       console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));
     }
   }
-    // 8. Filter docker-compose dependencies based on selected overlays
+
+  // 8. Filter docker-compose dependencies based on selected overlays
   filterDockerComposeDependencies(outputPath, overlays);
 
   // 9. Merge runServices array in correct order
@@ -896,10 +902,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   }
 
   // Merge setup scripts from overlays into postCreateCommand
-  mergeSetupScripts(config, overlays, outputPath);
-  if (overlays.length > 0) {
-    fileRegistry.addDirectory('scripts'); // Scripts directory created by mergeSetupScripts
-  }
+  mergeSetupScripts(config, overlays, outputPath, fileRegistry);
 
   // Remove internal fields (those starting with _)
   Object.keys(config).forEach(key => {
@@ -919,12 +922,14 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   fileRegistry.addFile('superposition.json');
 
   // 14. Merge .env.example files from overlays and apply glue config environment variables
-  mergeEnvExamples(outputPath, overlays, answers.portOffset, answers.presetGlueConfig, answers.preset);
-  fileRegistry.addFile('.env.example');
+  const envCreated = mergeEnvExamples(outputPath, overlays, answers.portOffset, answers.presetGlueConfig, answers.preset);
+  if (envCreated) {
+    fileRegistry.addFile('.env.example');
+  }
 
   // 15. Apply preset glue configuration (README and port mappings) if present
   if (answers.presetGlueConfig) {
-    applyGlueConfig(outputPath, answers.presetGlueConfig, answers.preset);
+    applyGlueConfig(outputPath, answers.presetGlueConfig, answers.preset, fileRegistry);
   }
 
   // 16. Clean up stale files from previous runs (preserves superposition.json and .env)
@@ -963,16 +968,27 @@ function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): vo
 /**
  * Merge setup scripts from overlays into postCreateCommand
  */
-function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath: string): void {
+function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath: string, fileRegistry: FileRegistry): void {
   const setupScripts: string[] = [];
+  const verifyScripts: string[] = [];
 
   // Create scripts subfolder
   const scriptsDir = path.join(outputPath, 'scripts');
   if (!fs.existsSync(scriptsDir)) {
     fs.mkdirSync(scriptsDir, { recursive: true });
   }
+  
+  // Add scripts directory to registry if any scripts will be added
+  const hasScripts = overlays.some(o => 
+    fs.existsSync(path.join(OVERLAYS_DIR, o, 'setup.sh')) || 
+    fs.existsSync(path.join(OVERLAYS_DIR, o, 'verify.sh'))
+  );
+  if (hasScripts) {
+    fileRegistry.addDirectory('scripts');
+  }
 
   for (const overlay of overlays) {
+    // Handle setup scripts
     const setupPath = path.join(OVERLAYS_DIR, overlay, 'setup.sh');
     if (fs.existsSync(setupPath)) {
       // Copy setup script to scripts subdirectory
@@ -981,8 +997,23 @@ function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath:
 
       // Make it executable
       fs.chmodSync(destPath, 0o755);
+      fileRegistry.addFile(`scripts/setup-${overlay}.sh`);
 
       setupScripts.push(`bash .devcontainer/scripts/setup-${overlay}.sh`);
+    }
+
+    // Handle verify scripts
+    const verifyPath = path.join(OVERLAYS_DIR, overlay, 'verify.sh');
+    if (fs.existsSync(verifyPath)) {
+      // Copy verify script to scripts subdirectory
+      const destPath = path.join(scriptsDir, `verify-${overlay}.sh`);
+      fs.copyFileSync(verifyPath, destPath);
+
+      // Make it executable
+      fs.chmodSync(destPath, 0o755);
+      fileRegistry.addFile(`scripts/verify-${overlay}.sh`);
+
+      verifyScripts.push(`bash .devcontainer/scripts/verify-${overlay}.sh`);
     }
   }
 
@@ -1007,6 +1038,29 @@ function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath:
     }
 
     console.log(chalk.dim(`   🔧 Added ${setupScripts.length} setup script(s)`));
+  }
+
+  if (verifyScripts.length > 0) {
+    // Initialize postStartCommand if it doesn't exist
+    if (!config.postStartCommand) {
+      config.postStartCommand = {};
+    }
+
+    // If postStartCommand is a string, convert to object
+    if (typeof config.postStartCommand === 'string') {
+      config.postStartCommand = { 'default': config.postStartCommand };
+    }
+
+    // Add verify scripts
+    for (let i = 0; i < verifyScripts.length; i++) {
+      const overlay = overlays.filter(o => {
+        const verifyPath = path.join(OVERLAYS_DIR, o, 'verify.sh');
+        return fs.existsSync(verifyPath);
+      })[i];
+      config.postStartCommand[`verify-${overlay}`] = verifyScripts[i];
+    }
+
+    console.log(chalk.dim(`   ✓ Added ${verifyScripts.length} verification script(s)`));
   }
 }
 

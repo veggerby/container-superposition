@@ -262,9 +262,36 @@ export function loadOverlaysConfig(overlaysDir: string, indexYmlPath: string): O
   // Fallback to old centralized index.yml
   if (fs.existsSync(indexYmlPath)) {
     const content = fs.readFileSync(indexYmlPath, 'utf8');
-    const config = yaml.load(content) as OverlaysConfig;
+    const legacyConfig = yaml.load(content) as any;
 
-    return config;
+    // Check if this is the new format (has 'overlays' field) or old format (per-category arrays)
+    if (legacyConfig.overlays && Array.isArray(legacyConfig.overlays)) {
+      // New format - already has overlays array
+      return legacyConfig as OverlaysConfig;
+    }
+
+    // Old format - convert per-category arrays to single overlays array
+    const allOverlays: OverlayMetadata[] = [];
+    const categoryKeys = [
+      'language_overlays',
+      'database_overlays',
+      'observability_overlays',
+      'cloud_tool_overlays',
+      'dev_tool_overlays',
+      'preset_overlays'
+    ];
+
+    for (const key of categoryKeys) {
+      if (legacyConfig[key] && Array.isArray(legacyConfig[key])) {
+        allOverlays.push(...legacyConfig[key]);
+      }
+    }
+
+    return {
+      base_images: legacyConfig.base_images || [],
+      base_templates: legacyConfig.base_templates || [],
+      overlays: allOverlays,
+    };
   }
 
   throw new Error('No overlay configuration found. Expected either .registry/ directory or index.yml');

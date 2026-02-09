@@ -154,7 +154,8 @@ function generateDocumentation(config: OverlaysConfig): string {
 
 // Main execution
 const overlaysDir = path.join(REPO_ROOT, 'overlays');
-const config = loadOverlaysConfig(overlaysDir);
+const indexYmlPath = path.join(overlaysDir, 'index.yml');
+const config = loadOverlaysConfig(overlaysDir, indexYmlPath);
 const documentation = generateDocumentation(config);
 
 // Ensure output directory exists

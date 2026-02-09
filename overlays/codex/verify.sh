@@ -13,11 +13,11 @@ fi
 
 echo "✓ codex CLI is installed: $(codex --version 2>/dev/null || echo 'installed')"
 
-# Check CODEX_HOME directory exists
+# Check .codex directory exists
 if [ -d "$HOME/.codex" ]; then
     echo "✓ .codex directory exists: $HOME/.codex"
 else
-    echo "⚠️  .codex directory not found"
+    echo "⚠️  .codex directory not found at $HOME/.codex"
 fi
 
 echo ""
@@ -25,6 +25,6 @@ echo "✅ Codex overlay verification complete!"
 echo ""
 
 echo "💡 Tips:"
-echo "  - Install global packages: pnpm add -g <package>"
-echo "  - View global packages: pnpm list -g"
-echo "  - Global bin directory: $PNPM_BIN_DIR"
+echo "  - Run 'codex --help' to see available commands"
+echo "  - Your Codex home directory is: $HOME/.codex"
+echo "  - Ensure 'codex' is available on your PATH inside the devcontainer"
