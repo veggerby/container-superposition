@@ -27,6 +27,7 @@ To use your host SSH keys in the container, add this mount to your `devcontainer
 ```
 
 This allows you to:
+
 - Push/pull from Git repositories using SSH
 - Use SSH agent forwarding
 - Maintain existing SSH configurations
@@ -50,16 +51,18 @@ To use your host GPG keys in the container, add this mount to your `devcontainer
 GPG commit signing is supported but requires manual setup:
 
 1. Import your GPG keys into the container, or generate new ones:
+
    ```bash
    # Generate a new key
    gpg --full-generate-key
-   
+
    # Or import from your host (copy your key ID first on host with: gpg --list-secret-keys)
    # On host: gpg --export-secret-keys YOUR_KEY_ID > key.gpg
    # In container: gpg --import key.gpg
    ```
 
 2. Configure Git to use your signing key:
+
    ```bash
    git config --global user.signingkey YOUR_KEY_ID
    git config --global commit.gpgsign true
@@ -136,6 +139,7 @@ gh repo create
 ### SSH Permissions
 
 If you encounter SSH permission errors, the setup script automatically fixes permissions:
+
 - `~/.ssh` directory: 700
 - SSH key files: 600
 

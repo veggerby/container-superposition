@@ -26,7 +26,7 @@
     }
   },
   "remoteEnv": {
-    "PATH": "/home/vscode/.cargo/bin:${containerEnv:PATH}"
+    "PATH": "${containerEnv:HOME}/.cargo/bin:${containerEnv:PATH}"
   },
   "forwardPorts": [8080, 3000],
   "portsAttributes": {

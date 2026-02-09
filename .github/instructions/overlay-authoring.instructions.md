@@ -210,6 +210,7 @@ Define environment variables for the devcontainer environment.
 **Guidelines:**
 
 - Use for PATH modifications, tool configuration, default settings
+- For user home directory references, use `${containerEnv:HOME}` instead of hardcoding `/home/vscode`
 - Reference container environment with `${containerEnv:VARIABLE}`
 - Prepend to PATH, don't replace: `"/new/path:${containerEnv:PATH}"`
 - Use `${localEnv:VARIABLE}` to pass-through from host (rarely needed)
@@ -219,8 +220,8 @@ Define environment variables for the devcontainer environment.
 ```json
 {
   "remoteEnv": {
-    "PATH": "/home/vscode/.npm-global/bin:${containerEnv:PATH}",
-    "PNPM_HOME": "/home/vscode/.local/share/pnpm",
+    "PATH": "${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}",
+    "PNPM_HOME": "${containerEnv:HOME}/.local/share/pnpm",
     "NODE_ENV": "development"
   }
 }
@@ -274,7 +275,7 @@ Define ports to forward from container to host.
 
 ```json
 {
-  "postCreateCommand": "sh .devcontainer/setup-nodejs.sh"
+  "postCreateCommand": "bash .devcontainer/setup-nodejs.sh"
 }
 ```
 
@@ -282,7 +283,7 @@ Define ports to forward from container to host.
 
 ```json
 {
-  "postStartCommand": "sh .devcontainer/verify-dotnet.sh"
+  "postStartCommand": "bash .devcontainer/verify-dotnet.sh"
 }
 ```
 

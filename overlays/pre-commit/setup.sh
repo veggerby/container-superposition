@@ -9,7 +9,7 @@ echo "🔍 Setting up pre-commit framework..."
 pip install --user pre-commit
 
 # Add to PATH if not already there
-export PATH="/home/vscode/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 # Verify installation
 if command -v pre-commit &> /dev/null; then

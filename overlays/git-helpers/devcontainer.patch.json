@@ -29,6 +29,5 @@
   },
   "postStartCommand": {
     "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}"
-  },
-  "postCreateCommand": "bash .devcontainer/scripts/setup-git-helpers.sh"
+  }
 }

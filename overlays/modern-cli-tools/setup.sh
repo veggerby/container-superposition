@@ -92,8 +92,8 @@ else
 fi
 
 # Configure bat
-mkdir -p /home/vscode/.config/bat
-cat > /home/vscode/.config/bat/config << 'EOF'
+mkdir -p "$HOME/.config/bat"
+cat > "$HOME/.config/bat/config" << 'EOF'
 # bat configuration
 --theme="Monokai Extended"
 --style="numbers,changes,header"
@@ -102,7 +102,7 @@ cat > /home/vscode/.config/bat/config << 'EOF'
 EOF
 
 # Create shell aliases
-ALIAS_FILE="/home/vscode/.bash_aliases"
+ALIAS_FILE="$HOME/.bash_aliases"
 cat > "$ALIAS_FILE" << 'EOF'
 # Modern CLI tools aliases
 
@@ -126,13 +126,13 @@ EOF
 echo "✓ Shell aliases created in $ALIAS_FILE"
 
 # Source aliases in .bashrc if not already done
-if [ -f /home/vscode/.bashrc ]; then
-    if ! grep -q ".bash_aliases" /home/vscode/.bashrc; then
-        echo "" >> /home/vscode/.bashrc
-        echo "# Load modern CLI tool aliases" >> /home/vscode/.bashrc
-        echo "if [ -f ~/.bash_aliases ]; then" >> /home/vscode/.bashrc
-        echo "    . ~/.bash_aliases" >> /home/vscode/.bashrc
-        echo "fi" >> /home/vscode/.bashrc
+if [ -f "$HOME/.bashrc" ]; then
+    if ! grep -q ".bash_aliases" "$HOME/.bashrc"; then
+        echo "" >> "$HOME/.bashrc"
+        echo "# Load modern CLI tool aliases" >> "$HOME/.bashrc"
+        echo "if [ -f ~/.bash_aliases ]; then" >> "$HOME/.bashrc"
+        echo "    . ~/.bash_aliases" >> "$HOME/.bashrc"
+        echo "fi" >> "$HOME/.bashrc"
     fi
 fi
 

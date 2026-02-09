@@ -18,17 +18,17 @@ else
 fi
 
 # Add direnv hook to bash profile
-if [ -f /home/vscode/.bashrc ]; then
-    if ! grep -q "direnv hook bash" /home/vscode/.bashrc; then
-        echo 'eval "$(direnv hook bash)"' >> /home/vscode/.bashrc
+if [ -f "$HOME/.bashrc" ]; then
+    if ! grep -q "direnv hook bash" "$HOME/.bashrc"; then
+        echo 'eval "$(direnv hook bash)"' >> "$HOME/.bashrc"
         echo "✓ direnv hook added to .bashrc"
     fi
 fi
 
 # Add direnv hook to zsh profile if zsh is installed
-if command -v zsh &> /dev/null && [ -f /home/vscode/.zshrc ]; then
-    if ! grep -q "direnv hook zsh" /home/vscode/.zshrc; then
-        echo 'eval "$(direnv hook zsh)"' >> /home/vscode/.zshrc
+if command -v zsh &> /dev/null && [ -f "$HOME/.zshrc" ]; then
+    if ! grep -q "direnv hook zsh" "$HOME/.zshrc"; then
+        echo 'eval "$(direnv hook zsh)"' >> "$HOME/.zshrc"
         echo "✓ direnv hook added to .zshrc"
     fi
 fi
@@ -72,7 +72,7 @@ PATH_add ./scripts
 log_status "✓ Environment loaded for $PROJECT_NAME"
 EOF
     echo "✓ Sample .envrc created"
-    
+
     # Note: Auto-allowing .envrc in devcontainer context
     # WARNING: .envrc can execute arbitrary code. Review before allowing in production.
     echo "⚠️  Auto-allowing .envrc for devcontainer (review contents before use)"

@@ -1,22 +1,24 @@
 #!/bin/bash
-# Codex setup script - Install pnpm globally
+# Codex setup script - Install OpenAI Codex CLI
 
 set -e
 
-echo "📦 Installing pnpm globally..."
+echo "📦 Installing OpenAI Codex CLI..."
 
-# Install pnpm using npm
-npm install -g pnpm
+# Install @openai/codex globally
+npm install -g @openai/codex
 
-# Verify installation
-if command -v pnpm &> /dev/null; then
-    echo "✓ pnpm installed successfully: $(pnpm --version)"
+# Verify codex installation
+if command -v codex &> /dev/null; then
+    echo "✓ Codex CLI installed successfully: $(codex --version 2>/dev/null || echo 'installed')"
 else
-    echo "✗ pnpm installation failed"
+    echo "✗ Codex CLI installation failed"
     exit 1
 fi
 
-# Create .codex directory if it doesn't exist
-mkdir -p /home/vscode/.codex
+# Create .codex directory for configuration
+mkdir -p "$HOME/.codex"
 
 echo "✓ Codex setup complete"
+echo "ℹ️  OpenAI Codex CLI: https://github.com/openai/openai-codex-cli"
+echo "ℹ️  Configuration directory: $HOME/.codex"

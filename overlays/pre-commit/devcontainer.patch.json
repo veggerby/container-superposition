@@ -5,6 +5,5 @@
       "version": "3.12",
       "installTools": true
     }
-  },
-  "postCreateCommand": "bash .devcontainer/pre-commit-setup.sh"
+  }
 }

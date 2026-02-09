@@ -7,79 +7,72 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import * as yaml from 'js-yaml';
-import type { OverlaysConfig, OverlayMetadata } from '../schema/types.js';
+import type { OverlayMetadata } from '../tool/schema/types.js';
+import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Resolve REPO_ROOT that works in both source and compiled output
-// When running from TypeScript sources (e.g. tsx), __dirname is "<root>/tool/docs"
-// When running from compiled JS in "dist/tool/docs", __dirname is "<root>/dist/tool/docs"
 const REPO_ROOT_CANDIDATES = [
-  path.join(__dirname, '..', '..'),          // From source: tool/docs -> root
-  path.join(__dirname, '..', '..', '..'),    // From dist: dist/tool/docs -> root
+  path.join(__dirname, '..'),          // From source: docs -> root
+  path.join(__dirname, '..', '..'),    // From dist/docs -> root
 ];
 
-const REPO_ROOT = REPO_ROOT_CANDIDATES.find(candidate => 
-  fs.existsSync(path.join(candidate, 'templates')) && 
-  fs.existsSync(path.join(candidate, 'tool', 'overlays'))
+const REPO_ROOT = REPO_ROOT_CANDIDATES.find(candidate =>
+  fs.existsSync(path.join(candidate, 'templates')) &&
+  fs.existsSync(path.join(candidate, 'overlays'))
 ) ?? REPO_ROOT_CANDIDATES[0];
 
-const OVERLAYS_CONFIG_PATH = path.join(REPO_ROOT, 'tool', 'overlays.yml');
-const OUTPUT_PATH = path.join(REPO_ROOT, 'tool', 'docs', 'overlays.md');
-
-function loadOverlaysConfig(): OverlaysConfig {
-  return yaml.load(fs.readFileSync(OVERLAYS_CONFIG_PATH, 'utf-8')) as OverlaysConfig;
-}
+const OUTPUT_PATH = path.join(REPO_ROOT, 'docs', 'overlays.md');
 
 function formatOverlay(overlay: OverlayMetadata): string {
   const sections: string[] = [];
-  
+
   // Header
   sections.push(`### ${overlay.name} (\`${overlay.id}\`)`);
   sections.push('');
   sections.push(overlay.description);
   sections.push('');
-  
+
   // Metadata table
   sections.push('| Property | Value |');
   sections.push('|----------|-------|');
   sections.push(`| **Category** | ${overlay.category} |`);
-  
+
   if (overlay.supports && overlay.supports.length > 0) {
     sections.push(`| **Supports** | ${overlay.supports.join(', ')} |`);
   }
-  
+
   if (overlay.requires && overlay.requires.length > 0) {
     sections.push(`| **Requires** | ${overlay.requires.map(r => `\`${r}\``).join(', ')} |`);
   }
-  
+
   if (overlay.suggests && overlay.suggests.length > 0) {
     sections.push(`| **Suggests** | ${overlay.suggests.map(s => `\`${s}\``).join(', ')} |`);
   }
-  
+
   if (overlay.conflicts && overlay.conflicts.length > 0) {
     sections.push(`| **Conflicts** | ${overlay.conflicts.map(c => `\`${c}\``).join(', ')} |`);
   }
-  
+
   if (overlay.tags && overlay.tags.length > 0) {
     sections.push(`| **Tags** | ${overlay.tags.map(t => `\`${t}\``).join(', ')} |`);
   }
-  
+
   if (overlay.ports && overlay.ports.length > 0) {
     sections.push(`| **Ports** | ${overlay.ports.join(', ')} |`);
   }
-  
+
   sections.push('');
-  
+
   return sections.join('\n');
 }
 
 function generateDocumentation(config: OverlaysConfig): string {
   const sections: string[] = [];
-  
+
   // Header
   sections.push('# Overlay Reference');
   sections.push('');
@@ -95,42 +88,42 @@ function generateDocumentation(config: OverlaysConfig): string {
   sections.push('- [Cloud Tool Overlays](#cloud-tool-overlays)');
   sections.push('- [Dev Tool Overlays](#dev-tool-overlays)');
   sections.push('');
-  
+
   // Language overlays
   sections.push('## Language Overlays');
   sections.push('');
-  config.language_overlays.forEach(overlay => {
+  config.overlays.filter(o => o.category === 'language').forEach(overlay => {
     sections.push(formatOverlay(overlay));
   });
-  
+
   // Database overlays
   sections.push('## Database Overlays');
   sections.push('');
-  config.database_overlays.forEach(overlay => {
+  config.overlays.filter(o => o.category === 'database').forEach(overlay => {
     sections.push(formatOverlay(overlay));
   });
-  
+
   // Observability overlays
   sections.push('## Observability Overlays');
   sections.push('');
-  config.observability_overlays.forEach(overlay => {
+  config.overlays.filter(o => o.category === 'observability').forEach(overlay => {
     sections.push(formatOverlay(overlay));
   });
-  
+
   // Cloud tool overlays
   sections.push('## Cloud Tool Overlays');
   sections.push('');
-  config.cloud_tool_overlays.forEach(overlay => {
+  config.overlays.filter(o => o.category === 'cloud').forEach(overlay => {
     sections.push(formatOverlay(overlay));
   });
-  
+
   // Dev tool overlays
   sections.push('## Dev Tool Overlays');
   sections.push('');
-  config.dev_tool_overlays.forEach(overlay => {
+  config.overlays.filter(o => o.category === 'dev').forEach(overlay => {
     sections.push(formatOverlay(overlay));
   });
-  
+
   // Dependency Model
   sections.push('## Dependency Model');
   sections.push('');
@@ -149,18 +142,20 @@ function generateDocumentation(config: OverlaysConfig): string {
   sections.push('');
   sections.push('Each overlay declares its ports explicitly. When using port offset, all declared ports are shifted by the same offset.');
   sections.push('');
-  
+
   // Footer
   sections.push('---');
   sections.push('');
   sections.push(`*Documentation generated on ${new Date().toISOString()}*`);
   sections.push('');
-  
+
   return sections.join('\n');
 }
 
 // Main execution
-const config = loadOverlaysConfig();
+const overlaysDir = path.join(REPO_ROOT, 'overlays');
+const indexYmlPath = path.join(overlaysDir, 'index.yml');
+const config = loadOverlaysConfig(overlaysDir, indexYmlPath);
 const documentation = generateDocumentation(config);
 
 // Ensure output directory exists
