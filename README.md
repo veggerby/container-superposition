@@ -299,6 +299,53 @@ npm run init -- --from-manifest ./superposition.json
 
 See [tool/README.md](tool/README.md) for full documentation.
 
+### Preserving Project-Specific Customizations
+
+**Problem**: When you regenerate a devcontainer (to add overlays or update), manual customizations are lost.
+
+**Solution**: Use the `.devcontainer/custom/` directory for customizations that persist across regenerations.
+
+**Quick example:**
+
+```bash
+# 1. Generate initial devcontainer
+npm run init -- --stack compose --language nodejs --database postgres
+
+# 2. Add custom patches
+mkdir -p .devcontainer/custom
+
+# Add custom mounts, extensions, etc.
+cat > .devcontainer/custom/devcontainer.patch.json << 'EOF'
+{
+  "mounts": [
+    "source=${localWorkspaceFolder}/../shared-libs,target=/workspace/shared,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": ["eamodio.gitlens"]
+    }
+  }
+}
+EOF
+
+# 3. Regenerate (e.g., to add Redis)
+npm run init -- --from-manifest .devcontainer/superposition.json
+# Select redis in addition to existing overlays
+
+# 4. Your custom patches are automatically preserved and merged! ✅
+```
+
+**Supported customization files:**
+
+- `devcontainer.patch.json` - Merges into devcontainer.json
+- `docker-compose.patch.yml` - Merges into docker-compose.yml
+- `environment.env` - Additional environment variables
+- `scripts/post-create.sh` - Custom one-time setup script
+- `scripts/post-start.sh` - Custom startup script
+- `files/` - Additional files to copy
+
+See **[Custom Patches Guide](docs/custom-patches.md)** for complete documentation and examples.
+
 ### Option 2: Manual Composition
 
 1. **Copy a base template:**
@@ -531,6 +578,7 @@ postgres:5432 - accepting connections
 - **Composability** - Features can be mixed and matched
 - **Minimal Bloat** - Only include what's needed
 - **No Lock-In** - Standard devcontainer format, works anywhere
+- **Preserve Customizations** - Project-specific changes survive regeneration via `.devcontainer/custom/`
 
 ## 🏗️ Building Your Own Template
 
@@ -566,6 +614,7 @@ Example `devcontainer.json` structure:
 Complete documentation is available in the [docs/](docs/) folder:
 
 - **[Documentation Index](docs/README.md)** - Complete documentation overview
+- **[Custom Patches](docs/custom-patches.md)** - Preserve project-specific customizations across regenerations
 - **[Publishing Guide](docs/publishing.md)** - How to publish to npm
 - **[Quick Reference](docs/quick-reference.md)** - Templates, overlays, ports, commands
 - **[Architecture](docs/architecture.md)** - Design principles and composition logic
