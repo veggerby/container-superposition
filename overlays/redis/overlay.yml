@@ -3,13 +3,13 @@ name: Redis
 description: Redis 7 cache
 category: database
 supports:
-  - compose
+    - compose
 requires: []
 suggests: []
 conflicts: []
 tags:
-  - database
-  - cache
-  - redis
+    - database
+    - cache
+    - redis
 ports:
-  - 6379
+    - 6379

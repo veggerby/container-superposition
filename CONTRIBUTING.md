@@ -16,17 +16,17 @@ Create `overlays/my-feature/devcontainer.patch.json`:
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/devcontainers/features/some-tool:1": {
-      "version": "latest"
-    }
-  },
-  "forwardPorts": [8080],
-  "remoteEnv": {
-    "MY_TOOL_HOST": "localhost",
-    "MY_TOOL_PORT": "8080"
-  }
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/devcontainers/features/some-tool:1": {
+            "version": "latest",
+        },
+    },
+    "forwardPorts": [8080],
+    "remoteEnv": {
+        "MY_TOOL_HOST": "localhost",
+        "MY_TOOL_PORT": "8080",
+    },
 }
 ```
 
@@ -38,27 +38,28 @@ If your overlay needs a service, create `overlays/my-feature/docker-compose.yml`
 version: '3.8'
 
 services:
-  my-service:
-    image: my-image:latest
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    volumes:
-      - my-data:/data
-    depends_on:
-      - other-service  # Only if dependency exists
-    networks:
-      - devnet
+    my-service:
+        image: my-image:latest
+        restart: unless-stopped
+        ports:
+            - '8080:8080'
+        volumes:
+            - my-data:/data
+        depends_on:
+            - other-service # Only if dependency exists
+        networks:
+            - devnet
 
 volumes:
-  my-data:
+    my-data:
 
 networks:
-  devnet:
-    external: true
+    devnet:
+        external: true
 ```
 
-**Important:** 
+**Important:**
+
 - Include `depends_on` for services your overlay depends on
 - The composer will filter out dependencies not selected by the user
 - Use `networks: - devnet` to connect to the shared network
@@ -97,12 +98,12 @@ In `devcontainer.patch.json`, specify which services to run and their startup or
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "runServices": ["my-service"],
-  "_serviceOrder": 1,  // 0=infrastructure, 1=backends, 2=middleware, 3=UI
-  "features": {
-    // ...
-  }
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["my-service"],
+    "_serviceOrder": 1, // 0=infrastructure, 1=backends, 2=middleware, 3=UI
+    "features": {
+        // ...
+    },
 }
 ```
 
@@ -115,12 +116,12 @@ Edit `scripts/init.ts` to add your overlay as an option:
 ```typescript
 // Add to the appropriate category in the questionnaire
 const observabilityTools = await checkbox({
-  message: 'Select observability tools:',
-  choices: [
-    { name: 'OpenTelemetry Collector', value: 'otel-collector' },
-    { name: 'Jaeger (Tracing)', value: 'jaeger' },
-    { name: 'My Feature', value: 'my-feature' },  // Add here
-  ],
+    message: 'Select observability tools:',
+    choices: [
+        { name: 'OpenTelemetry Collector', value: 'otel-collector' },
+        { name: 'Jaeger (Tracing)', value: 'jaeger' },
+        { name: 'My Feature', value: 'my-feature' }, // Add here
+    ],
 });
 ```
 
@@ -128,7 +129,7 @@ const observabilityTools = await checkbox({
 
 Update `tool/schema/types.ts` if adding to a new or existing category:
 
-```typescript
+````typescript
 // If adding to observability
 export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'my-feature';
 
@@ -143,7 +144,7 @@ Add to the appropriate section in `overlays/README.md`:
 ### My Category
 
 - **my-feature** - Description of what it does, ports, and key features
-```
+````
 
 If the overlay is complex, create `overlays/my-feature/README.md`:
 
@@ -179,7 +180,9 @@ Add to `overlays/README.md`:
 ```markdown
 - **my-feature** - Description of what it does
 ```
+
 Update architecture docs in `tool/docs/` if the overlay introduces new concepts.
+
 ### 7. Test
 
 ```bash
@@ -200,20 +203,20 @@ mkdir -p templates/my-stack/.devcontainer/scripts
 
 ```jsonc
 {
-  "name": "My Stack Development",
-  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
-  "features": {
-    // Add features from containers.dev
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [],
-      "settings": {}
-    }
-  },
-  "postCreateCommand": {
-    "install-script": "bash ${containerWorkspaceFolder}/.devcontainer/scripts/post_create.sh"
-  }
+    "name": "My Stack Development",
+    "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+    "features": {
+        // Add features from containers.dev
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [],
+            "settings": {},
+        },
+    },
+    "postCreateCommand": {
+        "install-script": "bash ${containerWorkspaceFolder}/.devcontainer/scripts/post_create.sh",
+    },
 }
 ```
 
@@ -258,8 +261,8 @@ Edit `scripts/init.ts`:
 console.log('   5) My Stack');
 
 const stackMap: Record<string, Stack> = {
-  // ... existing
-  '5': 'my-stack',
+    // ... existing
+    '5': 'my-stack',
 };
 ```
 

@@ -7,7 +7,7 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - cloud
-  - azure
-  - cli
+    - cloud
+    - azure
+    - cli
 ports: []

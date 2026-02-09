@@ -7,7 +7,7 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - language
-  - powershell
-  - scripting
+    - language
+    - powershell
+    - scripting
 ports: []

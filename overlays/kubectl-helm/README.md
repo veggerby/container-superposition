@@ -47,24 +47,25 @@ az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
 #### Manual Configuration
 
 Add cluster to `~/.kube/config`:
+
 ```yaml
 apiVersion: v1
 kind: Config
 clusters:
-- cluster:
-    certificate-authority-data: <base64-cert>
-    server: https://kubernetes.example.com:6443
-  name: my-cluster
+    - cluster:
+          certificate-authority-data: <base64-cert>
+          server: https://kubernetes.example.com:6443
+      name: my-cluster
 contexts:
-- context:
-    cluster: my-cluster
-    user: my-user
-  name: my-cluster-context
+    - context:
+          cluster: my-cluster
+          user: my-user
+      name: my-cluster-context
 current-context: my-cluster-context
 users:
-- name: my-user
-  user:
-    token: <bearer-token>
+    - name: my-user
+      user:
+          token: <bearer-token>
 ```
 
 ## kubectl Common Commands
@@ -401,85 +402,90 @@ Location: `~/.kube/config`
 apiVersion: v1
 kind: Config
 clusters:
-- cluster:
-    certificate-authority-data: ...
-    server: https://kubernetes.example.com:6443
-  name: production
-- cluster:
-    server: https://dev.kubernetes.example.com:6443
-  name: development
+    - cluster:
+          certificate-authority-data: ...
+          server: https://kubernetes.example.com:6443
+      name: production
+    - cluster:
+          server: https://dev.kubernetes.example.com:6443
+      name: development
 contexts:
-- context:
-    cluster: production
-    namespace: default
-    user: admin
-  name: prod-context
-- context:
-    cluster: development
-    namespace: dev
-    user: developer
-  name: dev-context
+    - context:
+          cluster: production
+          namespace: default
+          user: admin
+      name: prod-context
+    - context:
+          cluster: development
+          namespace: dev
+          user: developer
+      name: dev-context
 current-context: dev-context
 users:
-- name: admin
-  user:
-    client-certificate-data: ...
-    client-key-data: ...
-- name: developer
-  user:
-    token: ...
+    - name: admin
+      user:
+          client-certificate-data: ...
+          client-key-data: ...
+    - name: developer
+      user:
+          token: ...
 ```
 
 ### Helm Values Files
 
 **values.yaml:**
+
 ```yaml
 replicaCount: 3
 
 image:
-  repository: nginx
-  tag: "1.21"
-  pullPolicy: IfNotPresent
+    repository: nginx
+    tag: '1.21'
+    pullPolicy: IfNotPresent
 
 service:
-  type: LoadBalancer
-  port: 80
+    type: LoadBalancer
+    port: 80
 
 ingress:
-  enabled: true
-  hosts:
-    - host: myapp.example.com
-      paths:
-        - path: /
-          pathType: Prefix
+    enabled: true
+    hosts:
+        - host: myapp.example.com
+          paths:
+              - path: /
+                pathType: Prefix
 
 resources:
-  limits:
-    cpu: 100m
-    memory: 128Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
+    limits:
+        cpu: 100m
+        memory: 128Mi
+    requests:
+        cpu: 100m
+        memory: 128Mi
 ```
 
 ## Use Cases
 
 ### Application Deployment
+
 - Deploy containerized applications
 - Manage multi-tier applications with Helm charts
 - Roll out updates and rollback when needed
 
 ### Cluster Management
+
 - Monitor cluster health
 - Scale applications
 - Manage resources across namespaces
 
 ### Development Workflows
+
 - Port forward for local testing
 - Debug pods and containers
 - View logs and events
 
 ### CI/CD Integration
+
 - Automated deployments
 - Helm chart releases
 - Environment-specific configurations
@@ -549,6 +555,7 @@ kubeseal -f secret.yaml -w sealed-secret.yaml
 ### kubectl/helm command not found
 
 Rebuild container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### Connection refused

@@ -6,11 +6,11 @@ Adds .NET 10 SDK with C# development tools and common global tools.
 
 - **.NET 10 SDK** with C# compiler
 - **VS Code Extensions:**
-  - C# Dev Kit (ms-dotnettools.csdevkit)
-  - C# (ms-dotnettools.csharp)
-  - GUID Generator
-  - Nuke Build
-  - REST Client
+    - C# Dev Kit (ms-dotnettools.csdevkit)
+    - C# (ms-dotnettools.csharp)
+    - GUID Generator
+    - Nuke Build
+    - REST Client
 - **Global Tools:** Configured via `global-tools.txt`
 - **Automatic restore:** Runs `dotnet restore` on container creation
 
@@ -19,6 +19,7 @@ Adds .NET 10 SDK with C# development tools and common global tools.
 The overlay includes a customizable `global-tools.txt` file in `.devcontainer/`:
 
 **`.devcontainer/global-tools.txt`:**
+
 ```
 # .NET Global Tools
 # Format: one tool per line, with optional version
@@ -41,6 +42,7 @@ dotnet-reportgenerator-globaltool
 ### Version Pinning
 
 Pin specific versions using `::`:
+
 ```
 dotnet-ef::8.0.0
 dotnet-format::5.1.0
@@ -51,17 +53,20 @@ dotnet-format::5.1.0
 ## Common Global Tools
 
 ### Development
+
 - `dotnet-ef` - Entity Framework Core migrations
 - `dotnet-format` - Code formatter
 - `dotnet-outdated-tool` - Check for outdated packages
 - `dotnet-reportgenerator-globaltool` - Coverage reports
 
 ### Build & Deploy
+
 - `cake.tool` - Cake build system
 - `nuke.globaltool` - Nuke build system
 - `dotnet-sonarscanner` - SonarQube scanner
 
 ### Testing & Quality
+
 - `dotnet-stryker` - Mutation testing
 - `dotnet-coverage` - Code coverage
 - `dotnet-depends` - Dependency analyzer
@@ -69,6 +74,7 @@ dotnet-format::5.1.0
 ## Project Structure
 
 Works with:
+
 - **.NET solutions** (`.sln`)
 - **Projects** (`.csproj`, `.fsproj`, `.vbproj`)
 - **Global.json** for SDK version pinning
@@ -76,6 +82,7 @@ Works with:
 ## Automatic Setup
 
 On container creation:
+
 1. ✅ Installs global tools from `global-tools.txt`
 2. ✅ Runs `dotnet restore` (if solution/project exists)
 3. ✅ Lists installed global tools for verification
@@ -114,6 +121,7 @@ dotnet test /p:CollectCoverage=true
 ### Tool not found after adding to global-tools.txt
 
 Rebuild the container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### Restore fails
@@ -123,6 +131,7 @@ Check .NET SDK version in `global.json` matches container.
 ### Want to use local tools instead?
 
 Create `.config/dotnet-tools.json`:
+
 ```bash
 dotnet new tool-manifest
 dotnet tool install dotnet-ef

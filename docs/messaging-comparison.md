@@ -4,17 +4,17 @@ This guide helps you choose the right messaging overlay for your development env
 
 ## Quick Comparison
 
-| Feature | RabbitMQ | Redpanda | NATS |
-| --------- | ---------- | ---------- | ------ |
-| **Protocol** | AMQP | Kafka API | NATS Protocol |
-| **Primary Use Case** | Task queues, RPC | Event streaming | Pub/sub, microservices |
-| **Latency** | Low (ms) | Low (ms) | Very low (μs) |
-| **Throughput** | High | Very high | Very high |
-| **Persistence** | Yes | Yes | Yes (JetStream) |
-| **Complexity** | Moderate | Moderate | Simple |
-| **Resource Usage** | Moderate | Moderate-High | Low |
-| **Management UI** | ✅ Built-in | ✅ Console | ⚠️ HTTP API only |
-| **Best For** | Task distribution | Event logs | Real-time updates |
+| Feature              | RabbitMQ          | Redpanda        | NATS                   |
+| -------------------- | ----------------- | --------------- | ---------------------- |
+| **Protocol**         | AMQP              | Kafka API       | NATS Protocol          |
+| **Primary Use Case** | Task queues, RPC  | Event streaming | Pub/sub, microservices |
+| **Latency**          | Low (ms)          | Low (ms)        | Very low (μs)          |
+| **Throughput**       | High              | Very high       | Very high              |
+| **Persistence**      | Yes               | Yes             | Yes (JetStream)        |
+| **Complexity**       | Moderate          | Moderate        | Simple                 |
+| **Resource Usage**   | Moderate          | Moderate-High   | Low                    |
+| **Management UI**    | ✅ Built-in       | ✅ Console      | ⚠️ HTTP API only       |
+| **Best For**         | Task distribution | Event logs      | Real-time updates      |
 
 ## When to Use RabbitMQ
 
@@ -211,8 +211,8 @@ channel.sendToQueue('tasks', Buffer.from('Hello World'));
 
 // Consume from queue
 await channel.consume('tasks', (msg) => {
-  console.log('Received:', msg.content.toString());
-  channel.ack(msg);
+    console.log('Received:', msg.content.toString());
+    channel.ack(msg);
 });
 ```
 
@@ -226,8 +226,8 @@ const kafka = new Kafka({ brokers: ['redpanda:9092'] });
 const producer = kafka.producer();
 await producer.connect();
 await producer.send({
-  topic: 'events',
-  messages: [{ value: 'Hello Redpanda' }]
+    topic: 'events',
+    messages: [{ value: 'Hello Redpanda' }],
 });
 
 // Consumer
@@ -235,9 +235,9 @@ const consumer = kafka.consumer({ groupId: 'my-group' });
 await consumer.connect();
 await consumer.subscribe({ topic: 'events' });
 await consumer.run({
-  eachMessage: async ({ message }) => {
-    console.log('Received:', message.value.toString());
-  }
+    eachMessage: async ({ message }) => {
+        console.log('Received:', message.value.toString());
+    },
 });
 ```
 
@@ -253,7 +253,7 @@ nc.publish('updates', 'Hello NATS');
 // Subscribe
 const sub = nc.subscribe('updates');
 for await (const msg of sub) {
-  console.log('Received:', msg.string());
+    console.log('Received:', msg.string());
 }
 ```
 

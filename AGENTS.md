@@ -85,8 +85,8 @@ The codebase uses **candidate arrays** to resolve paths correctly in both develo
 
 ```typescript
 const OVERLAYS_DIR_CANDIDATES = [
-  path.join(__dirname, '..', 'overlays'),      // ts-node: <root>/scripts
-  path.join(__dirname, '..', '..', 'overlays'), // compiled: <root>/dist/scripts
+    path.join(__dirname, '..', 'overlays'), // ts-node: <root>/scripts
+    path.join(__dirname, '..', '..', 'overlays'), // compiled: <root>/dist/scripts
 ];
 
 const OVERLAYS_DIR = OVERLAYS_DIR_CANDIDATES.find(fs.existsSync) ?? OVERLAYS_DIR_CANDIDATES[0];
@@ -158,7 +158,7 @@ features/           # Custom devcontainer features
 
 - **Files**: kebab-case (`overlay-metadata.ts`)
 - **Markdown Files**: lowercase kebab-case (`messaging-comparison.md`, `presets-architecture.md`)
-  - **Exceptions**: `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `AGENTS.md`, `LICENSE.md`
+    - **Exceptions**: `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `AGENTS.md`, `LICENSE.md`
 - **Functions**: camelCase (`composeDevContainer()`)
 - **Types/Interfaces**: PascalCase (`OverlayMetadata`, `QuestionnaireAnswers`)
 - **Constants**: SCREAMING_SNAKE_CASE (`OVERLAYS_CONFIG_PATH`)
@@ -218,16 +218,11 @@ npm run build  # Ensures dist/ is up-to-date
 
 ```json
 {
-  "main": "dist/scripts/init.js",
-  "bin": {
-    "container-superposition": "./dist/scripts/init.js"
-  },
-  "files": [
-    "dist/",
-    "templates/",
-    "tool/",
-    "features/"
-  ]
+    "main": "dist/scripts/init.js",
+    "bin": {
+        "container-superposition": "./dist/scripts/init.js"
+    },
+    "files": ["dist/", "templates/", "tool/", "features/"]
 }
 ```
 
@@ -241,16 +236,16 @@ Overlays are defined in `overlays/index.yml` with the following structure:
 
 ```yaml
 language_overlays:
-  - id: nodejs
-    name: Node.js
-    description: Node.js LTS with TypeScript and tooling
-    category: language
-    supports: []        # Empty = supports all stacks
-    requires: []        # Dependencies that must be selected
-    suggests: []        # Recommended but optional
-    conflicts: []       # Cannot be used with these overlays
-    tags: [language, nodejs, typescript]
-    ports: []
+    - id: nodejs
+      name: Node.js
+      description: Node.js LTS with TypeScript and tooling
+      category: language
+      supports: [] # Empty = supports all stacks
+      requires: [] # Dependencies that must be selected
+      suggests: [] # Recommended but optional
+      conflicts: [] # Cannot be used with these overlays
+      tags: [language, nodejs, typescript]
+      ports: []
 ```
 
 **Category Hierarchy:**
@@ -267,24 +262,24 @@ Located in `scripts/init.ts` (lines 230-260), the system:
 
 1. **User Selection**: Multi-select checkbox grouped by category
 2. **Recursive Dependency Addition**: For each selected overlay:
-   - Check `requires` field
-   - Auto-add dependencies (marked with `(required)` in yellow)
-   - Recursively process dependencies' dependencies
+    - Check `requires` field
+    - Auto-add dependencies (marked with `(required)` in yellow)
+    - Recursively process dependencies' dependencies
 3. **Conflict Detection** (post-selection):
-   - Check each selected overlay's `conflicts` field
-   - If conflicts found, show resolution UI
-   - Loop until all conflicts resolved
+    - Check each selected overlay's `conflicts` field
+    - If conflicts found, show resolution UI
+    - Loop until all conflicts resolved
 
 **Example:**
 
 ```yaml
 # grafana requires prometheus
 grafana:
-  requires: [prometheus]
+    requires: [prometheus]
 
 # docker-in-docker conflicts with docker-sock
 docker-in-docker:
-  conflicts: [docker-sock]
+    conflicts: [docker-sock]
 ```
 
 ### Composition Engine
@@ -313,8 +308,8 @@ Both `init.ts` and `composer.ts` use candidate arrays for compatibility:
 
 ```typescript
 const REPO_ROOT_CANDIDATES = [
-  path.join(__dirname, '..', '..'),      // From tool/questionnaire/ (ts-node)
-  path.join(__dirname, '..', '..', '..'), // From dist/tool/questionnaire/ (compiled)
+    path.join(__dirname, '..', '..'), // From tool/questionnaire/ (ts-node)
+    path.join(__dirname, '..', '..', '..'), // From dist/tool/questionnaire/ (compiled)
 ];
 ```
 
@@ -330,83 +325,83 @@ const REPO_ROOT_CANDIDATES = [
 
 1. **Create overlay directory:**
 
-   ```bash
-   mkdir -p overlays/my-overlay
-   ```
+    ```bash
+    mkdir -p overlays/my-overlay
+    ```
 
 2. **Add devcontainer patch:**
 
-   ```json
-   // overlays/my-overlay/devcontainer.patch.json
-   {
-     "features": {
-       "ghcr.io/example/feature:1": {}
-     },
-     "customizations": {
-       "vscode": {
-         "extensions": ["example.extension"]
-       }
-     }
-   }
-   ```
+    ```json
+    // overlays/my-overlay/devcontainer.patch.json
+    {
+        "features": {
+            "ghcr.io/example/feature:1": {}
+        },
+        "customizations": {
+            "vscode": {
+                "extensions": ["example.extension"]
+            }
+        }
+    }
+    ```
 
 3. **Add docker-compose.yml (if multi-service):**
 
-   ```yaml
-   services:
-     my-service:
-       image: example/image:latest
-       networks:
-         - devnet
-   networks:
-     devnet:
-       name: devnet
-   ```
+    ```yaml
+    services:
+        my-service:
+            image: example/image:latest
+            networks:
+                - devnet
+    networks:
+        devnet:
+            name: devnet
+    ```
 
 4. **Create overlay.yml manifest:**
 
-   ```yaml
-   id: my-overlay
-   name: My Overlay
-   description: Brief description of what it provides
-   category: language  # or database, observability, cloud, dev
-   supports: []
-   requires: []
-   suggests: []
-   conflicts: []
-   tags:
-     - category-tag
-     - technology-name
-   ports: []
-   ```
+    ```yaml
+    id: my-overlay
+    name: My Overlay
+    description: Brief description of what it provides
+    category: language # or database, observability, cloud, dev
+    supports: []
+    requires: []
+    suggests: []
+    conflicts: []
+    tags:
+        - category-tag
+        - technology-name
+    ports: []
+    ```
 
 5. **Create other overlay files:**
 
-   ```typescript
-   // tool/schema/types.ts
-   export type MyCategory = 'my-overlay' | 'other-overlay';
+    ```typescript
+    // tool/schema/types.ts
+    export type MyCategory = 'my-overlay' | 'other-overlay';
 
-   export interface QuestionnaireAnswers {
-     // ...existing fields
-     myCategory: MyCategory[];
-   }
-   ```
+    export interface QuestionnaireAnswers {
+        // ...existing fields
+        myCategory: MyCategory[];
+    }
+    ```
 
 6. **Update composer.ts:**
 
-   ```typescript
-   // Apply overlay in correct order (lines 490-496 pattern)
-   if (answers.myCategory.includes('my-overlay')) {
-     await applyOverlay('my-overlay', devcontainerPath, composePath, envPath);
-   }
-   ```
+    ```typescript
+    // Apply overlay in correct order (lines 490-496 pattern)
+    if (answers.myCategory.includes('my-overlay')) {
+        await applyOverlay('my-overlay', devcontainerPath, composePath, envPath);
+    }
+    ```
 
-6. **Test the overlay:**
+7. **Test the overlay:**
 
-   ```bash
-   npm run build
-   npm run init -- --stack compose --language my-overlay
-   ```
+    ```bash
+    npm run build
+    npm run init -- --stack compose --language my-overlay
+    ```
 
 **No registration step needed!** The overlay loader automatically discovers `overlay.yml` files.
 
@@ -419,8 +414,8 @@ The questionnaire is in `scripts/init.ts` (lines 125-270):
 ```typescript
 // Add new question after overlay selection
 const customValue = await input({
-  message: 'Enter custom value:',
-  default: 'default-value'
+    message: 'Enter custom value:',
+    default: 'default-value',
 });
 
 answers.customValue = customValue;
@@ -437,13 +432,11 @@ answers.customValue = customValue;
 CLI parsing is in `scripts/init.ts` using Commander:
 
 ```typescript
-program
-  .option('--my-option <value>', 'Description of option')
-  .parse(process.argv);
+program.option('--my-option <value>', 'Description of option').parse(process.argv);
 
 const options = program.opts();
 if (options.myOption) {
-  answers.myOption = options.myOption;
+    answers.myOption = options.myOption;
 }
 ```
 
@@ -451,7 +444,7 @@ if (options.myOption) {
 
 - README.md examples
 - `--help` text
-- Documentation in templates/*/README.md
+- Documentation in templates/\*/README.md
 
 ### Fixing Path Resolution Issues
 
@@ -460,21 +453,21 @@ If you see "File not found" errors in compiled mode:
 1. **Identify the problematic path resolution**
 2. **Add candidate array:**
 
-   ```typescript
-   const MY_FILE_CANDIDATES = [
-     path.join(__dirname, '..', 'file.txt'),      // ts-node
-     path.join(__dirname, '..', '..', 'file.txt'), // compiled
-   ];
+    ```typescript
+    const MY_FILE_CANDIDATES = [
+        path.join(__dirname, '..', 'file.txt'), // ts-node
+        path.join(__dirname, '..', '..', 'file.txt'), // compiled
+    ];
 
-   const MY_FILE_PATH = MY_FILE_CANDIDATES.find(fs.existsSync) ?? MY_FILE_CANDIDATES[0];
-   ```
+    const MY_FILE_PATH = MY_FILE_CANDIDATES.find(fs.existsSync) ?? MY_FILE_CANDIDATES[0];
+    ```
 
 3. **Test both modes:**
 
-   ```bash
-   npm run init       # ts-node mode
-   npm run init:build # compiled mode
-   ```
+    ```bash
+    npm run init       # ts-node mode
+    npm run init:build # compiled mode
+    ```
 
 ## Debugging and Troubleshooting
 
@@ -539,7 +532,7 @@ Add debug logging:
 const DEBUG = process.env.DEBUG === 'true';
 
 if (DEBUG) {
-  console.log(chalk.dim('Debug: Current answers:'), answers);
+    console.log(chalk.dim('Debug: Current answers:'), answers);
 }
 ```
 
@@ -633,8 +626,8 @@ All compose-based overlays use:
 
 ```yaml
 networks:
-  devnet:
-    name: devnet
+    devnet:
+        name: devnet
 ```
 
 **Never use `external: true`** - causes runtime failures.
@@ -661,7 +654,7 @@ Update connection strings in application code accordingly.
 1. **ESM Extensions**: Always use `.js` in imports, even for `.ts` files
 2. **Path Candidates**: Add both source and dist/ paths
 3. **Empty String Filtering**: `mergeAptPackages` filters empty tokens
-4. **Conflict Resolution**: Happens *after* selection, not during
+4. **Conflict Resolution**: Happens _after_ selection, not during
 5. **Port 0**: Not supported - must be positive integer
 6. **YAML Parsing**: Uses `js-yaml` - ensure valid YAML syntax
 7. **Type Safety**: Update types, schema, and runtime code together

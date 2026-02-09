@@ -17,6 +17,7 @@ MongoDB document database with Mongo Express web UI for development and testing.
 This overlay adds MongoDB 8 and Mongo Express as separate Docker Compose services. The database runs in its own container and is accessible from your development container via the hostname `mongodb`.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container<br/>Your application code<br/>mongosh client<br/>Connects to mongodb:27017] -->|Docker network devnet| B[MongoDB Container<br/>MongoDB 8 server<br/>Port 27017<br/>Data volumes]
@@ -35,6 +36,7 @@ cp .env.example .env
 ```
 
 **Default values (.env.example):**
+
 ```bash
 # MongoDB Configuration
 MONGODB_VERSION=8
@@ -178,18 +180,18 @@ const url = 'mongodb://root:example@mongodb:27017/';
 const client = new MongoClient(url);
 
 async function main() {
-  await client.connect();
-  const db = client.db('myapp');
-  const collection = db.collection('users');
+    await client.connect();
+    const db = client.db('myapp');
+    const collection = db.collection('users');
 
-  // Insert
-  await collection.insertOne({ name: 'Alice', email: 'alice@example.com' });
+    // Insert
+    await collection.insertOne({ name: 'Alice', email: 'alice@example.com' });
 
-  // Find
-  const users = await collection.find({}).toArray();
-  console.log(users);
+    // Find
+    const users = await collection.find({}).toArray();
+    console.log(users);
 
-  await client.close();
+    await client.close();
 }
 
 main();
@@ -202,8 +204,8 @@ const mongoose = require('mongoose');
 mongoose.connect('mongodb://root:example@mongodb:27017/myapp');
 
 const UserSchema = new mongoose.Schema({
-  name: String,
-  email: String
+    name: String,
+    email: String,
 });
 
 const User = mongoose.model('User', UserSchema);
@@ -324,6 +326,7 @@ func main() {
 - **Catalog/inventory systems** - Nested data and arrays
 
 **Integrates well with:**
+
 - Node.js, Python, .NET, Go (application development)
 - Grafana (database metrics visualization)
 - OTEL Collector (query performance monitoring)
@@ -333,10 +336,12 @@ func main() {
 ### Issue: Cannot connect to MongoDB
 
 **Symptoms:**
+
 - Connection refused errors
 - Timeout when connecting
 
 **Solution:**
+
 ```bash
 # Check if service is running
 docker-compose ps
@@ -355,10 +360,12 @@ mongosh --host mongodb --port 27017 -u root -p example --eval "db.adminCommand('
 ### Issue: Authentication failed
 
 **Symptoms:**
+
 - "Authentication failed" error
 - Invalid credentials
 
 **Solution:**
+
 ```bash
 # Verify credentials in .env file
 cat .devcontainer/.env
@@ -374,10 +381,12 @@ docker-compose up -d
 ### Issue: Mongo Express not accessible
 
 **Symptoms:**
+
 - Cannot access http://localhost:8081
 - Page not loading
 
 **Solution:**
+
 ```bash
 # Check Mongo Express logs
 docker-compose logs mongo-express
@@ -395,9 +404,11 @@ docker-compose restart mongo-express
 ### Issue: Data not persisting
 
 **Symptoms:**
+
 - Data lost after container restart
 
 **Solution:**
+
 ```bash
 # Verify volumes exist
 docker volume ls | grep mongodb
@@ -420,28 +431,30 @@ docker-compose config
 **For production:**
 
 1. **Change credentials:**
-   ```bash
-   # Use strong passwords
-   MONGODB_PASSWORD=<strong-password>
-   ```
+
+    ```bash
+    # Use strong passwords
+    MONGODB_PASSWORD=<strong-password>
+    ```
 
 2. **Enable Mongo Express authentication:**
-   ```yaml
-   # In docker-compose.yml
-   ME_CONFIG_BASICAUTH: true
-   ME_CONFIG_BASICAUTH_USERNAME: admin
-   ME_CONFIG_BASICAUTH_PASSWORD: <strong-password>
-   ```
+
+    ```yaml
+    # In docker-compose.yml
+    ME_CONFIG_BASICAUTH: true
+    ME_CONFIG_BASICAUTH_USERNAME: admin
+    ME_CONFIG_BASICAUTH_PASSWORD: <strong-password>
+    ```
 
 3. **Restrict network access:**
-   - Don't expose ports publicly
-   - Use firewall rules
-   - Consider TLS/SSL for connections
+    - Don't expose ports publicly
+    - Use firewall rules
+    - Consider TLS/SSL for connections
 
 4. **Use authentication databases:**
-   ```bash
-   mongosh "mongodb://user:password@mongodb:27017/myapp?authSource=admin"
-   ```
+    ```bash
+    mongosh "mongodb://user:password@mongodb:27017/myapp?authSource=admin"
+    ```
 
 ## Related Overlays
 

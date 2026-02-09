@@ -91,6 +91,7 @@ function deepMerge(base, overlay) {
 ```
 
 Special handling:
+
 - **Arrays**: Concatenate and deduplicate (ports, packages)
 - **apt-get packages**: Merge space-separated lists
 - **Features**: Deep merge feature configs
@@ -139,6 +140,7 @@ overlay-name/
 ```
 
 Overlays can add:
+
 - Features
 - Environment variables
 - Port forwards
@@ -164,6 +166,7 @@ Overlays can add:
 ### No Framework
 
 Deliberate choice to avoid:
+
 - Complex build pipelines
 - Runtime dependencies in output
 - Learning curve for contributors
@@ -203,6 +206,7 @@ These limitations keep the tool **humble** and prevent it from becoming a platfo
 ## Success Metrics
 
 The tool succeeds when:
+
 1. Users create their first devcontainer easily
 2. Users edit output directly without the tool
 3. Users don't need the tool after initial setup

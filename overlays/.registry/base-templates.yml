@@ -1,7 +1,7 @@
 base_templates:
-  - id: plain
-    name: Plain (Image-based)
-    description: Minimal Debian image for simple projects
-  - id: compose
-    name: Compose (Multi-service)
-    description: Docker Compose infrastructure for complex applications
+    - id: plain
+      name: Plain (Image-based)
+      description: Minimal Debian image for simple projects
+    - id: compose
+      name: Compose (Multi-service)
+      description: Docker Compose infrastructure for complex applications

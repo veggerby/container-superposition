@@ -1,42 +1,39 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "build-essential pkg-config libssl-dev",
-      "apk": "build-base pkgconfig openssl-dev"
-    },
-    "ghcr.io/devcontainers/features/rust:1": {
-      "version": "latest",
-      "profile": "default"
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "rust-lang.rust-analyzer",
-        "vadimcn.vscode-lldb"
-      ],
-      "settings": {
-        "rust-analyzer.checkOnSave.command": "clippy",
-        "[rust]": {
-          "editor.formatOnSave": true,
-          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "build-essential pkg-config libssl-dev",
+            "apk": "build-base pkgconfig openssl-dev"
+        },
+        "ghcr.io/devcontainers/features/rust:1": {
+            "version": "latest",
+            "profile": "default"
         }
-      }
-    }
-  },
-  "remoteEnv": {
-    "PATH": "${containerEnv:HOME}/.cargo/bin:${containerEnv:PATH}"
-  },
-  "forwardPorts": [8080, 3000],
-  "portsAttributes": {
-    "8080": {
-      "label": "Web Server",
-      "onAutoForward": "openBrowser"
     },
-    "3000": {
-      "label": "Dev Server",
-      "onAutoForward": "notify"
+    "customizations": {
+        "vscode": {
+            "extensions": ["rust-lang.rust-analyzer", "vadimcn.vscode-lldb"],
+            "settings": {
+                "rust-analyzer.checkOnSave.command": "clippy",
+                "[rust]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+                }
+            }
+        }
+    },
+    "remoteEnv": {
+        "PATH": "${containerEnv:HOME}/.cargo/bin:${containerEnv:PATH}"
+    },
+    "forwardPorts": [8080, 3000],
+    "portsAttributes": {
+        "8080": {
+            "label": "Web Server",
+            "onAutoForward": "openBrowser"
+        },
+        "3000": {
+            "label": "Dev Server",
+            "onAutoForward": "notify"
+        }
     }
-  }
 }

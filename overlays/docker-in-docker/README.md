@@ -15,6 +15,7 @@ Run a fully isolated Docker daemon inside your development container. This is tr
 This overlay runs a full Docker daemon inside the development container using the official `docker:dind` (Docker-in-Docker) feature from Microsoft. Unlike **docker-sock** which mounts the host's Docker socket, this creates a completely isolated Docker environment.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container] --> B[Docker Daemon DinD]
@@ -25,18 +26,21 @@ graph TD
 ## Use Cases
 
 ### Required for These Environments
+
 - **GitHub Codespaces** - No access to host Docker
 - **Remote containers** - Cloud-based dev environments
 - **Multi-tenant systems** - Shared development servers
 - **CI/CD environments** - Isolated build environments
 
 ### Development Workflows
+
 - **Container builds** - Build Docker images in isolated environment
 - **Testing multi-container apps** - Use docker-compose for integration tests
 - **Container experimentation** - Test without affecting host
 - **Learning Docker** - Safe sandbox environment
 
 ### Security-Sensitive Scenarios
+
 - **Untrusted code** - Run potentially malicious containers safely
 - **Shared environments** - Multiple users without host access
 - **Production-like isolation** - Closer to production container runtime
@@ -161,20 +165,21 @@ docker system prune -a --volumes
 
 ## Docker-in-Docker vs Docker-outside-of-Docker
 
-| Feature | Docker-in-Docker (This) | Docker-outside-of-Docker |
-|---------|------------------------|--------------------------|
-| **Isolation** | ✅ Fully isolated | ❌ Shares host daemon |
-| **Performance** | ⚠️ Slower (nested) | ✅ Fast (native) |
-| **Disk Usage** | ⚠️ Duplicates images | ✅ Shared image cache |
-| **Portability** | ✅ Works everywhere | ❌ Requires host Docker |
-| **Security** | ✅ Isolated | ⚠️ Host access |
-| **Codespaces** | ✅ Supported | ❌ Not available |
-| **Startup Time** | ⚠️ Slower (daemon start) | ✅ Instant |
-| **Resource Usage** | ⚠️ Higher overhead | ✅ Minimal overhead |
+| Feature            | Docker-in-Docker (This)  | Docker-outside-of-Docker |
+| ------------------ | ------------------------ | ------------------------ |
+| **Isolation**      | ✅ Fully isolated        | ❌ Shares host daemon    |
+| **Performance**    | ⚠️ Slower (nested)       | ✅ Fast (native)         |
+| **Disk Usage**     | ⚠️ Duplicates images     | ✅ Shared image cache    |
+| **Portability**    | ✅ Works everywhere      | ❌ Requires host Docker  |
+| **Security**       | ✅ Isolated              | ⚠️ Host access           |
+| **Codespaces**     | ✅ Supported             | ❌ Not available         |
+| **Startup Time**   | ⚠️ Slower (daemon start) | ✅ Instant               |
+| **Resource Usage** | ⚠️ Higher overhead       | ✅ Minimal overhead      |
 
 ## When to Use Docker-in-Docker
 
 ✅ **Use DinD when:**
+
 - Working in GitHub Codespaces or cloud IDEs
 - Need complete isolation from host
 - Sharing dev environment with untrusted users
@@ -183,6 +188,7 @@ docker system prune -a --volumes
 - Security and isolation are priorities
 
 ❌ **Use docker-sock instead when:**
+
 - Working on local machine with Docker Desktop
 - Need maximum performance
 - Building large images frequently
@@ -302,10 +308,10 @@ The Docker daemon inherits resource limits from the dev container. For resource-
 ```json
 // In devcontainer.json
 {
-  "hostRequirements": {
-    "cpus": 4,
-    "memory": "8gb"
-  }
+    "hostRequirements": {
+        "cpus": 4,
+        "memory": "8gb"
+    }
 }
 ```
 
@@ -410,6 +416,7 @@ cat ~/.docker/config.json
 ⚠️ **DinD requires privileged mode to run nested containers**
 
 This is handled by the devcontainer feature but means:
+
 - Container has elevated permissions
 - Not recommended for untrusted code execution
 - Still safer than docker-sock (no host access)

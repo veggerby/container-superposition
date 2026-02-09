@@ -17,6 +17,7 @@ Alert routing, grouping, and notification management for Prometheus alerts.
 Alertmanager receives alerts from Prometheus, groups them, applies routing rules, and sends notifications to configured receivers (email, Slack, webhook, etc.).
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Prometheus<br/>Evaluates alert rules<br/>Sends alerts to AM] -->|HTTP POST| B[Alertmanager<br/>Receives alerts<br/>Groups similar alerts<br/>Deduplicates<br/>Applies routing rules<br/>Sends to receivers<br/>UI http://localhost:9093]
@@ -27,6 +28,7 @@ graph TD
 ```
 
 **Alert Flow:**
+
 1. **Evaluation:** Prometheus evaluates alert rules every 15 seconds
 2. **Firing:** When condition is true, Prometheus sends alert to Alertmanager
 3. **Grouping:** Alertmanager groups alerts by labels (alertname, cluster, service)
@@ -50,6 +52,7 @@ cp .env.example .env
 ```
 
 **Available variables:**
+
 ```bash
 # Alertmanager version
 ALERTMANAGER_VERSION=latest
@@ -69,12 +72,12 @@ Edit `.devcontainer/prometheus-prometheus.yml`:
 ```yaml
 # Add to Prometheus config
 alerting:
-  alertmanagers:
-    - static_configs:
-        - targets: ['alertmanager:9093']
+    alertmanagers:
+        - static_configs:
+              - targets: ['alertmanager:9093']
 
 rule_files:
-  - '/etc/prometheus/alert-rules.yml'
+    - '/etc/prometheus/alert-rules.yml'
 ```
 
 ### Alert Rules
@@ -83,25 +86,25 @@ Sample alert rules are provided in `alert-rules.yml`. Copy to your Prometheus ov
 
 ```yaml
 groups:
-  - name: my_alerts
-    interval: 30s
-    rules:
-      - alert: HighCPU
-        expr: cpu_usage > 80
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High CPU on {{ $labels.instance }}"
+    - name: my_alerts
+      interval: 30s
+      rules:
+          - alert: HighCPU
+            expr: cpu_usage > 80
+            for: 5m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'High CPU on {{ $labels.instance }}'
 ```
 
 Mount in Prometheus docker-compose.yml:
 
 ```yaml
 services:
-  prometheus:
-    volumes:
-      - ./alert-rules-alertmanager.yml:/etc/prometheus/alert-rules.yml:ro
+    prometheus:
+        volumes:
+            - ./alert-rules-alertmanager.yml:/etc/prometheus/alert-rules.yml:ro
 ```
 
 ### Receivers Configuration
@@ -109,35 +112,38 @@ services:
 Edit `alertmanager.yml` to configure notification channels:
 
 **Email receiver:**
+
 ```yaml
 receivers:
-  - name: 'email'
-    email_configs:
-      - to: 'team@example.com'
-        from: 'alertmanager@example.com'
-        smarthost: 'smtp.example.com:587'
-        auth_username: 'alertmanager'
-        auth_password: 'password'
+    - name: 'email'
+      email_configs:
+          - to: 'team@example.com'
+            from: 'alertmanager@example.com'
+            smarthost: 'smtp.example.com:587'
+            auth_username: 'alertmanager'
+            auth_password: 'password'
 ```
 
 **Slack receiver:**
+
 ```yaml
 receivers:
-  - name: 'slack'
-    slack_configs:
-      - api_url: 'https://hooks.slack.com/services/XXX'
-        channel: '#alerts'
-        title: 'Alert: {{ .GroupLabels.alertname }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    - name: 'slack'
+      slack_configs:
+          - api_url: 'https://hooks.slack.com/services/XXX'
+            channel: '#alerts'
+            title: 'Alert: {{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
 ```
 
 **Webhook receiver:**
+
 ```yaml
 receivers:
-  - name: 'webhook'
-    webhook_configs:
-      - url: 'http://my-webhook-server:5001/alerts'
-        send_resolved: true
+    - name: 'webhook'
+      webhook_configs:
+          - url: 'http://my-webhook-server:5001/alerts'
+            send_resolved: true
 ```
 
 ## Common Commands
@@ -147,6 +153,7 @@ receivers:
 Open your browser to: http://localhost:9093
 
 **UI Features:**
+
 - **Alerts:** View active alerts
 - **Silences:** Create/manage silences
 - **Status:** View configuration and runtime info
@@ -154,6 +161,7 @@ Open your browser to: http://localhost:9093
 ### Creating Silences
 
 **Via UI:**
+
 1. Navigate to http://localhost:9093/#/silences
 2. Click "New Silence"
 3. Add matchers (e.g., `alertname="HighCPU"`)
@@ -161,6 +169,7 @@ Open your browser to: http://localhost:9093
 5. Click "Create"
 
 **Via API:**
+
 ```bash
 # Create a silence for 1 hour
 curl -X POST http://alertmanager:9093/api/v2/silences \
@@ -186,6 +195,7 @@ curl -X POST http://alertmanager:9093/api/v2/silences \
 Navigate to http://localhost:9093/#/alerts
 
 **Via API:**
+
 ```bash
 # Get all alerts
 curl http://alertmanager:9093/api/v2/alerts
@@ -197,6 +207,7 @@ curl http://alertmanager:9093/api/v2/alerts?filter={severity="critical"}
 ### Testing Alerts
 
 **Trigger a test alert from Prometheus:**
+
 ```bash
 # Send test alert to Alertmanager
 curl -X POST http://prometheus:9090/-/reload
@@ -220,6 +231,7 @@ curl -X POST http://alertmanager:9093/api/v1/alerts \
 ### Managing Configuration
 
 **Reload configuration without restart:**
+
 ```bash
 # Send SIGHUP to Alertmanager
 docker exec alertmanager killall -HUP alertmanager
@@ -229,6 +241,7 @@ curl -X POST http://alertmanager:9093/-/reload
 ```
 
 **Validate configuration:**
+
 ```bash
 # Check config in running container
 docker exec alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
@@ -243,6 +256,7 @@ docker exec alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
 - **Multi-team notifications** - Route alerts to different teams based on labels
 
 **Integrates well with:**
+
 - Prometheus (required) - Source of alerts
 - Grafana (optional) - View alerts in dashboards
 - OTel Collector (optional) - Additional metrics sources
@@ -252,69 +266,74 @@ docker exec alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
 ### Writing Alert Rules
 
 **Good alerts are:**
+
 1. **Actionable** - Alert on problems you can fix
 2. **Meaningful** - Include context in annotations
 3. **Tuned** - Set appropriate thresholds and durations
 4. **Tested** - Verify alerts work before depending on them
 
 **Example of good alert:**
+
 ```yaml
 - alert: HighErrorRate
   expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
   for: 5m
   labels:
-    severity: critical
-    service: "{{ $labels.service }}"
+      severity: critical
+      service: '{{ $labels.service }}'
   annotations:
-    summary: "High error rate on {{ $labels.service }}"
-    description: "{{ $labels.service }} has {{ $value | humanizePercentage }} error rate"
-    runbook_url: "https://wiki.example.com/runbooks/high-error-rate"
-    dashboard_url: "http://grafana:3000/d/errors?var-service={{ $labels.service }}"
+      summary: 'High error rate on {{ $labels.service }}'
+      description: '{{ $labels.service }} has {{ $value | humanizePercentage }} error rate'
+      runbook_url: 'https://wiki.example.com/runbooks/high-error-rate'
+      dashboard_url: 'http://grafana:3000/d/errors?var-service={{ $labels.service }}'
 ```
 
 ### Grouping Strategy
 
 **Group related alerts:**
+
 ```yaml
 route:
-  group_by: ['alertname', 'cluster', 'service']
-  group_wait: 10s        # Wait before sending first notification
-  group_interval: 5m     # Wait before sending updates
-  repeat_interval: 4h    # Wait before resending same alert
+    group_by: ['alertname', 'cluster', 'service']
+    group_wait: 10s # Wait before sending first notification
+    group_interval: 5m # Wait before sending updates
+    repeat_interval: 4h # Wait before resending same alert
 ```
 
 **Separate critical from warnings:**
+
 ```yaml
 routes:
-  - match:
-      severity: critical
-    receiver: pagerduty
-    group_interval: 1m
+    - match:
+          severity: critical
+      receiver: pagerduty
+      group_interval: 1m
 
-  - match:
-      severity: warning
-    receiver: slack
-    group_interval: 10m
+    - match:
+          severity: warning
+      receiver: slack
+      group_interval: 10m
 ```
 
 ### Inhibition Rules
 
 **Suppress child alerts when parent is firing:**
+
 ```yaml
 inhibit_rules:
-  # Don't alert on service down if entire cluster is down
-  - source_match:
-      alertname: 'ClusterDown'
-    target_match:
-      alertname: 'ServiceDown'
-    equal: ['cluster']
+    # Don't alert on service down if entire cluster is down
+    - source_match:
+          alertname: 'ClusterDown'
+      target_match:
+          alertname: 'ServiceDown'
+      equal: ['cluster']
 
-  # Don't warn about high latency if service has errors
-  - source_match:
-      severity: 'critical'
-    target_match:
-      severity: 'warning'
-    equal: ['service']
+    # Don't warn about high latency if service has errors
+    - source_match:
+          severity: 'critical'
+      target_match:
+          severity: 'warning'
+      equal: ['service']
 ```
 
 ## Troubleshooting
@@ -322,9 +341,11 @@ inhibit_rules:
 ### Issue: Alerts Not Appearing
 
 **Symptoms:**
+
 - Prometheus firing alerts but not in Alertmanager
 
 **Solutions:**
+
 ```bash
 # Check Prometheus is sending to Alertmanager
 curl http://prometheus:9090/api/v1/alertmanagers
@@ -342,9 +363,11 @@ docker logs alertmanager
 ### Issue: Notifications Not Sent
 
 **Symptoms:**
+
 - Alerts in Alertmanager but no notifications received
 
 **Solutions:**
+
 ```bash
 # Check receiver configuration
 curl http://alertmanager:9093/api/v2/status
@@ -364,30 +387,34 @@ docker logs alertmanager | grep -i error
 ### Issue: Too Many Notifications
 
 **Symptoms:**
+
 - Getting flooded with alert notifications
 
 **Solutions:**
+
 ```yaml
 # Increase group_interval in alertmanager.yml
 route:
-  group_interval: 10m    # Increase from default
-  repeat_interval: 12h   # Reduce notification frequency
+    group_interval: 10m # Increase from default
+    repeat_interval: 12h # Reduce notification frequency
 
 # Add inhibition rules to suppress related alerts
 inhibit_rules:
-  - source_match:
-      severity: critical
-    target_match:
-      severity: warning
-    equal: ['service']
+    - source_match:
+          severity: critical
+      target_match:
+          severity: warning
+      equal: ['service']
 ```
 
 ### Issue: Configuration Errors
 
 **Symptoms:**
+
 - Alertmanager fails to start or reload
 
 **Solution:**
+
 ```bash
 # Validate configuration
 docker exec alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
@@ -401,6 +428,7 @@ yamllint .devcontainer/alertmanager-alertmanager.yml
 ⚠️ **Development Configuration:** This overlay uses basic configuration suitable for development.
 
 **For production:**
+
 - **Enable TLS** for Alertmanager API
 - **Protect secrets** in receiver configs (use environment variables or secret management)
 - **Restrict access** to Alertmanager UI (add authentication)
@@ -408,17 +436,18 @@ yamllint .devcontainer/alertmanager-alertmanager.yml
 - **Rate limit** API endpoints to prevent abuse
 
 **Webhook security example:**
+
 ```yaml
 receivers:
-  - name: 'secure-webhook'
-    webhook_configs:
-      - url: 'https://webhook:443/alerts'
-        http_config:
-          tls_config:
-            ca_file: /etc/ssl/certs/ca.crt
-          basic_auth:
-            username: alertmanager
-            password_file: /run/secrets/webhook_password
+    - name: 'secure-webhook'
+      webhook_configs:
+          - url: 'https://webhook:443/alerts'
+            http_config:
+                tls_config:
+                    ca_file: /etc/ssl/certs/ca.crt
+                basic_auth:
+                    username: alertmanager
+                    password_file: /run/secrets/webhook_password
 ```
 
 ## References
@@ -430,6 +459,7 @@ receivers:
 - [amtool CLI](https://github.com/prometheus/alertmanager#amtool)
 
 **Related Overlays:**
+
 - `prometheus` - Required alert source
 - `grafana` - Optional visualization of alerts
 - `otel-collector` - Optional additional metrics

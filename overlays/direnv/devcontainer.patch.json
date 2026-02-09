@@ -1,6 +1,6 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "remoteEnv": {
-    "DIRENV_LOG_FORMAT": ""
-  }
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "remoteEnv": {
+        "DIRENV_LOG_FORMAT": ""
+    }
 }

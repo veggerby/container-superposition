@@ -7,10 +7,10 @@ Adds Terraform CLI with HashiCorp language server and linting for Infrastructure
 - **Terraform CLI** - Latest version of Terraform/OpenTofu
 - **tflint** - Terraform linter for best practices
 - **VS Code Extension:** HashiCorp Terraform (hashicorp.terraform)
-  - Syntax highlighting
-  - Terraform language server (terraform-ls)
-  - IntelliSense and autocomplete
-  - Validation and formatting
+    - Syntax highlighting
+    - Terraform language server (terraform-ls)
+    - IntelliSense and autocomplete
+    - Validation and formatting
 
 ## Getting Started
 
@@ -80,6 +80,7 @@ terraform {
 ```
 
 **Initialize with backend:**
+
 ```bash
 terraform init
 ```
@@ -114,7 +115,7 @@ terraform {
 terraform {
   cloud {
     organization = "my-org"
-    
+
     workspaces {
       name = "my-workspace"
     }
@@ -123,6 +124,7 @@ terraform {
 ```
 
 **Authenticate:**
+
 ```bash
 terraform login
 ```
@@ -134,10 +136,10 @@ terraform login
 ```hcl
 provider "aws" {
   region = var.aws_region
-  
+
   # Optional: Profile from ~/.aws/credentials
   profile = "default"
-  
+
   # Optional: Assume role
   assume_role {
     role_arn = "arn:aws:iam::ACCOUNT_ID:role/TerraformRole"
@@ -146,6 +148,7 @@ provider "aws" {
 ```
 
 **Authentication:**
+
 - Environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 - AWS CLI profile (recommended)
 - IAM role (for EC2/ECS)
@@ -156,13 +159,14 @@ provider "aws" {
 provider "google" {
   project = var.project_id
   region  = var.region
-  
+
   # Optional: Service account
   credentials = file("service-account-key.json")
 }
 ```
 
 **Authentication:**
+
 - `GOOGLE_APPLICATION_CREDENTIALS` environment variable
 - `gcloud auth application-default login`
 - Service account key file
@@ -172,12 +176,13 @@ provider "google" {
 ```hcl
 provider "azurerm" {
   features {}
-  
+
   subscription_id = var.subscription_id
 }
 ```
 
 **Authentication:**
+
 - `az login`
 - Service principal
 - Managed identity (for Azure VMs)
@@ -196,6 +201,7 @@ export TF_VAR_db_password="secret123"
 ### Variable Files
 
 **variables.tf:**
+
 ```hcl
 variable "db_password" {
   description = "Database password"
@@ -205,6 +211,7 @@ variable "db_password" {
 ```
 
 **terraform.tfvars** (add to .gitignore):
+
 ```hcl
 db_password = "secret123"
 ```
@@ -227,6 +234,7 @@ resource "aws_db_instance" "example" {
 ### Multi-Environment Setup
 
 **Directory structure:**
+
 ```
 terraform/
 ├── modules/
@@ -244,10 +252,11 @@ terraform/
 ```
 
 **Using modules:**
+
 ```hcl
 module "vpc" {
   source = "../../modules/vpc"
-  
+
   environment = "dev"
   cidr_block  = "10.0.0.0/16"
 }
@@ -319,6 +328,7 @@ service-account*.json
 ### terraform command not found
 
 Rebuild container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### State lock errors
@@ -356,14 +366,15 @@ terraform init -migrate-state
 To use OpenTofu (open-source Terraform fork):
 
 1. Update `devcontainer.patch.json`:
+
 ```json
 {
-  "features": {
-    "ghcr.io/devcontainers/features/terraform:1": {
-      "version": "latest",
-      "installOpenTofu": true
+    "features": {
+        "ghcr.io/devcontainers/features/terraform:1": {
+            "version": "latest",
+            "installOpenTofu": true
+        }
     }
-  }
 }
 ```
 

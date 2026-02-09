@@ -1,50 +1,50 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "build-essential",
-      "apk": "build-base"
-    },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts",
-      "nodeGypDependencies": true,
-      "installYarnUsingApt": true
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "christian-kohler.npm-intellisense",
-        "eg2.vscode-npm-script"
-      ],
-      "settings": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": "explicit"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "build-essential",
+            "apk": "build-base"
         },
-        "[typescript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[javascript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts",
+            "nodeGypDependencies": true,
+            "installYarnUsingApt": true
         }
-      }
-    }
-  },
-  "remoteEnv": {
-    "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"
-  },
-  "forwardPorts": [3000, 8080],
-  "portsAttributes": {
-    "3000": {
-      "label": "Dev Server",
-      "onAutoForward": "openBrowser"
     },
-    "8080": {
-      "label": "Web App",
-      "onAutoForward": "notify"
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "christian-kohler.npm-intellisense",
+                "eg2.vscode-npm-script"
+            ],
+            "settings": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "editor.codeActionsOnSave": {
+                    "source.fixAll.eslint": "explicit"
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[javascript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                }
+            }
+        }
+    },
+    "remoteEnv": {
+        "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"
+    },
+    "forwardPorts": [3000, 8080],
+    "portsAttributes": {
+        "3000": {
+            "label": "Dev Server",
+            "onAutoForward": "openBrowser"
+        },
+        "8080": {
+            "label": "Web App",
+            "onAutoForward": "notify"
+        }
     }
-  }
 }

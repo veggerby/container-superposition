@@ -51,6 +51,7 @@ gcloud auth application-default print-access-token
 ```
 
 **Environment variable approach:**
+
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 ```
@@ -175,16 +176,19 @@ gcloud config configurations list
 ## Common Use Cases
 
 ### GCP Development
+
 - Deploy Cloud Functions
 - Manage Cloud Run services
 - Interact with GCS buckets
 
 ### GKE Development
+
 - Authenticate to GKE clusters
 - Deploy containerized applications
 - Manage Kubernetes resources
 
 ### Data Engineering
+
 - BigQuery queries and data loading
 - Cloud Storage data pipelines
 - Dataflow job management
@@ -204,6 +208,7 @@ gcloud config configurations list
 ⚠️ **Never commit service account keys to version control**
 
 Use one of these secure methods:
+
 - **Environment variables** in `.env` (excluded from git)
 - **Secret management** (e.g., HashiCorp Vault)
 - **Cloud-based secrets** (e.g., Secret Manager)
@@ -212,6 +217,7 @@ Use one of these secure methods:
 ### Least Privilege
 
 Grant minimal required permissions to service accounts:
+
 ```bash
 # Example: Grant Storage Object Viewer role
 gcloud projects add-iam-policy-binding PROJECT_ID \
@@ -224,6 +230,7 @@ gcloud projects add-iam-policy-binding PROJECT_ID \
 ### gcloud command not found
 
 Rebuild container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### Authentication errors

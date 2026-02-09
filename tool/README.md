@@ -20,19 +20,19 @@ This tool is designed to:
 We make deliberate choices about base images, tool versions, and configurations based on real-world usage:
 
 - **Default Base Image**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:bookworm`)
-  - Stable, well-maintained, broad compatibility
-  - Microsoft's recommended base for general development
-  - Regular security updates and long-term support
+    - Stable, well-maintained, broad compatibility
+    - Microsoft's recommended base for general development
+    - Regular security updates and long-term support
 
 - **Why Opinionated?**
-  - Reduces decision fatigue for common use cases
-  - Configurations have been validated in production environments
-  - Predictable behavior across teams and projects
+    - Reduces decision fatigue for common use cases
+    - Configurations have been validated in production environments
+    - Predictable behavior across teams and projects
 
 - **Customization Available**
-  - Select alternative base images (Trixie for newer packages)
-  - Provide custom images (⚠️ may conflict with overlays)
-  - All generated files are editable post-generation
+    - Select alternative base images (Trixie for newer packages)
+    - Provide custom images (⚠️ may conflict with overlays)
+    - All generated files are editable post-generation
 
 ## Quick Start
 
@@ -47,15 +47,16 @@ You'll be greeted with a beautiful, color-coded interface that guides you throug
 1. **Base Template**: plain (simple image) or compose (docker-compose based)
 2. **Base Image**: Debian Bookworm (recommended), Trixie, or custom
 3. **Overlays**: Single categorized multi-select with:
-   - **Languages**: .NET, Node.js, Python, MkDocs
-   - **Databases**: PostgreSQL, Redis
-   - **Observability**: OpenTelemetry Collector, Jaeger, Prometheus, Grafana, Loki
-   - **Cloud Tools**: AWS CLI, Azure CLI, kubectl/helm
-   - **Dev Tools**: docker-in-docker, docker-sock, Playwright, Codex
+    - **Languages**: .NET, Node.js, Python, MkDocs
+    - **Databases**: PostgreSQL, Redis
+    - **Observability**: OpenTelemetry Collector, Jaeger, Prometheus, Grafana, Loki
+    - **Cloud Tools**: AWS CLI, Azure CLI, kubectl/helm
+    - **Dev Tools**: docker-in-docker, docker-sock, Playwright, Codex
 4. **Output Path**: Where to write the configuration (default: `./.devcontainer`)
 5. **Port Offset**: Optional offset for running multiple instances
 
 The tool features:
+
 - 🎨 Color-coded prompts with chalk
 - 📦 Beautiful boxed headers with boxen
 - ⏳ Progress spinners with ora
@@ -92,18 +93,18 @@ This makes the questionnaire more engaging and the output easier to scan.
 
 ## CLI Options
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `--stack <name>` | Base template: `plain`, `compose` | `--stack compose` |
-| `--language <name>` | Language/framework: `dotnet`, `nodejs`, `python`, `mkdocs` | `--language dotnet` |
-| `--database <type>` | Database: `postgres`, `redis`, `mongodb`, `mysql`, `sqlserver`, `sqlite`, `minio` | `--database postgres` |
-| `--observability <list>` | Observability tools: `otel-collector`, `jaeger`, `prometheus`, `grafana`, `loki` | `--observability jaeger,prometheus,grafana` |
-| `--playwright` | Include Playwright browser automation | `--playwright` |
-| `--cloud-tools <list>` | Cloud tools: `aws-cli`, `azure-cli`, `gcloud`, `kubectl-helm`, `terraform`, `pulumi` | `--cloud-tools aws-cli,kubectl-helm` |
-| `--dev-tools <list>` | Development tools: `docker-in-docker`, `docker-sock`, `playwright`, `codex`, `git-helpers`, `pre-commit`, `commitlint`, `just`, `direnv`, `modern-cli-tools`, `ngrok` | `--dev-tools docker-in-docker,playwright` |
-| `--port-offset <number>` | Add offset to all exposed ports (e.g., 100 makes Grafana 3100) | `--port-offset 100` |
-| `-o`, `--output <path>` | Output directory (default: `./.devcontainer`) | `-o ./custom-path` |
-| `-h`, `--help` | Show help | `--help` |
+| Option                   | Description                                                                                                                                                           | Example                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `--stack <name>`         | Base template: `plain`, `compose`                                                                                                                                     | `--stack compose`                           |
+| `--language <name>`      | Language/framework: `dotnet`, `nodejs`, `python`, `mkdocs`                                                                                                            | `--language dotnet`                         |
+| `--database <type>`      | Database: `postgres`, `redis`, `mongodb`, `mysql`, `sqlserver`, `sqlite`, `minio`                                                                                     | `--database postgres`                       |
+| `--observability <list>` | Observability tools: `otel-collector`, `jaeger`, `prometheus`, `grafana`, `loki`                                                                                      | `--observability jaeger,prometheus,grafana` |
+| `--playwright`           | Include Playwright browser automation                                                                                                                                 | `--playwright`                              |
+| `--cloud-tools <list>`   | Cloud tools: `aws-cli`, `azure-cli`, `gcloud`, `kubectl-helm`, `terraform`, `pulumi`                                                                                  | `--cloud-tools aws-cli,kubectl-helm`        |
+| `--dev-tools <list>`     | Development tools: `docker-in-docker`, `docker-sock`, `playwright`, `codex`, `git-helpers`, `pre-commit`, `commitlint`, `just`, `direnv`, `modern-cli-tools`, `ngrok` | `--dev-tools docker-in-docker,playwright`   |
+| `--port-offset <number>` | Add offset to all exposed ports (e.g., 100 makes Grafana 3100)                                                                                                        | `--port-offset 100`                         |
+| `-o`, `--output <path>`  | Output directory (default: `./.devcontainer`)                                                                                                                         | `-o ./custom-path`                          |
+| `-h`, `--help`           | Show help                                                                                                                                                             | `--help`                                    |
 
 ## What It Does
 
@@ -151,16 +152,19 @@ All `.env.example` files from selected overlays are automatically merged into a 
 Overlays add specific capabilities to your base template:
 
 **Language & Framework:**
+
 - **dotnet**: .NET 10 SDK with C# DevKit
 - **nodejs**: Node.js LTS with TypeScript and tooling
 - **python**: Python 3 with pip and development tools
 - **mkdocs**: MkDocs documentation framework
 
 **Databases:**
+
 - **postgres**: PostgreSQL 16 + client tools
 - **redis**: Redis 7 + redis-tools
 
 **Observability:**
+
 - **otel-collector**: OpenTelemetry Collector for trace/metric collection
 - **jaeger**: Distributed tracing UI and storage
 - **prometheus**: Metrics collection and alerting
@@ -168,11 +172,13 @@ Overlays add specific capabilities to your base template:
 - **loki**: Log aggregation and querying
 
 **Cloud Tools:**
+
 - **aws-cli**: AWS command-line tools
 - **azure-cli**: Azure command-line tools
 - **kubectl-helm**: Kubernetes kubectl and Helm
 
 **Dev Tools:**
+
 - **docker-in-docker**: Docker daemon inside container (conflicts with docker-sock)
 - **docker-sock**: Docker socket mounting (conflicts with docker-in-docker)
 - **playwright**: Browser automation with Chromium
@@ -192,6 +198,7 @@ overlays/postgres/
 ```
 
 The tool intelligently handles each file type:
+
 - **devcontainer.patch.json** - Deep-merged into devcontainer.json (arrays concatenated, objects merged)
 - **docker-compose.yml** - Copied as `docker-compose.{overlay}.yml` and referenced in devcontainer.json
 - **.env.example** - Content merged into combined `.env.example` in output
@@ -247,10 +254,10 @@ Want to add a new overlay or template?
 
 1. **Template**: Add to `templates/<name>/.devcontainer/`
 2. **Overlay**: Add to `overlays/<name>/`
-   - Required: `devcontainer.patch.json`
-   - Optional: `docker-compose.yml` for services
-   - Optional: `.env.example` for environment variables
-   - Optional: Any additional config files or directories
+    - Required: `devcontainer.patch.json`
+    - Optional: `docker-compose.yml` for services
+    - Optional: `.env.example` for environment variables
+    - Optional: Any additional config files or directories
 3. **Update questionnaire**: Edit `scripts/init.ts` to offer the new option
 4. **Test**: Run `npm run init` and verify the output
 

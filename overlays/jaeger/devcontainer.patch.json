@@ -1,12 +1,12 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "runServices": ["jaeger"],
-  "_serviceOrder": 1,
-  "forwardPorts": [16686],
-  "portsAttributes": {
-    "16686": {
-      "label": "Jaeger UI",
-      "onAutoForward": "openBrowser"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["jaeger"],
+    "_serviceOrder": 1,
+    "forwardPorts": [16686],
+    "portsAttributes": {
+        "16686": {
+            "label": "Jaeger UI",
+            "onAutoForward": "openBrowser"
+        }
     }
-  }
 }

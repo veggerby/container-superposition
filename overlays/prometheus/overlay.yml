@@ -3,15 +3,15 @@ name: Prometheus
 description: Metrics collection and monitoring
 category: observability
 supports:
-  - compose
+    - compose
 requires: []
 suggests:
-  - alertmanager
+    - alertmanager
 conflicts: []
 tags:
-  - observability
-  - metrics
-  - prometheus
+    - observability
+    - metrics
+    - prometheus
 ports:
-  - 9090
+    - 9090
 order: 1

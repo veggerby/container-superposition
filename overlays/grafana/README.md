@@ -42,17 +42,17 @@ Edit `grafana-datasources.yml` in your project's `.devcontainer` directory:
 apiVersion: 1
 
 datasources:
-  # ... existing datasources ...
-  
-  - name: PostgreSQL
-    type: postgres
-    url: postgres:5432
-    database: devdb
-    user: postgres
-    secureJsonData:
-      password: postgres
-    jsonData:
-      sslmode: disable
+    # ... existing datasources ...
+
+    - name: PostgreSQL
+      type: postgres
+      url: postgres:5432
+      database: devdb
+      user: postgres
+      secureJsonData:
+          password: postgres
+      jsonData:
+          sslmode: disable
 ```
 
 ## Environment Variables
@@ -83,9 +83,9 @@ GRAFANA_ADMIN_PASSWORD=admin
 1. Click **+** → **Dashboard** → **Add visualization**
 2. Select **Prometheus** datasource
 3. Enter a PromQL query:
-   ```promql
-   rate(http_requests_total[5m])
-   ```
+    ```promql
+    rate(http_requests_total[5m])
+    ```
 4. Customize visualization type (Graph, Gauge, Stat, etc.)
 5. Save dashboard
 
@@ -93,9 +93,9 @@ GRAFANA_ADMIN_PASSWORD=admin
 
 1. Add visualization → Select **Loki**
 2. Enter LogQL query:
-   ```logql
-   {service="my-app"} |= "error"
-   ```
+    ```logql
+    {service="my-app"} |= "error"
+    ```
 3. Use **Logs** panel type for log streaming
 
 #### Jaeger Traces Dashboard
@@ -109,11 +109,13 @@ GRAFANA_ADMIN_PASSWORD=admin
 Grafana has thousands of community dashboards at https://grafana.com/grafana/dashboards/
 
 Example imports:
+
 - **Node Exporter Full** (ID: 1860) - System metrics
 - **Loki Dashboard** (ID: 13639) - Log analysis
 - **Jaeger Dashboard** (ID: 12628) - Trace visualization
 
 To import:
+
 1. Go to **Dashboards** → **Import**
 2. Enter dashboard ID or paste JSON
 3. Select datasources
@@ -186,16 +188,19 @@ Mark important events on graphs:
 ## Best Practices
 
 ### Organization
+
 - Create folders for different teams/projects
 - Use consistent naming conventions
 - Tag dashboards for easy discovery
 
 ### Performance
+
 - Limit time range for large datasets
 - Use recording rules in Prometheus for expensive queries
 - Enable query caching where appropriate
 
 ### Sharing
+
 - Export dashboards as JSON for version control
 - Use templating for reusable dashboards
 - Document dashboard purpose and panels
@@ -203,6 +208,7 @@ Mark important events on graphs:
 ## Dependencies
 
 Datasources (optional but commonly used):
+
 - **prometheus** - For metrics
 - **loki** - For logs
 - **jaeger** - For traces
@@ -214,6 +220,7 @@ compose + <language> + prometheus + loki + jaeger + grafana
 ```
 
 Or with collector:
+
 ```bash
 compose + <language> + otel-collector + prometheus + loki + jaeger + grafana
 ```
@@ -221,16 +228,19 @@ compose + <language> + otel-collector + prometheus + loki + jaeger + grafana
 ## Troubleshooting
 
 ### Cannot connect to datasource
+
 1. Verify service names match docker-compose network
 2. Check that datasource services are running: `docker-compose ps`
 3. Test connectivity: `docker-compose exec grafana curl http://prometheus:9090`
 
 ### Dashboard not updating
+
 1. Check time range (top-right corner)
 2. Verify auto-refresh is enabled
 3. Check that datasource is returning data
 
 ### Slow queries
+
 1. Reduce time range
 2. Increase query interval
 3. Use Prometheus recording rules for complex queries
@@ -245,29 +255,28 @@ The Grafana overlay now includes automatic provisioning of datasources and dashb
 The following datasources are automatically configured:
 
 - **Prometheus** - Metrics backend (http://prometheus:9090)
-  - Default datasource for new dashboards
-  - 15-second scrape interval
-  
+    - Default datasource for new dashboards
+    - 15-second scrape interval
 - **Loki** - Logs backend (http://loki:3100)
-  - Derived fields for trace correlation
-  - Links to Tempo and Jaeger from trace IDs in logs
-  
+    - Derived fields for trace correlation
+    - Links to Tempo and Jaeger from trace IDs in logs
 - **Jaeger** - Distributed tracing backend (http://jaeger:16686)
-  - UID: `jaeger` for linking
-  
+    - UID: `jaeger` for linking
 - **Tempo** - Alternative distributed tracing backend (http://tempo:3200)
-  - UID: `tempo` for linking
-  - Trace-to-logs correlation enabled
-  - Trace-to-metrics correlation enabled
-  - Service map and node graph enabled
+    - UID: `tempo` for linking
+    - Trace-to-logs correlation enabled
+    - Trace-to-metrics correlation enabled
+    - Service map and node graph enabled
 
 ### Correlation Features
 
 **Logs ↔ Traces:**
+
 - Click trace ID in logs to view trace in Tempo/Jaeger
 - Click "Logs for this span" in trace view to see related logs
 
 **Traces ↔ Metrics:**
+
 - View metrics for services in trace view
 - Service map shows request rates between services
 
@@ -276,6 +285,7 @@ The following datasources are automatically configured:
 The overlay includes sample dashboards in the "Observability" folder:
 
 **Observability Overview:**
+
 - HTTP request rate by service and status
 - HTTP request duration percentiles (p50, p95, p99)
 - Application logs stream with JSON parsing
@@ -285,6 +295,7 @@ Access at: http://localhost:3000/dashboards
 ### Adding Custom Dashboards
 
 **Option 1: Create in UI**
+
 1. Create dashboard in Grafana UI
 2. Click **Dashboard settings** (gear icon)
 3. Click **JSON Model**
@@ -293,6 +304,7 @@ Access at: http://localhost:3000/dashboards
 6. Restart Grafana to load
 
 **Option 2: Export from Grafana.com**
+
 1. Browse https://grafana.com/grafana/dashboards/
 2. Find dashboard (e.g., Node Exporter Full)
 3. Download JSON
@@ -300,6 +312,7 @@ Access at: http://localhost:3000/dashboards
 5. Restart Grafana
 
 **Dashboard structure:**
+
 ```
 .devcontainer/
 ├── dashboards/
@@ -315,9 +328,11 @@ Access at: http://localhost:3000/dashboards
 ### Issue: Datasources Not Auto-Configured
 
 **Symptoms:**
+
 - Datasources missing in Grafana
 
 **Solution:**
+
 ```bash
 # Check datasources are mounted
 docker exec grafana ls /etc/grafana/provisioning/datasources/
@@ -332,9 +347,11 @@ docker restart grafana
 ### Issue: Tempo Not Showing Traces
 
 **Symptoms:**
+
 - Tempo datasource configured but no traces visible
 
 **Solution:**
+
 ```bash
 # Verify Tempo is receiving traces
 curl http://tempo:3200/api/search
@@ -349,9 +366,11 @@ docker exec tempo cat /etc/tempo/tempo-config.yaml
 ### Issue: Dashboards Not Loading
 
 **Symptoms:**
+
 - Dashboards folder empty or dashboards not appearing
 
 **Solution:**
+
 ```bash
 # Check dashboard provider is mounted
 docker exec grafana ls /etc/grafana/provisioning/dashboards/
@@ -369,9 +388,11 @@ jq . .devcontainer/dashboards/my-dashboard.json
 ### Issue: Correlation Links Not Working
 
 **Symptoms:**
+
 - Cannot jump from logs to traces or vice versa
 
 **Solution:**
+
 - Ensure logs include `trace.id` field in JSON
 - Verify datasource UIDs match (`tempo`, `jaeger`, `loki`)
 - Check derived fields configuration in Loki datasource
@@ -388,11 +409,11 @@ Edit `.devcontainer/grafana-datasources-grafana.yml`:
   type: loki
   url: http://loki:3100
   jsonData:
-    derivedFields:
-      - datasourceUid: tempo
-        matcherRegex: "trace_id=(\\w+)"  # Custom field name
-        name: TraceID
-        url: "$${__value.raw}"
+      derivedFields:
+          - datasourceUid: tempo
+            matcherRegex: "trace_id=(\\w+)" # Custom field name
+            name: TraceID
+            url: '$${__value.raw}'
 ```
 
 ### Adding More Datasources
@@ -406,7 +427,7 @@ Add to `grafana-datasources.yml`:
   database: myapp
   user: postgres
   jsonData:
-    sslmode: disable
+      sslmode: disable
 ```
 
 ### Dashboard Auto-Refresh
@@ -415,11 +436,11 @@ Edit dashboard JSON:
 
 ```json
 {
-  "refresh": "5s",  // Auto-refresh every 5 seconds
-  "time": {
-    "from": "now-15m",
-    "to": "now"
-  }
+    "refresh": "5s", // Auto-refresh every 5 seconds
+    "time": {
+        "from": "now-15m",
+        "to": "now"
+    }
 }
 ```
 
@@ -432,6 +453,7 @@ Edit dashboard JSON:
 - [Trace to Logs](https://grafana.com/docs/grafana/latest/datasources/tempo/#trace-to-logs)
 
 **Related Overlays:**
+
 - `prometheus` - Metrics datasource
 - `loki` - Logs datasource
 - `jaeger` - Tracing datasource

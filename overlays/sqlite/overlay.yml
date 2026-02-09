@@ -5,11 +5,11 @@ category: database
 supports: []
 requires: []
 suggests:
-  - python
+    - python
 conflicts: []
 tags:
-  - database
-  - sql
-  - sqlite
-  - embedded
+    - database
+    - sql
+    - sqlite
+    - embedded
 ports: []

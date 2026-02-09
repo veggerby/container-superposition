@@ -1,21 +1,21 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/robbert229/devcontainer-features/postgresql-client:1": {}
-  },
-  "runServices": ["postgres"],
-  "forwardPorts": [5432],
-  "portsAttributes": {
-    "5432": {
-      "label": "PostgreSQL",
-      "onAutoForward": "notify"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/robbert229/devcontainer-features/postgresql-client:1": {}
+    },
+    "runServices": ["postgres"],
+    "forwardPorts": [5432],
+    "portsAttributes": {
+        "5432": {
+            "label": "PostgreSQL",
+            "onAutoForward": "notify"
+        }
+    },
+    "remoteEnv": {
+        "POSTGRES_HOST": "postgres",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DB": "devdb",
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "postgres"
     }
-  },
-  "remoteEnv": {
-    "POSTGRES_HOST": "postgres",
-    "POSTGRES_PORT": "5432",
-    "POSTGRES_DB": "devdb",
-    "POSTGRES_USER": "postgres",
-    "POSTGRES_PASSWORD": "postgres"
-  }
 }

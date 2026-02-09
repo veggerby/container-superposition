@@ -1,45 +1,55 @@
 version: '3.8'
 
 services:
-  mysql:
-    image: mysql:${MYSQL_VERSION:-8}
-    restart: unless-stopped
-    volumes:
-      - mysql-data:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-devdb}
-      MYSQL_USER: ${MYSQL_USER:-devuser}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-devpassword}
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
-    networks:
-      - devnet
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    mysql:
+        image: mysql:${MYSQL_VERSION:-8}
+        restart: unless-stopped
+        volumes:
+            - mysql-data:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+            MYSQL_DATABASE: ${MYSQL_DATABASE:-devdb}
+            MYSQL_USER: ${MYSQL_USER:-devuser}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD:-devpassword}
+        ports:
+            - '${MYSQL_PORT:-3306}:3306'
+        networks:
+            - devnet
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'mysqladmin',
+                    'ping',
+                    '-h',
+                    'localhost',
+                    '-u',
+                    'root',
+                    '-p${MYSQL_ROOT_PASSWORD:-rootpassword}',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-  phpmyadmin:
-    image: phpmyadmin:${PHPMYADMIN_VERSION:-latest}
-    restart: unless-stopped
-    environment:
-      PMA_HOST: mysql
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      UPLOAD_LIMIT: 100M
-    ports:
-      - "${PHPMYADMIN_PORT:-8080}:80"
-    networks:
-      - devnet
-    depends_on:
-      mysql:
-        condition: service_healthy
+    phpmyadmin:
+        image: phpmyadmin:${PHPMYADMIN_VERSION:-latest}
+        restart: unless-stopped
+        environment:
+            PMA_HOST: mysql
+            PMA_PORT: 3306
+            PMA_USER: root
+            PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+            UPLOAD_LIMIT: 100M
+        ports:
+            - '${PHPMYADMIN_PORT:-8080}:80'
+        networks:
+            - devnet
+        depends_on:
+            mysql:
+                condition: service_healthy
 
 volumes:
-  mysql-data:
+    mysql-data:
 
 networks:
-  devnet:
+    devnet:

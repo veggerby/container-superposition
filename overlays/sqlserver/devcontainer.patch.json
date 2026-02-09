@@ -1,24 +1,22 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-mssql.mssql"
-      ]
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "customizations": {
+        "vscode": {
+            "extensions": ["ms-mssql.mssql"]
+        }
+    },
+    "runServices": ["sqlserver"],
+    "forwardPorts": [1433],
+    "portsAttributes": {
+        "1433": {
+            "label": "SQL Server",
+            "onAutoForward": "notify"
+        }
+    },
+    "remoteEnv": {
+        "MSSQL_HOST": "sqlserver",
+        "MSSQL_PORT": "1433",
+        "MSSQL_SA_PASSWORD": "YourStrong@Passw0rd",
+        "MSSQL_DATABASE": "master"
     }
-  },
-  "runServices": ["sqlserver"],
-  "forwardPorts": [1433],
-  "portsAttributes": {
-    "1433": {
-      "label": "SQL Server",
-      "onAutoForward": "notify"
-    }
-  },
-  "remoteEnv": {
-    "MSSQL_HOST": "sqlserver",
-    "MSSQL_PORT": "1433",
-    "MSSQL_SA_PASSWORD": "YourStrong@Passw0rd",
-    "MSSQL_DATABASE": "master"
-  }
 }

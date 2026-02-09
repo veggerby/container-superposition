@@ -35,17 +35,17 @@ Optional files (as needed):
 **Structure:**
 
 ```yaml
-id: overlay-id               # Must match directory name
-name: Display Name           # Human-readable name for UI
-description: Brief summary   # One-line description
-category: category-name      # language|database|observability|cloud|dev
-supports: []                 # Empty = all, or [plain], [compose]
-requires: []                 # Hard dependencies (auto-installed)
-suggests: []                 # Recommended overlays
-conflicts: []                # Incompatible overlays
-tags: [tag1, tag2]          # Search/filter tags (lowercase)
-ports: [8080, 9090]         # Ports used (for offset calculation)
-order: 2                     # Optional: Display order within category
+id: overlay-id # Must match directory name
+name: Display Name # Human-readable name for UI
+description: Brief summary # One-line description
+category: category-name # language|database|observability|cloud|dev
+supports: [] # Empty = all, or [plain], [compose]
+requires: [] # Hard dependencies (auto-installed)
+suggests: [] # Recommended overlays
+conflicts: [] # Incompatible overlays
+tags: [tag1, tag2] # Search/filter tags (lowercase)
+ports: [8080, 9090] # Ports used (for offset calculation)
+order: 2 # Optional: Display order within category
 ```
 
 **Example (overlays/nodejs/overlay.yml):**
@@ -60,10 +60,10 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - language
-  - nodejs
-  - javascript
-  - typescript
+    - language
+    - nodejs
+    - javascript
+    - typescript
 ports: []
 ```
 
@@ -97,14 +97,14 @@ ports: []
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {},
-  "customizations": {},
-  "remoteEnv": {},
-  "forwardPorts": [],
-  "portsAttributes": {},
-  "postCreateCommand": "",
-  "postStartCommand": ""
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {},
+    "customizations": {},
+    "remoteEnv": {},
+    "forwardPorts": [],
+    "portsAttributes": {},
+    "postCreateCommand": "",
+    "postStartCommand": ""
 }
 ```
 
@@ -116,16 +116,16 @@ Use devcontainer features for tool installation when possible. Prefer official f
 
 ```json
 {
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts",
-      "nodeGypDependencies": true
-    },
-    "./features/cross-distro-packages": {
-      "apt": "build-essential wget curl",
-      "apk": "build-base wget curl"
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts",
+            "nodeGypDependencies": true
+        },
+        "./features/cross-distro-packages": {
+            "apt": "build-essential wget curl",
+            "apk": "build-base wget curl"
+        }
     }
-  }
 }
 ```
 
@@ -140,12 +140,12 @@ Use devcontainer features for tool installation when possible. Prefer official f
 
 ```json
 {
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "postgresql-client redis-tools curl jq",
-      "apk": "postgresql-client redis curl jq"
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "postgresql-client redis-tools curl jq",
+            "apk": "postgresql-client redis curl jq"
+        }
     }
-  }
 }
 ```
 
@@ -157,16 +157,14 @@ Configure VS Code extensions, settings, and other editor customizations.
 
 ```json
 {
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "publisher.extension-id"
-      ],
-      "settings": {
-        "setting.key": "value"
-      }
+    "customizations": {
+        "vscode": {
+            "extensions": ["publisher.extension-id"],
+            "settings": {
+                "setting.key": "value"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -182,24 +180,24 @@ Configure VS Code extensions, settings, and other editor customizations.
 
 ```json
 {
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "christian-kohler.npm-intellisense"
-      ],
-      "settings": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": "explicit"
-        },
-        "[typescript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "christian-kohler.npm-intellisense"
+            ],
+            "settings": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "editor.codeActionsOnSave": {
+                    "source.fixAll.eslint": "explicit"
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                }
+            }
         }
-      }
     }
-  }
 }
 ```
 
@@ -219,11 +217,11 @@ Define environment variables for the devcontainer environment.
 
 ```json
 {
-  "remoteEnv": {
-    "PATH": "${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}",
-    "PNPM_HOME": "${containerEnv:HOME}/.local/share/pnpm",
-    "NODE_ENV": "development"
-  }
+    "remoteEnv": {
+        "PATH": "${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}",
+        "PNPM_HOME": "${containerEnv:HOME}/.local/share/pnpm",
+        "NODE_ENV": "development"
+    }
 }
 ```
 
@@ -237,21 +235,21 @@ Define ports to forward from container to host.
 
 ```json
 {
-  "forwardPorts": [3000, 8080, 9090],
-  "portsAttributes": {
-    "3000": {
-      "label": "Dev Server",
-      "onAutoForward": "openBrowser"
-    },
-    "8080": {
-      "label": "Web App",
-      "onAutoForward": "notify"
-    },
-    "9090": {
-      "label": "Metrics",
-      "onAutoForward": "ignore"
+    "forwardPorts": [3000, 8080, 9090],
+    "portsAttributes": {
+        "3000": {
+            "label": "Dev Server",
+            "onAutoForward": "openBrowser"
+        },
+        "8080": {
+            "label": "Web App",
+            "onAutoForward": "notify"
+        },
+        "9090": {
+            "label": "Metrics",
+            "onAutoForward": "ignore"
+        }
     }
-  }
 }
 ```
 
@@ -275,7 +273,7 @@ Define ports to forward from container to host.
 
 ```json
 {
-  "postCreateCommand": "bash .devcontainer/setup-nodejs.sh"
+    "postCreateCommand": "bash .devcontainer/setup-nodejs.sh"
 }
 ```
 
@@ -283,7 +281,7 @@ Define ports to forward from container to host.
 
 ```json
 {
-  "postStartCommand": "bash .devcontainer/verify-dotnet.sh"
+    "postStartCommand": "bash .devcontainer/verify-dotnet.sh"
 }
 ```
 
@@ -307,23 +305,23 @@ Define ports to forward from container to host.
 version: '3.8'
 
 services:
-  service-name:
-    image: image:tag
-    restart: unless-stopped
-    volumes:
-      - volume-name:/path/in/container
-    environment:
-      ENV_VAR: ${ENV_VAR:-default-value}
-    ports:
-      - "${PORT:-5432}:5432"
-    networks:
-      - devnet
+    service-name:
+        image: image:tag
+        restart: unless-stopped
+        volumes:
+            - volume-name:/path/in/container
+        environment:
+            ENV_VAR: ${ENV_VAR:-default-value}
+        ports:
+            - '${PORT:-5432}:5432'
+        networks:
+            - devnet
 
 volumes:
-  volume-name:
+    volume-name:
 
 networks:
-  devnet:
+    devnet:
 ```
 
 #### Critical Requirements
@@ -332,15 +330,15 @@ networks:
 
 ```yaml
 networks:
-  devnet:  # Correct: shared network created by composer
+    devnet: # Correct: shared network created by composer
 ```
 
 **NOT this:**
 
 ```yaml
 networks:
-  devnet:
-    external: true  # WRONG: Causes runtime failures
+    devnet:
+        external: true # WRONG: Causes runtime failures
 ```
 
 **Why:** The composer creates the `devnet` network. Each overlay just references it.
@@ -385,25 +383,25 @@ networks:
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:${POSTGRES_VERSION:-16}-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-devdb}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    networks:
-      - devnet
+    postgres:
+        image: postgres:${POSTGRES_VERSION:-16}-alpine
+        restart: unless-stopped
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB:-devdb}
+            POSTGRES_USER: ${POSTGRES_USER:-postgres}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+        ports:
+            - '${POSTGRES_PORT:-5432}:5432'
+        networks:
+            - devnet
 
 volumes:
-  postgres-data:
+    postgres-data:
 
 networks:
-  devnet:
+    devnet:
 ```
 
 #### Service Communication
@@ -431,13 +429,13 @@ Services communicate using service names as hostnames:
 
 ```yaml
 services:
-  postgres:
-    # ... other config
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    postgres:
+        # ... other config
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U postgres']
+            interval: 10s
+            timeout: 5s
+            retries: 5
 ```
 
 **When to use:**
@@ -746,10 +744,10 @@ pipx
 - Use environment variable substitution when supported: `${ENV_VAR:-default}`
 - Mount as volume in docker-compose.yml:
 
-  ```yaml
-  volumes:
-    - ./overlays/grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-  ```
+    ```yaml
+    volumes:
+        - ./overlays/grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ```
 
 - Mark as read-only (`:ro`) if service doesn't need to modify it
 
@@ -759,12 +757,12 @@ pipx
 apiVersion: 1
 
 datasources:
-  - name: Prometheus
-    type: prometheus
-    access: proxy
-    url: http://prometheus:9090
-    isDefault: true
-    editable: true
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus:9090
+      isDefault: true
+      editable: true
 ```
 
 ## Integration with Composer
@@ -774,53 +772,53 @@ The `composer.ts` file in `tool/questionnaire/` handles merging overlays into th
 **How Overlay Files Are Processed:**
 
 1. **devcontainer.patch.json:**
-   - Merged using deep merge algorithm
-   - Arrays are concatenated and deduplicated
-   - Objects are merged recursively
-   - `remoteEnv.PATH` is merged intelligently (prepending, not overwriting)
+    - Merged using deep merge algorithm
+    - Arrays are concatenated and deduplicated
+    - Objects are merged recursively
+    - `remoteEnv.PATH` is merged intelligently (prepending, not overwriting)
 
 2. **docker-compose.yml:**
-   - Services merged into base `.devcontainer/docker-compose.yml`
-   - Volumes and networks merged
-   - Port offsets applied to host ports (if `--port-offset` specified)
+    - Services merged into base `.devcontainer/docker-compose.yml`
+    - Volumes and networks merged
+    - Port offsets applied to host ports (if `--port-offset` specified)
 
 3. **Setup/Verify Scripts:**
-   - Copied to `.devcontainer/setup-<overlay>.sh`
-   - Invoked via `postCreateCommand` or `postStartCommand`
-   - Multiple scripts are chained with `&&`
+    - Copied to `.devcontainer/setup-<overlay>.sh`
+    - Invoked via `postCreateCommand` or `postStartCommand`
+    - Multiple scripts are chained with `&&`
 
 4. **.env.example:**
-   - Concatenated into `.devcontainer/.env.example`
-   - Users copy to `.env` manually
+    - Concatenated into `.devcontainer/.env.example`
+    - Users copy to `.env` manually
 
 5. **global-packages.txt:**
-   - Copied to `.devcontainer/global-packages-<overlay>.txt`
-   - Processed by setup script
+    - Copied to `.devcontainer/global-packages-<overlay>.txt`
+    - Processed by setup script
 
 **Composer Behavior You Should Know:**
 
 - **Port Offset:** If user specifies `--port-offset 100`, all ports are incremented:
-  - 5432 → 5532 (PostgreSQL)
-  - 6379 → 6479 (Redis)
-  - Only applies to host ports in docker-compose.yml, not container ports
+    - 5432 → 5532 (PostgreSQL)
+    - 6379 → 6479 (Redis)
+    - Only applies to host ports in docker-compose.yml, not container ports
 
 - **Apt Package Merging:** Packages from multiple overlays are combined and deduplicated:
 
-  ```json
-  // Overlay 1: "apt": "curl wget"
-  // Overlay 2: "apt": "wget jq"
-  // Result: "curl wget jq"
-  ```
+    ```json
+    // Overlay 1: "apt": "curl wget"
+    // Overlay 2: "apt": "wget jq"
+    // Result: "curl wget jq"
+    ```
 
 - **Empty String Filtering:** Empty strings in apt/apk package lists are filtered out
 
 - **Order of Application:**
-  1. Base template (plain or compose)
-  2. Language overlays
-  3. Database overlays
-  4. Observability overlays
-  5. Cloud tool overlays
-  6. Dev tool overlays
+    1. Base template (plain or compose)
+    2. Language overlays
+    3. Database overlays
+    4. Observability overlays
+    5. Cloud tool overlays
+    6. Dev tool overlays
 
 ## Testing and Validation
 
@@ -828,62 +826,62 @@ The `composer.ts` file in `tool/questionnaire/` handles merging overlays into th
 
 1. **Validate JSON syntax:**
 
-   ```bash
-   # Use jq or VS Code JSON validator
-   jq empty devcontainer.patch.json
-   ```
+    ```bash
+    # Use jq or VS Code JSON validator
+    jq empty devcontainer.patch.json
+    ```
 
 2. **Validate YAML syntax:**
 
-   ```bash
-   # Use yamllint or VS Code YAML validator
-   yamllint docker-compose.yml
-   ```
+    ```bash
+    # Use yamllint or VS Code YAML validator
+    yamllint docker-compose.yml
+    ```
 
 3. **Test script execution:**
 
-   ```bash
-   # Verify scripts have execute permissions
-   chmod +x setup.sh verify.sh
+    ```bash
+    # Verify scripts have execute permissions
+    chmod +x setup.sh verify.sh
 
-   # Test setup script (in devcontainer)
-   bash setup.sh
+    # Test setup script (in devcontainer)
+    bash setup.sh
 
-   # Test verify script
-   bash verify.sh
-   ```
+    # Test verify script
+    bash verify.sh
+    ```
 
 4. **Build devcontainer:**
 
-   ```bash
-   # Generate devcontainer with your overlay
-   npm run init -- --stack compose --language nodejs --your-overlay
+    ```bash
+    # Generate devcontainer with your overlay
+    npm run init -- --stack compose --language nodejs --your-overlay
 
-   # Open in VS Code and rebuild container
-   code generated-project/
-   # Dev Containers: Rebuild Container
-   ```
+    # Open in VS Code and rebuild container
+    code generated-project/
+    # Dev Containers: Rebuild Container
+    ```
 
 5. **Verify functionality:**
-   - All tools are installed
-   - VS Code extensions are present
-   - Services are running (docker-compose ps)
-   - Ports are accessible
-   - Environment variables are set
-   - Scripts executed successfully
+    - All tools are installed
+    - VS Code extensions are present
+    - Services are running (docker-compose ps)
+    - Ports are accessible
+    - Environment variables are set
+    - Scripts executed successfully
 
 6. **Test port offset:**
 
-   ```bash
-   npm run init -- --port-offset 100 --stack compose --database postgres
-   # Verify PostgreSQL is on port 5532, not 5432
-   ```
+    ```bash
+    npm run init -- --port-offset 100 --stack compose --database postgres
+    # Verify PostgreSQL is on port 5532, not 5432
+    ```
 
 7. **Run smoke tests:**
 
-   ```bash
-   npm run test:smoke
-   ```
+    ```bash
+    npm run test:smoke
+    ```
 
 ## Common Patterns and Examples
 
@@ -928,6 +926,7 @@ The `composer.ts` file in `tool/questionnaire/` handles merging overlays into th
 Before submitting overlay files, verify:
 
 **Overlay Manifest:**
+
 - [ ] `overlay.yml` exists in overlay directory
 - [ ] Overlay ID matches directory name
 - [ ] Category is one of: language, database, observability, cloud, dev
@@ -938,6 +937,7 @@ Before submitting overlay files, verify:
 - [ ] Tags are lowercase and include category
 
 **Overlay Files:**
+
 - [ ] `devcontainer.patch.json` includes schema reference
 - [ ] All JSON/YAML files are valid syntax
 - [ ] Scripts have proper shebang (`#!/bin/bash`)

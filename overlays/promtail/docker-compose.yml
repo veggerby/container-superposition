@@ -1,16 +1,16 @@
-version: "3.8"
+version: '3.8'
 services:
-  promtail:
-    image: grafana/promtail:${PROMTAIL_VERSION:-latest}
-    command: -config.file=/etc/promtail/promtail-config.yaml
-    volumes:
-      - ./promtail-config-promtail.yaml:/etc/promtail/promtail-config.yaml
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    depends_on:
-      - loki
-    networks:
-      - devnet
+    promtail:
+        image: grafana/promtail:${PROMTAIL_VERSION:-latest}
+        command: -config.file=/etc/promtail/promtail-config.yaml
+        volumes:
+            - ./promtail-config-promtail.yaml:/etc/promtail/promtail-config.yaml
+            - /var/lib/docker/containers:/var/lib/docker/containers:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        depends_on:
+            - loki
+        networks:
+            - devnet
 
 networks:
-  devnet:
+    devnet:

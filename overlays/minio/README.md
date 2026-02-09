@@ -18,6 +18,7 @@ MinIO S3-compatible object storage for local development and testing of cloud st
 This overlay adds MinIO as a Docker Compose service, providing a local S3-compatible object storage server. The service is accessible from your development container via the hostname `minio`.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container<br/>Your application code<br/>AWS SDK / mc client<br/>Connects to minio:9000] -->|Docker network devnet| B[MinIO Container<br/>API on port 9000<br/>Console on port 9001<br/>Data volume]
@@ -35,6 +36,7 @@ cp .env.example .env
 ```
 
 **Default values (.env.example):**
+
 ```bash
 # MinIO Configuration
 MINIO_VERSION=latest
@@ -95,6 +97,7 @@ http://localhost:9001
 ```
 
 Login with:
+
 - **Username:** minioadmin
 - **Password:** minioadmin
 
@@ -208,50 +211,59 @@ npm install @aws-sdk/client-s3
 ```
 
 ```javascript
-const { S3Client, PutObjectCommand, GetObjectCommand, ListBucketsCommand } = require('@aws-sdk/client-s3');
+const {
+    S3Client,
+    PutObjectCommand,
+    GetObjectCommand,
+    ListBucketsCommand,
+} = require('@aws-sdk/client-s3');
 const fs = require('fs');
 
 // Configure S3 client for MinIO
 const s3Client = new S3Client({
-  endpoint: 'http://minio:9000',
-  region: 'us-east-1',
-  credentials: {
-    accessKeyId: 'minioadmin',
-    secretAccessKey: 'minioadmin',
-  },
-  forcePathStyle: true, // Required for MinIO
+    endpoint: 'http://minio:9000',
+    region: 'us-east-1',
+    credentials: {
+        accessKeyId: 'minioadmin',
+        secretAccessKey: 'minioadmin',
+    },
+    forcePathStyle: true, // Required for MinIO
 });
 
 // List buckets
 async function listBuckets() {
-  const response = await s3Client.send(new ListBucketsCommand({}));
-  console.log(response.Buckets);
+    const response = await s3Client.send(new ListBucketsCommand({}));
+    console.log(response.Buckets);
 }
 
 // Upload file
 async function uploadFile() {
-  const fileContent = fs.readFileSync('myfile.txt');
-  await s3Client.send(new PutObjectCommand({
-    Bucket: 'my-bucket',
-    Key: 'myfile.txt',
-    Body: fileContent,
-  }));
+    const fileContent = fs.readFileSync('myfile.txt');
+    await s3Client.send(
+        new PutObjectCommand({
+            Bucket: 'my-bucket',
+            Key: 'myfile.txt',
+            Body: fileContent,
+        })
+    );
 }
 
 // Download file
 async function downloadFile() {
-  const response = await s3Client.send(new GetObjectCommand({
-    Bucket: 'my-bucket',
-    Key: 'myfile.txt',
-  }));
+    const response = await s3Client.send(
+        new GetObjectCommand({
+            Bucket: 'my-bucket',
+            Key: 'myfile.txt',
+        })
+    );
 
-  const stream = response.Body;
-  const chunks = [];
-  for await (const chunk of stream) {
-    chunks.push(chunk);
-  }
-  const fileContent = Buffer.concat(chunks);
-  fs.writeFileSync('downloaded.txt', fileContent);
+    const stream = response.Body;
+    const chunks = [];
+    for await (const chunk of stream) {
+        chunks.push(chunk);
+    }
+    const fileContent = Buffer.concat(chunks);
+    fs.writeFileSync('downloaded.txt', fileContent);
 }
 ```
 
@@ -404,6 +416,7 @@ func main() {
 - **Microservices storage** - Shared object storage for distributed apps
 
 **Integrates well with:**
+
 - Node.js, Python, .NET, Go (AWS SDK support)
 - AWS CLI (aws-cli overlay) - Use AWS CLI with MinIO
 - Any S3-compatible tool or library
@@ -413,10 +426,12 @@ func main() {
 ### Issue: Cannot connect to MinIO
 
 **Symptoms:**
+
 - Connection refused errors
 - Timeout when connecting
 
 **Solution:**
+
 ```bash
 # Check if service is running
 docker-compose ps
@@ -435,10 +450,12 @@ curl http://minio:9000/minio/health/live
 ### Issue: Access Denied
 
 **Symptoms:**
+
 - "Access Denied" error
 - Authentication failures
 
 **Solution:**
+
 ```bash
 # Verify credentials in .env file
 cat .devcontainer/.env
@@ -457,9 +474,11 @@ mc anonymous get local/my-bucket
 ### Issue: Bucket not found
 
 **Symptoms:**
+
 - "The specified bucket does not exist"
 
 **Solution:**
+
 ```bash
 # Create bucket
 mc mb local/my-bucket
@@ -474,10 +493,12 @@ mc ls local | grep my-bucket
 ### Issue: MinIO Console not accessible
 
 **Symptoms:**
+
 - Cannot access http://localhost:9001
 - Page not loading
 
 **Solution:**
+
 ```bash
 # Check MinIO logs
 docker-compose logs minio
@@ -495,9 +516,11 @@ docker-compose restart minio
 ### Issue: Data not persisting
 
 **Symptoms:**
+
 - Buckets/objects lost after container restart
 
 **Solution:**
+
 ```bash
 # Verify volumes exist
 docker volume ls | grep minio
@@ -512,9 +535,11 @@ docker-compose config
 ### Issue: Slow performance
 
 **Symptoms:**
+
 - Slow uploads/downloads
 
 **Solution:**
+
 ```bash
 # MinIO is fast locally - check:
 # 1. File size (large files take time)
@@ -539,40 +564,44 @@ curl http://minio:9000/minio/v2/metrics/cluster
 **For production:**
 
 1. **Change credentials:**
-   ```bash
-   # Use strong passwords
-   MINIO_ROOT_USER=<strong-username>
-   MINIO_ROOT_PASSWORD=<strong-password>
-   ```
+
+    ```bash
+    # Use strong passwords
+    MINIO_ROOT_USER=<strong-username>
+    MINIO_ROOT_PASSWORD=<strong-password>
+    ```
 
 2. **Create application-specific users:**
-   ```bash
-   # Don't use root user for applications
-   mc admin user add local myapp <strong-password>
-   mc admin policy attach local readwrite --user myapp
-   ```
+
+    ```bash
+    # Don't use root user for applications
+    mc admin user add local myapp <strong-password>
+    mc admin policy attach local readwrite --user myapp
+    ```
 
 3. **Enable TLS:**
-   ```yaml
-   # Generate certificates and mount in docker-compose.yml
-   # See: https://min.io/docs/minio/linux/operations/network-encryption.html
-   ```
+
+    ```yaml
+    # Generate certificates and mount in docker-compose.yml
+    # See: https://min.io/docs/minio/linux/operations/network-encryption.html
+    ```
 
 4. **Restrict bucket access:**
-   ```bash
-   # Set private bucket policy
-   mc anonymous set none local/my-bucket
 
-   # Use IAM policies for fine-grained access
-   mc admin policy create local mypolicy policy.json
-   ```
+    ```bash
+    # Set private bucket policy
+    mc anonymous set none local/my-bucket
+
+    # Use IAM policies for fine-grained access
+    mc admin policy create local mypolicy policy.json
+    ```
 
 5. **Enable versioning and retention:**
-   ```bash
-   # Protect against accidental deletion
-   mc version enable local/my-bucket
-   mc retention set --default GOVERNANCE 30d local/my-bucket
-   ```
+    ```bash
+    # Protect against accidental deletion
+    mc version enable local/my-bucket
+    mc retention set --default GOVERNANCE 30d local/my-bucket
+    ```
 
 ## Performance Tips
 

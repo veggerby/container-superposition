@@ -11,108 +11,108 @@ tags: [preset, microservice, messaging, distributed, tracing]
 
 # Overlays to select
 selects:
-  # Always included
-  required:
-    - otel-collector
-    - jaeger
-    - prometheus
-    - grafana
-  
-  # User makes choices
-  userChoice:
-    language:
-      id: language
-      prompt: Select service language/framework
-      options: [dotnet, nodejs, python, go, java]
-      defaultOption: nodejs
-    
-    messaging:
-      id: messaging
-      prompt: Select message broker
-      options: [rabbitmq, redpanda, nats]
-      defaultOption: rabbitmq
+    # Always included
+    required:
+        - otel-collector
+        - jaeger
+        - prometheus
+        - grafana
+
+    # User makes choices
+    userChoice:
+        language:
+            id: language
+            prompt: Select service language/framework
+            options: [dotnet, nodejs, python, go, java]
+            defaultOption: nodejs
+
+        messaging:
+            id: messaging
+            prompt: Select message broker
+            options: [rabbitmq, redpanda, nats]
+            defaultOption: rabbitmq
 
 # Glue configuration - integration helpers
 glueConfig:
-  # Pre-configured environment variables
-  environment:
-    # OpenTelemetry configuration
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
-    OTEL_SERVICE_NAME: "microservice"
-    OTEL_METRICS_EXPORTER: "otlp"
-    OTEL_TRACES_EXPORTER: "otlp"
-    OTEL_LOGS_EXPORTER: "otlp"
-    
-    # Jaeger configuration
-    JAEGER_ENDPOINT: "http://jaeger:14268/api/traces"
-    
-    # Messaging URLs (will vary based on choice)
-    # RabbitMQ: amqp://rabbitmq:5672
-    # Redpanda: kafka://redpanda:9092
-    # NATS: nats://nats:4222
-  
-  # Suggested port mappings
-  portMappings:
-    service: 8080
-    grafana: 3000
-    prometheus: 9090
-    jaeger: 16686
-  
-  # README snippet
-  readme: |
-    ## Microservice Stack
-    
-    This devcontainer is configured for microservices development:
-    
-    ### Services
-    
-    - **Message Broker**: Async communication between services
-    - **OpenTelemetry Collector**: Distributed tracing collection (ports 4317, 4318)
-    - **Jaeger**: Distributed tracing UI (port 16686)
-    - **Prometheus**: Metrics storage (port 9090)
-    - **Grafana**: Unified observability dashboard (port 3000)
-    
-    ### Connection Strings
-    
-    Depending on your message broker choice:
-    
-    ```bash
-    # RabbitMQ
-    RABBITMQ_URL="amqp://rabbitmq:5672"
-    
-    # Redpanda (Kafka-compatible)
-    KAFKA_BROKERS="redpanda:9092"
-    
-    # NATS
-    NATS_URL="nats://nats:4222"
-    ```
-    
-    OpenTelemetry:
-    
-    ```bash
-    OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector:4317"
-    JAEGER_ENDPOINT="http://jaeger:14268/api/traces"
-    ```
-    
-    ### Quick Start
-    
-    1. Develop your microservice on port 8080
-    2. Publish/subscribe to messages via your chosen broker
-    3. View distributed traces in Jaeger at http://localhost:16686
-    4. Monitor metrics in Grafana at http://localhost:3000
-    
-    ### Distributed Tracing
-    
-    This stack is pre-configured for distributed tracing:
-    
-    - Add OpenTelemetry SDK to your service
-    - Traces automatically flow: Service → OTEL Collector → Jaeger
-    - View service dependencies and latencies in Jaeger UI
-    
-    ### Next Steps
-    
-    - Implement health check endpoints
-    - Add OpenTelemetry instrumentation
-    - Configure circuit breakers and retries
-    - Set up service discovery (if needed)
-    - Create service-specific Grafana dashboards
+    # Pre-configured environment variables
+    environment:
+        # OpenTelemetry configuration
+        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel-collector:4317'
+        OTEL_SERVICE_NAME: 'microservice'
+        OTEL_METRICS_EXPORTER: 'otlp'
+        OTEL_TRACES_EXPORTER: 'otlp'
+        OTEL_LOGS_EXPORTER: 'otlp'
+
+        # Jaeger configuration
+        JAEGER_ENDPOINT: 'http://jaeger:14268/api/traces'
+
+        # Messaging URLs (will vary based on choice)
+        # RabbitMQ: amqp://rabbitmq:5672
+        # Redpanda: kafka://redpanda:9092
+        # NATS: nats://nats:4222
+
+    # Suggested port mappings
+    portMappings:
+        service: 8080
+        grafana: 3000
+        prometheus: 9090
+        jaeger: 16686
+
+    # README snippet
+    readme: |
+        ## Microservice Stack
+
+        This devcontainer is configured for microservices development:
+
+        ### Services
+
+        - **Message Broker**: Async communication between services
+        - **OpenTelemetry Collector**: Distributed tracing collection (ports 4317, 4318)
+        - **Jaeger**: Distributed tracing UI (port 16686)
+        - **Prometheus**: Metrics storage (port 9090)
+        - **Grafana**: Unified observability dashboard (port 3000)
+
+        ### Connection Strings
+
+        Depending on your message broker choice:
+
+        ```bash
+        # RabbitMQ
+        RABBITMQ_URL="amqp://rabbitmq:5672"
+
+        # Redpanda (Kafka-compatible)
+        KAFKA_BROKERS="redpanda:9092"
+
+        # NATS
+        NATS_URL="nats://nats:4222"
+        ```
+
+        OpenTelemetry:
+
+        ```bash
+        OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector:4317"
+        JAEGER_ENDPOINT="http://jaeger:14268/api/traces"
+        ```
+
+        ### Quick Start
+
+        1. Develop your microservice on port 8080
+        2. Publish/subscribe to messages via your chosen broker
+        3. View distributed traces in Jaeger at http://localhost:16686
+        4. Monitor metrics in Grafana at http://localhost:3000
+
+        ### Distributed Tracing
+
+        This stack is pre-configured for distributed tracing:
+
+        - Add OpenTelemetry SDK to your service
+        - Traces automatically flow: Service → OTEL Collector → Jaeger
+        - View service dependencies and latencies in Jaeger UI
+
+        ### Next Steps
+
+        - Implement health check endpoints
+        - Add OpenTelemetry instrumentation
+        - Configure circuit breakers and retries
+        - Set up service discovery (if needed)
+        - Create service-specific Grafana dashboards

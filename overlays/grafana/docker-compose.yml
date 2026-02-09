@@ -1,27 +1,27 @@
-version: "3.8"
+version: '3.8'
 services:
-  grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-latest}
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - ./grafana-datasources-grafana.yml:/etc/grafana/provisioning/datasources/datasources.yml
-      - ./dashboard-provider-grafana.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
-      - ./dashboards:/etc/grafana/provisioning/dashboards
-      - grafana_data:/var/lib/grafana
-    ports:
-      - "${GRAFANA_PORT:-3000}:3000"
-    depends_on:
-      - prometheus
-      - loki
-      - jaeger
-    networks:
-      - devnet
+    grafana:
+        image: grafana/grafana:${GRAFANA_VERSION:-latest}
+        environment:
+            - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+            - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+            - GF_USERS_ALLOW_SIGN_UP=false
+        volumes:
+            - ./grafana-datasources-grafana.yml:/etc/grafana/provisioning/datasources/datasources.yml
+            - ./dashboard-provider-grafana.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+            - ./dashboards:/etc/grafana/provisioning/dashboards
+            - grafana_data:/var/lib/grafana
+        ports:
+            - '${GRAFANA_PORT:-3000}:3000'
+        depends_on:
+            - prometheus
+            - loki
+            - jaeger
+        networks:
+            - devnet
 
 volumes:
-  grafana_data:
+    grafana_data:
 
 networks:
-  devnet:
+    devnet:

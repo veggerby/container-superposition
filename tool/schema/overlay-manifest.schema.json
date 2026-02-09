@@ -1,86 +1,86 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://container-superposition.dev/schema/overlay-manifest.json",
-  "title": "Overlay Manifest",
-  "description": "Metadata for a Container Superposition overlay",
-  "type": "object",
-  "required": ["id", "name", "description", "category"],
-  "properties": {
-    "id": {
-      "type": "string",
-      "description": "Unique identifier for the overlay (must match directory name)",
-      "pattern": "^[a-z0-9-]+$"
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://container-superposition.dev/schema/overlay-manifest.json",
+    "title": "Overlay Manifest",
+    "description": "Metadata for a Container Superposition overlay",
+    "type": "object",
+    "required": ["id", "name", "description", "category"],
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "Unique identifier for the overlay (must match directory name)",
+            "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+            "type": "string",
+            "description": "Human-readable name for display in UI"
+        },
+        "description": {
+            "type": "string",
+            "description": "One-line summary of what this overlay provides"
+        },
+        "category": {
+            "type": "string",
+            "description": "Category grouping for the overlay",
+            "enum": ["language", "database", "observability", "cloud", "dev", "preset"]
+        },
+        "supports": {
+            "type": "array",
+            "description": "Which base templates this overlay works with (empty = all)",
+            "items": {
+                "type": "string",
+                "enum": ["plain", "compose"]
+            },
+            "default": []
+        },
+        "requires": {
+            "type": "array",
+            "description": "Hard dependencies that must be automatically installed",
+            "items": {
+                "type": "string"
+            },
+            "default": []
+        },
+        "suggests": {
+            "type": "array",
+            "description": "Recommended overlays that work well together",
+            "items": {
+                "type": "string"
+            },
+            "default": []
+        },
+        "conflicts": {
+            "type": "array",
+            "description": "Overlays that cannot be used together",
+            "items": {
+                "type": "string"
+            },
+            "default": []
+        },
+        "tags": {
+            "type": "array",
+            "description": "Keywords for search and filtering",
+            "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+            },
+            "default": []
+        },
+        "ports": {
+            "type": "array",
+            "description": "Ports used by the overlay (for offset calculation)",
+            "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+            },
+            "default": []
+        },
+        "order": {
+            "type": "integer",
+            "description": "Display order within category (lower = first)",
+            "minimum": 1
+        }
     },
-    "name": {
-      "type": "string",
-      "description": "Human-readable name for display in UI"
-    },
-    "description": {
-      "type": "string",
-      "description": "One-line summary of what this overlay provides"
-    },
-    "category": {
-      "type": "string",
-      "description": "Category grouping for the overlay",
-      "enum": ["language", "database", "observability", "cloud", "dev", "preset"]
-    },
-    "supports": {
-      "type": "array",
-      "description": "Which base templates this overlay works with (empty = all)",
-      "items": {
-        "type": "string",
-        "enum": ["plain", "compose"]
-      },
-      "default": []
-    },
-    "requires": {
-      "type": "array",
-      "description": "Hard dependencies that must be automatically installed",
-      "items": {
-        "type": "string"
-      },
-      "default": []
-    },
-    "suggests": {
-      "type": "array",
-      "description": "Recommended overlays that work well together",
-      "items": {
-        "type": "string"
-      },
-      "default": []
-    },
-    "conflicts": {
-      "type": "array",
-      "description": "Overlays that cannot be used together",
-      "items": {
-        "type": "string"
-      },
-      "default": []
-    },
-    "tags": {
-      "type": "array",
-      "description": "Keywords for search and filtering",
-      "items": {
-        "type": "string",
-        "pattern": "^[a-z0-9-]+$"
-      },
-      "default": []
-    },
-    "ports": {
-      "type": "array",
-      "description": "Ports used by the overlay (for offset calculation)",
-      "items": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 65535
-      },
-      "default": []
-    },
-    "order": {
-      "type": "integer",
-      "description": "Display order within category (lower = first)",
-      "minimum": 1
-    }
-  },
-  "additionalProperties": false
+    "additionalProperties": false
 }

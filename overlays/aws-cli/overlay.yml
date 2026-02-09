@@ -7,7 +7,7 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - cloud
-  - aws
-  - cli
+    - cloud
+    - aws
+    - cli
 ports: []

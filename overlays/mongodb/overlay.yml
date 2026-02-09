@@ -3,15 +3,15 @@ name: MongoDB
 description: MongoDB 8 with Mongo Express web UI
 category: database
 supports:
-  - compose
+    - compose
 requires: []
 suggests: []
 conflicts: []
 tags:
-  - database
-  - nosql
-  - mongodb
-  - document
+    - database
+    - nosql
+    - mongodb
+    - document
 ports:
-  - 27017
-  - 8081
+    - 27017
+    - 8081

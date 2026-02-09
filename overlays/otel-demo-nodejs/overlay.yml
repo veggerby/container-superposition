@@ -3,21 +3,21 @@ name: OTel Demo (Node.js)
 description: Sample Node.js app with OpenTelemetry instrumentation
 category: observability
 supports:
-  - compose
+    - compose
 requires:
-  - otel-collector
+    - otel-collector
 suggests:
-  - jaeger
-  - tempo
-  - prometheus
-  - loki
-  - grafana
+    - jaeger
+    - tempo
+    - prometheus
+    - loki
+    - grafana
 conflicts: []
 tags:
-  - observability
-  - demo
-  - nodejs
-  - opentelemetry
+    - observability
+    - demo
+    - nodejs
+    - opentelemetry
 ports:
-  - 8080
+    - 8080
 order: 4

@@ -1,22 +1,22 @@
-version: "3.8"
+version: '3.8'
 services:
-  prometheus:
-    image: prom/prometheus:${PROMETHEUS_VERSION:-latest}
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    volumes:
-      - ./prometheus-prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
-    networks:
-      - devnet
+    prometheus:
+        image: prom/prometheus:${PROMETHEUS_VERSION:-latest}
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+            - '--web.console.templates=/usr/share/prometheus/consoles'
+        volumes:
+            - ./prometheus-prometheus.yml:/etc/prometheus/prometheus.yml
+            - prometheus_data:/prometheus
+        ports:
+            - '${PROMETHEUS_PORT:-9090}:9090'
+        networks:
+            - devnet
 
 volumes:
-  prometheus_data:
+    prometheus_data:
 
 networks:
-  devnet:
+    devnet:

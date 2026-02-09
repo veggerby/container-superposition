@@ -16,6 +16,7 @@ Redis 7 in-memory data store for caching, session management, and real-time appl
 This overlay adds a Redis 7 server as a separate Docker Compose service. Redis runs in its own container and is accessible from your development container via the hostname `redis`.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container<br/>Your application code<br/>redis-cli client<br/>Connects to redis:6379] -->|Docker network devnet| B[Redis Container<br/>Redis 7 server<br/>Port 6379<br/>Data volume optional]
@@ -33,6 +34,7 @@ cp .env.example .env
 ```
 
 **Default values (.env.example):**
+
 ```bash
 # Redis Configuration
 REDIS_PORT=6379
@@ -399,9 +401,9 @@ npm install ioredis
 const Redis = require('ioredis');
 
 const redis = new Redis({
-  host: 'redis',
-  port: 6379,
-  // password: 'your-password',  // if configured
+    host: 'redis',
+    port: 6379,
+    // password: 'your-password',  // if configured
 });
 
 // Set and get
@@ -421,11 +423,11 @@ const job = await redis.lpop('queue');
 
 // Pub/Sub
 redis.subscribe('notifications', (err, count) => {
-  console.log(`Subscribed to ${count} channel(s)`);
+    console.log(`Subscribed to ${count} channel(s)`);
 });
 
 redis.on('message', (channel, message) => {
-  console.log(`Received: ${message} from ${channel}`);
+    console.log(`Received: ${message} from ${channel}`);
 });
 ```
 
@@ -557,29 +559,34 @@ func main() {
 ## Use Cases
 
 ### Caching
+
 - Page caching
 - API response caching
 - Database query caching
 - Computed result caching
 
 ### Session Management
+
 - User session storage
 - JWT token storage
 - Shopping cart data
 - Temporary user data
 
 ### Real-time Features
+
 - Live notifications via Pub/Sub
 - Real-time analytics
 - Message queues
 - Chat applications
 
 ### Rate Limiting
+
 - API rate limiting
 - Login attempt tracking
 - Request throttling
 
 ### Leaderboards and Counters
+
 - Gaming leaderboards
 - Analytics counters
 - Social media likes/views

@@ -4,13 +4,13 @@ description: Automated code quality gates with pre-commit hooks
 category: dev
 supports: []
 requires:
-  - python
+    - python
 suggests:
-  - commitlint
+    - commitlint
 conflicts: []
 tags:
-  - dev
-  - git
-  - quality
-  - hooks
+    - dev
+    - git
+    - quality
+    - hooks
 ports: []

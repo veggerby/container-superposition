@@ -16,6 +16,7 @@ RabbitMQ message broker for task queues, pub/sub messaging, and microservices co
 This overlay adds RabbitMQ as a Docker Compose service that runs alongside your development container. RabbitMQ provides message queuing and routing capabilities using the AMQP protocol.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container<br/>Your application code<br/>AMQP client libraries<br/>Connects to rabbitmq:5672] -->|Docker network devnet| B[RabbitMQ Container<br/>AMQP server 5672<br/>Management UI 15672<br/>Message/queue persistence]
@@ -33,6 +34,7 @@ cp .env.example .env
 ```
 
 **Default values (.env.example):**
+
 ```bash
 # RabbitMQ Configuration
 RABBITMQ_VERSION=3-management
@@ -63,6 +65,7 @@ container-superposition --port-offset 100
 ### From Development Container
 
 **AMQP Connection:**
+
 ```bash
 # Hostname: rabbitmq (Docker Compose service name)
 # Port: 5672
@@ -75,6 +78,7 @@ amqp://guest:guest@rabbitmq:5672/
 ```
 
 **Management UI:**
+
 ```
 http://rabbitmq:15672
 ```
@@ -82,6 +86,7 @@ http://rabbitmq:15672
 ### From Host Machine
 
 **AMQP Connection:**
+
 ```bash
 # Hostname: localhost
 # Port: 5672 (or 5672 + port-offset)
@@ -91,6 +96,7 @@ amqp://guest:guest@localhost:5672/
 ```
 
 **Management UI:**
+
 ```
 http://localhost:15672
 ```
@@ -102,6 +108,7 @@ Login with credentials from `.env` (default: guest/guest)
 ### Using RabbitMQ Management UI
 
 The Management UI provides:
+
 - Queue and exchange monitoring
 - Message routing visualization
 - Connection and channel statistics
@@ -147,54 +154,57 @@ docker exec rabbitmq rabbitmqadmin declare binding source=my-exchange destinatio
 ### Node.js Example
 
 Install the AMQP library:
+
 ```bash
 npm install amqplib
 ```
 
 **Publisher (producer.js):**
+
 ```javascript
 const amqp = require('amqplib');
 
 async function publishMessage() {
-  const connection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
-  const channel = await connection.createChannel();
+    const connection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
+    const channel = await connection.createChannel();
 
-  const queue = 'task_queue';
-  const message = 'Hello RabbitMQ!';
+    const queue = 'task_queue';
+    const message = 'Hello RabbitMQ!';
 
-  await channel.assertQueue(queue, { durable: true });
-  channel.sendToQueue(queue, Buffer.from(message), { persistent: true });
+    await channel.assertQueue(queue, { durable: true });
+    channel.sendToQueue(queue, Buffer.from(message), { persistent: true });
 
-  console.log(`Sent: ${message}`);
+    console.log(`Sent: ${message}`);
 
-  setTimeout(() => {
-    connection.close();
-  }, 500);
+    setTimeout(() => {
+        connection.close();
+    }, 500);
 }
 
 publishMessage().catch(console.error);
 ```
 
 **Consumer (consumer.js):**
+
 ```javascript
 const amqp = require('amqplib');
 
 async function consumeMessages() {
-  const connection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
-  const channel = await connection.createChannel();
+    const connection = await amqp.connect('amqp://guest:guest@rabbitmq:5672/');
+    const channel = await connection.createChannel();
 
-  const queue = 'task_queue';
+    const queue = 'task_queue';
 
-  await channel.assertQueue(queue, { durable: true });
-  channel.prefetch(1);
+    await channel.assertQueue(queue, { durable: true });
+    channel.prefetch(1);
 
-  console.log('Waiting for messages...');
+    console.log('Waiting for messages...');
 
-  channel.consume(queue, (msg) => {
-    console.log(`Received: ${msg.content.toString()}`);
-    // Acknowledge message
-    channel.ack(msg);
-  });
+    channel.consume(queue, (msg) => {
+        console.log(`Received: ${msg.content.toString()}`);
+        // Acknowledge message
+        channel.ack(msg);
+    });
 }
 
 consumeMessages().catch(console.error);
@@ -203,11 +213,13 @@ consumeMessages().catch(console.error);
 ### Python Example
 
 Install the AMQP library:
+
 ```bash
 pip install pika
 ```
 
 **Publisher (publisher.py):**
+
 ```python
 import pika
 
@@ -234,6 +246,7 @@ connection.close()
 ```
 
 **Consumer (consumer.py):**
+
 ```python
 import pika
 
@@ -260,11 +273,13 @@ channel.start_consuming()
 ### .NET Example
 
 Install the RabbitMQ client:
+
 ```bash
 dotnet add package RabbitMQ.Client
 ```
 
 **Publisher (Publisher.cs):**
+
 ```csharp
 using RabbitMQ.Client;
 using System.Text;
@@ -304,6 +319,7 @@ Console.WriteLine($"Sent: {message}");
 ```
 
 **Consumer (Consumer.cs):**
+
 ```csharp
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -350,11 +366,13 @@ Console.ReadLine();
 ### Go Example
 
 Install the AMQP library:
+
 ```bash
 go get github.com/rabbitmq/amqp091-go
 ```
 
 **Publisher (publisher.go):**
+
 ```go
 package main
 
@@ -414,6 +432,7 @@ func main() {
 ```
 
 **Consumer (consumer.go):**
+
 ```go
 package main
 
@@ -496,6 +515,7 @@ func main() {
 - **Message Routing** - Complex routing with exchanges and bindings
 
 **Integrates well with:**
+
 - Language overlays (Node.js, Python, .NET, Go, Java) for client applications
 - Observability stack (OTEL Collector, Prometheus) for message tracing and metrics
 - Microservice architectures with multiple language overlays
@@ -503,33 +523,41 @@ func main() {
 ## Messaging Patterns
 
 ### Work Queue Pattern
+
 ```
 Publisher → Queue → Worker1
                   → Worker2
                   → Worker3
 ```
+
 Multiple workers compete for tasks from a single queue.
 
 ### Publish/Subscribe Pattern
+
 ```
 Publisher → Fanout Exchange → Queue1 → Consumer1
                             → Queue2 → Consumer2
                             → Queue3 → Consumer3
 ```
+
 All subscribers receive every message.
 
 ### Routing Pattern
+
 ```
 Publisher → Direct Exchange → Queue1 (info) → Consumer1
                             → Queue2 (error) → Consumer2
 ```
+
 Messages are routed based on routing keys.
 
 ### Topics Pattern
+
 ```
 Publisher → Topic Exchange → Queue1 (*.critical) → Consumer1
                           → Queue2 (kern.*)     → Consumer2
 ```
+
 Pattern-based routing with wildcards.
 
 ## Troubleshooting
@@ -537,11 +565,13 @@ Pattern-based routing with wildcards.
 ### Service Not Starting
 
 **Check logs:**
+
 ```bash
 docker logs rabbitmq
 ```
 
 **Common issues:**
+
 - Port conflicts (5672 or 15672 already in use)
 - Insufficient memory
 - Volume permission issues
@@ -549,11 +579,13 @@ docker logs rabbitmq
 ### Cannot Connect to RabbitMQ
 
 **Verify service is running:**
+
 ```bash
 docker ps | grep rabbitmq
 ```
 
 **Check network connectivity:**
+
 ```bash
 # From dev container
 curl -u guest:guest http://rabbitmq:15672/api/overview
@@ -573,11 +605,13 @@ Verify port 15672 is forwarded in your devcontainer configuration.
 ### Messages Not Being Consumed
 
 **Check consumer connection:**
+
 - Verify queue name matches exactly
 - Ensure consumer is acknowledging messages
 - Check prefetch count settings
 
 **Inspect queue in Management UI:**
+
 - View message rates
 - Check consumer count
 - Review message status (ready, unacked)
@@ -585,11 +619,13 @@ Verify port 15672 is forwarded in your devcontainer configuration.
 ## Security Considerations
 
 ⚠️ **Default Configuration Warning:**
+
 - Default credentials (guest/guest) are for development only
 - Guest user can only connect from localhost by default
 - Change credentials for production environments
 
 **Best Practices:**
+
 - Use strong passwords in production
 - Create separate users with limited permissions
 - Enable TLS for production deployments
@@ -598,6 +634,7 @@ Verify port 15672 is forwarded in your devcontainer configuration.
 - Monitor failed authentication attempts
 
 **Creating a new user:**
+
 ```bash
 # Create user
 docker exec rabbitmq rabbitmqctl add_user myuser mypassword
@@ -612,10 +649,12 @@ docker exec rabbitmq rabbitmqctl set_user_tags myuser administrator
 ## Related Overlays
 
 **Alternative Messaging Systems:**
+
 - `redpanda` - Kafka-compatible event streaming (better for high-throughput logs)
 - `nats` - Lightweight pub/sub messaging (faster but fewer features)
 
 **Complementary Overlays:**
+
 - Language overlays - Application development with AMQP clients
 - `otel-collector` - Distributed tracing of message flows
 - `prometheus` - Metrics collection from RabbitMQ

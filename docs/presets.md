@@ -18,18 +18,21 @@ Presets are **meta-overlays** that:
 **Best for:** REST/GraphQL API development
 
 **Includes:**
+
 - Language choice: Node.js, .NET, Python, Go, or Java
 - PostgreSQL database
 - Redis cache
 - Full observability: OpenTelemetry Collector, Prometheus, Grafana, Loki
 
 **Pre-configured:**
+
 - Database connection strings
 - Redis URL
 - OpenTelemetry endpoints
 - Health check endpoints
 
 **Usage:**
+
 ```bash
 npm run init
 # Select "Web API Stack" when prompted
@@ -38,6 +41,7 @@ npm run init
 ```
 
 **What you get:**
+
 - `DATABASE_URL` for PostgreSQL
 - `REDIS_URL` for Redis
 - `OTEL_EXPORTER_OTLP_ENDPOINT` for telemetry
@@ -51,17 +55,20 @@ npm run init
 **Best for:** Microservices architecture development
 
 **Includes:**
+
 - Language choice: Node.js, .NET, Python, Go, or Java
 - Message broker choice: RabbitMQ, Redpanda (Kafka), or NATS
 - Distributed tracing: OpenTelemetry Collector, Jaeger
 - Monitoring: Prometheus, Grafana
 
 **Pre-configured:**
+
 - Message broker connection URLs
 - Distributed tracing endpoints
 - Service-to-service communication
 
 **Usage:**
+
 ```bash
 npm run init
 # Select "Microservice Stack"
@@ -70,6 +77,7 @@ npm run init
 ```
 
 **What you get:**
+
 - Messaging infrastructure (RabbitMQ/Redpanda/NATS)
 - Full distributed tracing in Jaeger
 - Metrics and dashboards in Grafana
@@ -82,16 +90,19 @@ npm run init
 **Best for:** Documentation website development with MkDocs
 
 **Includes:**
+
 - MkDocs with Python
 - Pre-commit hooks for quality checks
 - Modern CLI tools (bat, fd, ripgrep, fzf)
 
 **Pre-configured:**
+
 - MkDocs development server on port 8000
 - Pre-commit hooks for markdown linting
 - GitHub Pages deployment ready
 
 **Usage:**
+
 ```bash
 npm run init
 # Select "Documentation Site"
@@ -99,6 +110,7 @@ npm run init
 ```
 
 **What you get:**
+
 - MkDocs server: `mkdocs serve`
 - Quality checks: `pre-commit install`
 - Deploy: `mkdocs gh-deploy`
@@ -111,6 +123,7 @@ npm run init
 **Best for:** Complete full-stack web applications
 
 **Includes:**
+
 - Node.js (for frontend: React/Vue/Angular)
 - Backend language choice: .NET, Python, Go, or Java
 - PostgreSQL database
@@ -119,6 +132,7 @@ npm run init
 - Full observability: OTEL Collector, Prometheus, Grafana, Loki
 
 **Pre-configured:**
+
 - Frontend on port 3000
 - Backend on port 8000
 - Database, cache, and storage connection strings
@@ -126,6 +140,7 @@ npm run init
 - Full monitoring
 
 **Usage:**
+
 ```bash
 npm run init
 # Select "Full-Stack Application"
@@ -133,6 +148,7 @@ npm run init
 ```
 
 **What you get:**
+
 - Frontend: Node.js dev server
 - Backend: Your chosen language/framework
 - Database: PostgreSQL
@@ -161,6 +177,7 @@ npm run init
 Presets are not directly available via CLI yet, but you can achieve the same result:
 
 **Web API equivalent:**
+
 ```bash
 npm run init -- \
   --stack compose \
@@ -170,6 +187,7 @@ npm run init -- \
 ```
 
 **Microservice equivalent:**
+
 ```bash
 npm run init -- \
   --stack compose \
@@ -187,6 +205,7 @@ After selecting a preset, you can:
 3. **Change choices:** Pick different language or message broker
 
 Example:
+
 - Select "Web API Stack"
 - Choose Node.js as language
 - Select "Customize selection"
@@ -227,14 +246,14 @@ Each preset generates `PRESET-README.md` with:
 
 Suggested ports (informational):
 
-| Preset | Service | Port |
-|--------|---------|------|
-| Web API | API | 8000 |
-| Web API | Grafana | 3000 |
-| Microservice | Service | 8080 |
+| Preset       | Service   | Port  |
+| ------------ | --------- | ----- |
+| Web API      | API       | 8000  |
+| Web API      | Grafana   | 3000  |
+| Microservice | Service   | 8080  |
 | Microservice | Jaeger UI | 16686 |
-| Full-Stack | Frontend | 3000 |
-| Full-Stack | Backend | 8000 |
+| Full-Stack   | Frontend  | 3000  |
+| Full-Stack   | Backend   | 8000  |
 
 ## Manifest Tracking
 
@@ -242,25 +261,18 @@ Presets are tracked in `superposition.json`:
 
 ```json
 {
-  "version": "0.1.0",
-  "baseTemplate": "compose",
-  "preset": "web-api",
-  "presetChoices": {
-    "language": "nodejs"
-  },
-  "overlays": [
-    "nodejs",
-    "postgres",
-    "redis",
-    "otel-collector",
-    "prometheus",
-    "grafana",
-    "loki"
-  ]
+    "version": "0.1.0",
+    "baseTemplate": "compose",
+    "preset": "web-api",
+    "presetChoices": {
+        "language": "nodejs"
+    },
+    "overlays": ["nodejs", "postgres", "redis", "otel-collector", "prometheus", "grafana", "loki"]
 }
 ```
 
 This allows you to:
+
 - Know which preset was used
 - See which choices were made
 - Reproduce the same configuration
@@ -277,44 +289,44 @@ name: My Custom Stack
 description: Description of your stack
 type: meta
 category: preset
-supports: [compose]  # or [] for both
+supports: [compose] # or [] for both
 tags: [preset, custom, ...]
 
 selects:
-  required:
-    - overlay-1
-    - overlay-2
-  
-  userChoice:
-    language:
-      id: language
-      prompt: Select language
-      options: [nodejs, python, go]
-      defaultOption: nodejs
+    required:
+        - overlay-1
+        - overlay-2
+
+    userChoice:
+        language:
+            id: language
+            prompt: Select language
+            options: [nodejs, python, go]
+            defaultOption: nodejs
 
 glueConfig:
-  environment:
-    MY_VAR: "value"
-  
-  portMappings:
-    service: 8000
-  
-  readme: |
-    ## My Custom Stack
-    
-    Usage instructions here...
+    environment:
+        MY_VAR: 'value'
+
+    portMappings:
+        service: 8000
+
+    readme: |
+        ## My Custom Stack
+
+        Usage instructions here...
 ```
 
 2. Register in `overlays/index.yml`:
 
 ```yaml
 preset_overlays:
-  - id: my-preset
-    name: My Custom Stack
-    description: Description of your stack
-    category: preset
-    supports: [compose]
-    tags: [preset, custom]
+    - id: my-preset
+      name: My Custom Stack
+      description: Description of your stack
+      category: preset
+      supports: [compose]
+      tags: [preset, custom]
 ```
 
 3. Test:

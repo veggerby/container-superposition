@@ -11,32 +11,32 @@ Container Superposition supports multiple Linux distributions with automatic pac
 During interactive initialization, you can choose from:
 
 1. **Debian Bookworm (Recommended)** - `mcr.microsoft.com/devcontainers/base:bookworm`
-   - ✅ Default choice, best compatibility
-   - ✅ Stable with long-term support
-   - ✅ apt package manager
-   - ✅ Battle-tested in production
+    - ✅ Default choice, best compatibility
+    - ✅ Stable with long-term support
+    - ✅ apt package manager
+    - ✅ Battle-tested in production
 
 2. **Debian Trixie** - `mcr.microsoft.com/devcontainers/base:trixie`
-   - Newer packages, testing stability
-   - apt package manager
-   - Use if you need more recent software versions
+    - Newer packages, testing stability
+    - apt package manager
+    - Use if you need more recent software versions
 
 3. **Alpine Linux** - `mcr.microsoft.com/devcontainers/base:alpine`
-   - Minimal footprint (~5MB base image)
-   - apk package manager
-   - Ideal for resource-constrained environments
-   - Perfect for containerized microservices
+    - Minimal footprint (~5MB base image)
+    - apk package manager
+    - Ideal for resource-constrained environments
+    - Perfect for containerized microservices
 
 4. **Ubuntu LTS** - `mcr.microsoft.com/devcontainers/base:ubuntu`
-   - Popular, familiar to many developers
-   - apt package manager
-   - Extensive package ecosystem
-   - Good for teams migrating from Ubuntu
+    - Popular, familiar to many developers
+    - apt package manager
+    - Extensive package ecosystem
+    - Good for teams migrating from Ubuntu
 
 5. **Custom Image**
-   - Specify any Docker image
-   - ⚠️ **Warning**: May conflict with overlays
-   - Test thoroughly and adjust configurations as needed
+    - Specify any Docker image
+    - ⚠️ **Warning**: May conflict with overlays
+    - Test thoroughly and adjust configurations as needed
 
 ### Package Manager Compatibility
 
@@ -60,21 +60,25 @@ fi
 ### When to Use Each Base Image
 
 **Debian Bookworm**:
+
 - Default for most projects
 - Maximum compatibility with overlays
 - Proven stability
 
 **Alpine**:
+
 - Docker images/microservices where size matters
 - Cloud deployments with cost optimization
 - CI/CD environments
 
 **Ubuntu**:
+
 - Teams familiar with Ubuntu
 - Projects requiring Ubuntu-specific packages
 - Enterprise environments standardized on Ubuntu
 
 **Custom**:
+
 - Specific compliance requirements
 - Organization-mandated base images
 - Specialized OS requirements
@@ -119,12 +123,12 @@ This is the core configuration that gets merged into the final devcontainer.json
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/devcontainers/features/my-tool:1": {
-      "version": "latest"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/devcontainers/features/my-tool:1": {
+            "version": "latest"
+        }
     }
-  }
 }
 ```
 
@@ -132,59 +136,60 @@ This is the core configuration that gets merged into the final devcontainer.json
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/devcontainers/features/my-tool:1": {
-      "version": "latest",
-      "option1": true
-    }
-  },
-  "runServices": ["my-service"],
-  "_serviceOrder": 1,
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "publisher.my-extension"
-      ],
-      "settings": {
-        "my.setting": "value"
-      }
-    }
-  },
-  "forwardPorts": [8080, 9000],
-  "portsAttributes": {
-    "8080": {
-      "label": "My Service",
-      "onAutoForward": "openBrowser"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/devcontainers/features/my-tool:1": {
+            "version": "latest",
+            "option1": true
+        }
     },
-    "9000": {
-      "label": "Admin Panel",
-      "onAutoForward": "notify"
+    "runServices": ["my-service"],
+    "_serviceOrder": 1,
+    "customizations": {
+        "vscode": {
+            "extensions": ["publisher.my-extension"],
+            "settings": {
+                "my.setting": "value"
+            }
+        }
+    },
+    "forwardPorts": [8080, 9000],
+    "portsAttributes": {
+        "8080": {
+            "label": "My Service",
+            "onAutoForward": "openBrowser"
+        },
+        "9000": {
+            "label": "Admin Panel",
+            "onAutoForward": "notify"
+        }
+    },
+    "remoteEnv": {
+        "MY_TOOL_HOST": "localhost",
+        "MY_TOOL_PORT": "8080"
+    },
+    "postCreateCommand": {
+        "my-setup": "echo 'Setting up my tool...'"
     }
-  },
-  "remoteEnv": {
-    "MY_TOOL_HOST": "localhost",
-    "MY_TOOL_PORT": "8080"
-  },
-  "postCreateCommand": {
-    "my-setup": "echo 'Setting up my tool...'"
-  }
 }
 ```
 
 ### Special Fields
 
 #### runServices
+
 Lists services that should start automatically. Only needed if your overlay includes a docker-compose.yml.
 
 ```json
 {
-  "runServices": ["my-service", "my-dependency"]
+    "runServices": ["my-service", "my-dependency"]
 }
 ```
 
-#### _serviceOrder
+#### \_serviceOrder
+
 Controls startup order (lower numbers start first):
+
 - `0` - Infrastructure (postgres, redis)
 - `1` - Observability backends (jaeger, prometheus, loki)
 - `2` - Middleware (otel-collector)
@@ -192,7 +197,7 @@ Controls startup order (lower numbers start first):
 
 ```json
 {
-  "_serviceOrder": 1
+    "_serviceOrder": 1
 }
 ```
 
@@ -203,28 +208,28 @@ Define services your overlay needs.
 ### Template
 
 ```yaml
-version: "3.8"
+version: '3.8'
 services:
-  my-service:
-    image: my-image:${MY_SERVICE_VERSION:-latest}
-    environment:
-      - ENV_VAR=${ENV_VAR:-default}
-    ports:
-      - "8080:8080"
-    volumes:
-      - my-data:/data
-      - ./my-config.yaml:/etc/my-service/config.yaml
-    depends_on:
-      - other-service  # Only if dependency exists
-    networks:
-      - devnet
+    my-service:
+        image: my-image:${MY_SERVICE_VERSION:-latest}
+        environment:
+            - ENV_VAR=${ENV_VAR:-default}
+        ports:
+            - '8080:8080'
+        volumes:
+            - my-data:/data
+            - ./my-config.yaml:/etc/my-service/config.yaml
+        depends_on:
+            - other-service # Only if dependency exists
+        networks:
+            - devnet
 
 volumes:
-  my-data:
+    my-data:
 
 networks:
-  devnet:
-    external: true
+    devnet:
+        external: true
 ```
 
 ### Important Notes
@@ -241,8 +246,8 @@ Mount config files from your overlay:
 
 ```yaml
 volumes:
-  - ./my-config.yaml:/etc/my-service/config.yaml
-  - ./config:/etc/my-service/config.d
+    - ./my-config.yaml:/etc/my-service/config.yaml
+    - ./config:/etc/my-service/config.d
 ```
 
 These files are automatically copied to the output directory.
@@ -272,7 +277,7 @@ MY_SERVICE_ENABLE_FEATURE_X=true
 1. **Include defaults** - Every variable should have a sensible default
 2. **Group related variables** - Use comments to organize
 3. **Document sensitive values** - Mark which should be changed
-4. **Use service prefix** - Avoid naming conflicts (MY_SERVICE_*)
+4. **Use service prefix** - Avoid naming conflicts (MY*SERVICE*\*)
 
 ## Configuration Files
 
@@ -319,7 +324,7 @@ Document your overlay for users.
 
 ### Template
 
-```markdown
+````markdown
 # My Service Overlay
 
 Brief description of what this overlay provides.
@@ -344,9 +349,10 @@ Description of main configuration file(s).
 ```yaml
 # my-service-config.yaml
 server:
-  port: 8080
-  host: 0.0.0.0
+    port: 8080
+    host: 0.0.0.0
 ```
+````
 
 ## Environment Variables
 
@@ -371,6 +377,7 @@ More complex examples.
 ## Dependencies
 
 Works best with:
+
 - **other-overlay** - Why it's useful
 - **another-overlay** - What it provides
 
@@ -383,7 +390,8 @@ compose + my-language + my-service + postgres
 ## Troubleshooting
 
 Common issues and solutions.
-```
+
+````
 
 ## Dependencies Between Overlays
 
@@ -398,9 +406,10 @@ services:
       - postgres
       - redis
       - other-service
-```
+````
 
 The composer will automatically:
+
 1. Remove dependencies not selected by the user
 2. Remove the `depends_on` field if empty
 3. Order services correctly
@@ -408,27 +417,30 @@ The composer will automatically:
 ### Dependency Patterns
 
 **Infrastructure dependency:**
+
 ```yaml
 my-app:
-  depends_on:
-    - postgres  # Database must start first
+    depends_on:
+        - postgres # Database must start first
 ```
 
 **Pipeline dependency:**
+
 ```yaml
 otel-collector:
-  depends_on:
-    - jaeger      # Backends must start first
-    - prometheus
-    - loki
+    depends_on:
+        - jaeger # Backends must start first
+        - prometheus
+        - loki
 ```
 
 **Visualization dependency:**
+
 ```yaml
 grafana:
-  depends_on:
-    - prometheus  # Data sources must start first
-    - loki
+    depends_on:
+        - prometheus # Data sources must start first
+        - loki
 ```
 
 ## Testing Your Overlay
@@ -454,6 +466,7 @@ npm run init -- --stack compose --language nodejs --my-overlay --postgres
 ### 4. Verify Output
 
 Check that:
+
 - [ ] devcontainer.json has your features merged
 - [ ] docker-compose.my-overlay.yml exists
 - [ ] .env.example includes your variables
@@ -477,16 +490,16 @@ No docker-compose, just features:
 
 ```json
 {
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts"
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["dbaeumer.vscode-eslint"]
+        }
     }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": ["dbaeumer.vscode-eslint"]
-    }
-  }
 }
 ```
 
@@ -508,14 +521,14 @@ CLI tools without services:
 
 ```json
 {
-  "features": {
-    "ghcr.io/devcontainers/features/aws-cli:1": {}
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": ["amazonwebservices.aws-toolkit-vscode"]
+    "features": {
+        "ghcr.io/devcontainers/features/aws-cli:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["amazonwebservices.aws-toolkit-vscode"]
+        }
     }
-  }
 }
 ```
 
@@ -528,7 +541,7 @@ Before submitting an overlay:
 - [ ] .env.example has sensible defaults and comments
 - [ ] README.md documents ports, environment variables, usage
 - [ ] runServices includes service names
-- [ ] _serviceOrder is set appropriately
+- [ ] \_serviceOrder is set appropriately
 - [ ] depends_on lists all potential dependencies
 - [ ] Tested standalone and in combination
 - [ ] Added to tool/overlays/README.md

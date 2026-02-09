@@ -36,6 +36,7 @@ Enforce conventional commit messages for automated releases and changelogs.
 ### Scope (optional)
 
 Component or module affected by the change:
+
 ```
 feat(auth): add OAuth2 support
 fix(api): handle null responses
@@ -44,6 +45,7 @@ fix(api): handle null responses
 ### Subject (required)
 
 Short description (≤100 chars):
+
 - Use imperative mood ("add" not "added")
 - No period at the end
 - Lowercase (conventional commits standard)
@@ -51,6 +53,7 @@ Short description (≤100 chars):
 ### Body (optional)
 
 Detailed explanation of the change:
+
 ```
 feat(auth): add OAuth2 authentication
 
@@ -61,6 +64,7 @@ providers. Includes token refresh and automatic retry logic.
 ### Footer (optional)
 
 Breaking changes or issue references:
+
 ```
 feat(api): redesign authentication API
 
@@ -142,20 +146,26 @@ Edit `commitlint.config.js`:
 
 ```javascript
 module.exports = {
-  extends: ['@commitlint/config-conventional'],
-  rules: {
-    // Custom types
-    'type-enum': [2, 'always', [
-      'feat', 'fix', 'docs',
-      'custom-type'  // Add your type
-    ]],
-    
-    // Allow longer subjects
-    'subject-max-length': [2, 'always', 150],
-    
-    // Disable scope requirement
-    'scope-empty': [0],
-  }
+    extends: ['@commitlint/config-conventional'],
+    rules: {
+        // Custom types
+        'type-enum': [
+            2,
+            'always',
+            [
+                'feat',
+                'fix',
+                'docs',
+                'custom-type', // Add your type
+            ],
+        ],
+
+        // Allow longer subjects
+        'subject-max-length': [2, 'always', 150],
+
+        // Disable scope requirement
+        'scope-empty': [0],
+    },
 };
 ```
 
@@ -165,16 +175,10 @@ Define allowed scopes:
 
 ```javascript
 module.exports = {
-  extends: ['@commitlint/config-conventional'],
-  rules: {
-    'scope-enum': [2, 'always', [
-      'core',
-      'ui',
-      'api',
-      'auth',
-      'tests'
-    ]]
-  }
+    extends: ['@commitlint/config-conventional'],
+    rules: {
+        'scope-enum': [2, 'always', ['core', 'ui', 'api', 'auth', 'tests']],
+    },
 };
 ```
 
@@ -183,28 +187,30 @@ module.exports = {
 Commitlint works seamlessly with semantic-release:
 
 1. Install semantic-release:
+
 ```bash
 npm install --save-dev semantic-release
 ```
 
 2. Configure `.releaserc.json`:
+
 ```json
 {
-  "branches": ["main"],
-  "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
-    "@semantic-release/changelog",
-    "@semantic-release/npm",
-    "@semantic-release/github"
-  ]
+    "branches": ["main"],
+    "plugins": [
+        "@semantic-release/commit-analyzer",
+        "@semantic-release/release-notes-generator",
+        "@semantic-release/changelog",
+        "@semantic-release/npm",
+        "@semantic-release/github"
+    ]
 }
 ```
 
 3. Commits generate versions:
-   - `feat:` → Minor version (1.0.0 → 1.1.0)
-   - `fix:` → Patch version (1.0.0 → 1.0.1)
-   - `BREAKING CHANGE:` → Major version (1.0.0 → 2.0.0)
+    - `feat:` → Minor version (1.0.0 → 1.1.0)
+    - `fix:` → Patch version (1.0.0 → 1.0.1)
+    - `BREAKING CHANGE:` → Major version (1.0.0 → 2.0.0)
 
 ## Integration with Pre-commit
 
@@ -213,12 +219,12 @@ Combine with pre-commit framework:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.11.0
-    hooks:
-      - id: commitlint
-        stages: [commit-msg]
-        additional_dependencies: ['@commitlint/config-conventional']
+    - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+      rev: v9.11.0
+      hooks:
+          - id: commitlint
+            stages: [commit-msg]
+            additional_dependencies: ['@commitlint/config-conventional']
 ```
 
 ## Examples
@@ -271,11 +277,13 @@ feat(auth): added oauth2 support for google and github providers
 ### Hook Not Running
 
 Ensure hook is executable:
+
 ```bash
 chmod +x .git/hooks/commit-msg
 ```
 
 Reinstall hook:
+
 ```bash
 bash .devcontainer/commitlint-setup.sh
 ```
@@ -283,11 +291,13 @@ bash .devcontainer/commitlint-setup.sh
 ### Validation Fails
 
 Check your message:
+
 ```bash
 echo "your message" | commitlint
 ```
 
 View rules:
+
 ```bash
 commitlint --print-config
 ```

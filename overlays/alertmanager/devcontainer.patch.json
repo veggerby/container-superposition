@@ -1,12 +1,12 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "runServices": ["alertmanager"],
-  "_serviceOrder": 2,
-  "forwardPorts": [9093],
-  "portsAttributes": {
-    "9093": {
-      "label": "Alertmanager UI",
-      "onAutoForward": "openBrowser"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["alertmanager"],
+    "_serviceOrder": 2,
+    "forwardPorts": [9093],
+    "portsAttributes": {
+        "9093": {
+            "label": "Alertmanager UI",
+            "onAutoForward": "openBrowser"
+        }
     }
-  }
 }

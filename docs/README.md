@@ -140,9 +140,9 @@ Overlays can declare relationships:
 
 ```yaml
 - id: grafana
-  requires: [prometheus]     # Auto-added when grafana selected
-  suggests: [loki, jaeger]   # Recommended but optional
-  conflicts: []              # Cannot be used together
+  requires: [prometheus] # Auto-added when grafana selected
+  suggests: [loki, jaeger] # Recommended but optional
+  conflicts: [] # Cannot be used together
 ```
 
 ### Conflict Detection
@@ -151,7 +151,7 @@ Prevents incompatible combinations:
 
 ```yaml
 - id: docker-in-docker
-  conflicts: [docker-sock]  # Only one Docker access method allowed
+  conflicts: [docker-sock] # Only one Docker access method allowed
 ```
 
 ### Port Management

@@ -1,12 +1,12 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "runServices": ["otel-demo-python"],
-  "_serviceOrder": 3,
-  "forwardPorts": [8081],
-  "portsAttributes": {
-    "8081": {
-      "label": "OTel Demo (Python)",
-      "onAutoForward": "openBrowser"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["otel-demo-python"],
+    "_serviceOrder": 3,
+    "forwardPorts": [8081],
+    "portsAttributes": {
+        "8081": {
+            "label": "OTel Demo (Python)",
+            "onAutoForward": "openBrowser"
+        }
     }
-  }
 }

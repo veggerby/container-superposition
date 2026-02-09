@@ -21,11 +21,7 @@
     },
     "customizations": {
         "vscode": {
-            "extensions": [
-                "EditorConfig.EditorConfig",
-                "GitHub.copilot",
-                "GitHub.copilot-chat"
-            ],
+            "extensions": ["EditorConfig.EditorConfig", "GitHub.copilot", "GitHub.copilot-chat"],
             "settings": {
                 "editor.formatOnSave": true
             }

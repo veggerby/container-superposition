@@ -1,12 +1,12 @@
 services:
-  devcontainer:
-    image: mcr.microsoft.com/devcontainers/base:bookworm
-    volumes:
-      # Mount workspace
-      - ../..:/workspaces:cached
-    command: sleep infinity
-    networks:
-      - devnet
+    devcontainer:
+        image: mcr.microsoft.com/devcontainers/base:bookworm
+        volumes:
+            # Mount workspace
+            - ../..:/workspaces:cached
+        command: sleep infinity
+        networks:
+            - devnet
 
 networks:
-  devnet:
+    devnet:

@@ -7,7 +7,7 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - dev
-  - cli
-  - productivity
+    - dev
+    - cli
+    - productivity
 ports: []

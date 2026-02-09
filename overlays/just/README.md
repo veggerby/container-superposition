@@ -21,6 +21,7 @@ Simple, fast, and powerful task runner using `just` (Rust-based).
 ## Quick Start
 
 List available tasks:
+
 ```bash
 just --list
 # or simply
@@ -28,6 +29,7 @@ just
 ```
 
 Run a task:
+
 ```bash
 just build
 just test
@@ -378,13 +380,13 @@ Add to `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
-  - repo: local
-    hooks:
-      - id: just-lint
-        name: Run just lint
-        entry: just lint
-        language: system
-        pass_filenames: false
+    - repo: local
+      hooks:
+          - id: just-lint
+            name: Run just lint
+            entry: just lint
+            language: system
+            pass_filenames: false
 ```
 
 ## Best Practices
@@ -400,19 +402,20 @@ repos:
 
 ## Migration from Make
 
-| Make | Just |
-|------|------|
-| `target: dependency` | `recipe: dependency` |
-| `$(var)` | `{{var}}` |
-| `@command` | `@command` |
-| `.PHONY: target` | (not needed) |
-| `export VAR=value` | `export VAR := "value"` |
+| Make                 | Just                    |
+| -------------------- | ----------------------- |
+| `target: dependency` | `recipe: dependency`    |
+| `$(var)`             | `{{var}}`               |
+| `@command`           | `@command`              |
+| `.PHONY: target`     | (not needed)            |
+| `export VAR=value`   | `export VAR := "value"` |
 
 ## Troubleshooting
 
 ### Command Not Found
 
 Ensure just is in PATH:
+
 ```bash
 which just
 # Should output: /usr/local/bin/just

@@ -1,20 +1,20 @@
-version: "3.8"
+version: '3.8'
 services:
-  alertmanager:
-    image: prom/alertmanager:${ALERTMANAGER_VERSION:-latest}
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-    volumes:
-      - ./alertmanager-alertmanager.yml:/etc/alertmanager/alertmanager.yml
-      - alertmanager_data:/alertmanager
-    ports:
-      - "${ALERTMANAGER_PORT:-9093}:9093"
-    networks:
-      - devnet
+    alertmanager:
+        image: prom/alertmanager:${ALERTMANAGER_VERSION:-latest}
+        command:
+            - '--config.file=/etc/alertmanager/alertmanager.yml'
+            - '--storage.path=/alertmanager'
+        volumes:
+            - ./alertmanager-alertmanager.yml:/etc/alertmanager/alertmanager.yml
+            - alertmanager_data:/alertmanager
+        ports:
+            - '${ALERTMANAGER_PORT:-9093}:9093'
+        networks:
+            - devnet
 
 volumes:
-  alertmanager_data:
+    alertmanager_data:
 
 networks:
-  devnet:
+    devnet:

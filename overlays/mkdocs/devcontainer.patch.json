@@ -1,24 +1,24 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "ghcr.io/devcontainers-extra/features/mkdocs:2": {
-      "plugins": "mkdocs-material mkdocs-minify-plugin mkdocs-redirects pymdown-extensions"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "ghcr.io/devcontainers-extra/features/mkdocs:2": {
+            "plugins": "mkdocs-material mkdocs-minify-plugin mkdocs-redirects pymdown-extensions"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "yzhang.markdown-all-in-one",
+                "DavidAnson.vscode-markdownlint",
+                "bierner.markdown-mermaid"
+            ]
+        }
+    },
+    "forwardPorts": [8000],
+    "portsAttributes": {
+        "8000": {
+            "label": "MkDocs Server",
+            "onAutoForward": "openBrowser"
+        }
     }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "yzhang.markdown-all-in-one",
-        "DavidAnson.vscode-markdownlint",
-        "bierner.markdown-mermaid"
-      ]
-    }
-  },
-  "forwardPorts": [8000],
-  "portsAttributes": {
-    "8000": {
-      "label": "MkDocs Server",
-      "onAutoForward": "openBrowser"
-    }
-  }
 }

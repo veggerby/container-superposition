@@ -1,48 +1,46 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
-  "name": "Compose-Based Development",
-  "dockerComposeFile": [
-    "docker-compose.yml"
-  ],
-  "service": "devcontainer",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  "runServices": [],
-  "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "installZsh": true,
-      "installOhMyZsh": true,
-      "upgradePackages": true,
-      "username": "vscode",
-      "userUid": "automatic",
-      "userGid": "automatic"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+    "name": "Compose-Based Development",
+    "dockerComposeFile": ["docker-compose.yml"],
+    "service": "devcontainer",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "runServices": [],
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": true,
+            "installOhMyZsh": true,
+            "upgradePackages": true,
+            "username": "vscode",
+            "userUid": "automatic",
+            "userGid": "automatic"
+        },
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "os-provided"
+        },
+        "./features/cross-distro-packages": {
+            "apt": "bash-completion curl wget vim less",
+            "apk": "bash-completion curl wget vim less"
+        },
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "moby": false
+        }
     },
-    "ghcr.io/devcontainers/features/git:1": {
-      "version": "os-provided"
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "EditorConfig.EditorConfig",
+                "ms-azuretools.vscode-docker",
+                "GitHub.copilot",
+                "GitHub.copilot-chat"
+            ],
+            "settings": {
+                "editor.formatOnSave": true
+            }
+        }
     },
-    "./features/cross-distro-packages": {
-      "apt": "bash-completion curl wget vim less",
-      "apk": "bash-completion curl wget vim less"
+    "mounts": [],
+    "remoteEnv": {
+        "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
     },
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-      "moby": false
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "EditorConfig.EditorConfig",
-        "ms-azuretools.vscode-docker",
-        "GitHub.copilot",
-        "GitHub.copilot-chat"
-      ],
-      "settings": {
-        "editor.formatOnSave": true
-      }
-    }
-  },
-  "mounts": [],
-  "remoteEnv": {
-    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
-  },
-  "remoteUser": "vscode"
+    "remoteUser": "vscode"
 }

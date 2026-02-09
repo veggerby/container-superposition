@@ -12,6 +12,7 @@ Automated code quality gates with the pre-commit framework.
 ## Quick Start
 
 The overlay automatically:
+
 1. Installs the pre-commit framework
 2. Creates a sample `.pre-commit-config.yaml` (if not present)
 3. Installs pre-commit hooks in your Git repository
@@ -23,6 +24,7 @@ The overlay automatically:
 A comprehensive `.pre-commit-config.yaml` is created with:
 
 **General Hooks** (enabled by default):
+
 - `trailing-whitespace` - Remove trailing whitespace
 - `end-of-file-fixer` - Ensure files end with newline
 - `check-yaml` - Validate YAML syntax
@@ -36,6 +38,7 @@ A comprehensive `.pre-commit-config.yaml` is created with:
 - `markdownlint` - Markdown linting with auto-fix
 
 **Language-Specific Hooks** (commented out - uncomment as needed):
+
 - Python: black, isort, flake8
 - JavaScript/TypeScript: ESLint, Prettier
 - Dockerfile: hadolint
@@ -44,17 +47,19 @@ A comprehensive `.pre-commit-config.yaml` is created with:
 ### Customizing Configuration
 
 Edit `.pre-commit-config.yaml` to:
+
 - Add/remove hooks
 - Configure hook arguments
 - Update hook versions
 
 Example - Enable Python hooks:
+
 ```yaml
 repos:
-  - repo: https://github.com/psf/black
-    rev: 24.2.0
-    hooks:
-      - id: black
+    - repo: https://github.com/psf/black
+      rev: 24.2.0
+      hooks:
+          - id: black
 ```
 
 ## Usage
@@ -62,6 +67,7 @@ repos:
 ### Install Hooks
 
 If not auto-installed during setup:
+
 ```bash
 pre-commit install
 ```
@@ -85,6 +91,7 @@ pre-commit run --files path/to/file.py
 ### Update Hooks
 
 Update hook versions to latest:
+
 ```bash
 pre-commit autoupdate
 ```
@@ -92,6 +99,7 @@ pre-commit autoupdate
 ### Skip Hooks
 
 Skip hooks for a specific commit:
+
 ```bash
 git commit --no-verify
 # or
@@ -99,10 +107,11 @@ git commit -n
 ```
 
 Skip specific hook:
+
 ```yaml
 # In .pre-commit-config.yaml
 - id: trailing-whitespace
-  skip: true  # Temporarily skip this hook
+  skip: true # Temporarily skip this hook
 ```
 
 ## Common Hooks
@@ -141,6 +150,7 @@ Run pre-commit in CI pipelines:
 ```
 
 Or manually:
+
 ```bash
 # In CI script
 pre-commit run --all-files
@@ -151,38 +161,41 @@ pre-commit run --all-files
 ### Python Project
 
 Uncomment in `.pre-commit-config.yaml`:
+
 ```yaml
 - repo: https://github.com/psf/black
   rev: 24.2.0
   hooks:
-    - id: black
+      - id: black
 
 - repo: https://github.com/pycqa/isort
   rev: 5.13.2
   hooks:
-    - id: isort
-      args: [--profile, black]
+      - id: isort
+        args: [--profile, black]
 ```
 
 ### JavaScript/TypeScript Project
 
 Uncomment in `.pre-commit-config.yaml`:
+
 ```yaml
 - repo: https://github.com/pre-commit/mirrors-prettier
   rev: v3.1.0
   hooks:
-    - id: prettier
-      types_or: [javascript, jsx, ts, tsx, json, yaml, markdown]
+      - id: prettier
+        types_or: [javascript, jsx, ts, tsx, json, yaml, markdown]
 ```
 
 ### Shell Scripts
 
 Uncomment in `.pre-commit-config.yaml`:
+
 ```yaml
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.9.0.6
   hooks:
-    - id: shellcheck
+      - id: shellcheck
 ```
 
 ## Troubleshooting
@@ -190,6 +203,7 @@ Uncomment in `.pre-commit-config.yaml`:
 ### Hooks Not Running
 
 Ensure hooks are installed:
+
 ```bash
 pre-commit install
 ```
@@ -197,6 +211,7 @@ pre-commit install
 ### Hook Failures
 
 Run with verbose output:
+
 ```bash
 pre-commit run --all-files --verbose
 ```
@@ -204,6 +219,7 @@ pre-commit run --all-files --verbose
 ### Clearing Hook Cache
 
 Remove cached hook environments:
+
 ```bash
 pre-commit clean
 pre-commit install-hooks
@@ -230,13 +246,14 @@ pre-commit autoupdate
 - Use `stages: [commit]` to run only on commit (not push)
 
 Example:
+
 ```yaml
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: trailing-whitespace
-        files: \.(py|js|ts)$  # Only Python and JS files
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.5.0
+      hooks:
+          - id: trailing-whitespace
+            files: \.(py|js|ts)$ # Only Python and JS files
 ```
 
 ## Additional Resources

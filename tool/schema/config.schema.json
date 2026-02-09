@@ -1,71 +1,71 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "title": "Container Superposition Configuration",
-  "description": "Configuration for initializing a devcontainer with container-superposition",
-  "properties": {
-    "stack": {
-      "type": "string",
-      "enum": ["plain", "compose"],
-      "description": "The base template to use (plain or compose)"
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "Container Superposition Configuration",
+    "description": "Configuration for initializing a devcontainer with container-superposition",
+    "properties": {
+        "stack": {
+            "type": "string",
+            "enum": ["plain", "compose"],
+            "description": "The base template to use (plain or compose)"
+        },
+        "baseImage": {
+            "type": "string",
+            "enum": ["bookworm", "trixie", "custom"],
+            "default": "bookworm",
+            "description": "Base Debian image version"
+        },
+        "customImage": {
+            "type": "string",
+            "description": "Custom base image (only when baseImage is 'custom')"
+        },
+        "language": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["dotnet", "nodejs", "python", "mkdocs"]
+            },
+            "default": [],
+            "description": "Language/framework overlays"
+        },
+        "database": {
+            "type": "string",
+            "enum": ["none", "postgres", "redis", "postgres+redis"],
+            "default": "none",
+            "description": "Database requirements"
+        },
+        "playwright": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include Playwright for browser automation"
+        },
+        "cloudTools": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["azure-cli", "aws-cli", "kubectl-helm", "docker-in-docker", "docker-sock"]
+            },
+            "default": [],
+            "description": "Cloud/orchestration tools to include"
+        },
+        "observability": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["otel-collector", "jaeger", "prometheus", "grafana", "loki"]
+            },
+            "default": [],
+            "description": "Observability tools to include"
+        },
+        "portOffset": {
+            "type": "number",
+            "description": "Port offset for running multiple instances"
+        },
+        "outputPath": {
+            "type": "string",
+            "default": "./.devcontainer",
+            "description": "Where to write the devcontainer configuration"
+        }
     },
-    "baseImage": {
-      "type": "string",
-      "enum": ["bookworm", "trixie", "custom"],
-      "default": "bookworm",
-      "description": "Base Debian image version"
-    },
-    "customImage": {
-      "type": "string",
-      "description": "Custom base image (only when baseImage is 'custom')"
-    },
-    "language": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["dotnet", "nodejs", "python", "mkdocs"]
-      },
-      "default": [],
-      "description": "Language/framework overlays"
-    },
-    "database": {
-      "type": "string",
-      "enum": ["none", "postgres", "redis", "postgres+redis"],
-      "default": "none",
-      "description": "Database requirements"
-    },
-    "playwright": {
-      "type": "boolean",
-      "default": false,
-      "description": "Include Playwright for browser automation"
-    },
-    "cloudTools": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["azure-cli", "aws-cli", "kubectl-helm", "docker-in-docker", "docker-sock"]
-      },
-      "default": [],
-      "description": "Cloud/orchestration tools to include"
-    },
-    "observability": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["otel-collector", "jaeger", "prometheus", "grafana", "loki"]
-      },
-      "default": [],
-      "description": "Observability tools to include"
-    },
-    "portOffset": {
-      "type": "number",
-      "description": "Port offset for running multiple instances"
-    },
-    "outputPath": {
-      "type": "string",
-      "default": "./.devcontainer",
-      "description": "Where to write the devcontainer configuration"
-    }
-  },
-  "required": ["stack"]
+    "required": ["stack"]
 }

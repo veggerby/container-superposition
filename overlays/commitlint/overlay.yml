@@ -4,13 +4,13 @@ description: Conventional commits validation for automated releases
 category: dev
 supports: []
 requires:
-  - nodejs
+    - nodejs
 suggests:
-  - pre-commit
+    - pre-commit
 conflicts: []
 tags:
-  - dev
-  - git
-  - commits
-  - semantic-release
+    - dev
+    - git
+    - commits
+    - semantic-release
 ports: []

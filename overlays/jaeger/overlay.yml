@@ -3,17 +3,17 @@ name: Jaeger
 description: Distributed tracing backend
 category: observability
 supports:
-  - compose
+    - compose
 requires: []
 suggests: []
 conflicts:
-  - tempo
+    - tempo
 tags:
-  - observability
-  - tracing
-  - jaeger
+    - observability
+    - tracing
+    - jaeger
 ports:
-  - 16686
-  - 14250
-  - 14268
+    - 16686
+    - 14250
+    - 14268
 order: 1

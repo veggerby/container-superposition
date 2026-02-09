@@ -1,45 +1,41 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "features": {
-    "./features/cross-distro-packages": {
-      "apt": "unzip curl",
-      "apk": "unzip curl"
-    },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts",
-      "nodeGypDependencies": false
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "oven.bun-vscode",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode"
-      ],
-      "settings": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "[typescript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "unzip curl",
+            "apk": "unzip curl"
         },
-        "[javascript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts",
+            "nodeGypDependencies": false
         }
-      }
-    }
-  },
-  "remoteEnv": {
-    "PATH": "${containerEnv:HOME}/.bun/bin:${containerEnv:PATH}"
-  },
-  "forwardPorts": [3000, 8080],
-  "portsAttributes": {
-    "3000": {
-      "label": "Dev Server",
-      "onAutoForward": "openBrowser"
     },
-    "8080": {
-      "label": "Web App",
-      "onAutoForward": "notify"
+    "customizations": {
+        "vscode": {
+            "extensions": ["oven.bun-vscode", "dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+            "settings": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[javascript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                }
+            }
+        }
+    },
+    "remoteEnv": {
+        "PATH": "${containerEnv:HOME}/.bun/bin:${containerEnv:PATH}"
+    },
+    "forwardPorts": [3000, 8080],
+    "portsAttributes": {
+        "3000": {
+            "label": "Dev Server",
+            "onAutoForward": "openBrowser"
+        },
+        "8080": {
+            "label": "Web App",
+            "onAutoForward": "notify"
+        }
     }
-  }
 }

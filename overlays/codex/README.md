@@ -43,6 +43,7 @@ bash .devcontainer/verify-codex.sh
 ```
 
 This will check:
+
 - Codex CLI is installed and in PATH
 - `.codex` directory exists
 
@@ -56,23 +57,23 @@ This will check:
 
 1. Verify npm global binaries are in PATH:
 
-   ```bash
-   npm config get prefix
-   # Should show: /usr/local or similar
+    ```bash
+    npm config get prefix
+    # Should show: /usr/local or similar
 
-   which codex
-   # Should show: /usr/local/bin/codex or similar
-   ```
+    which codex
+    # Should show: /usr/local/bin/codex or similar
+    ```
 
 2. If not found, rebuild the devcontainer:
-   - VS Code: `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
+    - VS Code: `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 3. Check installation manually:
 
-   ```bash
-   npm list -g @openai/codex
-   # Should show installed version
-   ```
+    ```bash
+    npm list -g @openai/codex
+    # Should show installed version
+    ```
 
 ## Usage
 
@@ -125,4 +126,3 @@ This allows you to:
 
 - [OpenAI Codex CLI](https://github.com/openai/openai-codex-cli)
 - [OpenAI Platform](https://platform.openai.com/)
-

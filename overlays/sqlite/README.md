@@ -8,8 +8,8 @@ SQLite embedded database with enhanced CLI tools and VS Code extensions for file
 - **litecli** - Modern CLI with syntax highlighting and autocompletion (requires Python)
 - **File-based** - No server required, database stored in local files
 - **VS Code Extensions:**
-  - SQLite Viewer (qwtel.sqlite-viewer) - View and edit SQLite databases
-  - SQLite (alexcvzz.vscode-sqlite) - Query and manage databases
+    - SQLite Viewer (qwtel.sqlite-viewer) - View and edit SQLite databases
+    - SQLite (alexcvzz.vscode-sqlite) - Query and manage databases
 - **Lightweight** - Minimal resource usage, instant startup
 - **No service** - Works with both plain and compose templates
 
@@ -18,6 +18,7 @@ SQLite embedded database with enhanced CLI tools and VS Code extensions for file
 Unlike server-based databases, SQLite stores the entire database in a single file on disk. This overlay installs the SQLite CLI tools and VS Code extensions for working with SQLite databases.
 
 **Architecture:**
+
 ```mermaid
 graph LR
     A[Development Container<br/>Your application code<br/>sqlite3 CLI<br/>litecli enhanced CLI<br/>SQLite databases .db<br/>No server needed]
@@ -30,6 +31,7 @@ graph LR
 No configuration needed! SQLite databases are just files on disk.
 
 **Typical database locations:**
+
 ```bash
 # In project root
 /workspace/database.db
@@ -138,11 +140,13 @@ sqlite3 myapp.db ".restore myapp_backup.db"
 ### Using VS Code Extensions
 
 **SQLite Viewer Extension:**
+
 1. Right-click on `.db` file in VS Code Explorer
 2. Select "Open with SQLite Viewer"
 3. Browse tables, view data, edit rows
 
 **SQLite Extension:**
+
 1. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
 2. Select "SQLite: Open Database"
 3. Choose your `.db` file
@@ -366,6 +370,7 @@ fn main() -> Result<()> {
 - **Learning SQL** - Simple, no-configuration database for education
 
 **Integrates well with:**
+
 - Node.js, Python, .NET, Go, Rust (all have excellent SQLite support)
 - Any application needing embedded database
 - File-based projects (no network required)
@@ -375,10 +380,12 @@ fn main() -> Result<()> {
 ### Issue: Database is locked
 
 **Symptoms:**
+
 - "database is locked" error
 - Timeout when writing
 
 **Solution:**
+
 ```bash
 # Only one writer allowed at a time
 # Close all open connections before writing
@@ -396,9 +403,11 @@ sqlite3 myapp.db "PRAGMA wal_checkpoint(FULL);"
 ### Issue: litecli not found
 
 **Symptoms:**
+
 - `litecli: command not found`
 
 **Solution:**
+
 ```bash
 # litecli requires Python
 # Install Python overlay for litecli support
@@ -411,9 +420,11 @@ export PATH="$HOME/.local/bin:$PATH"
 ### Issue: Database file not found
 
 **Symptoms:**
+
 - "unable to open database file"
 
 **Solution:**
+
 ```bash
 # Check file path is correct
 ls -la myapp.db
@@ -429,9 +440,11 @@ sqlite3 myapp.db
 ### Issue: Corrupted database
 
 **Symptoms:**
+
 - "database disk image is malformed"
 
 **Solution:**
+
 ```bash
 # Try to dump and recreate
 sqlite3 myapp.db .dump > backup.sql
@@ -447,10 +460,12 @@ sqlite3 myapp.db "PRAGMA integrity_check;"
 ### Issue: Performance issues
 
 **Symptoms:**
+
 - Slow inserts/updates
 - Database growing large
 
 **Solution:**
+
 ```bash
 # Use transactions for bulk inserts
 sqlite3 myapp.db "
@@ -476,28 +491,31 @@ sqlite3 myapp.db "VACUUM;"
 ## Performance Tips
 
 1. **Use transactions** for bulk operations:
-   ```sql
-   BEGIN TRANSACTION;
-   -- Multiple INSERT/UPDATE statements
-   COMMIT;
-   ```
+
+    ```sql
+    BEGIN TRANSACTION;
+    -- Multiple INSERT/UPDATE statements
+    COMMIT;
+    ```
 
 2. **Enable WAL mode** for better concurrency:
-   ```sql
-   PRAGMA journal_mode=WAL;
-   ```
+
+    ```sql
+    PRAGMA journal_mode=WAL;
+    ```
 
 3. **Create indexes** on frequently queried columns:
-   ```sql
-   CREATE INDEX idx_users_email ON users(email);
-   ```
+
+    ```sql
+    CREATE INDEX idx_users_email ON users(email);
+    ```
 
 4. **Use prepared statements** in application code (prevents SQL injection, faster)
 
 5. **Vacuum regularly** to reclaim space:
-   ```sql
-   VACUUM;
-   ```
+    ```sql
+    VACUUM;
+    ```
 
 ## Security Considerations
 
@@ -510,31 +528,34 @@ sqlite3 myapp.db "VACUUM;"
 **Best practices:**
 
 1. **File permissions:**
-   ```bash
-   # Restrict database file access
-   chmod 600 myapp.db
-   ```
+
+    ```bash
+    # Restrict database file access
+    chmod 600 myapp.db
+    ```
 
 2. **Use parameterized queries** to prevent SQL injection:
-   ```python
-   # Good
-   cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
 
-   # Bad (SQL injection vulnerable)
-   cursor.execute(f'SELECT * FROM users WHERE email = "{email}"')
-   ```
+    ```python
+    # Good
+    cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
+
+    # Bad (SQL injection vulnerable)
+    cursor.execute(f'SELECT * FROM users WHERE email = "{email}"')
+    ```
 
 3. **Encrypt sensitive data:**
-   ```bash
-   # Use SQLCipher for encrypted databases
-   # Or encrypt database file at OS level
-   ```
+
+    ```bash
+    # Use SQLCipher for encrypted databases
+    # Or encrypt database file at OS level
+    ```
 
 4. **Backup regularly:**
-   ```bash
-   # Automated backups
-   sqlite3 myapp.db ".backup /backups/myapp_$(date +%Y%m%d).db"
-   ```
+    ```bash
+    # Automated backups
+    sqlite3 myapp.db ".backup /backups/myapp_$(date +%Y%m%d).db"
+    ```
 
 ## Related Overlays
 

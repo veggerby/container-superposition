@@ -2,55 +2,55 @@
 # Copy this file to prometheus overlay and reference in prometheus.yml
 
 groups:
-  - name: example_alerts
-    interval: 30s
-    rules:
-      # Container down alert
-      - alert: ContainerDown
-        expr: up == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Container {{ $labels.instance }} is down"
-          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
-      
-      # High CPU usage
-      - alert: HighCPUUsage
-        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High CPU usage on {{ $labels.container }}"
-          description: "Container {{ $labels.container }} CPU usage is above 80% for 5 minutes."
-      
-      # High memory usage
-      - alert: HighMemoryUsage
-        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.9
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High memory usage on {{ $labels.container }}"
-          description: "Container {{ $labels.container }} memory usage is above 90% for 5 minutes."
-      
-      # Too many HTTP 500 errors
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status="500"}[5m]) > 0.05
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "High error rate on {{ $labels.service }}"
-          description: "Service {{ $labels.service }} has more than 5% 5xx errors for 5 minutes."
-      
-      # Slow HTTP requests
-      - alert: SlowRequests
-        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 1.0
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Slow requests on {{ $labels.service }}"
-          description: "Service {{ $labels.service }} p99 latency is above 1 second for 10 minutes."
+    - name: example_alerts
+      interval: 30s
+      rules:
+          # Container down alert
+          - alert: ContainerDown
+            expr: up == 0
+            for: 1m
+            labels:
+                severity: critical
+            annotations:
+                summary: 'Container {{ $labels.instance }} is down'
+                description: '{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute.'
+
+          # High CPU usage
+          - alert: HighCPUUsage
+            expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+            for: 5m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'High CPU usage on {{ $labels.container }}'
+                description: 'Container {{ $labels.container }} CPU usage is above 80% for 5 minutes.'
+
+          # High memory usage
+          - alert: HighMemoryUsage
+            expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.9
+            for: 5m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'High memory usage on {{ $labels.container }}'
+                description: 'Container {{ $labels.container }} memory usage is above 90% for 5 minutes.'
+
+          # Too many HTTP 500 errors
+          - alert: HighErrorRate
+            expr: rate(http_requests_total{status="500"}[5m]) > 0.05
+            for: 5m
+            labels:
+                severity: critical
+            annotations:
+                summary: 'High error rate on {{ $labels.service }}'
+                description: 'Service {{ $labels.service }} has more than 5% 5xx errors for 5 minutes.'
+
+          # Slow HTTP requests
+          - alert: SlowRequests
+            expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 1.0
+            for: 10m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'Slow requests on {{ $labels.service }}'
+                description: 'Service {{ $labels.service }} p99 latency is above 1 second for 10 minutes.'

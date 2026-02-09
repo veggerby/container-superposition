@@ -4,11 +4,11 @@ description: OpenAI Codex CLI for AI-powered code generation and assistance
 category: dev
 supports: []
 requires:
-  - nodejs
+    - nodejs
 suggests: []
 conflicts: []
 tags:
-  - dev
-  - ai
-  - code-generation
+    - dev
+    - ai
+    - code-generation
 ports: []

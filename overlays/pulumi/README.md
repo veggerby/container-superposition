@@ -7,15 +7,16 @@ Adds Pulumi CLI for modern Infrastructure as Code using familiar programming lan
 - **Pulumi CLI** - Latest version of Pulumi
 - **Multi-language Support** - Use TypeScript, Python, Go, .NET, Java, or YAML
 - **VS Code Extension:** Pulumi LSP Client (pulumi.pulumi-lsp-client)
-  - IntelliSense and autocomplete
-  - Error detection
-  - Resource documentation
+    - IntelliSense and autocomplete
+    - Error detection
+    - Resource documentation
 
 ## Getting Started
 
 ### Prerequisites
 
 Pulumi works with programming languages. Select appropriate language overlay:
+
 - **nodejs** - For TypeScript/JavaScript
 - **python** - For Python
 - **dotnet** - For C#/F#
@@ -112,15 +113,16 @@ pulumi config
 ### TypeScript
 
 **index.ts:**
+
 ```typescript
-import * as pulumi from "@pulumi/pulumi";
-import * as aws from "@pulumi/aws";
+import * as pulumi from '@pulumi/pulumi';
+import * as aws from '@pulumi/aws';
 
 // Create an S3 bucket
-const bucket = new aws.s3.Bucket("my-bucket", {
-    acl: "private",
+const bucket = new aws.s3.Bucket('my-bucket', {
+    acl: 'private',
     tags: {
-        Environment: "dev",
+        Environment: 'dev',
     },
 });
 
@@ -129,6 +131,7 @@ export const bucketName = bucket.id;
 ```
 
 **Run:**
+
 ```bash
 npm install @pulumi/aws @pulumi/pulumi
 pulumi up
@@ -136,7 +139,8 @@ pulumi up
 
 ### Python
 
-**__main__.py:**
+\***\*main**.py:\*\*
+
 ```python
 import pulumi
 import pulumi_aws as aws
@@ -153,6 +157,7 @@ pulumi.export('bucket_name', bucket.id)
 ```
 
 **Run:**
+
 ```bash
 pip install pulumi pulumi-aws
 pulumi up
@@ -161,24 +166,26 @@ pulumi up
 ### YAML
 
 **Pulumi.yaml:**
+
 ```yaml
 name: my-project
 runtime: yaml
 description: Infrastructure as YAML
 
 resources:
-  my-bucket:
-    type: aws:s3:Bucket
-    properties:
-      acl: private
-      tags:
-        Environment: dev
+    my-bucket:
+        type: aws:s3:Bucket
+        properties:
+            acl: private
+            tags:
+                Environment: dev
 
 outputs:
-  bucketName: ${my-bucket.id}
+    bucketName: ${my-bucket.id}
 ```
 
 **Run:**
+
 ```bash
 pulumi up
 ```
@@ -230,19 +237,24 @@ pulumi login gs://my-pulumi-state-bucket
 ### AWS
 
 ```typescript
-import * as aws from "@pulumi/aws";
+import * as aws from '@pulumi/aws';
 
-const provider = new aws.Provider("my-provider", {
-    region: "us-west-2",
-    profile: "dev",
+const provider = new aws.Provider('my-provider', {
+    region: 'us-west-2',
+    profile: 'dev',
 });
 
-const bucket = new aws.s3.Bucket("my-bucket", {}, {
-    provider: provider,
-});
+const bucket = new aws.s3.Bucket(
+    'my-bucket',
+    {},
+    {
+        provider: provider,
+    }
+);
 ```
 
 **Authentication:**
+
 - AWS CLI credentials
 - Environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 - IAM roles
@@ -250,11 +262,11 @@ const bucket = new aws.s3.Bucket("my-bucket", {}, {
 ### Google Cloud
 
 ```typescript
-import * as gcp from "@pulumi/gcp";
+import * as gcp from '@pulumi/gcp';
 
-const provider = new gcp.Provider("my-provider", {
-    project: "my-project-id",
-    region: "us-central1",
+const provider = new gcp.Provider('my-provider', {
+    project: 'my-project-id',
+    region: 'us-central1',
     credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS,
 });
 ```
@@ -262,10 +274,10 @@ const provider = new gcp.Provider("my-provider", {
 ### Azure
 
 ```typescript
-import * as azure from "@pulumi/azure-native";
+import * as azure from '@pulumi/azure-native';
 
-const provider = new azure.Provider("my-provider", {
-    location: "eastus",
+const provider = new azure.Provider('my-provider', {
+    location: 'eastus',
 });
 ```
 
@@ -279,25 +291,26 @@ pulumi config set --secret dbPassword S3cret!
 
 # Access in code (TypeScript)
 ```
+
 ```typescript
-import * as pulumi from "@pulumi/pulumi";
+import * as pulumi from '@pulumi/pulumi';
 
 const config = new pulumi.Config();
-const dbPassword = config.requireSecret("dbPassword");
+const dbPassword = config.requireSecret('dbPassword');
 ```
 
 ### External Secrets
 
 ```typescript
 // AWS Secrets Manager
-import * as aws from "@pulumi/aws";
+import * as aws from '@pulumi/aws';
 
 const secret = aws.secretsmanager.getSecretVersion({
-    secretId: "prod/db/password",
+    secretId: 'prod/db/password',
 });
 
-const db = new aws.rds.Instance("db", {
-    password: secret.then(s => s.secretString),
+const db = new aws.rds.Instance('db', {
+    password: secret.then((s) => s.secretString),
 });
 ```
 
@@ -306,36 +319,38 @@ const db = new aws.rds.Instance("db", {
 ### Multi-Cloud Infrastructure
 
 ```typescript
-import * as aws from "@pulumi/aws";
-import * as gcp from "@pulumi/gcp";
-import * as azure from "@pulumi/azure-native";
+import * as aws from '@pulumi/aws';
+import * as gcp from '@pulumi/gcp';
+import * as azure from '@pulumi/azure-native';
 
 // AWS resources
-const awsBucket = new aws.s3.Bucket("aws-bucket");
+const awsBucket = new aws.s3.Bucket('aws-bucket');
 
 // GCP resources
-const gcpBucket = new gcp.storage.Bucket("gcp-bucket");
+const gcpBucket = new gcp.storage.Bucket('gcp-bucket');
 
 // Azure resources
-const azureStorage = new azure.storage.StorageAccount("azure-storage");
+const azureStorage = new azure.storage.StorageAccount('azure-storage');
 ```
 
 ### Kubernetes Deployment
 
 ```typescript
-import * as k8s from "@pulumi/kubernetes";
+import * as k8s from '@pulumi/kubernetes';
 
-const deployment = new k8s.apps.v1.Deployment("app", {
+const deployment = new k8s.apps.v1.Deployment('app', {
     spec: {
-        selector: { matchLabels: { app: "nginx" } },
+        selector: { matchLabels: { app: 'nginx' } },
         replicas: 3,
         template: {
-            metadata: { labels: { app: "nginx" } },
+            metadata: { labels: { app: 'nginx' } },
             spec: {
-                containers: [{
-                    name: "nginx",
-                    image: "nginx:latest",
-                }],
+                containers: [
+                    {
+                        name: 'nginx',
+                        image: 'nginx:latest',
+                    },
+                ],
             },
         },
     },
@@ -366,12 +381,12 @@ const deployment = new k8s.apps.v1.Deployment("app", {
 - name: Pulumi Preview
   run: pulumi preview
   env:
-    PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 
 - name: Pulumi Up
   run: pulumi up --yes
   env:
-    PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 ```
 
 ### Environment Variables
@@ -399,6 +414,7 @@ export ARM_TENANT_ID=xxxxx
 ### pulumi command not found
 
 Rebuild container:
+
 - **VS Code:** `Cmd+Shift+P` → "Dev Containers: Rebuild Container"
 
 ### Login issues
@@ -435,14 +451,14 @@ az login
 
 ## Pulumi vs Terraform
 
-| Feature | Pulumi | Terraform |
-|---------|--------|-----------|
-| **Language** | TypeScript, Python, Go, C#, Java, YAML | HCL |
-| **Type Safety** | ✅ Strong typing (TS/C#) | ⚠️ Limited |
-| **Learning Curve** | Familiar languages | New DSL |
-| **Testing** | Unit tests with language frameworks | Limited |
-| **State** | Managed service or self-hosted | Self-hosted |
-| **Ecosystem** | Growing | Mature |
+| Feature            | Pulumi                                 | Terraform   |
+| ------------------ | -------------------------------------- | ----------- |
+| **Language**       | TypeScript, Python, Go, C#, Java, YAML | HCL         |
+| **Type Safety**    | ✅ Strong typing (TS/C#)               | ⚠️ Limited  |
+| **Learning Curve** | Familiar languages                     | New DSL     |
+| **Testing**        | Unit tests with language frameworks    | Limited     |
+| **State**          | Managed service or self-hosted         | Self-hosted |
+| **Ecosystem**      | Growing                                | Mature      |
 
 ## Related Overlays
 

@@ -10,8 +10,8 @@ Adds Rust stable toolchain with cargo, rustfmt, clippy, and rust-analyzer for sy
 - **clippy** - Rust linter for catching common mistakes
 - **rust-analyzer** - Language server for IDE features
 - **VS Code Extensions:**
-  - rust-analyzer (rust-lang.rust-analyzer) - IntelliSense and code actions
-  - CodeLLDB (vadimcn.vscode-lldb) - Native debugger
+    - rust-analyzer (rust-lang.rust-analyzer) - IntelliSense and code actions
+    - CodeLLDB (vadimcn.vscode-lldb) - Native debugger
 - **Automatic dependency fetching** - Runs `cargo fetch` on container creation
 
 ## How It Works
@@ -19,6 +19,7 @@ Adds Rust stable toolchain with cargo, rustfmt, clippy, and rust-analyzer for sy
 This overlay uses the official devcontainers Rust feature to install Rust via rustup. The setup script installs essential Rust components (rustfmt, clippy, rust-src) and useful cargo extensions (cargo-watch, cargo-edit).
 
 **Installation method:**
+
 - Rust toolchain via rustup
 - Components and tools via `rustup component add` and `cargo install`
 - Tools accessible in ~/.cargo/bin
@@ -138,6 +139,7 @@ cargo watch -x clippy
 - **Blockchain** - Cryptocurrency and smart contracts (Substrate, Solana)
 
 **Integrates well with:**
+
 - `postgres`, `redis` - Database drivers (sqlx, deadpool)
 - `docker-sock` - Bollard (Docker SDK for Rust)
 - `prometheus` - Prometheus Rust client
@@ -182,6 +184,7 @@ t = "test"
 ### Web Server with Axum
 
 **Cargo.toml:**
+
 ```toml
 [dependencies]
 axum = "0.7"
@@ -189,6 +192,7 @@ tokio = { version = "1", features = ["full"] }
 ```
 
 **main.rs:**
+
 ```rust
 use axum::{routing::get, Router};
 
@@ -200,12 +204,13 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080")
         .await
         .unwrap();
-    
+
     axum::serve(listener, app).await.unwrap();
 }
 ```
 
 **Run:**
+
 ```bash
 cargo run
 # Access at http://localhost:8080
@@ -237,10 +242,12 @@ async fn main() -> Result<(), sqlx::Error> {
 ### Issue: rust-analyzer not working
 
 **Symptoms:**
+
 - No IntelliSense
 - "rust-analyzer failed to load workspace" error
 
 **Solution:**
+
 ```bash
 # Install rust-src component
 rustup component add rust-src
@@ -252,6 +259,7 @@ rustup component add rust-src
 ### Issue: Slow compilation times
 
 **Solution:**
+
 ```bash
 # Use sccache for caching
 cargo install sccache
@@ -265,6 +273,7 @@ sudo apt-get install lld
 ### Issue: Cargo.lock conflicts
 
 **Solution:**
+
 ```bash
 # Update Cargo.lock
 cargo update
@@ -283,6 +292,7 @@ cargo build
 - [Clippy Lints](https://rust-lang.github.io/rust-clippy/) - All clippy lints
 
 **Related Overlays:**
+
 - `postgres` - PostgreSQL with sqlx/diesel
 - `redis` - Redis with redis-rs
 - `docker-sock` - Bollard Docker SDK

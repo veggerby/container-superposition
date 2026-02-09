@@ -7,8 +7,8 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - cloud
-  - gcp
-  - google
-  - cli
+    - cloud
+    - gcp
+    - google
+    - cli
 ports: []

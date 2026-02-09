@@ -17,6 +17,7 @@ MySQL 8 relational database with phpMyAdmin web UI for development and testing.
 This overlay adds MySQL 8 and phpMyAdmin as separate Docker Compose services. The database runs in its own container and is accessible from your development container via the hostname `mysql`.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Development Container<br/>Your application code<br/>mysql client<br/>Connects to mysql:3306] -->|Docker network devnet| B[MySQL Container<br/>MySQL 8 server<br/>Port 3306<br/>Data volume]
@@ -35,6 +36,7 @@ cp .env.example .env
 ```
 
 **Default values (.env.example):**
+
 ```bash
 # MySQL Configuration
 MYSQL_VERSION=8
@@ -102,6 +104,7 @@ http://localhost:8080
 ```
 
 Login with:
+
 - **Server:** mysql
 - **Username:** root (or devuser)
 - **Password:** rootpassword (or devpassword)
@@ -200,25 +203,25 @@ npm install sequelize mysql2
 const mysql = require('mysql2/promise');
 
 async function main() {
-  const connection = await mysql.createConnection({
-    host: 'mysql',
-    port: 3306,
-    user: 'devuser',
-    password: 'devpassword',
-    database: 'devdb'
-  });
+    const connection = await mysql.createConnection({
+        host: 'mysql',
+        port: 3306,
+        user: 'devuser',
+        password: 'devpassword',
+        database: 'devdb',
+    });
 
-  // Query
-  const [rows] = await connection.execute('SELECT * FROM users');
-  console.log(rows);
+    // Query
+    const [rows] = await connection.execute('SELECT * FROM users');
+    console.log(rows);
 
-  // Insert
-  await connection.execute(
-    'INSERT INTO users (name, email) VALUES (?, ?)',
-    ['Alice', 'alice@example.com']
-  );
+    // Insert
+    await connection.execute('INSERT INTO users (name, email) VALUES (?, ?)', [
+        'Alice',
+        'alice@example.com',
+    ]);
 
-  await connection.end();
+    await connection.end();
 }
 
 main();
@@ -366,6 +369,7 @@ func main() {
 - **Learning SQL** - Industry-standard relational database
 
 **Integrates well with:**
+
 - PHP, Node.js, Python, .NET, Go (application development)
 - Grafana (database metrics visualization)
 - OTEL Collector (query performance monitoring)
@@ -375,10 +379,12 @@ func main() {
 ### Issue: Cannot connect to MySQL
 
 **Symptoms:**
+
 - Connection refused errors
 - Timeout when connecting
 
 **Solution:**
+
 ```bash
 # Check if service is running
 docker-compose ps
@@ -397,10 +403,12 @@ mysql -h mysql -u root -prootpassword -e "SELECT 1"
 ### Issue: Access denied for user
 
 **Symptoms:**
+
 - "Access denied for user 'devuser'@'%'"
 - Authentication errors
 
 **Solution:**
+
 ```bash
 # Verify credentials in .env file
 cat .devcontainer/.env
@@ -416,10 +424,12 @@ docker-compose up -d
 ### Issue: phpMyAdmin not accessible
 
 **Symptoms:**
+
 - Cannot access http://localhost:8080
 - Page not loading
 
 **Solution:**
+
 ```bash
 # Check phpMyAdmin logs
 docker-compose logs phpmyadmin
@@ -437,9 +447,11 @@ docker-compose restart phpmyadmin
 ### Issue: Database not found
 
 **Symptoms:**
+
 - "Unknown database 'devdb'"
 
 **Solution:**
+
 ```bash
 # Create database manually
 mysql -h mysql -u root -prootpassword -e "CREATE DATABASE devdb;"
@@ -452,9 +464,11 @@ docker-compose up -d
 ### Issue: Data not persisting
 
 **Symptoms:**
+
 - Data lost after container restart
 
 **Solution:**
+
 ```bash
 # Verify volumes exist
 docker volume ls | grep mysql
@@ -477,28 +491,30 @@ docker-compose config
 **For production:**
 
 1. **Change credentials:**
-   ```bash
-   # Use strong passwords
-   MYSQL_ROOT_PASSWORD=<strong-password>
-   MYSQL_PASSWORD=<strong-password>
-   ```
+
+    ```bash
+    # Use strong passwords
+    MYSQL_ROOT_PASSWORD=<strong-password>
+    MYSQL_PASSWORD=<strong-password>
+    ```
 
 2. **Limit user privileges:**
-   ```sql
-   -- Create user with limited permissions
-   CREATE USER 'app'@'%' IDENTIFIED BY 'password';
-   GRANT SELECT, INSERT, UPDATE, DELETE ON devdb.* TO 'app'@'%';
-   ```
+
+    ```sql
+    -- Create user with limited permissions
+    CREATE USER 'app'@'%' IDENTIFIED BY 'password';
+    GRANT SELECT, INSERT, UPDATE, DELETE ON devdb.* TO 'app'@'%';
+    ```
 
 3. **Restrict network access:**
-   - Don't expose ports publicly
-   - Use firewall rules
-   - Consider TLS/SSL for connections
+    - Don't expose ports publicly
+    - Use firewall rules
+    - Consider TLS/SSL for connections
 
 4. **Disable phpMyAdmin in production:**
-   ```yaml
-   # Comment out or remove phpmyadmin service
-   ```
+    ```yaml
+    # Comment out or remove phpmyadmin service
+    ```
 
 ## Related Overlays
 

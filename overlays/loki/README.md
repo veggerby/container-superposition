@@ -17,6 +17,7 @@ Multi-tenant log aggregation system designed for storing and querying logs from 
 Loki is a log aggregation system inspired by Prometheus. Unlike traditional log systems that index the entire log line, Loki only indexes metadata (labels), making it extremely cost-effective for storing large volumes of logs.
 
 **Architecture:**
+
 ```mermaid
 graph TD
     A[Application<br/>Sends logs via OTLP<br/>Or via Promtail shipper] -->|HTTP POST| B[Grafana Loki<br/>Ingester → Storage<br/>Index labels only<br/>Store logs compressed<br/>Query via LogQL<br/>API: http://...:3100]
@@ -24,6 +25,7 @@ graph TD
 ```
 
 **Key Concepts:**
+
 - **Labels** - Indexed metadata (service, level, host)
 - **Log streams** - Unique combination of labels
 - **Chunks** - Compressed log data stored on disk
@@ -45,6 +47,7 @@ cp .env.example .env
 ```
 
 **Available variables:**
+
 ```bash
 # Loki version
 LOKI_VERSION=latest
@@ -58,32 +61,33 @@ LOKI_PORT=3100
 Loki is configured via `loki-config.yaml`:
 
 **Key sections:**
+
 ```yaml
-auth_enabled: false          # Disable multi-tenancy auth
+auth_enabled: false # Disable multi-tenancy auth
 
 server:
-  http_listen_port: 3100     # HTTP API port
+    http_listen_port: 3100 # HTTP API port
 
-ingester:                    # In-memory log processing
-  chunk_idle_period: 5m      # How long before flushing chunks
-  chunk_retain_period: 30s   # Retain in memory after flush
+ingester: # In-memory log processing
+    chunk_idle_period: 5m # How long before flushing chunks
+    chunk_retain_period: 30s # Retain in memory after flush
 
-schema_config:               # Index schema
-  configs:
-    - from: 2020-10-24
-      store: boltdb-shipper  # Index storage
-      object_store: filesystem
-      schema: v11
+schema_config: # Index schema
+    configs:
+        - from: 2020-10-24
+          store: boltdb-shipper # Index storage
+          object_store: filesystem
+          schema: v11
 
-storage_config:              # Where to store data
-  boltdb_shipper:
-    active_index_directory: /loki/index
-  filesystem:
-    directory: /loki/chunks
+storage_config: # Where to store data
+    boltdb_shipper:
+        active_index_directory: /loki/index
+    filesystem:
+        directory: /loki/chunks
 
 limits_config:
-  reject_old_samples: true   # Reject logs older than 168h
-  reject_old_samples_max_age: 168h
+    reject_old_samples: true # Reject logs older than 168h
+    reject_old_samples_max_age: 168h
 ```
 
 ### Enabling Retention
@@ -92,32 +96,32 @@ Edit `loki-config.yaml` to enable automatic log deletion:
 
 ```yaml
 limits_config:
-  retention_deletes_enabled: true
-  retention_period: 168h  # 7 days for development
+    retention_deletes_enabled: true
+    retention_period: 168h # 7 days for development
 
 compactor:
-  working_directory: /loki/compactor
-  shared_store: filesystem
-  compaction_interval: 10m
-  retention_enabled: true
-  retention_delete_delay: 2h
-  retention_delete_worker_count: 150
+    working_directory: /loki/compactor
+    shared_store: filesystem
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
 ```
 
 ### Adjusting Performance
 
 ```yaml
 ingester:
-  chunk_idle_period: 10m     # Longer period = larger chunks
-  chunk_block_size: 262144   # 256KB chunks
-  chunk_retain_period: 1m    # Keep in memory longer
-  max_chunk_age: 2h          # Force flush after 2h
+    chunk_idle_period: 10m # Longer period = larger chunks
+    chunk_block_size: 262144 # 256KB chunks
+    chunk_retain_period: 1m # Keep in memory longer
+    max_chunk_age: 2h # Force flush after 2h
 
 limits_config:
-  ingestion_rate_mb: 10      # Max MB/s per stream
-  ingestion_burst_size_mb: 20
-  max_streams_per_user: 10000
-  max_line_size: 256000      # 256KB max line size
+    ingestion_rate_mb: 10 # Max MB/s per stream
+    ingestion_burst_size_mb: 20
+    max_streams_per_user: 10000
+    max_line_size: 256000 # 256KB max line size
 ```
 
 ### Port Configuration
@@ -145,21 +149,21 @@ const { OTLPLogExporter } = require('@opentelemetry/exporter-logs-otlp-http');
 
 const loggerProvider = new LoggerProvider();
 loggerProvider.addLogRecordProcessor(
-  new BatchLogRecordProcessor(
-    new OTLPLogExporter({
-      url: 'http://otel-collector:4318/v1/logs',
-    })
-  )
+    new BatchLogRecordProcessor(
+        new OTLPLogExporter({
+            url: 'http://otel-collector:4318/v1/logs',
+        })
+    )
 );
 
 const logger = loggerProvider.getLogger('my-service');
 logger.emit({
-  severityText: 'INFO',
-  body: 'User logged in',
-  attributes: {
-    'user.id': '12345',
-    'http.method': 'POST',
-  },
+    severityText: 'INFO',
+    body: 'User logged in',
+    attributes: {
+        'user.id': '12345',
+        'http.method': 'POST',
+    },
 });
 ```
 
@@ -188,6 +192,7 @@ curl -X POST http://localhost:3100/loki/api/v1/push \
 ```
 
 **Push format:**
+
 - Timestamp in nanoseconds (string)
 - Log line (string)
 - Labels in `stream` object
@@ -197,68 +202,70 @@ curl -X POST http://localhost:3100/loki/api/v1/push \
 Promtail tails log files and ships them to Loki:
 
 **docker-compose.promtail.yml:**
+
 ```yaml
-version: "3.8"
+version: '3.8'
 services:
-  promtail:
-    image: grafana/promtail:latest
-    volumes:
-      - /var/log:/var/log:ro
-      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
-    command: -config.file=/etc/promtail/config.yaml
-    networks:
-      - devnet
-    depends_on:
-      - loki
+    promtail:
+        image: grafana/promtail:latest
+        volumes:
+            - /var/log:/var/log:ro
+            - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
+        command: -config.file=/etc/promtail/config.yaml
+        networks:
+            - devnet
+        depends_on:
+            - loki
 
 networks:
-  devnet:
-    name: devnet
+    devnet:
+        name: devnet
 ```
 
 **promtail-config.yaml:**
+
 ```yaml
 server:
-  http_listen_port: 9080
-  grpc_listen_port: 0
+    http_listen_port: 9080
+    grpc_listen_port: 0
 
 positions:
-  filename: /tmp/positions.yaml
+    filename: /tmp/positions.yaml
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
+    - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: system
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: varlogs
-          host: devcontainer
-          __path__: /var/log/*.log
+    - job_name: system
+      static_configs:
+          - targets:
+                - localhost
+            labels:
+                job: varlogs
+                host: devcontainer
+                __path__: /var/log/*.log
 
-  - job_name: application
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: app
-          service: my-app
-          __path__: /var/log/app/*.log
-    pipeline_stages:
-      - json:
-          expressions:
-            level: level
-            timestamp: time
-            message: msg
-      - labels:
-          level:
-      - timestamp:
-          source: timestamp
-          format: RFC3339
-      - output:
-          source: message
+    - job_name: application
+      static_configs:
+          - targets:
+                - localhost
+            labels:
+                job: app
+                service: my-app
+                __path__: /var/log/app/*.log
+      pipeline_stages:
+          - json:
+                expressions:
+                    level: level
+                    timestamp: time
+                    message: msg
+          - labels:
+                level:
+          - timestamp:
+                source: timestamp
+                format: RFC3339
+          - output:
+                source: message
 ```
 
 ### Using Docker Logging Driver
@@ -268,18 +275,18 @@ Send container logs directly to Loki:
 ```yaml
 # docker-compose.yml
 services:
-  my-app:
-    image: my-app:latest
-    logging:
-      driver: loki
-      options:
-        loki-url: "http://loki:3100/loki/api/v1/push"
-        loki-batch-size: "400"
-        loki-retries: "2"
-        labels: "service,environment"
-    labels:
-      service: "my-app"
-      environment: "development"
+    my-app:
+        image: my-app:latest
+        logging:
+            driver: loki
+            options:
+                loki-url: 'http://loki:3100/loki/api/v1/push'
+                loki-batch-size: '400'
+                loki-retries: '2'
+                labels: 'service,environment'
+        labels:
+            service: 'my-app'
+            environment: 'development'
 ```
 
 ### Using Application Libraries
@@ -295,19 +302,19 @@ const winston = require('winston');
 const LokiTransport = require('winston-loki');
 
 const logger = winston.createLogger({
-  transports: [
-    new LokiTransport({
-      host: 'http://loki:3100',
-      labels: {
-        service: 'my-app',
-        environment: 'development',
-      },
-      json: true,
-      format: winston.format.json(),
-      replaceTimestamp: true,
-      onConnectionError: (err) => console.error(err),
-    })
-  ]
+    transports: [
+        new LokiTransport({
+            host: 'http://loki:3100',
+            labels: {
+                service: 'my-app',
+                environment: 'development',
+            },
+            json: true,
+            format: winston.format.json(),
+            replaceTimestamp: true,
+            onConnectionError: (err) => console.error(err),
+        }),
+    ],
 });
 
 logger.info('User logged in', { userId: '12345', method: 'POST' });
@@ -378,21 +385,25 @@ func main() {
 ### Basic Queries
 
 **All logs from a service:**
+
 ```logql
 {service="my-app"}
 ```
 
 **Logs from multiple services:**
+
 ```logql
 {service=~"api|web"}
 ```
 
 **Exclude specific services:**
+
 ```logql
 {service!="health-check"}
 ```
 
 **Multiple label filters:**
+
 ```logql
 {service="api", environment="production", level="error"}
 ```
@@ -400,26 +411,31 @@ func main() {
 ### Line Filtering
 
 **Logs containing text (case-sensitive):**
+
 ```logql
 {service="my-app"} |= "error"
 ```
 
 **Logs NOT containing text:**
+
 ```logql
 {service="my-app"} != "debug"
 ```
 
 **Case-insensitive search:**
+
 ```logql
 {service="my-app"} |~ "(?i)error"
 ```
 
 **Regex pattern:**
+
 ```logql
 {service="my-app"} |~ "user_id=[0-9]+"
 ```
 
 **Multiple filters:**
+
 ```logql
 {service="my-app"} |= "error" != "timeout" |~ "database"
 ```
@@ -427,36 +443,43 @@ func main() {
 ### Parsing and Formatting
 
 **JSON parsing:**
+
 ```logql
 {service="my-app"} | json
 ```
 
 **JSON parsing with field extraction:**
+
 ```logql
 {service="my-app"} | json | status_code >= 400
 ```
 
 **Logfmt parsing:**
+
 ```logql
 {service="my-app"} | logfmt | level="error"
 ```
 
 **Pattern extraction:**
+
 ```logql
 {service="my-app"} | pattern `<ip> - - <_> "<method> <uri> <_>" <status> <_>`
 ```
 
 **Regex extraction:**
+
 ```logql
 {service="my-app"} | regexp `user_id=(?P<user_id>\d+)`
 ```
 
 **Line formatting:**
+
 ```logql
 {service="my-app"} | json | line_format "{{.level}}: {{.message}}"
 ```
 
 **Label formatting:**
+
 ```logql
 {service="my-app"} | json | label_format user="user_{{.user_id}}"
 ```
@@ -464,37 +487,44 @@ func main() {
 ### Aggregations and Metrics
 
 **Count log lines:**
+
 ```logql
 count_over_time({service="my-app"}[5m])
 ```
 
 **Rate of log lines (per second):**
+
 ```logql
 rate({service="my-app"}[5m])
 ```
 
 **Sum of extracted values:**
+
 ```logql
 sum(rate({service="my-app"} | json | __error__="" [5m]))
 ```
 
 **Rate of errors:**
+
 ```logql
 sum(rate({service="my-app"} |= "error" [5m]))
 ```
 
 **Error ratio:**
+
 ```logql
 sum(rate({service="my-app"} |= "error" [5m])) /
 sum(rate({service="my-app"} [5m]))
 ```
 
 **Bytes processed:**
+
 ```logql
 sum(bytes_over_time({service="my-app"}[5m]))
 ```
 
 **Bytes rate:**
+
 ```logql
 sum(bytes_rate({service="my-app"}[5m]))
 ```
@@ -502,32 +532,38 @@ sum(bytes_rate({service="my-app"}[5m]))
 ### Aggregation Functions
 
 **Sum by label:**
+
 ```logql
 sum by (service) (rate({environment="production"}[5m]))
 ```
 
 **Average:**
+
 ```logql
 avg(rate({service="my-app"} | json | unwrap response_time [5m]))
 ```
 
 **Min/Max:**
+
 ```logql
 min(rate({service="my-app"} | json | unwrap duration [5m]))
 max(rate({service="my-app"} | json | unwrap duration [5m]))
 ```
 
 **Count distinct:**
+
 ```logql
 count(count by (user_id) ({service="my-app"} | json))
 ```
 
 **Top K:**
+
 ```logql
 topk(10, sum by (endpoint) (rate({service="api"}[5m])))
 ```
 
 **Bottom K:**
+
 ```logql
 bottomk(5, avg by (service) (rate({environment="production"}[1h])))
 ```
@@ -535,6 +571,7 @@ bottomk(5, avg by (service) (rate({environment="production"}[1h])))
 ### Advanced Queries
 
 **Quantile (percentile):**
+
 ```logql
 quantile_over_time(0.95,
   {service="my-app"} | json | unwrap response_time [5m]
@@ -542,6 +579,7 @@ quantile_over_time(0.95,
 ```
 
 **Histogram:**
+
 ```logql
 histogram_over_time(
   {service="my-app"} | json | unwrap duration [5m]
@@ -549,11 +587,13 @@ histogram_over_time(
 ```
 
 **Stddev/Stdvar:**
+
 ```logql
 stddev_over_time({service="my-app"} | json | unwrap latency [5m])
 ```
 
 **IP filtering:**
+
 ```logql
 {service="nginx"}
   | json
@@ -562,6 +602,7 @@ stddev_over_time({service="my-app"} | json | unwrap latency [5m])
 ```
 
 **Complex parsing and filtering:**
+
 ```logql
 {service="my-app"}
   | json
@@ -583,31 +624,28 @@ npm install pino pino-pretty
 const pino = require('pino');
 
 const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  formatters: {
-    level: (label) => ({ level: label }),
-  },
-  base: {
-    service: 'my-app',
-    environment: process.env.NODE_ENV,
-  },
-  timestamp: pino.stdTimeFunctions.isoTime,
+    level: process.env.LOG_LEVEL || 'info',
+    formatters: {
+        level: (label) => ({ level: label }),
+    },
+    base: {
+        service: 'my-app',
+        environment: process.env.NODE_ENV,
+    },
+    timestamp: pino.stdTimeFunctions.isoTime,
 });
 
 // Structured logging
-logger.info(
-  { userId: '12345', action: 'login', ip: '192.168.1.1' },
-  'User logged in successfully'
-);
+logger.info({ userId: '12345', action: 'login', ip: '192.168.1.1' }, 'User logged in successfully');
 
 logger.error(
-  {
-    userId: '12345',
-    orderId: '67890',
-    error: 'timeout',
-    duration: 5000
-  },
-  'Payment processing failed'
+    {
+        userId: '12345',
+        orderId: '67890',
+        error: 'timeout',
+        duration: 5000,
+    },
+    'Payment processing failed'
 );
 
 // With child loggers
@@ -754,6 +792,7 @@ func main() {
 5. Click **Run query**
 
 **Features:**
+
 - Live tailing (follow logs in real-time)
 - Log context (view surrounding log lines)
 - Log labels (filter by clicking labels)
@@ -763,16 +802,19 @@ func main() {
 ### Creating Dashboards
 
 **Log volume panel:**
+
 ```logql
 sum(rate({service="my-app"}[1m]))
 ```
 
 **Error rate panel:**
+
 ```logql
 sum(rate({service="my-app"} |= "error" [5m]))
 ```
 
 **Response time distribution:**
+
 ```logql
 histogram_over_time(
   {service="my-app"} | json | unwrap response_time [5m]
@@ -789,6 +831,7 @@ sum(rate({service="my-app"} |= "error" [5m])) > 10
 ```
 
 **Alert configuration:**
+
 - Evaluation interval: 1m
 - For: 5m (alert after 5 minutes)
 - Notification channel: Slack, email, PagerDuty
@@ -798,21 +841,23 @@ sum(rate({service="my-app"} |= "error" [5m])) > 10
 ### Label Strategy
 
 **✅ Good labels (low cardinality):**
+
 ```json
 {
-  "service": "api",
-  "environment": "production",
-  "level": "error",
-  "host": "server-1"
+    "service": "api",
+    "environment": "production",
+    "level": "error",
+    "host": "server-1"
 }
 ```
 
 **❌ Bad labels (high cardinality):**
+
 ```json
 {
-  "user_id": "12345",      // Millions of unique values
-  "request_id": "abc-123",  // Every request unique
-  "timestamp": "..."        // Always unique
+    "user_id": "12345", // Millions of unique values
+    "request_id": "abc-123", // Every request unique
+    "timestamp": "..." // Always unique
 }
 ```
 
@@ -821,6 +866,7 @@ sum(rate({service="my-app"} |= "error" [5m])) > 10
 ### Label vs. Log Content
 
 **Use labels for:**
+
 - Service identification
 - Environment (dev/staging/prod)
 - Log level (debug/info/warn/error)
@@ -828,6 +874,7 @@ sum(rate({service="my-app"} |= "error" [5m])) > 10
 - Deployment/cluster
 
 **Use log content for:**
+
 - User IDs, transaction IDs
 - Error messages
 - Detailed context
@@ -837,6 +884,7 @@ sum(rate({service="my-app"} |= "error" [5m])) > 10
 ### Log Levels
 
 Use consistent levels:
+
 ```javascript
 logger.debug({ details: '...' }, 'Detailed debugging');
 logger.info({ user: '123' }, 'Normal operation');
@@ -848,6 +896,7 @@ logger.fatal({ err }, 'Fatal error, exiting');
 ### Performance Optimization
 
 **Batch log entries:**
+
 ```javascript
 // Bad: One network request per log
 logger.info('Log 1');
@@ -855,30 +904,33 @@ logger.info('Log 2');
 
 // Good: Batch multiple logs
 const batch = [
-  { timestamp: Date.now(), message: 'Log 1' },
-  { timestamp: Date.now(), message: 'Log 2' },
+    { timestamp: Date.now(), message: 'Log 1' },
+    { timestamp: Date.now(), message: 'Log 2' },
 ];
 sendBatch(batch);
 ```
 
 **Use appropriate retention:**
+
 ```yaml
 limits_config:
-  retention_period: 168h  # 7 days for dev
-  # retention_period: 2160h  # 90 days for prod
+    retention_period: 168h # 7 days for dev
+    # retention_period: 2160h  # 90 days for prod
 ```
 
 **Limit log line size:**
+
 ```yaml
 limits_config:
-  max_line_size: 256000  # 256KB
+    max_line_size: 256000 # 256KB
 ```
 
 **Rate limiting:**
+
 ```yaml
 limits_config:
-  ingestion_rate_mb: 10
-  ingestion_burst_size_mb: 20
+    ingestion_rate_mb: 10
+    ingestion_burst_size_mb: 20
 ```
 
 ## Troubleshooting
@@ -886,12 +938,14 @@ limits_config:
 ### Logs not appearing
 
 **Check Loki is running:**
+
 ```bash
 docker-compose ps loki
 docker-compose logs loki
 ```
 
 **Check Loki health:**
+
 ```bash
 curl http://localhost:3100/ready
 # Should return: ready
@@ -901,6 +955,7 @@ curl http://localhost:3100/metrics
 ```
 
 **Test push API:**
+
 ```bash
 curl -X POST http://localhost:3100/loki/api/v1/push \
   -H "Content-Type: application/json" \
@@ -913,6 +968,7 @@ curl -X POST http://localhost:3100/loki/api/v1/push \
 ```
 
 **Query for test logs:**
+
 ```bash
 curl 'http://localhost:3100/loki/api/v1/query?query={test="value"}'
 ```
@@ -920,27 +976,31 @@ curl 'http://localhost:3100/loki/api/v1/query?query={test="value"}'
 ### Out of memory
 
 **Reduce chunk sizes:**
+
 ```yaml
 ingester:
-  chunk_block_size: 131072  # 128KB (default 256KB)
-  chunk_idle_period: 3m     # Flush more frequently
+    chunk_block_size: 131072 # 128KB (default 256KB)
+    chunk_idle_period: 3m # Flush more frequently
 ```
 
 **Enable retention:**
+
 ```yaml
 limits_config:
-  retention_deletes_enabled: true
-  retention_period: 168h  # 7 days
+    retention_deletes_enabled: true
+    retention_period: 168h # 7 days
 ```
 
 **Limit ingestion rate:**
+
 ```yaml
 limits_config:
-  ingestion_rate_mb: 5      # Reduce from 10
-  max_streams_per_user: 5000
+    ingestion_rate_mb: 5 # Reduce from 10
+    max_streams_per_user: 5000
 ```
 
 **Check memory usage:**
+
 ```bash
 docker stats loki
 ```
@@ -948,6 +1008,7 @@ docker stats loki
 ### Slow queries
 
 **Add label filters:**
+
 ```logql
 # ✅ Good - Specific labels
 {service="my-app", level="error"}
@@ -957,12 +1018,14 @@ docker stats loki
 ```
 
 **Narrow time range:**
+
 ```logql
 # Query last 5 minutes, not last 24 hours
 {service="my-app"}[5m]
 ```
 
 **Avoid expensive parsing:**
+
 ```logql
 # ❌ Slow - Parses all lines
 {service="my-app"} | json | user_id="12345"
@@ -972,6 +1035,7 @@ docker stats loki
 ```
 
 **Use metrics for aggregations:**
+
 ```logql
 # For high-volume logs, use Prometheus for metrics
 # Use Loki for actual log content
@@ -980,11 +1044,13 @@ docker stats loki
 ### High cardinality warnings
 
 **Check stream count:**
+
 ```bash
 curl http://localhost:3100/loki/api/v1/streams
 ```
 
 **Fix high cardinality:**
+
 ```yaml
 # Before (bad):
 labels:
@@ -1000,6 +1066,7 @@ message: "User 12345 logged in"
 ```
 
 **Monitor ingester streams:**
+
 ```promql
 loki_ingester_streams
 ```
@@ -1007,21 +1074,24 @@ loki_ingester_streams
 ### Data not persisting
 
 **Check volume mount:**
+
 ```bash
 docker volume ls | grep loki
 docker volume inspect <loki_volume>
 ```
 
 **Verify configuration:**
+
 ```yaml
 storage_config:
-  boltdb_shipper:
-    active_index_directory: /loki/index
-  filesystem:
-    directory: /loki/chunks
+    boltdb_shipper:
+        active_index_directory: /loki/index
+    filesystem:
+        directory: /loki/chunks
 ```
 
 **Check disk space:**
+
 ```bash
 docker-compose exec loki df -h /loki
 ```
@@ -1029,24 +1099,28 @@ docker-compose exec loki df -h /loki
 ## Use Cases
 
 ### Application Logging
+
 - Centralized log aggregation from microservices
 - Error tracking and debugging
 - Audit trails and compliance logs
 - Request/response logging
 
 ### Infrastructure Monitoring
+
 - System logs (syslog, journald)
 - Container logs (Docker, Kubernetes)
 - Network device logs
 - Security logs
 
 ### Correlation with Metrics and Traces
+
 - Link logs to traces via trace ID
 - Correlate errors with metrics spikes
 - Debug performance issues
 - Root cause analysis
 
 ### Real-time Monitoring
+
 - Live log tailing in Grafana
 - Alert on log patterns
 - Security incident detection

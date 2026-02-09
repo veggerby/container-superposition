@@ -36,33 +36,36 @@ The devcontainer service should start last, after all selected infrastructure.
 Each overlay's docker-compose.yml includes ALL potential dependencies:
 
 **otel-collector/docker-compose.yml:**
+
 ```yaml
 services:
-  otel-collector:
-    depends_on:
-      - jaeger
-      - prometheus
-      - loki
+    otel-collector:
+        depends_on:
+            - jaeger
+            - prometheus
+            - loki
 ```
 
 **grafana/docker-compose.yml:**
+
 ```yaml
 services:
-  grafana:
-    depends_on:
-      - prometheus
-      - loki
-      - jaeger
+    grafana:
+        depends_on:
+            - prometheus
+            - loki
+            - jaeger
 ```
 
 **compose/docker-compose.yml:**
+
 ```yaml
 services:
-  devcontainer:
-    depends_on:
-      - postgres
-      - redis
-      - otel-collector
+    devcontainer:
+        depends_on:
+            - postgres
+            - redis
+            - otel-collector
 ```
 
 ### Composer Responsibility
@@ -70,19 +73,21 @@ services:
 The composer MUST:
 
 1. **Filter depends_on** - Remove dependencies for services not selected
-   ```javascript
-   // If jaeger is not selected, remove it from otel-collector's depends_on
-   if (!selectedOverlays.includes('jaeger')) {
-     delete services['otel-collector'].depends_on['jaeger'];
-   }
-   ```
+
+    ```javascript
+    // If jaeger is not selected, remove it from otel-collector's depends_on
+    if (!selectedOverlays.includes('jaeger')) {
+        delete services['otel-collector'].depends_on['jaeger'];
+    }
+    ```
 
 2. **Clean empty depends_on** - Remove the field if no dependencies remain
-   ```javascript
-   if (Object.keys(service.depends_on).length === 0) {
-     delete service.depends_on;
-   }
-   ```
+
+    ```javascript
+    if (Object.keys(service.depends_on).length === 0) {
+        delete service.depends_on;
+    }
+    ```
 
 3. **Validate dependency chain** - Ensure no circular dependencies
 4. **Order docker-compose files** - Merge in dependency order to avoid forward references
@@ -113,24 +118,25 @@ Each overlay declares its service(s):
 When merging `runServices`:
 
 1. **Collect all services** from base template + selected overlays
-2. **Sort by _serviceOrder** (ascending)
+2. **Sort by \_serviceOrder** (ascending)
 3. **Merge into single array** maintaining order
 4. **Remove duplicates** while preserving order
 
 **Example merge:**
+
 ```javascript
 // Selected overlays: postgres, redis, jaeger, prometheus, otel-collector, grafana
 const runServices = [
-  // Order 0 (infrastructure)
-  'postgres',
-  'redis',
-  // Order 1 (observability backends)
-  'jaeger',
-  'prometheus',
-  // Order 2 (telemetry pipeline)
-  'otel-collector',
-  // Order 3 (visualization)
-  'grafana'
+    // Order 0 (infrastructure)
+    'postgres',
+    'redis',
+    // Order 1 (observability backends)
+    'jaeger',
+    'prometheus',
+    // Order 2 (telemetry pipeline)
+    'otel-collector',
+    // Order 3 (visualization)
+    'grafana',
 ];
 ```
 
@@ -140,59 +146,62 @@ The devcontainer service itself is NOT in runServices (it's the main service).
 
 ```typescript
 interface Overlay {
-  name: string;
-  devcontainer: {
-    runServices?: string[];
-    _serviceOrder?: number;
-  };
-  dockerCompose?: {
-    services: Record<string, {
-      depends_on?: string[];
-      // ... other fields
-    }>;
-  };
+    name: string;
+    devcontainer: {
+        runServices?: string[];
+        _serviceOrder?: number;
+    };
+    dockerCompose?: {
+        services: Record<
+            string,
+            {
+                depends_on?: string[];
+                // ... other fields
+            }
+        >;
+    };
 }
 
 function mergeOverlays(baseTemplate: any, overlays: Overlay[]) {
-  const selectedServices = new Set(overlays.map(o => o.name));
-  const result = { ...baseTemplate };
-  
-  // 1. Merge runServices with ordering
-  const servicesByOrder = overlays
-    .flatMap(o => (o.devcontainer.runServices || []).map(s => ({
-      name: s,
-      order: o.devcontainer._serviceOrder || 0
-    })))
-    .sort((a, b) => a.order - b.order);
-  
-  result.runServices = [...new Set(servicesByOrder.map(s => s.name))];
-  
-  // 2. Merge docker-compose and filter depends_on
-  for (const overlay of overlays) {
-    if (!overlay.dockerCompose) continue;
-    
-    for (const [serviceName, service] of Object.entries(overlay.dockerCompose.services)) {
-      if (service.depends_on) {
-        // Filter out unselected dependencies
-        service.depends_on = service.depends_on.filter(dep => 
-          selectedServices.has(dep)
-        );
-        
-        // Remove empty depends_on
-        if (service.depends_on.length === 0) {
-          delete service.depends_on;
+    const selectedServices = new Set(overlays.map((o) => o.name));
+    const result = { ...baseTemplate };
+
+    // 1. Merge runServices with ordering
+    const servicesByOrder = overlays
+        .flatMap((o) =>
+            (o.devcontainer.runServices || []).map((s) => ({
+                name: s,
+                order: o.devcontainer._serviceOrder || 0,
+            }))
+        )
+        .sort((a, b) => a.order - b.order);
+
+    result.runServices = [...new Set(servicesByOrder.map((s) => s.name))];
+
+    // 2. Merge docker-compose and filter depends_on
+    for (const overlay of overlays) {
+        if (!overlay.dockerCompose) continue;
+
+        for (const [serviceName, service] of Object.entries(overlay.dockerCompose.services)) {
+            if (service.depends_on) {
+                // Filter out unselected dependencies
+                service.depends_on = service.depends_on.filter((dep) => selectedServices.has(dep));
+
+                // Remove empty depends_on
+                if (service.depends_on.length === 0) {
+                    delete service.depends_on;
+                }
+            }
+
+            // Merge service definition
+            result.services[serviceName] = {
+                ...result.services[serviceName],
+                ...service,
+            };
         }
-      }
-      
-      // Merge service definition
-      result.services[serviceName] = {
-        ...result.services[serviceName],
-        ...service
-      };
     }
-  }
-  
-  return result;
+
+    return result;
 }
 ```
 
@@ -205,12 +214,13 @@ If user selects only some observability tools:
 **Selection:** otel-collector + prometheus (no jaeger, no loki)
 
 **Result:**
+
 ```yaml
 # otel-collector depends only on prometheus
 services:
-  otel-collector:
-    depends_on:
-      - prometheus  # jaeger and loki removed
+    otel-collector:
+        depends_on:
+            - prometheus # jaeger and loki removed
 ```
 
 ### No Dependencies
@@ -220,12 +230,13 @@ If a service has no selected dependencies:
 **Selection:** jaeger only (standalone)
 
 **Result:**
+
 ```yaml
 # jaeger has no depends_on (removed entirely)
 services:
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    # no depends_on field
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        # no depends_on field
 ```
 
 ### Devcontainer Dependencies
@@ -235,13 +246,14 @@ The main devcontainer service depends on all infrastructure:
 **Selection:** postgres + otel-collector
 
 **Result:**
+
 ```yaml
 services:
-  devcontainer:
-    depends_on:
-      - postgres
-      - otel-collector
-    # redis removed (not selected)
+    devcontainer:
+        depends_on:
+            - postgres
+            - otel-collector
+        # redis removed (not selected)
 ```
 
 ## Validation

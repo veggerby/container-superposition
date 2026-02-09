@@ -7,9 +7,9 @@ requires: []
 suggests: []
 conflicts: []
 tags:
-  - language
-  - rust
-  - cargo
+    - language
+    - rust
+    - cargo
 ports:
-  - 8080
-  - 3000
+    - 8080
+    - 3000
