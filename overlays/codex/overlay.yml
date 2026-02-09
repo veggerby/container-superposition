@@ -1,12 +1,14 @@
 id: codex
 name: Codex
-description: pnpm CLI with mounted .codex folder
+description: OpenAI Codex CLI for AI-powered code generation and assistance
 category: dev
 supports: []
-requires: []
+requires:
+  - nodejs
 suggests: []
 conflicts: []
 tags:
   - dev
-  - package-manager
+  - ai
+  - code-generation
 ports: []

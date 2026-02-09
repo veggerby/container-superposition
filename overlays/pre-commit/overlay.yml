@@ -3,7 +3,8 @@ name: Pre-commit Framework
 description: Automated code quality gates with pre-commit hooks
 category: dev
 supports: []
-requires: []
+requires:
+  - python
 suggests:
   - commitlint
 conflicts: []

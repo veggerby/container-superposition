@@ -1,59 +1,24 @@
 #!/bin/bash
-# Codex setup script - Install pnpm globally
+# Codex setup script - Install OpenAI Codex CLI
 
 set -e
 
-echo "📦 Installing pnpm globally..."
+echo "📦 Installing OpenAI Codex CLI..."
 
-# Install pnpm using npm
-npm install -g pnpm
+# Install @openai/codex globally
+npm install -g @openai/codex
 
-# Verify installation
-if command -v pnpm &> /dev/null; then
-    echo "✓ pnpm installed successfully: $(pnpm --version)"
+# Verify codex installation
+if command -v codex &> /dev/null; then
+    echo "✓ Codex CLI installed successfully: $(codex --version 2>/dev/null || echo 'installed')"
 else
-    echo "✗ pnpm installation failed"
+    echo "✗ Codex CLI installation failed"
     exit 1
 fi
 
-# Get pnpm global bin directory
-PNPM_HOME=$(pnpm config get global-bin-dir 2>/dev/null || echo "$HOME/.local/share/pnpm")
-
-# Add pnpm global bin to PATH in shell configuration files
-echo "📝 Configuring shell PATH..."
-
-# Add to .bashrc if it exists and path not already there
-if [ -f "$HOME/.bashrc" ]; then
-    if ! grep -q "PNPM_HOME" "$HOME/.bashrc"; then
-        cat >> "$HOME/.bashrc" << 'EOF'
-
-# pnpm global bin directory (added by codex overlay)
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-EOF
-        echo "✓ Added pnpm to .bashrc"
-    fi
-fi
-
-# Add to .zshrc if it exists and path not already there
-if [ -f "$HOME/.zshrc" ]; then
-    if ! grep -q "PNPM_HOME" "$HOME/.zshrc"; then
-        cat >> "$HOME/.zshrc" << 'EOF'
-
-# pnpm global bin directory (added by codex overlay)
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-EOF
-        echo "✓ Added pnpm to .zshrc"
-    fi
-fi
-
-# Export for current session
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-
-# Create .codex directory if it doesn't exist
+# Create .codex directory for configuration
 mkdir -p "$HOME/.codex"
 
 echo "✓ Codex setup complete"
-echo "ℹ️  Note: Restart your shell or run 'source ~/.bashrc' (or ~/.zshrc) to use pnpm"
+echo "ℹ️  OpenAI Codex CLI: https://github.com/openai/openai-codex-cli"
+echo "ℹ️  Configuration directory: $HOME/.codex"

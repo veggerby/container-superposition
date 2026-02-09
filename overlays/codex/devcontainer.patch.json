@@ -1,8 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-  "remoteEnv": {
-    "PNPM_HOME": "${containerEnv:HOME}/.local/share/pnpm",
-    "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:PATH}",
-    "CODEX_HOME": "${containerEnv:HOME}/.codex"
-  }
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json"
 }
+

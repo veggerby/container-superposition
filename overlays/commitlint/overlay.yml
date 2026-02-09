@@ -3,7 +3,8 @@ name: Commitlint
 description: Conventional commits validation for automated releases
 category: dev
 supports: []
-requires: []
+requires:
+  - nodejs
 suggests:
   - pre-commit
 conflicts: []
