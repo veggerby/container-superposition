@@ -1,0 +1,72 @@
+# Markdownlint configuration
+# See: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+default: true # Enable all rules by default
+
+# MD003: Heading style
+MD003:
+    style: atx # Use # heading style (not underlines)
+
+# MD004: Unordered list style
+MD004:
+    style: dash # Use - for bullets (consistent with Prettier)
+
+# MD007: Unordered list indentation
+MD007:
+    indent: 4 # Match Prettier tabWidth: 4
+
+# MD009: Trailing spaces
+MD009: true # Remove trailing spaces (Prettier removes them)
+
+# MD010: Hard tabs
+MD010: true # No hard tabs (Prettier uses spaces)
+
+# MD013: Line length
+MD013: false # Disabled - markdown often has long lines (URLs, tables, code)
+
+# MD022: Headings should be surrounded by blank lines
+MD022: true # Improves readability
+
+# MD024: Multiple headings with the same content
+MD024:
+    siblings_only: true # Allow duplicate headings in different sections
+
+# MD025: Multiple top-level headings
+MD025: false # Allow multiple H1s (documentation often needs this)
+
+# MD029: Ordered list item prefix
+MD029:
+    style: ordered # Use 1, 2, 3... (not all 1s)
+
+# MD030: Spaces after list markers
+MD030: true # Consistent spacing after -, *, 1.
+
+# MD031: Fenced code blocks should be surrounded by blank lines
+MD031: true # Improves readability
+
+# MD032: Lists should be surrounded by blank lines
+MD032: true # Improves readability
+
+# MD033: Inline HTML
+MD033: false # Allow HTML (useful for tables, badges, custom formatting)
+
+# MD040: Fenced code blocks should have a language specified
+MD040: true # Enables syntax highlighting, improves documentation quality
+
+# MD041: First line in file should be a top level heading
+MD041: false # Allow flexibility (badges, metadata, etc.)
+
+# MD046: Code block style
+MD046:
+    style: fenced # Use ``` fences (not indented code blocks)
+
+# MD047: Files should end with a single newline character
+MD047: true # Standard Unix convention (Prettier enforces this)
+
+# MD049: Emphasis style
+MD049:
+    style: asterisk # Use *emphasis* not _emphasis_ (matches Prettier)
+
+# MD050: Strong style
+MD050:
+    style: asterisk # Use **strong** not __strong__ (matches Prettier)
