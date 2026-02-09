@@ -902,10 +902,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
   }
 
   // Merge setup scripts from overlays into postCreateCommand
-  mergeSetupScripts(config, overlays, outputPath);
-  if (overlays.length > 0) {
-    fileRegistry.addDirectory('scripts'); // Scripts directory created by mergeSetupScripts
-  }
+  mergeSetupScripts(config, overlays, outputPath, fileRegistry);
 
   // Remove internal fields (those starting with _)
   Object.keys(config).forEach(key => {
@@ -971,16 +968,27 @@ function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): vo
 /**
  * Merge setup scripts from overlays into postCreateCommand
  */
-function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath: string): void {
+function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath: string, fileRegistry: FileRegistry): void {
   const setupScripts: string[] = [];
+  const verifyScripts: string[] = [];
 
   // Create scripts subfolder
   const scriptsDir = path.join(outputPath, 'scripts');
   if (!fs.existsSync(scriptsDir)) {
     fs.mkdirSync(scriptsDir, { recursive: true });
   }
+  
+  // Add scripts directory to registry if any scripts will be added
+  const hasScripts = overlays.some(o => 
+    fs.existsSync(path.join(OVERLAYS_DIR, o, 'setup.sh')) || 
+    fs.existsSync(path.join(OVERLAYS_DIR, o, 'verify.sh'))
+  );
+  if (hasScripts) {
+    fileRegistry.addDirectory('scripts');
+  }
 
   for (const overlay of overlays) {
+    // Handle setup scripts
     const setupPath = path.join(OVERLAYS_DIR, overlay, 'setup.sh');
     if (fs.existsSync(setupPath)) {
       // Copy setup script to scripts subdirectory
@@ -989,8 +997,23 @@ function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath:
 
       // Make it executable
       fs.chmodSync(destPath, 0o755);
+      fileRegistry.addFile(`scripts/setup-${overlay}.sh`);
 
       setupScripts.push(`bash .devcontainer/scripts/setup-${overlay}.sh`);
+    }
+
+    // Handle verify scripts
+    const verifyPath = path.join(OVERLAYS_DIR, overlay, 'verify.sh');
+    if (fs.existsSync(verifyPath)) {
+      // Copy verify script to scripts subdirectory
+      const destPath = path.join(scriptsDir, `verify-${overlay}.sh`);
+      fs.copyFileSync(verifyPath, destPath);
+
+      // Make it executable
+      fs.chmodSync(destPath, 0o755);
+      fileRegistry.addFile(`scripts/verify-${overlay}.sh`);
+
+      verifyScripts.push(`bash .devcontainer/scripts/verify-${overlay}.sh`);
     }
   }
 
@@ -1015,6 +1038,29 @@ function mergeSetupScripts(config: DevContainer, overlays: string[], outputPath:
     }
 
     console.log(chalk.dim(`   🔧 Added ${setupScripts.length} setup script(s)`));
+  }
+
+  if (verifyScripts.length > 0) {
+    // Initialize postStartCommand if it doesn't exist
+    if (!config.postStartCommand) {
+      config.postStartCommand = {};
+    }
+
+    // If postStartCommand is a string, convert to object
+    if (typeof config.postStartCommand === 'string') {
+      config.postStartCommand = { 'default': config.postStartCommand };
+    }
+
+    // Add verify scripts
+    for (let i = 0; i < verifyScripts.length; i++) {
+      const overlay = overlays.filter(o => {
+        const verifyPath = path.join(OVERLAYS_DIR, o, 'verify.sh');
+        return fs.existsSync(verifyPath);
+      })[i];
+      config.postStartCommand[`verify-${overlay}`] = verifyScripts[i];
+    }
+
+    console.log(chalk.dim(`   ✓ Added ${verifyScripts.length} verification script(s)`));
   }
 }
 
