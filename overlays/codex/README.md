@@ -16,26 +16,35 @@ The OpenAI Codex CLI (`@openai/codex`) provides command-line access to OpenAI's 
 - **Code explanation** - Understand complex code
 - **Refactoring** - Improve existing code
 
-## Environment Variables
-
-- `CODEX_HOME` - Points to `~/.codex` (persistent configurations)
+## Configuration
 
 **Configured paths:**
 
-- `~/.codex` - Configuration and tools directory
+- `$HOME/.codex` - Configuration and tools directory (created automatically during setup)
 
 ## How It Works
 
 This overlay:
 
 1. Installs OpenAI Codex CLI globally via npm (`npm install -g @openai/codex`)
-2. Creates the `.codex` directory for persistent configurations
-3. Configures `CODEX_HOME` environment variable
+2. Creates the `$HOME/.codex` directory for persistent configurations
 
 **After setup:**
 
 - The `codex` command will be available immediately (npm global binaries are in PATH)
 - Use it for AI-powered coding assistance
+
+## Verification
+
+After setup, run the verification script to ensure proper installation:
+
+```bash
+bash .devcontainer/verify-codex.sh
+```
+
+This will check:
+- Codex CLI is installed and in PATH
+- `.codex` directory exists
 
 ## Troubleshooting
 

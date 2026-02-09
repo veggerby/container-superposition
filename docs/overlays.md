@@ -398,12 +398,13 @@ Infrastructure as Code with HCL (includes tflint)
 
 ### Codex (`codex`)
 
-pnpm CLI with mounted .codex folder
+OpenAI Codex CLI for AI-powered code generation and assistance
 
 | Property | Value |
 |----------|-------|
 | **Category** | dev |
-| **Tags** | `dev`, `package-manager` |
+| **Requires** | `nodejs` |
+| **Tags** | `dev`, `ai`, `code-generation` |
 
 ### Commitlint (`commitlint`)
 

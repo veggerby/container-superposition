@@ -467,6 +467,11 @@ async function runQuestionnaire(manifest?: SuperpositionManifest, manifestDir?: 
     }
 
     // Question 2: Base image selection
+    // Check if manifest has a custom image or a known base image
+    const knownBaseImageIds = config.base_images.map(img => img.id);
+    const manifestBaseImageIsKnown = manifest?.baseImage && knownBaseImageIds.includes(manifest.baseImage);
+    const manifestDefaultBaseImage = manifestBaseImageIsKnown ? manifest.baseImage : 'custom';
+    
     const baseImage = await select({
       message: 'Select base image:',
       choices: config.base_images.map(img => ({
@@ -474,14 +479,18 @@ async function runQuestionnaire(manifest?: SuperpositionManifest, manifestDir?: 
         value: img.id,
         description: img.description
       })),
-      default: manifest?.baseImage
+      default: manifestDefaultBaseImage
     }) as BaseImage;
 
     // Question 2a: If custom, ask for image name
     let customImage: string | undefined;
     if (baseImage === 'custom') {
+      // If manifest has a custom image, use it as default
+      const manifestCustomImage = (!manifestBaseImageIsKnown && manifest?.baseImage) ? manifest.baseImage : undefined;
+      
       customImage = await input({
         message: 'Enter custom Docker image (e.g., ubuntu:22.04):',
+        default: manifestCustomImage,
         validate: (value) => {
           if (!value || value.trim() === '') {
             return 'Image name is required';
@@ -804,9 +813,14 @@ function buildAnswersFromManifest(
     outputPath = path.resolve(manifestDir, outputPath);
   }
 
+  // Handle baseImage - check if it's a known ID or a custom image string
+  const knownBaseImageIds = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
+  const isKnownBaseImage = knownBaseImageIds.includes(manifest.baseImage);
+  
   return {
     stack: manifest.baseTemplate,
-    baseImage: manifest.baseImage as BaseImage,
+    baseImage: isKnownBaseImage ? (manifest.baseImage as BaseImage) : 'custom',
+    customImage: isKnownBaseImage ? undefined : manifest.baseImage,
     containerName: manifest.containerName,
     preset: manifest.preset,
     presetChoices: manifest.presetChoices,
@@ -902,7 +916,6 @@ async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; 
     .description('Initialize a devcontainer with guided questions or CLI flags')
     .version('0.1.0')
     .option('--from-manifest <path>', 'Load configuration from existing superposition.json manifest')
-    .option('--yes', 'Skip confirmation prompts (non-interactive regeneration)')
     .option('--no-interactive', 'Use manifest values directly without questionnaire (requires --from-manifest)')
     .option('--no-backup', 'Skip creating backup before regeneration')
     .option('--backup-dir <path>', 'Custom backup directory location')
@@ -953,7 +966,6 @@ async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; 
     manifestPath: options.fromManifest,
     noBackup: options.backup === false, // Commander creates options.backup = false for --no-backup
     backupDir: options.backupDir,
-    yes: options.yes,
     noInteractive: options.interactive === false // Commander creates options.interactive = false for --no-interactive
   };
 }
@@ -961,6 +973,13 @@ async function parseCliArgs(): Promise<{ config: Partial<QuestionnaireAnswers>; 
 async function main() {
   try {
     const cliArgs = await parseCliArgs();
+
+    // Validate --no-interactive requires --from-manifest
+    if (cliArgs?.noInteractive && !cliArgs?.manifestPath) {
+      console.error(chalk.red('✗ Error: --no-interactive requires --from-manifest'));
+      console.error(chalk.dim('  Use both flags together: --from-manifest <path> --no-interactive'));
+      process.exit(1);
+    }
 
     let manifest: SuperpositionManifest | undefined;
     let manifestDir: string | undefined;
