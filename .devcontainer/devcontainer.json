@@ -1,98 +1,101 @@
 {
-    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-    "name": "Container Superposition",
-    "image": "mcr.microsoft.com/devcontainers/base:trixie",
-    "features": {
-        "ghcr.io/devcontainers/features/common-utils:2": {
-            "installZsh": true,
-            "installOhMyZsh": true,
-            "upgradePackages": true,
-            "username": "vscode",
-            "userUid": "automatic",
-            "userGid": "automatic"
-        },
-        "ghcr.io/devcontainers/features/git:1": {
-            "version": "os-provided",
-            "ppa": true
-        },
-        "./features/cross-distro-packages": {
-            "apt": "bash-completion curl wget vim less build-essential",
-            "apk": "bash-completion curl wget vim less build-base"
-        },
-        "ghcr.io/devcontainers/features/node:1": {
-            "version": "lts",
-            "nodeGypDependencies": true,
-            "installYarnUsingApt": true
-        },
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-            "version": "latest",
-            "moby": false
-        },
-        "ghcr.io/devcontainers/features/git-lfs:1": {
-            "version": "latest"
-        },
-        "ghcr.io/devcontainers/features/github-cli:1": {
-            "version": "latest"
-        }
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "name": "Container Superposition",
+  "image": "mcr.microsoft.com/devcontainers/base:trixie",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true,
+      "username": "vscode",
+      "userUid": "automatic",
+      "userGid": "automatic"
     },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "EditorConfig.EditorConfig",
-                "GitHub.copilot",
-                "GitHub.copilot-chat",
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode",
-                "christian-kohler.npm-intellisense",
-                "eamodio.gitlens",
-                "github.vscode-pull-request-github",
-                "mhutchie.git-graph"
-            ],
-            "settings": {
-                "editor.formatOnSave": true,
-                "editor.defaultFormatter": "esbenp.prettier-vscode",
-                "editor.codeActionsOnSave": {
-                    "source.fixAll.eslint": "explicit"
-                },
-                "[typescript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[javascript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "git.enableCommitSigning": false,
-                "git.enableSmartCommit": true,
-                "git.confirmSync": false,
-                "git.autofetch": true
-            }
-        }
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "os-provided",
+      "ppa": true
     },
-    "mounts": [],
-    "remoteEnv": {
-        "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
-        "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"
+    "./features/cross-distro-packages": {
+      "apt": "bash-completion curl wget vim less build-essential",
+      "apk": "bash-completion curl wget vim less build-base"
     },
-    "remoteUser": "vscode",
-    "forwardPorts": [3000, 8080],
-    "portsAttributes": {
-        "3000": {
-            "label": "Dev Server",
-            "onAutoForward": "openBrowser"
-        },
-        "8080": {
-            "label": "Web App",
-            "onAutoForward": "notify"
-        }
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts",
+      "nodeGypDependencies": true,
+      "installYarnUsingApt": true
     },
-    "postStartCommand": {
-        "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}",
-        "verify-nodejs": "bash .devcontainer/scripts/verify-nodejs.sh",
-        "verify-codex": "bash .devcontainer/scripts/verify-codex.sh"
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "version": "latest",
+      "moby": false
     },
-    "postCreateCommand": {
-        "setup-nodejs": "bash .devcontainer/scripts/setup-nodejs.sh",
-        "setup-codex": "bash .devcontainer/scripts/setup-codex.sh",
-        "setup-git-helpers": "bash .devcontainer/scripts/setup-git-helpers.sh",
-        "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh"
+    "ghcr.io/devcontainers/features/git-lfs:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
     }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "EditorConfig.EditorConfig",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "christian-kohler.npm-intellisense",
+        "eamodio.gitlens",
+        "github.vscode-pull-request-github",
+        "mhutchie.git-graph"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "git.enableCommitSigning": false,
+        "git.enableSmartCommit": true,
+        "git.confirmSync": false,
+        "git.autofetch": true
+      }
+    }
+  },
+  "mounts": [],
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
+    "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"
+  },
+  "remoteUser": "vscode",
+  "forwardPorts": [
+    3000,
+    8080
+  ],
+  "portsAttributes": {
+    "3000": {
+      "label": "Dev Server",
+      "onAutoForward": "openBrowser"
+    },
+    "8080": {
+      "label": "Web App",
+      "onAutoForward": "notify"
+    }
+  },
+  "postStartCommand": {
+    "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    "verify-nodejs": "bash .devcontainer/scripts/verify-nodejs.sh",
+    "verify-codex": "bash .devcontainer/scripts/verify-codex.sh"
+  },
+  "postCreateCommand": {
+    "setup-nodejs": "bash .devcontainer/scripts/setup-nodejs.sh",
+    "setup-codex": "bash .devcontainer/scripts/setup-codex.sh",
+    "setup-git-helpers": "bash .devcontainer/scripts/setup-git-helpers.sh",
+    "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh"
+  }
 }

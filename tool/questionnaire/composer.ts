@@ -311,7 +311,6 @@ function generateManifest(
         preset: answers.preset,
         presetChoices: answers.presetChoices,
         containerName,
-        outputPath, // Use the resolved outputPath parameter, not answers.outputPath
     };
 
     if (autoResolved.added.length > 0) {
@@ -1344,7 +1343,9 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     );
     generateReadme(answers, overlays, overlayMetadataMap, outputPath);
     fileRegistry.addFile('README.md');
-    console.log(chalk.dim(`   📝 Created README.md with documentation from ${overlays.length} overlay(s)`));
+    console.log(
+        chalk.dim(`   📝 Created README.md with documentation from ${overlays.length} overlay(s)`)
+    );
 
     // 17. Clean up stale files from previous runs (preserves superposition.json and .env)
     cleanupStaleFiles(outputPath, fileRegistry);

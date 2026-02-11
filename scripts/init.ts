@@ -794,10 +794,7 @@ async function runQuestionnaire(
 
         // Question 5: Output path
         // If manifest provided, default to its location; otherwise use ./.devcontainer
-        const defaultOutput =
-            manifest?.outputPath && manifestDir
-                ? path.resolve(manifestDir, manifest.outputPath)
-                : manifest?.outputPath || './.devcontainer';
+        const defaultOutput = manifestDir || './.devcontainer';
 
         const outputPath = await input({
             message: 'Output path:',
@@ -914,11 +911,8 @@ function buildAnswersFromManifest(
 
     const categories = categorizeOverlays(manifest.overlays);
 
-    // Resolve output path relative to manifest directory if relative
-    let outputPath = manifest.outputPath || './.devcontainer';
-    if (manifestDir && !path.isAbsolute(outputPath)) {
-        outputPath = path.resolve(manifestDir, outputPath);
-    }
+    // Output path is always the directory containing the manifest
+    const outputPath = manifestDir || './.devcontainer';
 
     // Handle baseImage - check if it's a known ID or a custom image string
     const knownBaseImageIds = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
@@ -1166,10 +1160,8 @@ async function main() {
 
         // Create backup if needed
         if (shouldBackup && manifest) {
-            const outputPath = path.resolve(
-                manifestDir || '.',
-                manifest.outputPath || './.devcontainer'
-            );
+            // Output path is the directory containing the manifest
+            const outputPath = manifestDir || './.devcontainer';
 
             const backupPath = await createBackup(outputPath, backupDir);
             if (backupPath) {
