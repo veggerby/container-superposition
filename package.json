@@ -1,6 +1,6 @@
 {
     "name": "container-superposition",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Solution-ready devcontainer templates and features with guided initialization",
     "type": "module",
     "main": "dist/scripts/init.js",
@@ -46,6 +46,7 @@
         "tool/**/README.md",
         "docs/**/*.md",
         "!docs/generate-docs.ts",
+        "!**/*.tgz",
         "README.md",
         "LICENSE"
     ],
