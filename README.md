@@ -52,20 +52,41 @@ container-superposition/
 │   │   ├── microservice.yml
 │   │   ├── docs-site.yml
 │   │   └── fullstack.yml
-│   ├── dotnet/         # Language/framework overlays
+│   ├── dotnet/         # Language overlays
 │   ├── nodejs/
 │   ├── python/
 │   ├── mkdocs/
-│   ├── postgres/       # Database overlays
+│   ├── bun/
+│   ├── go/
+│   ├── java/
+│   ├── rust/
+│   ├── powershell/
+│   ├── postgres/       # Database/messaging overlays
 │   ├── redis/
+│   ├── mongodb/
+│   ├── mysql/
+│   ├── sqlite/
+│   ├── sqlserver/
+│   ├── minio/
+│   ├── rabbitmq/
+│   ├── redpanda/
+│   ├── nats/
 │   ├── otel-collector/ # Observability overlays
 │   ├── jaeger/
 │   ├── prometheus/
 │   ├── grafana/
 │   ├── loki/
+│   ├── tempo/
+│   ├── alertmanager/
+│   ├── promtail/
+│   ├── otel-demo-nodejs/
+│   ├── otel-demo-python/
 │   ├── aws-cli/        # Cloud tool overlays
 │   ├── azure-cli/
+│   ├── gcloud/
 │   ├── kubectl-helm/
+│   ├── terraform/
+│   ├── pulumi/
 │   ├── docker-in-docker/  # Dev tool overlays
 │   ├── docker-sock/
 │   ├── playwright/
@@ -102,27 +123,64 @@ Overlays are modular configuration fragments organized by category:
 
 **Language & Framework:**
 
-- dotnet, nodejs, python, mkdocs
+- **dotnet** - .NET SDK with C# development tools
+- **nodejs** - Node.js LTS with npm and TypeScript support
+- **python** - Python with pip and common data science tools
+- **mkdocs** - MkDocs for documentation sites
+- **bun** - Bun JavaScript runtime and toolkit
+- **go** - Go programming language
+- **java** - Java Development Kit
+- **rust** - Rust programming language
+- **powershell** - PowerShell Core
 
-**Databases:**
+**Databases & Message Brokers:**
 
-- postgres, redis
+- **postgres** - PostgreSQL relational database
+- **redis** - Redis in-memory data store
+- **mongodb** - MongoDB document database
+- **mysql** - MySQL relational database
+- **sqlite** - SQLite embedded database
+- **sqlserver** - Microsoft SQL Server
+- **minio** - MinIO S3-compatible object storage
+- **rabbitmq** - RabbitMQ message broker (AMQP)
+- **redpanda** - Redpanda Kafka-compatible streaming
+- **nats** - NATS messaging system
 
 **Observability:**
 
-- otel-collector (OpenTelemetry Collector)
-- jaeger (Distributed tracing)
-- prometheus (Metrics)
-- grafana (Visualization)
-- loki (Log aggregation)
+- **otel-collector** - OpenTelemetry Collector (telemetry pipeline)
+- **jaeger** - Jaeger distributed tracing
+- **prometheus** - Prometheus metrics collection
+- **grafana** - Grafana visualization and dashboards
+- **loki** - Loki log aggregation
+- **tempo** - Tempo distributed tracing backend
+- **alertmanager** - Prometheus Alertmanager
+- **promtail** - Promtail log collector for Loki
+- **otel-demo-nodejs** - OpenTelemetry demo app (Node.js)
+- **otel-demo-python** - OpenTelemetry demo app (Python)
 
 **Cloud Tools:**
 
-- aws-cli, azure-cli, kubectl-helm
+- **aws-cli** - AWS Command Line Interface
+- **azure-cli** - Azure Command Line Interface
+- **gcloud** - Google Cloud SDK
+- **kubectl-helm** - Kubernetes CLI and Helm package manager
+- **terraform** - Terraform infrastructure as code
+- **pulumi** - Pulumi infrastructure as code
 
 **Dev Tools:**
 
-- docker-in-docker, docker-sock, playwright, codex
+- **docker-in-docker** - Docker daemon in container
+- **docker-sock** - Access to host Docker daemon
+- **playwright** - Playwright browser automation
+- **codex** - Codex AI coding assistant
+- **git-helpers** - Git with LFS, GPG, GitHub CLI
+- **pre-commit** - Pre-commit hook framework
+- **commitlint** - Commit message linting
+- **just** - Just command runner
+- **direnv** - Directory-based environment variables
+- **modern-cli-tools** - Modern alternatives (ripgrep, fd, bat, jq, yq)
+- **ngrok** - Ngrok secure tunnels
 
 Each overlay includes:
 
@@ -206,14 +264,41 @@ See [docs/presets.md](docs/presets.md) for detailed preset documentation.
 npm run init
 # Select "Web API Stack" → Choose Node.js → Done!
 
-# Node.js API with PostgreSQL and observability (CLI)
+# Node.js API with PostgreSQL and observability
 npm run init -- --stack compose --language nodejs --database postgres --observability otel-collector,jaeger,prometheus,grafana
 
 # .NET microservice with full observability stack
 npm run init -- --stack compose --language dotnet --database postgres,redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
 
-# Python documentation site
-npm run init -- --stack plain --language mkdocs
+# Go microservice with RabbitMQ messaging
+npm run init -- --stack compose --language go --database rabbitmq,redis --observability jaeger,prometheus
+
+# Rust development environment with modern CLI tools
+npm run init -- --stack plain --language rust --dev-tools modern-cli-tools,git-helpers,pre-commit
+
+# Java Spring Boot with MySQL
+npm run init -- --stack compose --language java --database mysql,redis --cloud-tools kubectl-helm
+
+# Python data science with MongoDB
+npm run init -- --stack compose --language python --database mongodb --dev-tools jupyter
+
+# Event-driven architecture with Redpanda
+npm run init -- --stack compose --language nodejs --database redpanda,postgres --observability otel-collector,tempo,grafana
+
+# Multi-cloud setup with Terraform
+npm run init -- --stack plain --language python --cloud-tools aws-cli,azure-cli,gcloud,terraform,pulumi
+
+# Full observability stack with demo apps
+npm run init -- --stack compose --language nodejs --observability otel-collector,jaeger,prometheus,grafana,loki,tempo,otel-demo-nodejs
+
+# Bun with MinIO object storage
+npm run init -- --stack compose --language bun --database postgres,minio --dev-tools docker-sock
+
+# Documentation site with MkDocs
+npm run init -- --stack plain --language mkdocs --dev-tools pre-commit,modern-cli-tools
+
+# PowerShell scripting environment
+npm run init -- --stack plain --language powershell --cloud-tools azure-cli --dev-tools git-helpers
 
 # Full-stack with everything
 npm run init -- --stack compose --language nodejs --database postgres,redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm --dev-tools playwright,docker-in-docker
@@ -418,11 +503,12 @@ observability_overlays:
 **Overlay Categories:**
 
 - `base_templates` - plain, compose
-- `language_overlays` - dotnet, nodejs, python, mkdocs
-- `database_overlays` - postgres, redis
-- `observability_overlays` - otel-collector, jaeger, prometheus, grafana, loki
-- `cloud_tool_overlays` - aws-cli, azure-cli, kubectl-helm
-- `dev_tool_overlays` - playwright
+- `base_images` - bookworm, trixie, alpine, ubuntu, custom
+- `language_overlays` - dotnet, nodejs, python, mkdocs, bun, go, java, rust, powershell
+- `database_overlays` - postgres, redis, mongodb, mysql, sqlite, sqlserver, minio, rabbitmq, redpanda, nats
+- `observability_overlays` - otel-collector, jaeger, prometheus, grafana, loki, tempo, alertmanager, promtail, otel-demo-nodejs, otel-demo-python
+- `cloud_tool_overlays` - aws-cli, azure-cli, gcloud, kubectl-helm, terraform, pulumi
+- `dev_tool_overlays` - docker-in-docker, docker-sock, playwright, codex, git-helpers, pre-commit, commitlint, just, direnv, modern-cli-tools, ngrok
 
 See [tool/docs/questionnaire-updates.md](tool/docs/questionnaire-updates.md) for details.
 
