@@ -81,14 +81,30 @@ function detectConflicts(
 /**
  * Get all files that will be created/modified
  */
-function getFilesToCreate(overlayIds: string[], overlaysDir: string, outputPath: string): string[] {
+function getFilesToCreate(
+    overlayIds: string[],
+    overlaysDir: string,
+    outputPath: string
+): string[] {
     const files: string[] = [];
 
     // Base devcontainer files
     files.push(path.join(outputPath, 'devcontainer.json'));
     files.push(path.join(outputPath, 'superposition.json'));
-    files.push(path.join(outputPath, '.env.example'));
     files.push(path.join(outputPath, 'README.md'));
+
+    // Check if any overlay has .env.example
+    let hasEnvExample = false;
+    for (const id of overlayIds) {
+        const envPath = path.join(overlaysDir, id, '.env.example');
+        if (fs.existsSync(envPath)) {
+            hasEnvExample = true;
+            break;
+        }
+    }
+    if (hasEnvExample) {
+        files.push(path.join(outputPath, '.env.example'));
+    }
 
     // Check for docker-compose
     for (const id of overlayIds) {
@@ -99,28 +115,46 @@ function getFilesToCreate(overlayIds: string[], overlaysDir: string, outputPath:
         }
     }
 
-    // Overlay-specific files
+    // Check if we need scripts directory
+    const hasScripts = overlayIds.some(
+        (id) =>
+            fs.existsSync(path.join(overlaysDir, id, 'setup.sh')) ||
+            fs.existsSync(path.join(overlaysDir, id, 'verify.sh'))
+    );
+
+    // Overlay-specific files (mirroring composer behavior)
     for (const id of overlayIds) {
         const overlayDir = path.join(overlaysDir, id);
         if (!fs.existsSync(overlayDir)) continue;
 
-        const overlayFiles = fs.readdirSync(overlayDir);
-        for (const file of overlayFiles) {
-            // Setup and verify scripts
-            if (file.startsWith('setup') && file.endsWith('.sh')) {
-                files.push(path.join(outputPath, file));
+        const overlayEntries = fs.readdirSync(overlayDir, { withFileTypes: true });
+        for (const entry of overlayEntries) {
+            const name = entry.name;
+
+            // Setup and verify scripts are copied into .devcontainer/scripts with overlay suffix
+            if (entry.isFile() && name.startsWith('setup') && name.endsWith('.sh')) {
+                files.push(path.join(outputPath, 'scripts', `setup-${id}.sh`));
             }
-            if (file.startsWith('verify') && file.endsWith('.sh')) {
-                files.push(path.join(outputPath, file));
+            if (entry.isFile() && name.startsWith('verify') && name.endsWith('.sh')) {
+                files.push(path.join(outputPath, 'scripts', `verify-${id}.sh`));
             }
-            // Global packages/tools files
-            if (file.startsWith('global-')) {
-                files.push(path.join(outputPath, file));
+
+            // Global packages/tools files and directories get an <overlay> suffix
+            if (name.startsWith('global-')) {
+                if (entry.isFile()) {
+                    const ext = path.extname(name);
+                    const base = ext.length > 0 ? name.slice(0, -ext.length) : name;
+                    const targetName = `${base}-${id}${ext}`;
+                    files.push(path.join(outputPath, targetName));
+                } else if (entry.isDirectory()) {
+                    const targetName = `${name}-${id}`;
+                    files.push(path.join(outputPath, targetName));
+                }
             }
         }
     }
 
-    // Deduplicate
+    // Deduplicate and sort
     return Array.from(new Set(files)).sort();
 }
 
@@ -263,18 +297,52 @@ export async function planCommand(
         // Validate required options
         if (!options.stack) {
             console.error(chalk.red('✗ --stack is required for plan command'));
-            console.log(chalk.dim('  Example: container-superposition plan --stack compose --overlays postgres,grafana'));
+            console.log(
+                chalk.dim(
+                    '  Example: container-superposition plan --stack compose --overlays postgres,grafana'
+                )
+            );
+            process.exit(1);
+        }
+
+        // Validate stack value
+        const validStacks: Stack[] = ['plain', 'compose'];
+        if (!validStacks.includes(options.stack)) {
+            console.error(chalk.red(`✗ Invalid --stack value: ${options.stack}`));
+            console.log(
+                chalk.dim(
+                    `  Valid values are: ${validStacks.join(', ')}\n` +
+                        '  Example: container-superposition plan --stack compose --overlays postgres,grafana'
+                )
+            );
             process.exit(1);
         }
 
         if (!options.overlays) {
             console.error(chalk.red('✗ --overlays is required for plan command'));
-            console.log(chalk.dim('  Example: container-superposition plan --stack compose --overlays postgres,grafana'));
+            console.log(
+                chalk.dim(
+                    '  Example: container-superposition plan --stack compose --overlays postgres,grafana'
+                )
+            );
             process.exit(1);
         }
 
-        // Parse overlays
-        const selectedOverlays = options.overlays.split(',').map((o) => o.trim());
+        // Parse overlays - filter empty entries and deduplicate
+        const seenOverlayIds = new Set<string>();
+        const selectedOverlays = options.overlays
+            .split(',')
+            .map((o) => o.trim())
+            .filter((id) => {
+                if (!id) {
+                    return false;
+                }
+                if (seenOverlayIds.has(id)) {
+                    return false;
+                }
+                seenOverlayIds.add(id);
+                return true;
+            });
         const portOffset = options.portOffset || 0;
 
         // Validate overlays exist
@@ -292,14 +360,45 @@ export async function planCommand(
         // Resolve dependencies
         const { resolved, autoAdded } = resolveDependencies(selectedOverlays, overlaysConfig);
 
+        // Apply stack compatibility filtering (match composeDevContainer behavior)
+        let compatibleResolved = resolved;
+        const incompatible: string[] = [];
+        compatibleResolved = resolved.filter((id) => {
+            const overlay = overlayMap.get(id);
+            if (!overlay) {
+                return false;
+            }
+
+            // Check if overlay supports this stack
+            if (overlay.supports && overlay.supports.length > 0) {
+                const isCompatible = overlay.supports.includes(options.stack!);
+                if (!isCompatible) {
+                    incompatible.push(id);
+                }
+                return isCompatible;
+            }
+
+            // Empty supports array means supports all stacks
+            return true;
+        });
+
+        // Warn about incompatible overlays
+        for (const id of incompatible) {
+            console.warn(
+                chalk.yellow(
+                    `⚠ Overlay "${id}" does not support stack "${options.stack}" and will be skipped.`
+                )
+            );
+        }
+
         // Detect conflicts
-        const conflicts = detectConflicts(resolved, overlaysConfig);
+        const conflicts = detectConflicts(compatibleResolved, overlaysConfig);
 
         // Get port mappings
-        const portMappings = getPortMappings(resolved, overlaysConfig, portOffset);
+        const portMappings = getPortMappings(compatibleResolved, overlaysConfig, portOffset);
 
         // Get files to create
-        const files = getFilesToCreate(resolved, overlaysDir, '.devcontainer');
+        const files = getFilesToCreate(compatibleResolved, overlaysDir, '.devcontainer');
 
         const plan = {
             stack: options.stack,

@@ -306,7 +306,7 @@ The `plan` command shows:
 - Selected overlays and auto-added dependencies
 - Port mappings (with offset applied)
 - Files that will be created/modified
-- Conflicts detection
+- Conflict detection
 
 The questionnaire guides you through:
 

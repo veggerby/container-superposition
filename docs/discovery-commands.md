@@ -142,6 +142,7 @@ Ports Exposed:
   5432
 
 Files:
+  📄 .env.example
   📄 README.md
   📄 devcontainer.patch.json
   📄 docker-compose.yml
@@ -247,12 +248,16 @@ Port Mappings:
 
 Files to Create/Modify:
   .devcontainer/
-    📄 devcontainer.json
-    📄 superposition.json
-    📄 docker-compose.yml
     📄 .env.example
     📄 README.md
-    📄 verify.sh
+    📄 devcontainer.json
+    📄 docker-compose.yml
+    📄 superposition.json
+  .devcontainer/scripts/
+    📄 setup-postgres.sh
+    📄 verify-grafana.sh
+    📄 verify-postgres.sh
+    📄 verify-prometheus.sh
 
 ✓ No conflicts detected. Ready to generate!
   Run: container-superposition init --stack compose --overlays postgres,grafana

@@ -20,18 +20,15 @@ function formatAsTable(overlays: OverlayMetadata[]): string {
     const lines: string[] = [];
 
     // Header
-    lines.push(
-        chalk.bold(
-            [
-                'ID'.padEnd(20),
-                'NAME'.padEnd(30),
-                'CATEGORY'.padEnd(15),
-                'PORTS'.padEnd(15),
-                'REQUIRES'.padEnd(20),
-            ].join(' ')
-        )
-    );
-    lines.push('-'.repeat(100));
+    const header = [
+        'ID'.padEnd(20),
+        'NAME'.padEnd(30),
+        'CATEGORY'.padEnd(15),
+        'PORTS'.padEnd(15),
+        'REQUIRES'.padEnd(20),
+    ].join(' ');
+    lines.push(chalk.bold(header));
+    lines.push('-'.repeat(header.length));
 
     // Rows
     for (const overlay of overlays) {

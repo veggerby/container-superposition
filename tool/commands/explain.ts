@@ -25,7 +25,7 @@ function getOverlayFiles(overlaysDir: string, overlayId: string): string[] {
     try {
         return fs
             .readdirSync(overlayDir)
-            .filter((file) => !file.startsWith('.'))
+            .filter((file) => file === '.env.example' || !file.startsWith('.'))
             .sort();
     } catch (error) {
         return [];
