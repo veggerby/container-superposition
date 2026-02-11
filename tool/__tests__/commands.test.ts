@@ -5,6 +5,7 @@ import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import { listCommand } from '../commands/list.js';
 import { explainCommand } from '../commands/explain.js';
 import { planCommand } from '../commands/plan.js';
+import { doctorCommand } from '../commands/doctor.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -293,6 +294,98 @@ describe('Command Tests', () => {
             expect(consoleErrorSpy).toHaveBeenCalled();
             const errorOutput = consoleErrorSpy.mock.calls.join('\n');
             expect(errorOutput).toContain('Unknown overlay');
+        });
+    });
+
+    describe('doctorCommand', () => {
+        it('should run environment checks', async () => {
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {});
+            } catch (e: any) {
+                // Process.exit is called, ignore
+            }
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Running diagnostics');
+            expect(output).toContain('Environment:');
+            expect(output).toContain('Node.js version');
+            expect(output).toContain('Docker');
+        });
+
+        it('should validate all overlays', async () => {
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {});
+            } catch (e: any) {
+                // Process.exit is called, ignore
+            }
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Overlays:');
+            expect(output).toContain('overlays valid');
+        });
+
+        it('should check manifest if it exists', async () => {
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                    output: './.devcontainer',
+                });
+            } catch (e: any) {
+                // Process.exit is called, ignore
+            }
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Manifest:');
+        });
+
+        it('should output JSON when --json flag is used', async () => {
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, { json: true });
+            } catch (e: any) {
+                // Process.exit is called, ignore
+            }
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls[0][0];
+            expect(() => JSON.parse(output)).not.toThrow();
+            const parsed = JSON.parse(output);
+            expect(parsed.environment).toBeDefined();
+            expect(parsed.overlays).toBeDefined();
+            expect(parsed.manifest).toBeDefined();
+            expect(parsed.summary).toBeDefined();
+            expect(typeof parsed.summary.passed).toBe('number');
+            expect(typeof parsed.summary.warnings).toBe('number');
+            expect(typeof parsed.summary.errors).toBe('number');
+        });
+
+        it('should handle non-existent devcontainer path', async () => {
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                    output: '/tmp/nonexistent-doctor-test',
+                });
+            } catch (e: any) {
+                // Process.exit is called, ignore
+            }
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Directory not found');
+        });
+
+        it('should support --fix flag', async () => {
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                    output: '/tmp/nonexistent-doctor-test',
+                    fix: true,
+                });
+            } catch (e: any) {
+                // Process.exit is called, ignore
+            }
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            // Fix functionality would be in output if there are fixable issues
         });
     });
 });

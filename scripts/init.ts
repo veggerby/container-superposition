@@ -28,6 +28,7 @@ import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
 import { listCommand } from '../tool/commands/list.js';
 import { explainCommand } from '../tool/commands/explain.js';
 import { planCommand } from '../tool/commands/plan.js';
+import { doctorCommand } from '../tool/commands/doctor.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1009,128 +1010,7 @@ function mergeAnswers(
     return merged as QuestionnaireAnswers;
 }
 
-/**
- * Doctor command - check environment and validate configuration
- */
-async function runDoctor(options: { output?: string }) {
-    try {
-        const outputPath = options.output || './.devcontainer';
 
-        console.log(
-            '\n' +
-                boxen(chalk.bold('Environment Check'), {
-                    padding: 0.5,
-                    borderColor: 'cyan',
-                    borderStyle: 'round',
-                })
-        );
-
-        const checks = [];
-
-        // Helper function for semantic version comparison
-        const isVersionAtLeast = (current: string, required: string): boolean => {
-            const parse = (v: string): [number, number, number] => {
-                const parts = v.split('.');
-                const major = parseInt(parts[0] ?? '0', 10) || 0;
-                const minor = parseInt(parts[1] ?? '0', 10) || 0;
-                const patch = parseInt(parts[2] ?? '0', 10) || 0;
-                return [major, minor, patch];
-            };
-
-            const [cMajor, cMinor, cPatch] = parse(current);
-            const [rMajor, rMinor, rPatch] = parse(required);
-
-            if (cMajor !== rMajor) {
-                return cMajor > rMajor;
-            }
-            if (cMinor !== rMinor) {
-                return cMinor > rMinor;
-            }
-            return cPatch >= rPatch;
-        };
-
-        // Check Node.js version
-        const nodeVersion = process.version;
-        const requiredVersion = '20.0.0';
-        const versionMatch = nodeVersion.match(/^v(\d+\.\d+\.\d+)/);
-        const currentVersion = versionMatch ? versionMatch[1] : '0.0.0';
-        const nodeOk = isVersionAtLeast(currentVersion, requiredVersion);
-        checks.push({
-            name: 'Node.js version',
-            status: nodeOk,
-            message: nodeOk
-                ? `${nodeVersion} ✓`
-                : `${nodeVersion} (requires >= ${requiredVersion})`,
-        });
-
-        // Check if Docker is available
-        let dockerOk = false;
-        try {
-            const { execSync } = await import('child_process');
-            execSync('docker --version', { stdio: 'ignore' });
-            dockerOk = true;
-        } catch {
-            dockerOk = false;
-        }
-        checks.push({
-            name: 'Docker',
-            status: dockerOk,
-            message: dockerOk ? 'Available ✓' : 'Not found (required for devcontainers)',
-        });
-
-        // Check if devcontainer exists
-        const devcontainerExists = fs.existsSync(outputPath);
-        checks.push({
-            name: 'Devcontainer path',
-            status: devcontainerExists,
-            message: devcontainerExists
-                ? `${outputPath} exists ✓`
-                : `${outputPath} not found (run init first)`,
-        });
-
-        // Check if manifest exists
-        if (devcontainerExists) {
-            const manifestPath = path.join(outputPath, 'superposition.json');
-            const manifestExists = fs.existsSync(manifestPath);
-            checks.push({
-                name: 'Manifest',
-                status: manifestExists,
-                message: manifestExists
-                    ? 'superposition.json found ✓'
-                    : 'superposition.json missing (manual edit or old version)',
-            });
-
-            // Check devcontainer.json
-            const devcontainerJsonPath = path.join(outputPath, 'devcontainer.json');
-            const devcontainerJsonExists = fs.existsSync(devcontainerJsonPath);
-            checks.push({
-                name: 'DevContainer config',
-                status: devcontainerJsonExists,
-                message: devcontainerJsonExists
-                    ? 'devcontainer.json found ✓'
-                    : 'devcontainer.json missing',
-            });
-        }
-
-        console.log('');
-        for (const check of checks) {
-            const icon = check.status ? chalk.green('✓') : chalk.red('✗');
-            console.log(`  ${icon} ${chalk.white(check.name)}: ${chalk.gray(check.message)}`);
-        }
-
-        const allPassed = checks.every((c) => c.status);
-        if (allPassed) {
-            console.log(chalk.green('\n✓ All checks passed!\n'));
-            process.exit(0);
-        } else {
-            console.log(chalk.yellow('\n⚠ Some checks failed. See above for details.\n'));
-            process.exit(1);
-        }
-    } catch (error) {
-        console.error(chalk.red('✗ Error running doctor:'), error);
-        process.exit(1);
-    }
-}
 
 /**
  * Parse CLI arguments
@@ -1278,8 +1158,11 @@ async function parseCliArgs(): Promise<{
         .command('doctor')
         .description('Check environment and validate configuration')
         .option('-o, --output <path>', 'Devcontainer path to validate (default: ./.devcontainer)')
+        .option('--fix', 'Apply automatic fixes where possible')
+        .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
-            await runDoctor(options);
+            const overlaysConfig = loadOverlaysConfigWrapper();
+            await doctorCommand(overlaysConfig, OVERLAYS_DIR, options);
         });
 
     await program.parseAsync(process.argv);
