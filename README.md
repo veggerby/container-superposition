@@ -253,8 +253,60 @@ npm run init
 
 - **`init`** - Initialize a new devcontainer configuration (default command)
 - **`regen`** - Regenerate devcontainer from existing manifest
-- **`list`** - List all available overlays and presets
+- **`list`** - List all available overlays and presets with filtering options
+- **`explain`** - Show detailed information about a specific overlay
+- **`plan`** - Preview what will be generated before creating devcontainer
 - **`doctor`** - Check environment and validate configuration
+
+#### Discovery Commands
+
+**List available overlays:**
+
+```bash
+# List all overlays grouped by category
+npx container-superposition list
+
+# Filter by category
+npx container-superposition list --category database
+
+# Filter by tags
+npx container-superposition list --tags observability
+
+# Filter by stack support
+npx container-superposition list --supports compose
+
+# JSON output for scripting
+npx container-superposition list --json
+```
+
+**Explain an overlay in detail:**
+
+```bash
+# Show detailed information about an overlay
+npx container-superposition explain postgres
+
+# JSON output
+npx container-superposition explain nodejs --json
+```
+
+**Plan before generating:**
+
+```bash
+# Preview what will be created
+npx container-superposition plan --stack compose --overlays postgres,grafana
+
+# Include port offset
+npx container-superposition plan --stack compose --overlays postgres,redis --port-offset 100
+
+# JSON output
+npx container-superposition plan --stack compose --overlays nodejs,postgres --json
+```
+
+The `plan` command shows:
+- Selected overlays and auto-added dependencies
+- Port mappings (with offset applied)
+- Files that will be created/modified
+- Conflicts detection
 
 The questionnaire guides you through:
 
