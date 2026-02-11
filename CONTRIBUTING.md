@@ -148,8 +148,6 @@ services:
             - '8080:8080'
         volumes:
             - my-data:/data
-        depends_on:
-            - other-service # Only if dependency exists
         networks:
             - devnet
 
@@ -158,14 +156,13 @@ volumes:
 
 networks:
     devnet:
-        external: true
+        name: devnet
 ```
 
 **Important:**
 
-- Include `depends_on` for services your overlay depends on
-- The composer will filter out dependencies not selected by the user
-- Use `networks: - devnet` to connect to the shared network
+- Always use `name: devnet` (not `external: true`)
+- Use service names for inter-container communication (not localhost)
 
 ### 5. Add Environment Variables (Optional)
 
@@ -188,68 +185,61 @@ overlays/my-feature/
 ├── devcontainer.patch.json
 ├── docker-compose.yml
 ├── .env.example
-├── my-feature-config.yaml
+├── overlay.yml
 └── config/
     └── additional-config.json
 ```
 
-All files except `devcontainer.patch.json` and `.env.example` will be copied to the output directory.
+All files except `devcontainer.patch.json`, `overlay.yml`, and `.env.example` will be copied to the output directory.
 
-### 7. Update runServices and Service Order
+### 7. Add Setup/Verification Scripts (Optional)
 
-In `devcontainer.patch.json`, specify which services to run and their startup order:
+Create `overlays/my-feature/setup.sh` for initialization:
 
-```jsonc
-{
-    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-    "runServices": ["my-service"],
-    "_serviceOrder": 1, // 0=infrastructure, 1=backends, 2=middleware, 3=UI
-    "features": {
-        // ...
-    },
+```bash
+#!/bin/bash
+set -e
+
+echo "Setting up my-feature..."
+# Installation or configuration steps
+```
+
+Create `overlays/my-feature/verify.sh` for health checks:
+
+```bash
+#!/bin/bash
+set -e
+
+echo "Verifying my-feature..."
+# Health check commands
+```
+
+### 8. Update Types (If New Category)
+
+If adding to an existing category, skip this step. If creating a new category, update `tool/schema/types.ts`:
+
+```typescript
+// Add to existing type union
+export type DevTool = 'docker-in-docker' | 'docker-sock' | 'my-feature';
+
+// Or create new category
+export type NewCategory = 'option1' | 'my-feature';
+```
+
+### 9. Apply Overlay in Composer (If New Category)
+
+If you created a new category, update `tool/questionnaire/composer.ts` to apply it:
+
+```typescript
+// Add application logic for new category
+if (answers.myCategory?.includes('my-feature')) {
+    await applyOverlay('my-feature', devcontainerPath, composePath, envPath);
 }
 ```
 
-### 8. Update the Questionnaire
+### 10. Document the Overlay
 
-### 8. Update the Questionnaire
-
-Edit `scripts/init.ts` to add your overlay as an option:
-
-```typescript
-// Add to the appropriate category in the questionnaire
-const observabilityTools = await checkbox({
-    message: 'Select observability tools:',
-    choices: [
-        { name: 'OpenTelemetry Collector', value: 'otel-collector' },
-        { name: 'Jaeger (Tracing)', value: 'jaeger' },
-        { name: 'My Feature', value: 'my-feature' }, // Add here
-    ],
-});
-```
-
-### 9. Update Types
-
-Update `tool/schema/types.ts` if adding to a new or existing category:
-
-````typescript
-// If adding to observability
-export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'my-feature';
-
-// Or create a new category
-export type NewCategory = 'option1' | 'my-feature';
-
-### 10. Document It
-
-Add to the appropriate section in `overlays/README.md`:
-
-```markdown
-### My Category
-
-- **my-feature** - Description of what it does, ports, and key features
-````
-
-If the overlay is complex, create `overlays/my-feature/README.md`:
+Create `overlays/my-feature/README.md` with usage information:
 
 ```markdown
 # My Feature Overlay
@@ -262,39 +252,29 @@ If the overlay is complex, create `overlays/my-feature/README.md`:
 
 ## Usage
 
-How to use the feature in your application.
+Connection details and usage examples.
 
 ## Environment Variables
 
 - `MY_FEATURE_VERSION` - Version (default: latest)
 - `MY_FEATURE_PORT` - Port (default: 8080)
-
-## Dependencies
-
-Works best with: other-overlay-1, other-overlay-2
 ```
 
-Update architecture docs in `tool/docs/` if the overlay introduces new concepts.
+### 11. Test
 
-### 10. Document It
-
-Add to `overlays/README.md`:
-
-```markdown
-- **my-feature** - Description of what it does
-```
-
-Update architecture docs in `tool/docs/` if the overlay introduces new concepts.
-
-### 7. Test
+Build and test your overlay:
 
 ```bash
-npm run init -- --stack dotnet --my-feature
+npm run build
+npm run init -- --stack compose --language my-feature
+# Or specify category: --database my-feature, --observability my-feature, etc.
 ```
+
+Verify the generated `.devcontainer/` configuration works correctly.
 
 ## Adding a New Template
 
-Templates are complete, solution-ready devcontainer configurations.
+Templates are complete starter configurations for specific stacks.
 
 ### 1. Create Template Structure
 
@@ -350,31 +330,33 @@ Create `templates/my-stack/README.md`:
 
 ## Usage
 
-Copy to your project or use the init tool:
-\`\`\`bash
-npm run init -- --stack my-stack
-\`\`\`
+Generated when selecting this stack in the init tool.
 ```
 
-### 5. Update Main Questionnaire
-
-Edit `scripts/init.ts`:
-
-```typescript
-console.log('   5) My Stack');
-
-const stackMap: Record<string, Stack> = {
-    // ... existing
-    '5': 'my-stack',
-};
-```
-
-### 6. Update Types
+### 5. Update Types
 
 Edit `tool/schema/types.ts`:
 
 ```typescript
-export type Stack = 'dotnet' | 'node-typescript' | 'python-mkdocs' | 'fullstack' | 'my-stack';
+export type Stack = 'plain' | 'compose' | 'my-stack';
+```
+
+### 6. Register in Overlays Index
+
+Add to `overlays/index.yml` under `base_templates`:
+
+```yaml
+base_templates:
+    - id: my-stack
+      name: My Stack
+      description: Description of the stack
+```
+
+### 7. Test
+
+```bash
+npm run build
+npm run init -- --stack my-stack
 ```
 
 ## Testing Your Changes
