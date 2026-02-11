@@ -1007,6 +1007,181 @@ function mergeAnswers(
 }
 
 /**
+ * List available overlays command
+ */
+async function listOverlays(options: { category?: string }) {
+    try {
+        const overlaysConfig = loadOverlaysConfigWrapper();
+        const category = options.category?.toLowerCase();
+
+        console.log(
+            '\n' +
+                boxen(chalk.bold('Available Overlays'), {
+                    padding: 0.5,
+                    borderColor: 'cyan',
+                    borderStyle: 'round',
+                })
+        );
+
+        const categories = [
+            { name: 'language', title: '📚 Language & Framework' },
+            { name: 'database', title: '🗄️  Database & Messaging' },
+            { name: 'observability', title: '📊 Observability' },
+            { name: 'cloud', title: '☁️  Cloud Tools' },
+            { name: 'dev', title: '🔧 Dev Tools' },
+            { name: 'preset', title: '🎯 Presets' },
+        ];
+
+        for (const cat of categories) {
+            if (category && cat.name !== category) continue;
+
+            const overlays = overlaysConfig.overlays.filter((o) => o.category === cat.name);
+            if (overlays.length === 0) continue;
+
+            console.log(`\n${chalk.bold(cat.title)}`);
+            for (const overlay of overlays) {
+                console.log(
+                    `  ${chalk.cyan(overlay.id.padEnd(20))} ${chalk.gray(overlay.description)}`
+                );
+            }
+        }
+
+        console.log(
+            chalk.dim(
+                `\n💡 Use "container-superposition init --language nodejs,python --database postgres" to compose overlays\n`
+            )
+        );
+        process.exit(0);
+    } catch (error) {
+        console.error(chalk.red('✗ Error listing overlays:'), error);
+        process.exit(1);
+    }
+}
+
+/**
+ * Doctor command - check environment and validate configuration
+ */
+async function runDoctor(options: { output?: string }) {
+    try {
+        const outputPath = options.output || './.devcontainer';
+
+        console.log(
+            '\n' +
+                boxen(chalk.bold('Environment Check'), {
+                    padding: 0.5,
+                    borderColor: 'cyan',
+                    borderStyle: 'round',
+                })
+        );
+
+        const checks = [];
+
+        // Helper function for semantic version comparison
+        const isVersionAtLeast = (current: string, required: string): boolean => {
+            const parse = (v: string): [number, number, number] => {
+                const parts = v.split('.');
+                const major = parseInt(parts[0] ?? '0', 10) || 0;
+                const minor = parseInt(parts[1] ?? '0', 10) || 0;
+                const patch = parseInt(parts[2] ?? '0', 10) || 0;
+                return [major, minor, patch];
+            };
+
+            const [cMajor, cMinor, cPatch] = parse(current);
+            const [rMajor, rMinor, rPatch] = parse(required);
+
+            if (cMajor !== rMajor) {
+                return cMajor > rMajor;
+            }
+            if (cMinor !== rMinor) {
+                return cMinor > rMinor;
+            }
+            return cPatch >= rPatch;
+        };
+
+        // Check Node.js version
+        const nodeVersion = process.version;
+        const requiredVersion = '20.0.0';
+        const versionMatch = nodeVersion.match(/^v(\d+\.\d+\.\d+)/);
+        const currentVersion = versionMatch ? versionMatch[1] : '0.0.0';
+        const nodeOk = isVersionAtLeast(currentVersion, requiredVersion);
+        checks.push({
+            name: 'Node.js version',
+            status: nodeOk,
+            message: nodeOk
+                ? `${nodeVersion} ✓`
+                : `${nodeVersion} (requires >= ${requiredVersion})`,
+        });
+
+        // Check if Docker is available
+        let dockerOk = false;
+        try {
+            const { execSync } = await import('child_process');
+            execSync('docker --version', { stdio: 'ignore' });
+            dockerOk = true;
+        } catch {
+            dockerOk = false;
+        }
+        checks.push({
+            name: 'Docker',
+            status: dockerOk,
+            message: dockerOk ? 'Available ✓' : 'Not found (required for devcontainers)',
+        });
+
+        // Check if devcontainer exists
+        const devcontainerExists = fs.existsSync(outputPath);
+        checks.push({
+            name: 'Devcontainer path',
+            status: devcontainerExists,
+            message: devcontainerExists
+                ? `${outputPath} exists ✓`
+                : `${outputPath} not found (run init first)`,
+        });
+
+        // Check if manifest exists
+        if (devcontainerExists) {
+            const manifestPath = path.join(outputPath, 'superposition.json');
+            const manifestExists = fs.existsSync(manifestPath);
+            checks.push({
+                name: 'Manifest',
+                status: manifestExists,
+                message: manifestExists
+                    ? 'superposition.json found ✓'
+                    : 'superposition.json missing (manual edit or old version)',
+            });
+
+            // Check devcontainer.json
+            const devcontainerJsonPath = path.join(outputPath, 'devcontainer.json');
+            const devcontainerJsonExists = fs.existsSync(devcontainerJsonPath);
+            checks.push({
+                name: 'DevContainer config',
+                status: devcontainerJsonExists,
+                message: devcontainerJsonExists
+                    ? 'devcontainer.json found ✓'
+                    : 'devcontainer.json missing',
+            });
+        }
+
+        console.log('');
+        for (const check of checks) {
+            const icon = check.status ? chalk.green('✓') : chalk.red('✗');
+            console.log(`  ${icon} ${chalk.white(check.name)}: ${chalk.gray(check.message)}`);
+        }
+
+        const allPassed = checks.every((c) => c.status);
+        if (allPassed) {
+            console.log(chalk.green('\n✓ All checks passed!\n'));
+            process.exit(0);
+        } else {
+            console.log(chalk.yellow('\n⚠ Some checks failed. See above for details.\n'));
+            process.exit(1);
+        }
+    } catch (error) {
+        console.error(chalk.red('✗ Error running doctor:'), error);
+        process.exit(1);
+    }
+}
+
+/**
  * Parse CLI arguments
  */
 async function parseCliArgs(): Promise<{
@@ -1018,11 +1193,19 @@ async function parseCliArgs(): Promise<{
     noInteractive?: boolean;
 } | null> {
     const program = new Command();
+    
+    // Store init options for access after parsing
+    let initOptions: any = null;
 
     program
         .name('container-superposition')
-        .description('Initialize a devcontainer with guided questions or CLI flags')
-        .version('0.1.0')
+        .description('Composable devcontainer scaffolds')
+        .version('0.1.0');
+
+    // Init command (default)
+    program
+        .command('init', { isDefault: true })
+        .description('Initialize a new devcontainer configuration')
         .option(
             '--from-manifest <path>',
             'Load configuration from existing superposition.json manifest'
@@ -1060,53 +1243,110 @@ async function parseCliArgs(): Promise<{
             'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)'
         )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
-        .parse(process.argv);
+        .action((options) => {
+            // Store options for main() to process
+            initOptions = options;
+        });
 
-    const options = program.opts();
+    // Regen command
+    program
+        .command('regen')
+        .description('Regenerate devcontainer from existing superposition.json manifest')
+        .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
+        .option('--no-backup', 'Skip creating backup before regeneration')
+        .option('--backup-dir <path>', 'Custom backup directory location')
+        .action((options) => {
+            const outputPath = options.output || './.devcontainer';
+            const manifestPath = path.join(outputPath, 'superposition.json');
 
-    // If no options provided, return null to trigger interactive mode
-    if (Object.keys(options).length === 0) {
+            if (!fs.existsSync(manifestPath)) {
+                console.error(chalk.red(`✗ Error: No manifest found at ${manifestPath}`));
+                console.error(
+                    chalk.gray('  Run "container-superposition init" first to create a configuration')
+                );
+                process.exit(1);
+            }
+
+            // Store options for main() to process
+            initOptions = {
+                ...options,
+                fromManifest: manifestPath,
+                interactive: false,
+            };
+        });
+
+    // List command
+    program
+        .command('list')
+        .description('List available overlays and presets')
+        .option(
+            '--category <type>',
+            'Filter by category: language, database, observability, cloud, dev, preset'
+        )
+        .action(async (options) => {
+            await listOverlays(options);
+        });
+
+    // Doctor command
+    program
+        .command('doctor')
+        .description('Check environment and validate configuration')
+        .option('-o, --output <path>', 'Devcontainer path to validate (default: ./.devcontainer)')
+        .action(async (options) => {
+            await runDoctor(options);
+        });
+
+    await program.parseAsync(process.argv);
+
+    // If init or regen command was run, return the options
+    if (!initOptions) {
+        // No init/regen command run (list or doctor ran instead)
+        return null;
+    }
+
+    // If no options provided to init, return null to trigger interactive mode
+    if (Object.keys(initOptions).length === 0) {
         return null;
     }
 
     const config: Partial<QuestionnaireAnswers> = {};
 
-    if (options.stack) config.stack = options.stack as Stack;
-    if (options.language) {
-        config.language = options.language
+    if (initOptions.stack) config.stack = initOptions.stack as Stack;
+    if (initOptions.language) {
+        config.language = initOptions.language
             .split(',')
             .map((l: string) => l.trim()) as LanguageOverlay[];
     }
-    if (options.database) {
-        config.database = options.database
+    if (initOptions.database) {
+        config.database = initOptions.database
             .split(',')
             .map((d: string) => d.trim()) as DatabaseOverlay[];
     }
-    if (options.observability) {
-        config.observability = options.observability
+    if (initOptions.observability) {
+        config.observability = initOptions.observability
             .split(',')
             .map((t: string) => t.trim()) as ObservabilityTool[];
     }
-    if (options.playwright) config.playwright = true;
-    if (options.cloudTools) {
-        config.cloudTools = options.cloudTools
+    if (initOptions.playwright) config.playwright = true;
+    if (initOptions.cloudTools) {
+        config.cloudTools = initOptions.cloudTools
             .split(',')
             .map((t: string) => t.trim()) as CloudTool[];
     }
-    if (options.devTools) {
-        config.devTools = options.devTools.split(',').map((t: string) => t.trim()) as DevTool[];
+    if (initOptions.devTools) {
+        config.devTools = initOptions.devTools.split(',').map((t: string) => t.trim()) as DevTool[];
     }
-    if (options.portOffset) {
-        config.portOffset = parseInt(options.portOffset, 10);
+    if (initOptions.portOffset) {
+        config.portOffset = parseInt(initOptions.portOffset, 10);
     }
-    if (options.output) config.outputPath = options.output;
+    if (initOptions.output) config.outputPath = initOptions.output;
 
     return {
         config,
-        manifestPath: options.fromManifest,
-        noBackup: options.backup === false, // Commander creates options.backup = false for --no-backup
-        backupDir: options.backupDir,
-        noInteractive: options.interactive === false, // Commander creates options.interactive = false for --no-interactive
+        manifestPath: initOptions.fromManifest,
+        noBackup: initOptions.backup === false, // Commander creates options.backup = false for --no-backup
+        backupDir: initOptions.backupDir,
+        noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
     };
 }
 

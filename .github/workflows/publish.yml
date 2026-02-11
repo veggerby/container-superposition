@@ -55,6 +55,11 @@ jobs:
             - name: Run tests
               run: npm test
 
+            - name: Verify package contents
+              run: |
+                  echo "📦 Package contents preview:"
+                  npm pack --dry-run
+
             - name: Publish to npm
               run: npm publish --provenance --access public
               env:

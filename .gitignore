@@ -39,3 +39,4 @@ examples/.devcontainer/
 !tool/**/*
 !scripts/**/*
 !overlays/**/*
+*.tgz
