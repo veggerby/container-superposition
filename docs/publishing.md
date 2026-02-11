@@ -299,8 +299,6 @@ npm install -g container-superposition
 container-superposition init
 ```
 
-````
-
 ## Continuous Publishing
 
 ### Automated Releases (Future Enhancement)
@@ -312,23 +310,23 @@ Consider GitHub Actions for automated publishing:
 name: Publish to npm
 
 on:
-  release:
-    types: [created]
+    release:
+        types: [created]
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
-      - run: npm test
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  registry-url: 'https://registry.npmjs.org'
+            - run: npm ci
+            - run: npm test
+            - run: npm publish
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
 ## Troubleshooting
@@ -336,6 +334,7 @@ jobs:
 ### ".npmignore not found" Warning
 
 If you see:
+
 ```
 npm warn gitignore-fallback No .npmignore file found, using .gitignore for file exclusion.
 ```
@@ -343,17 +342,18 @@ npm warn gitignore-fallback No .npmignore file found, using .gitignore for file 
 **This warning can be safely ignored.** The package uses the `"files"` field in `package.json` as the primary inclusion mechanism (allowlist approach), which is more explicit and maintainable than `.npmignore` (denylist approach).
 
 The `"files"` field specifies exactly what to include:
+
 ```json
 {
-  "files": [
-    "dist/",
-    "templates/",
-    "features/",
-    "overlays/",
-    "tool/**/*.json",
-    "tool/**/*.yml",
-    "docs/**/*.md"
-  ]
+    "files": [
+        "dist/",
+        "templates/",
+        "features/",
+        "overlays/",
+        "tool/**/*.json",
+        "tool/**/*.yml",
+        "docs/**/*.md"
+    ]
 }
 ```
 
@@ -381,14 +381,14 @@ To exclude unnecessary files, modify the `"files"` array in `package.json`:
 
 ```json
 {
-  "files": [
-    "dist/",           // Keep compiled code
-    "templates/",      // Keep base templates
-    "features/",       // Keep custom features
-    "overlays/",       // Keep all overlays
-    // Exclude specific patterns with "!" prefix if needed
-    "!overlays/**/node_modules"
-  ]
+    "files": [
+        "dist/", // Keep compiled code
+        "templates/", // Keep base templates
+        "features/", // Keep custom features
+        "overlays/", // Keep all overlays
+        // Exclude specific patterns with "!" prefix if needed
+        "!overlays/**/node_modules"
+    ]
 }
 ```
 
@@ -407,6 +407,7 @@ npm login
 ### Name Already Taken
 
 Options:
+
 1. Use scoped package: `@veggerby/container-superposition`
 2. Choose different name: `devcontainer-superposition`, `superposition-dev`, etc.
 3. Contact current owner if package is abandoned
@@ -425,6 +426,7 @@ npm publish
 ### Versioning Strategy
 
 Follow [Semantic Versioning](https://semver.org/):
+
 - **MAJOR**: Breaking changes (e.g., removing overlays, changing CLI args)
 - **MINOR**: New features (e.g., adding overlays, new CLI options)
 - **PATCH**: Bug fixes (e.g., fixing composition logic, updating deps)
@@ -473,4 +475,3 @@ npm unpublish container-superposition --force
 - [npm Version Management](https://docs.npmjs.com/cli/v10/commands/npm-version)
 - [Semantic Versioning](https://semver.org/)
 - [npm Package Lifecycle Scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts#life-cycle-scripts)
-````

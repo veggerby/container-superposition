@@ -627,6 +627,85 @@ npm run test:smoke
 3. Add tests for new functionality
 4. Add/update overlay's `overlay.yml` if adding/modifying overlays
 5. Update `config.schema.json` if changing types
+6. **Update CHANGELOG.md** with user-focused changes (see below)
+
+### Changelog Guidelines
+
+**Each PR that changes user-visible behavior MUST add a bullet under `[Unreleased]`.** Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format:
+
+```markdown
+## [Unreleased]
+
+### Added
+
+- **Feature name** — Brief description of what users can do
+    - Sub-detail if needed
+    - Example usage if helpful
+```
+
+**Entry style:**
+
+- Use em-dash (`—`) separator, not hyphen (`-`)
+- Format: `- **Thing** — impact`
+- Sentence fragments OR full sentences — pick one per entry
+
+**Categories:**
+
+- **Added**: New features users can see/use
+- **Changed**: Modifications to existing behavior (breaking changes use `**BREAKING**:` prefix)
+- **Fixed**: Bug fixes
+- **Deprecated**: Features being phased out (with migration path)
+- **Removed**: Features no longer available
+- **Security**: Security-related fixes
+
+**Key principles:**
+
+- Write from **user's perspective**, not developer's
+- Focus on **what** and **why**, not how it was implemented
+- Include usage examples for complex features
+- Group related changes together
+- Omit internal refactoring, test updates, CI changes
+- Include dependency updates ONLY if they change minimum versions, behavior, security, or require action
+
+**Breaking changes:**
+
+```markdown
+### Changed
+
+- **BREAKING: CLI command structure** — Commands now require explicit subcommands
+    - Old: `npm run init`
+    - New: `container-superposition init`
+    - Migration: Update scripts to use new syntax
+```
+
+**Version conventions:**
+
+- Changelog: `[0.1.2]` (no `v`)
+- Git tags: `v0.1.2` (with `v`)
+- After release: Leave `[Unreleased]` empty until new changes land
+
+**Example - Good:**
+
+```markdown
+### Added
+
+- **Discovery commands** — Browse overlays before generating
+    - `list` command with category filtering
+    - `explain` command for detailed overlay info
+    - `plan` command to preview without creating files
+```
+
+**Example - Bad:**
+
+```markdown
+### Added
+
+- Implemented list.ts module
+- Created formatAsTable helper
+- Added filtering logic
+```
+
+**See also:** `.github/instructions/changelog.instructions.md` for complete guidelines.
 
 ## Additional Notes
 

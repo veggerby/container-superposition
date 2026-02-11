@@ -25,6 +25,9 @@ import type {
 } from '../tool/schema/types.js';
 import { composeDevContainer } from '../tool/questionnaire/composer.js';
 import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
+import { listCommand } from '../tool/commands/list.js';
+import { explainCommand } from '../tool/commands/explain.js';
+import { planCommand } from '../tool/commands/plan.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1007,58 +1010,6 @@ function mergeAnswers(
 }
 
 /**
- * List available overlays command
- */
-async function listOverlays(options: { category?: string }) {
-    try {
-        const overlaysConfig = loadOverlaysConfigWrapper();
-        const category = options.category?.toLowerCase();
-
-        console.log(
-            '\n' +
-                boxen(chalk.bold('Available Overlays'), {
-                    padding: 0.5,
-                    borderColor: 'cyan',
-                    borderStyle: 'round',
-                })
-        );
-
-        const categories = [
-            { name: 'language', title: '📚 Language & Framework' },
-            { name: 'database', title: '🗄️  Database & Messaging' },
-            { name: 'observability', title: '📊 Observability' },
-            { name: 'cloud', title: '☁️  Cloud Tools' },
-            { name: 'dev', title: '🔧 Dev Tools' },
-            { name: 'preset', title: '🎯 Presets' },
-        ];
-
-        for (const cat of categories) {
-            if (category && cat.name !== category) continue;
-
-            const overlays = overlaysConfig.overlays.filter((o) => o.category === cat.name);
-            if (overlays.length === 0) continue;
-
-            console.log(`\n${chalk.bold(cat.title)}`);
-            for (const overlay of overlays) {
-                console.log(
-                    `  ${chalk.cyan(overlay.id.padEnd(20))} ${chalk.gray(overlay.description)}`
-                );
-            }
-        }
-
-        console.log(
-            chalk.dim(
-                `\n💡 Use "container-superposition init --language nodejs,python --database postgres" to compose overlays\n`
-            )
-        );
-        process.exit(0);
-    } catch (error) {
-        console.error(chalk.red('✗ Error listing overlays:'), error);
-        process.exit(1);
-    }
-}
-
-/**
  * Doctor command - check environment and validate configuration
  */
 async function runDoctor(options: { output?: string }) {
@@ -1283,8 +1234,43 @@ async function parseCliArgs(): Promise<{
             '--category <type>',
             'Filter by category: language, database, observability, cloud, dev, preset'
         )
+        .option('--tags <list>', 'Filter by tags (comma-separated)')
+        .option('--supports <stack>', 'Filter by stack support: plain, compose')
+        .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
-            await listOverlays(options);
+            const overlaysConfig = loadOverlaysConfigWrapper();
+            await listCommand(overlaysConfig, options);
+            process.exit(0);
+        });
+
+    // Explain command
+    program
+        .command('explain <overlay>')
+        .description('Show detailed information about an overlay')
+        .option('--json', 'Output as JSON for scripting')
+        .action(async (overlayId, options) => {
+            const overlaysConfig = loadOverlaysConfigWrapper();
+            await explainCommand(overlaysConfig, OVERLAYS_DIR, overlayId, options);
+            process.exit(0);
+        });
+
+    // Plan command
+    program
+        .command('plan')
+        .description('Preview what will be generated before creating devcontainer')
+        .option('--stack <type>', 'Base template: plain, compose', 'compose')
+        .option('--overlays <list>', 'Comma-separated list of overlay IDs')
+        .option(
+            '--port-offset <number>',
+            'Add offset to all exposed ports',
+            (val) => parseInt(val, 10),
+            0
+        )
+        .option('--json', 'Output as JSON for scripting')
+        .action(async (options) => {
+            const overlaysConfig = loadOverlaysConfigWrapper();
+            await planCommand(overlaysConfig, OVERLAYS_DIR, options);
+            process.exit(0);
         });
 
     // Doctor command
