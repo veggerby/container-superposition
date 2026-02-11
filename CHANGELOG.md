@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Environment validation command** — Comprehensive `doctor` command for diagnostics
+    - Node.js version check (>= 18 required)
+    - Docker daemon accessibility verification
+    - Docker Compose v2 detection
+    - Overlay integrity validation (YAML syntax, required files, broken symlinks)
+    - Manifest compatibility checks
+    - Port conflict detection (best-effort)
+    - `--json` flag for programmatic output
+    - `--fix` flag for automatic corrections (placeholder for future fixes)
+    - Run `container-superposition doctor` to validate your environment
+
+### Added
+
 - **Discovery commands** — New commands to explore available overlays before generating
     - `container-superposition list` — Browse all overlays with filtering options
         - Filter by category: `--category language`, `--category database`, etc.

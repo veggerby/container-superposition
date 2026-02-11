@@ -308,6 +308,54 @@ The `plan` command shows:
 - Files that will be created/modified
 - Conflict detection
 
+#### Environment Validation
+
+The `doctor` command provides comprehensive environment diagnostics:
+
+```bash
+# Check environment and configuration
+npx container-superposition doctor
+
+# Check specific devcontainer
+npx container-superposition doctor --output /path/to/.devcontainer
+
+# Get JSON output for CI/CD
+npx container-superposition doctor --json
+
+# Apply automatic fixes (where possible)
+npx container-superposition doctor --fix
+```
+
+**Doctor checks:**
+
+- ✅ Node.js version compatibility (>= 18)
+- ✅ Docker daemon accessibility
+- ✅ Docker Compose v2 availability
+- ✅ Overlay integrity (valid manifests, required files)
+- ✅ Manifest compatibility
+- ⚠️ Port conflicts (best-effort detection)
+
+**Example output:**
+
+```
+🔍 Running diagnostics...
+
+Environment:
+  ✓ Node.js version: v20.10.0 (>= 18.0.0 required)
+  ✓ Docker daemon: Docker version 24.0.5
+  ✓ Docker Compose: v2.23.0 (v2 required)
+  
+Overlays:
+  ✓ All 46 overlays valid
+  
+Manifest:
+  ✓ Manifest version: Format version 0.1.0
+  ✓ DevContainer config: devcontainer.json valid
+  
+Summary:
+  ✓ 51 passed
+```
+
 The questionnaire guides you through:
 
 1. **Preset or Custom** - Start from a pre-configured stack or build custom?
