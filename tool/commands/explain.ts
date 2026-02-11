@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
 import boxen from 'boxen';
+import yaml from 'js-yaml';
 import type { OverlayMetadata, OverlaysConfig } from '../schema/types.js';
 
 interface ExplainOptions {
@@ -49,18 +50,26 @@ function getDevcontainerPatch(overlaysDir: string, overlayId: string): any {
 }
 
 /**
- * Read docker-compose content
+ * Read docker-compose content and parse services
  */
-function getDockerCompose(overlaysDir: string, overlayId: string): string | null {
+function getDockerComposeServices(overlaysDir: string, overlayId: string): string[] {
     const composePath = path.join(overlaysDir, overlayId, 'docker-compose.yml');
     if (!fs.existsSync(composePath)) {
-        return null;
+        return [];
     }
 
     try {
-        return fs.readFileSync(composePath, 'utf8');
+        const content = fs.readFileSync(composePath, 'utf8');
+        const parsed = yaml.load(content) as any;
+        
+        // Extract service names from the services section
+        if (parsed && parsed.services && typeof parsed.services === 'object') {
+            return Object.keys(parsed.services);
+        }
+        
+        return [];
     } catch (error) {
-        return null;
+        return [];
     }
 }
 
@@ -185,19 +194,14 @@ function formatAsText(
     }
 
     // Docker Compose
-    const compose = getDockerCompose(overlaysDir, overlay.id);
-    if (compose) {
+    const services = getDockerComposeServices(overlaysDir, overlay.id);
+    if (services.length > 0) {
         lines.push('');
         lines.push(chalk.bold('Docker Compose Services:'));
         lines.push(chalk.dim('  (Services will be added to docker-compose.yml)'));
         
-        // Parse service names from compose file - look under 'services:' section
-        const servicesSection = compose.match(/^services:\s*\n([\s\S]*?)(?=^\S|\n$)/m);
-        if (servicesSection) {
-            const serviceMatches = servicesSection[1].matchAll(/^\s{4}(\S+):/gm);
-            for (const match of serviceMatches) {
-                lines.push(`  🐳 ${match[1]}`);
-            }
+        for (const serviceName of services) {
+            lines.push(`  🐳 ${serviceName}`);
         }
     }
 
@@ -229,13 +233,13 @@ export async function explainCommand(
         if (options.json) {
             const files = getOverlayFiles(overlaysDir, overlayId);
             const patch = getDevcontainerPatch(overlaysDir, overlayId);
-            const compose = getDockerCompose(overlaysDir, overlayId);
+            const services = getDockerComposeServices(overlaysDir, overlayId);
 
             const output = {
                 ...overlay,
                 files,
                 devcontainerPatch: patch,
-                dockerCompose: compose ? true : false,
+                dockerComposeServices: services,
             };
 
             console.log(JSON.stringify(output, null, 2));
