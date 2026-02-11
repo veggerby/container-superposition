@@ -98,14 +98,14 @@ Overlays fall into several categories:
 Every overlay must have at least:
 
 ```
-tool/overlays/my-overlay/
+overlays/my-overlay/
 └── devcontainer.patch.json
 ```
 
 Additional optional files:
 
 ```
-tool/overlays/my-overlay/
+overlays/my-overlay/
 ├── devcontainer.patch.json     # Required: DevContainer configuration
 ├── docker-compose.yml          # Optional: Service definition
 ├── .env.example                # Optional: Environment variables
@@ -286,7 +286,7 @@ Any additional files in your overlay are automatically copied to the output dire
 ### Example Structure
 
 ```
-tool/overlays/my-service/
+overlays/my-service/
 ├── devcontainer.patch.json
 ├── docker-compose.yml
 ├── .env.example
@@ -544,6 +544,6 @@ Before submitting an overlay:
 - [ ] \_serviceOrder is set appropriately
 - [ ] depends_on lists all potential dependencies
 - [ ] Tested standalone and in combination
-- [ ] Added to tool/overlays/README.md
+- [ ] Added to overlays/README.md
 - [ ] Added to appropriate type in tool/schema/types.ts
 - [ ] Updated questionnaire in scripts/init.ts (if applicable)

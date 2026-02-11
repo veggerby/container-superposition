@@ -96,7 +96,7 @@ Two foundational templates that serve as starting points:
 
 Each template is minimal by design. Capabilities are added via overlays.
 
-### `/tool/overlays` - Composable Capabilities
+### `/overlays` - Composable Capabilities
 
 Overlays are modular configuration fragments organized by category:
 
@@ -136,6 +136,7 @@ Each overlay includes:
 
 Custom devcontainer features that add value beyond containers.dev:
 
+- **cross-distro-packages** - Cross-distribution package manager with automatic distro detection (apt/apk)
 - **project-scaffolder** - Interactive project initialization
 - **team-conventions** - Shared linting, formatting, commit standards
 - **local-secrets-manager** - Safe local development secrets
@@ -648,6 +649,8 @@ Complete documentation is available in the [docs/](docs/) folder:
 - **[Quick Reference](docs/quick-reference.md)** - Templates, overlays, ports, commands
 - **[Architecture](docs/architecture.md)** - Design principles and composition logic
 - **[Creating Overlays](docs/creating-overlays.md)** - Guide for adding new overlays
+    - [Overlay Manifest Schema](tool/schema/overlay-manifest.schema.json) - JSON schema for overlay.yml
+    - [Overlay Index Guide](.github/instructions/overlay-index.instructions.md) - Comprehensive field documentation
 - **[Examples](docs/examples.md)** - Common usage patterns
 
 Additional resources:
@@ -655,6 +658,50 @@ Additional resources:
 - [VS Code Dev Containers Documentation](https://code.visualstudio.com/docs/devcontainers/containers)
 - [Dev Container Specification](https://containers.dev/)
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
+
+## 💻 Development
+
+### Working on Container Superposition
+
+This repository dogfoods its own tooling! The development environment is set up using Container Superposition itself.
+
+**Quick Start:**
+
+```bash
+# Clone and open in VS Code
+git clone https://github.com/veggerby/container-superposition.git
+cd container-superposition
+code .
+
+# When prompted, click "Reopen in Container"
+# The devcontainer includes:
+# - Node.js with TypeScript
+# - Docker access (via host socket)
+# - Git helpers and modern CLI tools
+# - Codex for AI assistance
+```
+
+**Without Devcontainer:**
+
+```bash
+npm install       # Install dependencies
+npm run build     # Compile TypeScript
+npm run init      # Run the tool
+npm test          # Run tests
+```
+
+**Development Workflow:**
+
+1. Make changes to TypeScript sources in `scripts/` or `tool/`
+2. Run `npm run build` to compile
+3. Test with `npm run init` or `npm test`
+4. Submit PR following [CONTRIBUTING.md](CONTRIBUTING.md)
+
+The `.devcontainer/` folder is generated using:
+
+```bash
+npm run init -- --stack plain --language nodejs --dev-tools codex,docker-sock,git-helpers,modern-cli-tools
+```
 
 ## 🤝 Contributing
 

@@ -138,11 +138,18 @@ The init tool merges overlay configurations with your base template:
 
 To add a new overlay:
 
-1. Create a directory under `tool/overlays/`
-2. Add `devcontainer.patch.json` with the partial configuration
-3. Optionally add `docker-compose.yml` for services
-4. Optionally add `.env.example` with environment variables
-5. Add any additional config files (e.g., `otel-collector.yml`, config directories)
-6. Update the questionnaire in `scripts/init.ts` to offer the option
+1. Create a directory under `overlays/`
+2. Add `overlay.yml` manifest with metadata (category, dependencies, conflicts)
+3. Add `devcontainer.patch.json` with the partial configuration
+4. Optionally add `docker-compose.yml` for services
+5. Optionally add `.env.example` with environment variables
+6. Optionally add `README.md` with usage documentation
+7. Add any additional config files (e.g., `otel-collector.yml`, config directories)
 
-All files except `devcontainer.patch.json` and `.env.example` will be copied to the output directory.
+See [Creating Overlays Guide](../docs/creating-overlays.md) for complete documentation.
+
+## Presets (Meta-Overlays)
+
+Presets are special meta-overlays that select combinations of overlays for common scenarios (web-api, microservice, docs-site, fullstack). They're located in `overlays/presets/*.yml`.
+
+See [Presets Guide](../docs/presets.md) and [Presets Architecture](../docs/presets-architecture.md) for detailed documentation on creating and using presets.

@@ -1,0 +1,14 @@
+{
+  "version": "0.1.0",
+  "generated": "2026-02-11T07:03:17.857Z",
+  "baseTemplate": "plain",
+  "baseImage": "trixie",
+  "overlays": [
+    "nodejs",
+    "codex",
+    "docker-sock",
+    "git-helpers",
+    "modern-cli-tools"
+  ],
+  "containerName": "Container Superposition"
+}

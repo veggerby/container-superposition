@@ -27,7 +27,7 @@ describe('Manifest Regeneration', () => {
         }
     });
 
-    it('should include containerName and outputPath in manifest', async () => {
+    it('should include containerName in manifest', async () => {
         const outputPath = path.join(TEST_OUTPUT_DIR, 'test-manifest-fields');
 
         const answers: QuestionnaireAnswers = {
@@ -45,7 +45,7 @@ describe('Manifest Regeneration', () => {
 
         await composeDevContainer(answers);
 
-        // Verify manifest includes new fields
+        // Verify manifest includes containerName
         const manifestPath = path.join(outputPath, 'superposition.json');
         expect(fs.existsSync(manifestPath)).toBe(true);
 
@@ -53,7 +53,6 @@ describe('Manifest Regeneration', () => {
             fs.readFileSync(manifestPath, 'utf-8')
         ) as SuperpositionManifest;
         expect(manifest.containerName).toBeDefined();
-        expect(manifest.outputPath).toBe(outputPath);
         expect(manifest.overlays).toContain('nodejs');
     });
 

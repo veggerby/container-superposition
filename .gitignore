@@ -31,7 +31,6 @@ tmp/
 .env.local
 
 # Tool-generated examples (keep these out of repo)
-.devcontainer/
 examples/.devcontainer/
 
 # Keep these

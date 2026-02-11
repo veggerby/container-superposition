@@ -319,7 +319,7 @@ Overlays can include additional configuration files that are automatically copie
 ### Creating an Overlay with Config Files
 
 ```
-tool/overlays/my-service/
+overlays/my-service/
 ├── devcontainer.patch.json    # DevContainer configuration
 ├── docker-compose.yml         # Service definition
 ├── .env.example               # Environment variables

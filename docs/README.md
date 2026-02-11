@@ -93,7 +93,7 @@ Composable capability modules organized by category:
 
 - docker-in-docker, docker-sock, playwright, codex, git-helpers, pre-commit, commitlint, just, direnv, modern-cli-tools, ngrok
 
-Located in `tool/overlays/`
+Located in `overlays/`
 
 ### Composition
 
@@ -203,7 +203,7 @@ When published to npm, includes:
 
 - ✅ Compiled JavaScript (`dist/`)
 - ✅ All templates (`templates/`)
-- ✅ All overlays (`tool/overlays/`)
+- ✅ All overlays (`overlays/`)
 - ✅ All features (`features/`)
 - ✅ Configuration metadata (`overlays/index.yml`)
 - ✅ Type definitions and schema (`tool/schema/`)
@@ -269,10 +269,14 @@ MIT - See [LICENSE](../LICENSE)
 
 ### Add an Overlay
 
-1. Create `tool/overlays/<name>/`
+1. Create `overlays/<name>/`
 2. Add `devcontainer.patch.json`
-3. Optional: Add `docker-compose.yml`
-4. Update questionnaire
+3. Add `overlay.yml` manifest ([schema](../tool/schema/overlay-manifest.schema.json), [detailed guide](../.github/instructions/overlay-index.instructions.md))
+4. Optional: Add `docker-compose.yml`
+5. Optional: Add `README.md` documentation
+6. Update questionnaire
+
+See [Creating Overlays Guide](creating-overlays.md) for complete instructions.
 
 ### Add a Template
 

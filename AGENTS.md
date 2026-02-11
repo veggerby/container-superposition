@@ -28,6 +28,14 @@ Container Superposition is a **modular, overlay-based devcontainer scaffolding s
 git clone https://github.com/veggerby/container-superposition.git
 cd container-superposition
 
+# Option 1: Use the devcontainer (Recommended)
+# Open in VS Code and click "Reopen in Container"
+# The project dogfoods its own tooling - devcontainer includes:
+# - Node.js 20 with TypeScript
+# - Docker access via host socket
+# - Git helpers, modern CLI tools, Codex
+
+# Option 2: Manual setup
 # Install dependencies
 npm install
 
@@ -42,6 +50,22 @@ npm run init:build
 # or directly:
 node dist/scripts/init.js
 ```
+
+**The `.devcontainer/` folder in this repository:**
+
+This project uses Container Superposition to generate its own development environment. The configuration was created using:
+
+```bash
+npm run init -- --stack plain --language nodejs --dev-tools codex,docker-sock,git-helpers,modern-cli-tools
+```
+
+The generated configuration includes:
+
+- Node.js overlay with global packages (defined in `global-packages-nodejs.txt`)
+- Docker socket access for building and testing containers
+- Git helpers with LFS, GPG, and GitHub CLI
+- Modern CLI tools (jq, yq, ripgrep, fd, bat)
+- Codex for AI-powered assistance
 
 ## Development Workflow
 
@@ -335,7 +359,12 @@ const REPO_ROOT_CANDIDATES = [
     // overlays/my-overlay/devcontainer.patch.json
     {
         "features": {
-            "ghcr.io/example/feature:1": {}
+            "ghcr.io/example/feature:1": {},
+            // For cross-distribution package support
+            "./features/cross-distro-packages": {
+                "apt": "pkg1 pkg2", // Debian/Ubuntu
+                "apk": "pkg1 pkg2" // Alpine
+            }
         },
         "customizations": {
             "vscode": {
@@ -344,6 +373,8 @@ const REPO_ROOT_CANDIDATES = [
         }
     }
     ```
+
+    **Note:** Use `./features/cross-distro-packages` for system packages that need cross-distribution support. It automatically detects apt (Debian/Ubuntu) or apk (Alpine) and installs the appropriate packages.
 
 3. **Add docker-compose.yml (if multi-service):**
 
@@ -373,7 +404,13 @@ const REPO_ROOT_CANDIDATES = [
         - category-tag
         - technology-name
     ports: []
+    order: 10 # Optional: display order within category
     ```
+
+    **Schema reference:**
+    - JSON Schema: `tool/schema/overlay-manifest.schema.json`
+    - Detailed guide: `.github/instructions/overlay-index.instructions.md` (1000+ lines with examples)
+    - All fields documented with rules and best practices
 
 5. **Create other overlay files:**
 

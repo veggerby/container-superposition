@@ -176,10 +176,11 @@ Deliberate choice to avoid:
 
 ### Adding Overlays
 
-1. Create `tool/overlays/<name>/`
-2. Add `devcontainer.patch.json`
-3. Optional: Add `docker-compose.yml`
-4. Update questionnaire in `scripts/init.ts`
+1. Create `overlays/<name>/`
+2. Add `overlay.yml` manifest
+3. Add `devcontainer.patch.json`
+4. Optional: Add `docker-compose.yml`
+5. Update questionnaire in `scripts/init.ts`
 
 ### Adding Templates
 

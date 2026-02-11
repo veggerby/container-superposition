@@ -250,7 +250,6 @@ export interface SuperpositionManifest {
         reason: string;
     };
     containerName?: string; // Container/project name from devcontainer.json
-    outputPath?: string; // Output path used for generation
     customizations?: {
         enabled: boolean;
         location: string;
