@@ -1,5 +1,47 @@
 # Contributing to Container Superposition
 
+## Getting Started
+
+### Development Environment
+
+This repository uses Container Superposition to generate its own development environment (dogfooding!).
+
+**Using Devcontainer (Recommended):**
+
+1. Open the repository in VS Code
+2. Click "Reopen in Container" when prompted
+3. Everything is pre-configured: Node.js, TypeScript, Docker, Git tools
+
+The devcontainer configuration is in `.devcontainer/` and was generated using:
+
+```bash
+npm run init -- --stack plain --language nodejs --dev-tools codex,docker-sock,git-helpers,modern-cli-tools
+```
+
+**Without Devcontainer:**
+
+```bash
+npm install       # Install dependencies
+npm run build     # Compile TypeScript
+npm run init      # Run the tool
+npm test          # Run tests
+```
+
+### Project Structure
+
+```
+container-superposition/
+├── scripts/           # CLI entry points (init.ts)
+├── tool/              # Core composition logic
+│   ├── questionnaire/ # Overlay composer
+│   ├── schema/        # TypeScript types
+│   └── __tests__/     # Unit tests
+├── templates/         # Base templates (plain, compose)
+├── overlays/          # All available overlays
+├── features/          # Custom devcontainer features
+└── docs/              # Documentation
+```
+
 ## Adding a New Overlay
 
 Overlays are small, composable configuration fragments that add specific capabilities.
@@ -10,7 +52,52 @@ Overlays are small, composable configuration fragments that add specific capabil
 mkdir -p overlays/my-feature
 ```
 
-### 2. Create the Patch File
+### 2. Create the Overlay Manifest
+
+Create `overlays/my-feature/overlay.yml`:
+
+```yaml
+id: my-feature
+name: My Feature
+description: Brief description of what this overlay provides
+category: dev # language, database, observability, cloud, or dev
+supports: [] # Empty = works with all stacks, or [compose] for compose-only
+requires: [] # Other overlays that must be selected with this one
+suggests: [] # Recommended but optional overlays
+conflicts: [] # Overlays that cannot be used together with this one
+tags:
+    - category-tag
+    - feature-name
+ports: [] # Ports this overlay uses (for documentation)
+order: 10 # Optional: Display order within category (lower = first)
+```
+
+**Required fields:**
+
+- `id`: Unique identifier (must match directory name, kebab-case)
+- `name`: Display name shown in UI (Title Case)
+- `description`: One-line summary (no period at end)
+- `category`: Where it appears in questionnaire
+
+**Important fields:**
+
+- `category`: Determines where the overlay appears in the questionnaire
+- `supports`: Leave empty for both plain/compose, or specify `[compose]` if it requires Docker Compose
+- `requires`: Auto-adds dependencies when this overlay is selected
+- `conflicts`: Prevents incompatible combinations (e.g., docker-in-docker conflicts with docker-sock)
+- `tags`: Keywords for search/filtering (lowercase, kebab-case)
+
+**Optional fields:**
+
+- `order`: Display order within category (default is alphabetical by name)
+
+**📚 Complete schema documentation:**
+
+- JSON Schema: [tool/schema/overlay-manifest.schema.json](../tool/schema/overlay-manifest.schema.json)
+- Detailed field guide: [.github/instructions/overlay-index.instructions.md](../.github/instructions/overlay-index.instructions.md)
+- Examples: See existing overlays in [overlays/](../overlays/)
+
+### 3. Create the Patch File
 
 Create `overlays/my-feature/devcontainer.patch.json`:
 
@@ -21,6 +108,11 @@ Create `overlays/my-feature/devcontainer.patch.json`:
         "ghcr.io/devcontainers/features/some-tool:1": {
             "version": "latest",
         },
+        // For cross-distribution packages (Debian/Alpine support)
+        "./features/cross-distro-packages": {
+            "apt": "pkg1 pkg2", // Debian/Ubuntu package names
+            "apk": "pkg1 pkg2", // Alpine package names
+        },
     },
     "forwardPorts": [8080],
     "remoteEnv": {
@@ -30,7 +122,18 @@ Create `overlays/my-feature/devcontainer.patch.json`:
 }
 ```
 
-### 3. Add Docker Compose (Optional)
+**Using cross-distro-packages:**
+
+The `cross-distro-packages` feature automatically detects the base distribution and installs the appropriate packages. Use this for system packages that have different names across distributions:
+
+```jsonc
+"./features/cross-distro-packages": {
+    "apt": "build-essential netcat-traditional dnsutils",  // Debian/Ubuntu
+    "apk": "build-base netcat-openbsd bind-tools"          // Alpine
+}
+```
+
+### 4. Add Docker Compose (Optional)
 
 If your overlay needs a service, create `overlays/my-feature/docker-compose.yml`:
 
@@ -64,7 +167,7 @@ networks:
 - The composer will filter out dependencies not selected by the user
 - Use `networks: - devnet` to connect to the shared network
 
-### 4. Add Environment Variables (Optional)
+### 5. Add Environment Variables (Optional)
 
 Create `overlays/my-feature/.env.example`:
 
@@ -76,7 +179,7 @@ MY_FEATURE_PORT=8080
 
 This will be automatically merged into the combined `.env.example` file.
 
-### 5. Add Configuration Files (Optional)
+### 6. Add Configuration Files (Optional)
 
 Add any config files your service needs:
 
@@ -92,7 +195,7 @@ overlays/my-feature/
 
 All files except `devcontainer.patch.json` and `.env.example` will be copied to the output directory.
 
-### 6. Update runServices and Service Order
+### 7. Update runServices and Service Order
 
 In `devcontainer.patch.json`, specify which services to run and their startup order:
 
@@ -107,9 +210,9 @@ In `devcontainer.patch.json`, specify which services to run and their startup or
 }
 ```
 
-### 7. Update the Questionnaire
+### 8. Update the Questionnaire
 
-### 7. Update the Questionnaire
+### 8. Update the Questionnaire
 
 Edit `scripts/init.ts` to add your overlay as an option:
 
@@ -125,7 +228,7 @@ const observabilityTools = await checkbox({
 });
 ```
 
-### 8. Update Types
+### 9. Update Types
 
 Update `tool/schema/types.ts` if adding to a new or existing category:
 
@@ -136,7 +239,7 @@ export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'my-feature';
 // Or create a new category
 export type NewCategory = 'option1' | 'my-feature';
 
-### 9. Document It
+### 10. Document It
 
 Add to the appropriate section in `overlays/README.md`:
 
