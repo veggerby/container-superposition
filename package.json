@@ -2,6 +2,7 @@
     "name": "container-superposition",
     "version": "0.1.0",
     "description": "Solution-ready devcontainer templates and features with guided initialization",
+    "type": "module",
     "main": "dist/scripts/init.js",
     "bin": {
         "container-superposition": "./dist/scripts/init.js"
