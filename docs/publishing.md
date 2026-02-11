@@ -57,9 +57,6 @@ Publishing is **automated via GitHub Actions** when a new release is created.
 ### Manual Publishing (Development/Testing)
 
 For testing or emergency releases:
-### Manual Publishing (Development/Testing)
-
-For testing or emergency releases:
 
 ```bash
 # 1. Ensure you're logged in to npm
@@ -129,9 +126,6 @@ After publishing, verify:
    - Ensure README.md shows latest version
    - Update any version-specific examples
    - Announce on relevant channels
-
-## Troubleshooting
-```
 
 ## Pre-Publish Checklist
 

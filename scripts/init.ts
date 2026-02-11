@@ -1076,12 +1076,34 @@ async function runDoctor(options: { output?: string }) {
 
         const checks = [];
 
+        // Helper function for semantic version comparison
+        const isVersionAtLeast = (current: string, required: string): boolean => {
+            const parse = (v: string): [number, number, number] => {
+                const parts = v.split('.');
+                const major = parseInt(parts[0] ?? '0', 10) || 0;
+                const minor = parseInt(parts[1] ?? '0', 10) || 0;
+                const patch = parseInt(parts[2] ?? '0', 10) || 0;
+                return [major, minor, patch];
+            };
+
+            const [cMajor, cMinor, cPatch] = parse(current);
+            const [rMajor, rMinor, rPatch] = parse(required);
+
+            if (cMajor !== rMajor) {
+                return cMajor > rMajor;
+            }
+            if (cMinor !== rMinor) {
+                return cMinor > rMinor;
+            }
+            return cPatch >= rPatch;
+        };
+
         // Check Node.js version
         const nodeVersion = process.version;
         const requiredVersion = '20.0.0';
         const versionMatch = nodeVersion.match(/^v(\d+\.\d+\.\d+)/);
         const currentVersion = versionMatch ? versionMatch[1] : '0.0.0';
-        const nodeOk = currentVersion >= requiredVersion;
+        const nodeOk = isVersionAtLeast(currentVersion, requiredVersion);
         checks.push({
             name: 'Node.js version',
             status: nodeOk,
@@ -1249,7 +1271,7 @@ async function parseCliArgs(): Promise<{
             initOptions = {
                 ...options,
                 fromManifest: manifestPath,
-                noInteractive: true,
+                interactive: false,
             };
         });
 

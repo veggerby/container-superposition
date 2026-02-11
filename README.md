@@ -340,35 +340,6 @@ npx container-superposition init --stack plain --language mkdocs --dev-tools pre
 npx container-superposition init --stack plain --language powershell --cloud-tools aws-cli,azure-cli
 ```
 
-# Python data science with MongoDB
-npm run init -- --stack compose --language python --database mongodb --dev-tools jupyter
-
-# Event-driven architecture with Redpanda
-npm run init -- --stack compose --language nodejs --database redpanda,postgres --observability otel-collector,tempo,grafana
-
-# Multi-cloud setup with Terraform
-npm run init -- --stack plain --language python --cloud-tools aws-cli,azure-cli,gcloud,terraform,pulumi
-
-# Full observability stack with demo apps
-npm run init -- --stack compose --language nodejs --observability otel-collector,jaeger,prometheus,grafana,loki,tempo,otel-demo-nodejs
-
-# Bun with MinIO object storage
-npm run init -- --stack compose --language bun --database postgres,minio --dev-tools docker-sock
-
-# Documentation site with MkDocs
-npm run init -- --stack plain --language mkdocs --dev-tools pre-commit,modern-cli-tools
-
-# PowerShell scripting environment
-npm run init -- --stack plain --language powershell --cloud-tools azure-cli --dev-tools git-helpers
-
-# Full-stack with everything
-npm run init -- --stack compose --language nodejs --database postgres,redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,azure-cli,kubectl-helm --dev-tools playwright,docker-in-docker
-
-# Running multiple instances? Add port offset to avoid conflicts
-npm run init -- --stack compose --language nodejs --database postgres --observability jaeger,grafana --port-offset 100
-# This shifts all ports by 100: Grafana becomes 3100, Jaeger UI becomes 16786, etc.
-```
-
 **Port Offset for Multiple Instances:**
 
 If you're running multiple devcontainer instances simultaneously (e.g., multiple microservices), use `--port-offset` to avoid port conflicts:
