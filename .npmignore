@@ -1,5 +1,50 @@
+# Development files
 node_modules/
 *.log
 .DS_Store
 .vscode/
 .devcontainer/
+
+# Source TypeScript files (we only ship compiled dist/)
+scripts/*.ts
+tool/**/*.ts
+!tool/**/*.json
+!tool/**/*.yml
+
+# Test files
+**/__tests__/
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+vitest.config.ts
+
+# Build artifacts
+.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# GitHub
+.github/
+
+# Documentation source (keep generated docs)
+docs/generate-docs.ts
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE
+*.swp
+*.swo
+*~
+.idea/
+
+# Backups
+*.backup
+backups/

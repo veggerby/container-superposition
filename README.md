@@ -201,9 +201,41 @@ Custom devcontainer features that add value beyond containers.dev:
 
 ## 🚀 Quick Start
 
-### Option 1: Use the Init Tool (Recommended)
+### Via npx (Recommended)
 
-The guided initialization tool helps you compose your perfect environment:
+No installation required! Use npx to run the tool directly:
+
+```bash
+# Interactive mode - guided questionnaire
+npx container-superposition init
+
+# With CLI flags - skip to your stack
+npx container-superposition init --stack compose --language nodejs --database postgres
+
+# List all available overlays
+npx container-superposition list
+
+# Check your environment
+npx container-superposition doctor
+```
+
+### Global Installation (Optional)
+
+Install globally for faster repeated use:
+
+```bash
+# Install globally
+npm install -g container-superposition
+
+# Now use without npx
+container-superposition init
+container-superposition list
+container-superposition doctor
+```
+
+### From Source (Development)
+
+For contributors or those who want to modify the tool:
 
 ```bash
 # Clone the repository
@@ -216,6 +248,13 @@ npm install
 # Run the interactive setup
 npm run init
 ```
+
+### Available Commands
+
+- **`init`** - Initialize a new devcontainer configuration (default command)
+- **`regen`** - Regenerate devcontainer from existing manifest
+- **`list`** - List all available overlays and presets
+- **`doctor`** - Check environment and validate configuration
 
 The questionnaire guides you through:
 
@@ -261,23 +300,45 @@ See [docs/presets.md](docs/presets.md) for detailed preset documentation.
 
 ```bash
 # Using presets (interactive)
-npm run init
+npx container-superposition init
 # Select "Web API Stack" → Choose Node.js → Done!
 
 # Node.js API with PostgreSQL and observability
-npm run init -- --stack compose --language nodejs --database postgres --observability otel-collector,jaeger,prometheus,grafana
+npx container-superposition init --stack compose --language nodejs --database postgres --observability otel-collector,jaeger,prometheus,grafana
 
 # .NET microservice with full observability stack
-npm run init -- --stack compose --language dotnet --database postgres,redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
+npx container-superposition init --stack compose --language dotnet --database postgres,redis --observability otel-collector,jaeger,prometheus,grafana,loki --cloud-tools aws-cli,kubectl-helm
 
 # Go microservice with RabbitMQ messaging
-npm run init -- --stack compose --language go --database rabbitmq,redis --observability jaeger,prometheus
+npx container-superposition init --stack compose --language go --database rabbitmq,redis --observability jaeger,prometheus
 
 # Rust development environment with modern CLI tools
-npm run init -- --stack plain --language rust --dev-tools modern-cli-tools,git-helpers,pre-commit
+npx container-superposition init --stack plain --language rust --dev-tools modern-cli-tools,git-helpers,pre-commit
 
 # Java Spring Boot with MySQL
-npm run init -- --stack compose --language java --database mysql,redis --cloud-tools kubectl-helm
+npx container-superposition init --stack compose --language java --database mysql,redis --cloud-tools kubectl-helm
+
+# Python data science with MongoDB
+npx container-superposition init --stack compose --language python --database mongodb
+
+# Event-driven architecture with Redpanda
+npx container-superposition init --stack compose --language nodejs --database redpanda,postgres --observability otel-collector,tempo,grafana
+
+# Multi-cloud setup with Terraform
+npx container-superposition init --stack plain --language python --cloud-tools aws-cli,azure-cli,gcloud,terraform,pulumi
+
+# Full observability stack with demo apps
+npx container-superposition init --stack compose --language nodejs --observability otel-collector,jaeger,prometheus,grafana,loki,tempo,otel-demo-nodejs
+
+# Bun with MinIO object storage
+npx container-superposition init --stack compose --language bun --database postgres,minio --dev-tools docker-sock
+
+# Documentation site with MkDocs
+npx container-superposition init --stack plain --language mkdocs --dev-tools pre-commit,modern-cli-tools
+
+# PowerShell scripting environment
+npx container-superposition init --stack plain --language powershell --cloud-tools aws-cli,azure-cli
+```
 
 # Python data science with MongoDB
 npm run init -- --stack compose --language python --database mongodb --dev-tools jupyter
@@ -334,26 +395,32 @@ Every devcontainer generation creates a `superposition.json` manifest file that 
 - **Experiment safely** - Try different configurations with automatic backup
 - **Share configurations** - Commit the manifest for team consistency
 
-**Basic regeneration (interactive):**
+**Quick regeneration (recommended):**
+
+```bash
+# Simple regen command - automatically finds manifest in .devcontainer/
+npx container-superposition regen
+
+# Creates backup and regenerates with exact same settings from manifest
+```
+
+**Interactive regeneration with changes:**
 
 ```bash
 # Loads manifest, creates backup, shows questionnaire with pre-selected options
-npm run init -- --from-manifest ./superposition.json
+npx container-superposition init --from-manifest ./.devcontainer/superposition.json
 
 # Or from a different location (regenerates in the manifest's directory)
-npm run init -- --from-manifest /path/to/project/superposition.json
+npx container-superposition init --from-manifest /path/to/project/.devcontainer/superposition.json
 ```
 
 > **Note:** When using `--from-manifest`, the devcontainer is generated relative to the manifest file's location, not your current working directory. This means you can run the command from anywhere and the output will go to the correct project directory.
 
-**Non-interactive regeneration (exact same setup):**
+**Non-interactive regeneration (CI/CD):**
 
 ```bash
-# Regenerate with exact same selections (useful for updates)
-npm run init -- --from-manifest ./superposition.json --yes --no-backup
-
 # Truly non-interactive: use manifest values directly without questionnaire
-npm run init -- --from-manifest ./superposition.json --no-interactive --no-backup
+npx container-superposition init --from-manifest ./.devcontainer/superposition.json --no-interactive --no-backup
 ```
 
 > **Note:** The `--no-interactive` option skips the questionnaire entirely and uses all values from the manifest. This is perfect for CI/CD pipelines or when you want to ensure exact reproducibility.
@@ -362,22 +429,22 @@ npm run init -- --from-manifest ./superposition.json --no-interactive --no-backu
 
 ```bash
 # 1. Initial setup
-npm run init -- --stack compose --language nodejs --database postgres
+npx container-superposition init --stack compose --language nodejs --database postgres
 # Creates .devcontainer/ and superposition.json
 
 # 2. Later: Add Redis and observability (interactive)
-npm run init -- --from-manifest ./superposition.json
+npx container-superposition init --from-manifest ./.devcontainer/superposition.json
 # Questionnaire shows with nodejs and postgres pre-selected
 # Add redis, otel-collector, grafana
 # Original .devcontainer/ backed up automatically
 
-# 3. Update to latest overlay versions (non-interactive)
-npm run init -- --from-manifest ./superposition.json --no-interactive --no-backup
-# Uses exact manifest values, no questions asked
-# Perfect for CI/CD or ensuring reproducibility
+# 3. Update to latest overlay versions (simple regen)
+npx container-superposition regen
+# Uses exact manifest values, creates backup
+# Perfect for pulling latest overlay updates
 
 # 4. Switch languages (e.g., Node.js → Python)
-npm run init -- --from-manifest ./superposition.json
+npx container-superposition init --from-manifest ./.devcontainer/superposition.json
 # Change nodejs to python in questionnaire
 # Regenerate with new language
 ```
