@@ -329,8 +329,8 @@ npx container-superposition doctor --fix
 **Doctor checks:**
 
 - ✅ Node.js version compatibility (>= 18)
-- ✅ Docker daemon accessibility
-- ✅ Docker Compose v2 availability
+- ✅ Docker daemon connectivity
+- ✅ Docker Compose v2 availability (when using compose stack)
 - ✅ Overlay integrity (valid manifests, required files)
 - ✅ Manifest compatibility
 - ⚠️ Port conflicts (best-effort detection)

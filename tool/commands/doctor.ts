@@ -4,10 +4,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as net from 'net';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 import boxen from 'boxen';
-import type { OverlaysConfig, OverlayMetadata, SuperpositionManifest } from '../schema/types.js';
+import type { OverlaysConfig, SuperpositionManifest } from '../schema/types.js';
 import { loadOverlayManifest } from '../schema/overlay-loader.js';
 
 interface DoctorOptions {
@@ -87,10 +88,13 @@ function checkNodeVersion(): CheckResult {
 }
 
 /**
- * Check if Docker is available
+ * Check if Docker daemon is accessible
  */
 function checkDocker(): CheckResult {
     try {
+        // Use 'docker info' to verify daemon connectivity, not just CLI presence
+        execSync('docker info', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        // Get version for display
         const version = execSync('docker --version', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
         return {
             name: 'Docker daemon',
@@ -103,7 +107,7 @@ function checkDocker(): CheckResult {
             status: 'warn',
             message: 'Not accessible',
             details: [
-                'Docker is required for devcontainer functionality',
+                'Docker daemon is not running or not accessible',
                 'Install Docker Desktop or Docker Engine',
                 'Ensure Docker daemon is running',
             ],
@@ -170,8 +174,35 @@ function checkDockerCompose(): CheckResult {
 /**
  * Run environment checks
  */
-function checkEnvironment(): CheckResult[] {
-    return [checkNodeVersion(), checkDocker(), checkDockerCompose()];
+function checkEnvironment(outputPath: string): CheckResult[] {
+    const results: CheckResult[] = [checkNodeVersion(), checkDocker()];
+
+    // Only check Docker Compose if using compose stack
+    const baseTemplate = getBaseTemplateFromManifest(outputPath);
+    if (baseTemplate === 'compose') {
+        results.push(checkDockerCompose());
+    }
+
+    return results;
+}
+
+/**
+ * Get base template from manifest if it exists
+ */
+function getBaseTemplateFromManifest(outputPath: string): SuperpositionManifest['baseTemplate'] | undefined {
+    const manifestPath = path.join(outputPath, 'superposition.json');
+
+    if (!fs.existsSync(manifestPath)) {
+        return undefined;
+    }
+
+    try {
+        const content = fs.readFileSync(manifestPath, 'utf8');
+        const manifest = JSON.parse(content) as SuperpositionManifest;
+        return manifest.baseTemplate;
+    } catch {
+        return undefined;
+    }
 }
 
 /**
@@ -306,14 +337,26 @@ function checkOverlays(overlaysDir: string): CheckResult[] {
 }
 
 /**
- * Check if a port is in use
+ * Check if a port is in use (cross-platform using Node.js net module)
  */
 function isPortInUse(port: number): boolean {
     try {
-        // Try to bind to the port
-        execSync(`nc -z localhost ${port}`, { stdio: 'ignore' });
-        return true;
+        const server = net.createServer();
+        let inUse = false;
+
+        // Try to listen on the port
+        server.once('error', (err: NodeJS.ErrnoException) => {
+            if (err.code === 'EADDRINUSE') {
+                inUse = true;
+            }
+        });
+
+        server.listen(port, '127.0.0.1');
+        server.close();
+
+        return inUse;
     } catch {
+        // If we can't check, assume it's not in use
         return false;
     }
 }
@@ -413,17 +456,22 @@ function checkManifest(outputPath: string): CheckResult[] {
         const content = fs.readFileSync(manifestPath, 'utf8');
         const manifest = JSON.parse(content) as SuperpositionManifest;
 
-        // Check tool version compatibility
+        // Check manifest format version compatibility
         const manifestVersion = manifest.version || '0.0.0';
-        const currentVersion = '0.1.1'; // Should match package.json version
+        const expectedManifestFormatVersion = '0.1.0';
+
+        const versionStatus = manifestVersion === expectedManifestFormatVersion ? 'pass' : 'warn';
 
         results.push({
             name: 'Manifest version',
-            status: 'pass',
-            message: `Format version ${manifestVersion}`,
+            status: versionStatus,
+            message: `Manifest format version ${manifestVersion}`,
             details:
-                manifestVersion !== currentVersion
-                    ? [`Current tool version: ${currentVersion}`, 'Consider regenerating with latest version']
+                manifestVersion !== expectedManifestFormatVersion
+                    ? [
+                          `Expected manifest format version: ${expectedManifestFormatVersion}`,
+                          'Consider regenerating the manifest with the current tool if you encounter issues',
+                      ]
                     : undefined,
         });
 
@@ -444,7 +492,6 @@ function checkManifest(outputPath: string): CheckResult[] {
                 status: 'fail',
                 message: 'devcontainer.json not found',
                 details: ['Devcontainer configuration file is missing or corrupted'],
-                fixable: true,
             });
         } else {
             // Validate devcontainer.json is valid JSON
@@ -461,7 +508,6 @@ function checkManifest(outputPath: string): CheckResult[] {
                     name: 'DevContainer config',
                     status: 'fail',
                     message: 'devcontainer.json has invalid JSON',
-                    fixable: true,
                 });
             }
         }
@@ -471,7 +517,6 @@ function checkManifest(outputPath: string): CheckResult[] {
             status: 'fail',
             message: 'Invalid JSON in superposition.json',
             details: [`Parse error: ${error instanceof Error ? error.message : String(error)}`],
-            fixable: true,
         });
     }
 
@@ -641,7 +686,7 @@ export async function doctorCommand(
     }
 
     // Run all checks
-    const environmentChecks = checkEnvironment();
+    const environmentChecks = checkEnvironment(outputPath);
     const overlayChecks = checkOverlays(overlaysDir);
     const manifestChecks = checkManifest(outputPath);
     const manifestPath = path.join(outputPath, 'superposition.json');
