@@ -11,6 +11,7 @@ This guide explains how to publish `container-superposition` to npm, making it a
 **Entry Point:** `dist/scripts/init.js`
 
 **Available Commands:**
+
 - `container-superposition init` - Interactive devcontainer setup
 - `container-superposition regen` - Regenerate from manifest
 - `container-superposition list` - List available overlays
@@ -23,36 +24,38 @@ Publishing is **automated via GitHub Actions** when a new release is created.
 ### Automated Publishing (Recommended)
 
 1. **Update version in package.json:**
-   ```bash
-   npm version patch   # 0.1.0 → 0.1.1 (bug fixes)
-   npm version minor   # 0.1.0 → 0.2.0 (new features)
-   npm version major   # 0.1.0 → 1.0.0 (breaking changes)
-   ```
+
+    ```bash
+    npm version patch   # 0.1.0 → 0.1.1 (bug fixes)
+    npm version minor   # 0.1.0 → 0.2.0 (new features)
+    npm version major   # 0.1.0 → 1.0.0 (breaking changes)
+    ```
 
 2. **Update CHANGELOG.md** with release notes
 
 3. **Commit and push changes:**
-   ```bash
-   git add package.json package-lock.json CHANGELOG.md
-   git commit -m "chore: bump version to X.Y.Z"
-   git push
-   ```
+
+    ```bash
+    git add package.json package-lock.json CHANGELOG.md
+    git commit -m "chore: bump version to X.Y.Z"
+    git push
+    ```
 
 4. **Create GitHub Release:**
-   - Go to https://github.com/veggerby/container-superposition/releases/new
-   - Tag: `vX.Y.Z` (e.g., `v0.1.1`)
-   - Title: `vX.Y.Z`
-   - Description: Copy from CHANGELOG.md
-   - Click "Publish release"
+    - Go to https://github.com/veggerby/container-superposition/releases/new
+    - Tag: `vX.Y.Z` (e.g., `v0.1.1`)
+    - Title: `vX.Y.Z`
+    - Description: Copy from CHANGELOG.md
+    - Click "Publish release"
 
 5. **GitHub Actions will automatically:**
-   - ✅ Validate semantic version format
-   - ✅ Install dependencies
-   - ✅ Run tests
-   - ✅ Build TypeScript
-   - ✅ Verify package contents
-   - ✅ Publish to npm with provenance
-   - ✅ Verify publication
+    - ✅ Validate semantic version format
+    - ✅ Install dependencies
+    - ✅ Run tests
+    - ✅ Build TypeScript
+    - ✅ Verify package contents
+    - ✅ Publish to npm with provenance
+    - ✅ Verify publication
 
 ### Manual Publishing (Development/Testing)
 
@@ -105,27 +108,30 @@ Before creating a release, verify:
 After publishing, verify:
 
 1. **Package is live on npm:**
-   ```bash
-   npm view container-superposition
-   ```
+
+    ```bash
+    npm view container-superposition
+    ```
 
 2. **npx works:**
-   ```bash
-   npx container-superposition@latest --help
-   npx container-superposition@latest list
-   npx container-superposition@latest doctor
-   ```
+
+    ```bash
+    npx container-superposition@latest --help
+    npx container-superposition@latest list
+    npx container-superposition@latest doctor
+    ```
 
 3. **Installation works:**
-   ```bash
-   npm install -g container-superposition
-   container-superposition init --help
-   ```
+
+    ```bash
+    npm install -g container-superposition
+    container-superposition init --help
+    ```
 
 4. **Update documentation:**
-   - Ensure README.md shows latest version
-   - Update any version-specific examples
-   - Announce on relevant channels
+    - Ensure README.md shows latest version
+    - Update any version-specific examples
+    - Announce on relevant channels
 
 ## Pre-Publish Checklist
 
@@ -154,6 +160,10 @@ npm run test:smoke
 ```bash
 # Dry run to see what will be published
 npm pack --dry-run
+
+# Note: You may see a warning about .npmignore not being found.
+# This is safe to ignore - we use the "files" field in package.json
+# as the primary inclusion mechanism (explicit allowlist approach).
 ```
 
 **Expected contents:**
@@ -323,6 +333,32 @@ jobs:
 
 ## Troubleshooting
 
+### ".npmignore not found" Warning
+
+If you see:
+```
+npm warn gitignore-fallback No .npmignore file found, using .gitignore for file exclusion.
+```
+
+**This warning can be safely ignored.** The package uses the `"files"` field in `package.json` as the primary inclusion mechanism (allowlist approach), which is more explicit and maintainable than `.npmignore` (denylist approach).
+
+The `"files"` field specifies exactly what to include:
+```json
+{
+  "files": [
+    "dist/",
+    "templates/",
+    "features/",
+    "overlays/",
+    "tool/**/*.json",
+    "tool/**/*.yml",
+    "docs/**/*.md"
+  ]
+}
+```
+
+This approach is recommended by npm for packages.
+
 ### Build Fails
 
 ```bash
@@ -341,19 +377,22 @@ Check what's being included:
 npm pack --dry-run | grep "npm notice"
 ```
 
-Exclude unnecessary files in `.npmignore`:
+To exclude unnecessary files, modify the `"files"` array in `package.json`:
 
+```json
+{
+  "files": [
+    "dist/",           // Keep compiled code
+    "templates/",      // Keep base templates
+    "features/",       // Keep custom features
+    "overlays/",       // Keep all overlays
+    // Exclude specific patterns with "!" prefix if needed
+    "!overlays/**/node_modules"
+  ]
+}
 ```
-node_modules/
-*.log
-.DS_Store
-.vscode/
-.devcontainer/
-tmp/
-__tests__/
-*.test.ts
-vitest.config.ts
-```
+
+The `"files"` field is an allowlist - only listed items are included. This is more explicit and maintainable than using `.npmignore`.
 
 ### Permission Errors
 
