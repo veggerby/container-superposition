@@ -1,54 +1,136 @@
 # Publishing to npm
 
-This guide explains how to publish `container-superposition` to npm, making it available via `npx container-superposition init`.
+This guide explains how to publish `container-superposition` to npm, making it available via `npx container-superposition`.
 
-## Prerequisites
+## Package Overview
 
-### 1. npm Account
+**Package Name:** `container-superposition`  
+**Current Version:** `0.1.0`  
+**Size:** ~327 KB (compressed), 1.2 MB (unpacked)  
+**Files:** 327 files  
+**Entry Point:** `dist/scripts/init.js`
+
+**Available Commands:**
+- `container-superposition init` - Interactive devcontainer setup
+- `container-superposition regen` - Regenerate from manifest
+- `container-superposition list` - List available overlays
+- `container-superposition doctor` - Environment validation
+
+## Publishing Process
+
+Publishing is **automated via GitHub Actions** when a new release is created.
+
+### Automated Publishing (Recommended)
+
+1. **Update version in package.json:**
+   ```bash
+   npm version patch   # 0.1.0 → 0.1.1 (bug fixes)
+   npm version minor   # 0.1.0 → 0.2.0 (new features)
+   npm version major   # 0.1.0 → 1.0.0 (breaking changes)
+   ```
+
+2. **Update CHANGELOG.md** with release notes
+
+3. **Commit and push changes:**
+   ```bash
+   git add package.json package-lock.json CHANGELOG.md
+   git commit -m "chore: bump version to X.Y.Z"
+   git push
+   ```
+
+4. **Create GitHub Release:**
+   - Go to https://github.com/veggerby/container-superposition/releases/new
+   - Tag: `vX.Y.Z` (e.g., `v0.1.1`)
+   - Title: `vX.Y.Z`
+   - Description: Copy from CHANGELOG.md
+   - Click "Publish release"
+
+5. **GitHub Actions will automatically:**
+   - ✅ Validate semantic version format
+   - ✅ Install dependencies
+   - ✅ Run tests
+   - ✅ Build TypeScript
+   - ✅ Verify package contents
+   - ✅ Publish to npm with provenance
+   - ✅ Verify publication
+
+### Manual Publishing (Development/Testing)
+
+For testing or emergency releases:
+### Manual Publishing (Development/Testing)
+
+For testing or emergency releases:
 
 ```bash
-# Create account at https://www.npmjs.com/signup
-# Or login if you already have one
+# 1. Ensure you're logged in to npm
+npm whoami
+
+# If not logged in:
 npm login
-```
 
-### 2. Verify Package Configuration
-
-The package is already configured for publishing. Verify the setup:
-
-```bash
-# Check package.json configuration
-cat package.json | jq '.name, .version, .bin, .files'
-```
-
-**Expected output:**
-
-```json
-"container-superposition"
-"0.1.0"
-{
-  "container-superposition": "./dist/scripts/init.js"
-}
-[
-  "dist/",
-  "templates/",
-  "features/",
-  "tool/",
-  "README.md",
-  "LICENSE"
-]
-```
-
-### 3. Verify Build Works
-
-```bash
-# Clean and rebuild
+# 2. Run pre-publish checks
 npm run clean
 npm install
 npm run build
+npm test
 
-# Test compiled output
-npm run init:build -- --help
+# 3. Verify package contents
+npm pack --dry-run
+
+# 4. Test locally with npx
+npm pack
+cd /tmp && npm install /path/to/container-superposition-X.Y.Z.tgz
+npx container-superposition --help
+npx container-superposition list
+
+# 5. Publish to npm
+npm publish --access public
+
+# For beta/test releases
+npm publish --tag beta --access public
+```
+
+## Pre-Publish Checklist
+
+Before creating a release, verify:
+
+- [ ] All tests pass (`npm test`)
+- [ ] TypeScript builds without errors (`npm run build`)
+- [ ] Package size is reasonable (`npm pack --dry-run`)
+- [ ] CHANGELOG.md is updated with release notes
+- [ ] Version number follows semantic versioning
+- [ ] README.md reflects current functionality
+- [ ] No secrets or sensitive data in package
+- [ ] All CLI commands work (`init`, `regen`, `list`, `doctor`)
+
+## Post-Publication
+
+After publishing, verify:
+
+1. **Package is live on npm:**
+   ```bash
+   npm view container-superposition
+   ```
+
+2. **npx works:**
+   ```bash
+   npx container-superposition@latest --help
+   npx container-superposition@latest list
+   npx container-superposition@latest doctor
+   ```
+
+3. **Installation works:**
+   ```bash
+   npm install -g container-superposition
+   container-superposition init --help
+   ```
+
+4. **Update documentation:**
+   - Ensure README.md shows latest version
+   - Update any version-specific examples
+   - Announce on relevant channels
+
+## Troubleshooting
 ```
 
 ## Pre-Publish Checklist
