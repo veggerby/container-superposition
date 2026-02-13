@@ -1,5 +1,9 @@
 # container-superposition
 
+[![Validate Overlays](https://github.com/veggerby/container-superposition/actions/workflows/validate-overlays.yml/badge.svg)](https://github.com/veggerby/container-superposition/actions/workflows/validate-overlays.yml)
+[![Build DevContainers](https://github.com/veggerby/container-superposition/actions/workflows/build-devcontainers.yml/badge.svg)](https://github.com/veggerby/container-superposition/actions/workflows/build-devcontainers.yml)
+[![npm version](https://badge.fury.io/js/container-superposition.svg)](https://www.npmjs.com/package/container-superposition)
+
 Composable devcontainer scaffolds that collapse into working environments.
 
 ## 🎯 Purpose
@@ -456,6 +460,25 @@ npm run init -- --stack compose --language nodejs --postgres --port-offset 200 -
 ```
 
 This automatically adjusts all exposed ports in docker-compose.yml and documents the offset in .env.example.
+
+### Deployment Target Support
+
+Container Superposition validates overlay compatibility with different deployment environments (local, Codespaces, Gitpod, DevPod) using the `--target` flag.
+
+```bash
+# Specify deployment target
+npx container-superposition init --target codespaces
+npx container-superposition init --target gitpod
+npx container-superposition init --target local  # default
+```
+
+The tool automatically validates overlay compatibility and warns you when selecting overlays that won't work in your target environment (e.g., `docker-sock` doesn't work in Codespaces).
+
+**📖 See [Deployment Targets Documentation](docs/deployment-targets.md) for:**
+- Complete target comparison table
+- Interactive mode examples
+- Environment-specific configuration
+- Compatibility rules and best practices
 
 ### Regenerating from Manifest
 

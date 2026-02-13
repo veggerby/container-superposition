@@ -168,8 +168,6 @@ function generateDocumentation(config: OverlaysConfig): string {
     // Footer
     sections.push('---');
     sections.push('');
-    sections.push(`*Documentation generated on ${new Date().toISOString()}*`);
-    sections.push('');
 
     return sections.join('\n');
 }

@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Deployment target support** — Environment-specific optimizations and validation
+    - `--target` flag supports: local (default), codespaces, gitpod, devpod
+    - Automatic compatibility validation for selected overlays
+    - Environment-specific recommendations (e.g., docker-in-docker for cloud IDEs)
+    - Interactive target selection when incompatible overlays detected
+    - Extensible system for adding new deployment environments
+    - Port forwarding behavior adapts to target environment
+    - Target-specific constraints (Docker access, privileged containers)
+    - Configuration stored in `overlays/.registry/deployment-targets.yml`
+    
+- **GitHub Actions workflows** — Automated validation and documentation checks
+    - `validate-overlays.yml` — Runs on pull requests to validate overlay changes
+        - Executes `doctor` command for environment validation
+        - Runs full test suite
+        - Executes smoke tests to ensure overlay combinations work
+        - Uses Node.js LTS version
+    - `generate-docs.yml` — Validates generated documentation on pull requests
+        - Runs when overlays or docs generation scripts change
+        - Fails if generated docs are out of sync (prevents drift)
+        - Ensures documentation is committed before merge
+    - Workflow status badges added to README
+
 - **Environment validation command** — Comprehensive `doctor` command for diagnostics
     - Node.js version check (>= 18 required)
     - Docker daemon accessibility verification

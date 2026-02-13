@@ -22,6 +22,7 @@ import type {
     DevContainer,
     OverlaysConfig,
     OverlayMetadata,
+    DeploymentTarget,
 } from '../tool/schema/types.js';
 import { composeDevContainer } from '../tool/questionnaire/composer.js';
 import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
@@ -29,6 +30,10 @@ import { listCommand } from '../tool/commands/list.js';
 import { explainCommand } from '../tool/commands/explain.js';
 import { planCommand } from '../tool/commands/plan.js';
 import { doctorCommand } from '../tool/commands/doctor.js';
+import {
+    getIncompatibleOverlays,
+    DEPLOYMENT_TARGETS,
+} from '../tool/schema/deployment-targets.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -837,6 +842,76 @@ async function runQuestionnaire(
 
         const playwright = selectedOverlays.includes('playwright');
 
+        // Check for deployment target compatibility
+        let target: DeploymentTarget | undefined;
+        
+        // Check if any incompatible overlays selected
+        const incompatibleOverlays = getIncompatibleOverlays(selectedOverlays, undefined);
+        
+        if (incompatibleOverlays.length > 0) {
+            console.log(chalk.yellow('\n⚠️  Deployment Target Compatibility Check:\n'));
+            console.log(chalk.gray('Some selected overlays may not work in all environments.'));
+            console.log();
+            
+            // Show incompatibilities
+            for (const { overlay, alternatives } of incompatibleOverlays) {
+                const overlayMeta = allOverlaysMap.get(overlay);
+                console.log(chalk.yellow(`   • ${overlayMeta?.name || overlay}`));
+                console.log(chalk.gray(`     Not compatible with: ${DEPLOYMENT_TARGETS.codespaces.name}, ${DEPLOYMENT_TARGETS.gitpod.name}`));
+                if (alternatives.length > 0) {
+                    const altNames = alternatives.map(id => allOverlaysMap.get(id)?.name || id).join(', ');
+                    console.log(chalk.cyan(`     Alternatives: ${altNames}`));
+                }
+                console.log();
+            }
+            
+            const targetChoice = await select({
+                message: 'Which environment are you targeting?',
+                choices: [
+                    {
+                        name: '🖥️  Local Development (Docker Desktop)',
+                        value: 'local',
+                        description: 'Running on your local machine - supports all overlays',
+                    },
+                    {
+                        name: '☁️  GitHub Codespaces',
+                        value: 'codespaces',
+                        description: 'Cloud development - may require docker-in-docker',
+                    },
+                    {
+                        name: '🌐 Gitpod',
+                        value: 'gitpod',
+                        description: 'Cloud development - may require docker-in-docker',
+                    },
+                    {
+                        name: '📦 DevPod',
+                        value: 'devpod',
+                        description: 'Client-only dev environments',
+                    },
+                ],
+                default: 'local',
+            }) as DeploymentTarget;
+            
+            target = targetChoice;
+            
+            // Show specific incompatibilities for selected target
+            if (target !== 'local') {
+                const targetIncompatible = getIncompatibleOverlays(selectedOverlays, target);
+                if (targetIncompatible.length > 0) {
+                    console.log(chalk.yellow(`\n⚠️  Warning: Some overlays won't work in ${DEPLOYMENT_TARGETS[target].name}:\n`));
+                    for (const { overlay, alternatives } of targetIncompatible) {
+                        const overlayMeta = allOverlaysMap.get(overlay);
+                        console.log(chalk.red(`   ✗ ${overlayMeta?.name || overlay}`));
+                        if (alternatives.length > 0) {
+                            const altNames = alternatives.map(id => allOverlaysMap.get(id)?.name || id).join(', ');
+                            console.log(chalk.cyan(`     → Recommended: ${altNames}`));
+                        }
+                    }
+                    console.log();
+                }
+            }
+        }
+
         return {
             stack,
             baseImage,
@@ -854,6 +929,7 @@ async function runQuestionnaire(
             observability,
             outputPath,
             portOffset,
+            target,
         };
     } catch (error) {
         if ((error as any).name === 'ExitPromptError') {
@@ -1073,6 +1149,11 @@ async function parseCliArgs(): Promise<{
             '--port-offset <number>',
             'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)'
         )
+        .option(
+            '--target <environment>',
+            'Deployment target: local, codespaces, gitpod, devpod (optimizes for environment)',
+            'local'
+        )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .action((options) => {
             // Store options for main() to process
@@ -1207,6 +1288,9 @@ async function parseCliArgs(): Promise<{
     }
     if (initOptions.portOffset) {
         config.portOffset = parseInt(initOptions.portOffset, 10);
+    }
+    if (initOptions.target) {
+        config.target = initOptions.target as DeploymentTarget;
     }
     if (initOptions.output) config.outputPath = initOptions.output;
 
