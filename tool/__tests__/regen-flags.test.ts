@@ -157,7 +157,6 @@ describe('Regen with Minimal and Editor Flags', () => {
             devTools: ['modern-cli-tools'],
             playwright: false,
             cloudTools: [],
-            devTools: [],
             observability: [],
             outputPath: testOutputPath,
             minimal: true,
