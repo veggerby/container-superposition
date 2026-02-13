@@ -10,6 +10,7 @@ import chalk from 'chalk';
 import boxen from 'boxen';
 import type { OverlaysConfig, SuperpositionManifest } from '../schema/types.js';
 import { loadOverlayManifest } from '../schema/overlay-loader.js';
+import { getPortNumber } from '../utils/port-utils.js';
 
 interface DoctorOptions {
     output?: string;
@@ -381,7 +382,8 @@ function checkPorts(overlaysConfig: OverlaysConfig, manifestPath?: string): Chec
                 const overlay = overlaysConfig.overlays.find((o) => o.id === overlayId);
                 if (overlay && overlay.ports) {
                     for (const port of overlay.ports) {
-                        const actualPort = port + (manifest.portOffset || 0);
+                        const portNum = getPortNumber(port);
+                        const actualPort = portNum + (manifest.portOffset || 0);
                         if (!portsToCheck.has(actualPort)) {
                             portsToCheck.set(actualPort, []);
                         }
