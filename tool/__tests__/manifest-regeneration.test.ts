@@ -108,7 +108,8 @@ describe('Manifest Regeneration', () => {
         ) as SuperpositionManifest;
 
         // Validate required fields
-        expect(manifest.version).toBe('0.1.0');
+        expect(manifest.manifestVersion).toBe('1');
+        expect(manifest.generatedBy).toBeDefined();
         expect(manifest.generated).toBeDefined();
         expect(new Date(manifest.generated).getTime()).toBeLessThanOrEqual(Date.now());
         expect(manifest.baseTemplate).toBe('plain');
