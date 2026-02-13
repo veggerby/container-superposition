@@ -1,0 +1,262 @@
+# Event-Sourced Service Preset
+# Development environment for event-driven/CQRS applications
+
+id: event-sourced-service
+name: Event-Sourced Service
+description: Event-driven architecture with event store, message broker, and observability
+type: meta
+category: preset
+supports: [compose] # Requires Docker Compose for services
+tags: [preset, event-sourcing, cqrs, messaging, event-driven]
+
+# Overlays to select
+selects:
+    # Always included
+    required:
+        - minio # Object storage for events
+        - otel-collector
+        - jaeger
+        - prometheus
+        - grafana
+
+    # User makes choices
+    userChoice:
+        language:
+            id: language
+            prompt: Select service language/framework
+            options: [nodejs, dotnet, python, go, java]
+            defaultOption: nodejs
+
+        eventStore:
+            id: eventStore
+            prompt: Select event store database
+            options: [postgres, mongodb]
+            defaultOption: postgres
+
+        messaging:
+            id: messaging
+            prompt: Select message broker
+            options: [rabbitmq, redpanda, nats]
+            defaultOption: rabbitmq
+
+# Glue configuration - integration helpers
+glueConfig:
+    # Pre-configured environment variables
+    environment:
+        # Event store configuration (varies by choice)
+        # PostgreSQL event store
+        EVENT_STORE_URL: 'postgresql://postgres:postgres@postgres:5432/eventstore'
+        POSTGRES_HOST: 'postgres'
+        POSTGRES_PORT: '5432'
+        POSTGRES_DB: 'eventstore'
+
+        # MongoDB event store (alternative)
+        MONGODB_URL: 'mongodb://mongodb:27017/eventstore'
+        MONGODB_HOST: 'mongodb'
+        MONGODB_PORT: '27017'
+        MONGODB_DB: 'eventstore'
+
+        # MinIO for event snapshots and archives
+        MINIO_ENDPOINT: 'minio:9000'
+        MINIO_ACCESS_KEY: 'minioadmin'
+        MINIO_SECRET_KEY: 'minioadmin'
+        MINIO_BUCKET: 'events'
+        MINIO_USE_SSL: 'false'
+
+        # Messaging URLs (varies by choice)
+        # RabbitMQ
+        RABBITMQ_URL: 'amqp://rabbitmq:5672'
+
+        # Redpanda (Kafka-compatible)
+        KAFKA_BROKERS: 'redpanda:9092'
+
+        # NATS
+        NATS_URL: 'nats://nats:4222'
+
+        # OpenTelemetry configuration
+        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel-collector:4317'
+        OTEL_SERVICE_NAME: 'event-service'
+        OTEL_METRICS_EXPORTER: 'otlp'
+        OTEL_TRACES_EXPORTER: 'otlp'
+        OTEL_LOGS_EXPORTER: 'otlp'
+
+        # Event sourcing settings
+        EVENT_STORE_SNAPSHOT_THRESHOLD: '100'
+        EVENT_STORE_RETENTION_DAYS: '30'
+
+    # Suggested port mappings
+    portMappings:
+        service: 8080
+        grafana: 3000
+        prometheus: 9090
+        jaeger: 16686
+        minio: 9000
+        minio-console: 9001
+
+    # README snippet to add to generated devcontainer
+    readme: |
+        ## Event-Sourced Service Stack
+
+        This devcontainer is configured for event-driven architecture development:
+
+        ### Architecture Pattern
+
+        ```
+        Commands ──→ Service ──→ Event Store (append-only)
+                        │              │
+                        ↓              ↓
+                  Message Broker ← Events Published
+                        │
+                        ↓
+          Read Models / Projections
+        ```
+
+        ### Services
+
+        - **Event Store**: Your chosen database (PostgreSQL or MongoDB) for event persistence
+        - **Message Broker**: Async event distribution (RabbitMQ, Redpanda, or NATS)
+        - **MinIO**: Object storage for event snapshots and archives (ports 9000, 9001)
+        - **OpenTelemetry Collector**: Distributed tracing (ports 4317, 4318)
+        - **Jaeger**: Trace visualization (port 16686)
+        - **Prometheus**: Metrics storage (port 9090)
+        - **Grafana**: Observability dashboard (port 3000)
+
+        ### Connection Strings
+
+        #### Event Store
+
+        ```bash
+        # PostgreSQL
+        EVENT_STORE_URL="postgresql://postgres:postgres@postgres:5432/eventstore"
+
+        # MongoDB (alternative)
+        MONGODB_URL="mongodb://mongodb:27017/eventstore"
+        ```
+
+        #### Message Broker
+
+        ```bash
+        # RabbitMQ
+        RABBITMQ_URL="amqp://rabbitmq:5672"
+
+        # Redpanda (Kafka-compatible)
+        KAFKA_BROKERS="redpanda:9092"
+
+        # NATS
+        NATS_URL="nats://nats:4222"
+        ```
+
+        #### MinIO (Event Snapshots)
+
+        ```bash
+        MINIO_ENDPOINT="minio:9000"
+        MINIO_ACCESS_KEY="minioadmin"
+        MINIO_SECRET_KEY="minioadmin"
+        MINIO_BUCKET="events"
+        ```
+
+        ### Quick Start
+
+        1. **Start your service** on port 8080
+
+        2. **Set up event store schema**:
+           ```bash
+           # PostgreSQL example - create events table
+           psql -h postgres -U postgres -d eventstore <<EOF
+           CREATE TABLE events (
+               event_id UUID PRIMARY KEY,
+               aggregate_id UUID NOT NULL,
+               aggregate_type VARCHAR(255) NOT NULL,
+               event_type VARCHAR(255) NOT NULL,
+               event_data JSONB NOT NULL,
+               metadata JSONB,
+               version BIGINT NOT NULL,
+               timestamp TIMESTAMP DEFAULT NOW(),
+               UNIQUE(aggregate_id, version)
+           );
+           CREATE INDEX idx_aggregate ON events(aggregate_id);
+           CREATE INDEX idx_timestamp ON events(timestamp);
+           EOF
+           ```
+
+        3. **Configure MinIO bucket**:
+           - Access MinIO Console at http://localhost:9001
+           - Login with minioadmin/minioadmin
+           - Create bucket named "events"
+           - Configure lifecycle policies for event retention
+
+        4. **Set up message broker**:
+           - RabbitMQ: http://localhost:15672 (guest/guest)
+           - Configure exchanges and queues for event distribution
+
+        ### Event Sourcing Patterns
+
+        This stack supports common event sourcing patterns:
+
+        #### Command Handler → Event Store
+
+        ```typescript
+        // Append events to store
+        async function handleCommand(command: Command) {
+            const events = aggregate.process(command);
+            await eventStore.append(aggregateId, events);
+            await messagebroker.publish(events);
+        }
+        ```
+
+        #### Event Replay / Projection
+
+        ```typescript
+        // Rebuild read models from events
+        async function rebuildProjection() {
+            const events = await eventStore.getEvents(fromTimestamp);
+            for (const event of events) {
+                await projection.handle(event);
+            }
+        }
+        ```
+
+        #### Snapshotting
+
+        ```typescript
+        // Store snapshots in MinIO every N events
+        if (aggregate.version % SNAPSHOT_THRESHOLD === 0) {
+            const snapshot = aggregate.toSnapshot();
+            await minioClient.putObject('events', 
+                `snapshots/${aggregateId}/${version}.json`, 
+                JSON.stringify(snapshot)
+            );
+        }
+        ```
+
+        ### Observability
+
+        - **Traces**: View command flows in Jaeger (http://localhost:16686)
+        - **Metrics**: Monitor event throughput in Prometheus/Grafana
+        - **Logs**: Centralized logging via OTEL → Loki
+
+        ### Event Store Best Practices
+
+        1. **Append-only**: Never modify or delete events
+        2. **Versioning**: Use optimistic concurrency with version numbers
+        3. **Idempotency**: Handle duplicate events gracefully
+        4. **Snapshots**: Store aggregate snapshots every N events
+        5. **Retention**: Archive old events to MinIO for compliance
+
+        ### Message Broker Patterns
+
+        - **Publish/Subscribe**: Broadcast events to multiple consumers
+        - **Competing Consumers**: Scale event handlers horizontally
+        - **Dead Letter Queue**: Handle failed event processing
+        - **Event Ordering**: Ensure ordered processing per aggregate
+
+        ### Next Steps
+
+        - Design your domain events and aggregates
+        - Implement command handlers with event sourcing
+        - Create read model projections
+        - Set up event subscribers on message broker
+        - Configure OTEL instrumentation for tracing
+        - Create Grafana dashboards for event metrics
+        - Implement snapshotting strategy
+        - Set up event archival to MinIO

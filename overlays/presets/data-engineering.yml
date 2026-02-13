@@ -1,0 +1,392 @@
+# Data Engineering Preset
+# Python-based data engineering environment
+
+id: data-engineering
+name: Data Engineering
+description: Python-based data engineering with database, object storage, and analytics
+type: meta
+category: preset
+supports: [compose] # Requires Docker Compose for services
+tags: [preset, data-engineering, python, etl, analytics, data-science]
+
+# Overlays to select
+selects:
+    # Always included
+    required:
+        - python
+        - minio # Data lake storage
+        - modern-cli-tools
+
+    # User makes choices
+    userChoice:
+        database:
+            id: database
+            prompt: Select database for analytics
+            options: [postgres, mongodb]
+            defaultOption: postgres
+
+# Glue configuration - integration helpers
+glueConfig:
+    # Pre-configured environment variables
+    environment:
+        # Python environment
+        PYTHONUNBUFFERED: '1'
+        PYTHONDONTWRITEBYTECODE: '1'
+
+        # Database connections
+        # PostgreSQL
+        DATABASE_URL: 'postgresql://postgres:postgres@postgres:5432/datawarehouse'
+        POSTGRES_HOST: 'postgres'
+        POSTGRES_PORT: '5432'
+        POSTGRES_DB: 'datawarehouse'
+
+        # MongoDB (alternative)
+        MONGODB_URL: 'mongodb://mongodb:27017/datawarehouse'
+        MONGODB_HOST: 'mongodb'
+        MONGODB_PORT: '27017'
+        MONGODB_DB: 'datawarehouse'
+
+        # MinIO for data lake
+        MINIO_ENDPOINT: 'minio:9000'
+        MINIO_ACCESS_KEY: 'minioadmin'
+        MINIO_SECRET_KEY: 'minioadmin'
+        MINIO_BUCKET_RAW: 'raw-data'
+        MINIO_BUCKET_PROCESSED: 'processed-data'
+        MINIO_USE_SSL: 'false'
+
+        # Data processing settings
+        SPARK_MASTER: 'local[*]'
+        DASK_SCHEDULER: 'threads'
+
+        # Jupyter settings (for future jupyter overlay)
+        JUPYTER_PORT: '8888'
+        JUPYTER_TOKEN: 'data-engineering'
+
+    # Suggested port mappings
+    portMappings:
+        jupyter: 8888 # For future jupyter overlay
+        minio: 9000
+        minio-console: 9001
+
+    # README snippet to add to generated devcontainer
+    readme: |
+        ## Data Engineering Stack
+
+        This devcontainer is configured for data engineering and analytics:
+
+        ### Architecture
+
+        ```
+        Data Sources ──→ Raw Data (MinIO) ──→ ETL Pipeline (Python)
+                                                      │
+                                                      ↓
+                         Processed Data (MinIO) ──→ Analytics DB
+                                                      │
+                                                      ↓
+                                              Analysis/Reporting
+        ```
+
+        ### Services
+
+        - **Python**: Data processing runtime with scientific libraries
+        - **Database**: Analytics database (PostgreSQL or MongoDB)
+        - **MinIO**: S3-compatible data lake (ports 9000, 9001)
+        - **Modern CLI Tools**: jq, yq, bat, fd, ripgrep for data wrangling
+
+        ### Connection Strings
+
+        #### Database
+
+        ```bash
+        # PostgreSQL
+        DATABASE_URL="postgresql://postgres:postgres@postgres:5432/datawarehouse"
+
+        # MongoDB (alternative)
+        MONGODB_URL="mongodb://mongodb:27017/datawarehouse"
+        ```
+
+        #### MinIO (Data Lake)
+
+        ```bash
+        MINIO_ENDPOINT="minio:9000"
+        MINIO_ACCESS_KEY="minioadmin"
+        MINIO_SECRET_KEY="minioadmin"
+        MINIO_BUCKET_RAW="raw-data"
+        MINIO_BUCKET_PROCESSED="processed-data"
+        ```
+
+        ### Python Libraries
+
+        Pre-installed data science libraries are configured in `global-packages-python.txt`:
+
+        - **pandas**: Data manipulation and analysis
+        - **polars**: Fast DataFrame library (Rust-based)
+        - **numpy**: Numerical computing
+        - **sqlalchemy**: Database ORM
+        - **psycopg2**: PostgreSQL driver
+        - **pymongo**: MongoDB driver
+        - **boto3**: AWS SDK (for MinIO/S3)
+        - **requests**: HTTP library for API calls
+
+        Install additional libraries:
+
+        ```bash
+        pip install dask pyarrow fastparquet
+        ```
+
+        ### Quick Start
+
+        #### 1. Set Up MinIO Buckets
+
+        ```bash
+        # Access MinIO Console at http://localhost:9001
+        # Login: minioadmin/minioadmin
+
+        # Or use CLI:
+        mc alias set local http://minio:9000 minioadmin minioadmin
+        mc mb local/raw-data
+        mc mb local/processed-data
+        ```
+
+        #### 2. Upload Raw Data to MinIO
+
+        ```python
+        import boto3
+        from io import BytesIO
+
+        # Configure S3 client for MinIO
+        s3 = boto3.client(
+            's3',
+            endpoint_url='http://minio:9000',
+            aws_access_key_id='minioadmin',
+            aws_secret_access_key='minioadmin'
+        )
+
+        # Upload CSV file
+        s3.upload_file('data.csv', 'raw-data', 'sales/2024/data.csv')
+
+        # Or upload from memory
+        csv_buffer = BytesIO()
+        df.to_csv(csv_buffer, index=False)
+        s3.put_object(
+            Bucket='raw-data',
+            Key='sales/2024/data.csv',
+            Body=csv_buffer.getvalue()
+        )
+        ```
+
+        #### 3. ETL Pipeline Example
+
+        ```python
+        import pandas as pd
+        import boto3
+        from sqlalchemy import create_engine
+
+        # Initialize connections
+        s3 = boto3.client('s3', endpoint_url='http://minio:9000',
+                         aws_access_key_id='minioadmin',
+                         aws_secret_access_key='minioadmin')
+        engine = create_engine('postgresql://postgres:postgres@postgres:5432/datawarehouse')
+
+        # Extract: Read from MinIO
+        obj = s3.get_object(Bucket='raw-data', Key='sales/2024/data.csv')
+        df = pd.read_csv(obj['Body'])
+
+        # Transform: Clean and process
+        df = df.dropna()
+        df['date'] = pd.to_datetime(df['date'])
+        df['revenue'] = df['quantity'] * df['price']
+
+        # Load: Save to database
+        df.to_sql('sales', engine, if_exists='append', index=False)
+
+        # Archive processed data to MinIO
+        df.to_parquet('/tmp/processed.parquet')
+        s3.upload_file('/tmp/processed.parquet', 'processed-data', 
+                      'sales/2024/processed.parquet')
+        ```
+
+        ### Data Processing Patterns
+
+        #### Batch Processing with Pandas
+
+        ```python
+        import pandas as pd
+
+        # Read data in chunks for large files
+        chunk_size = 10000
+        chunks = pd.read_csv('large_file.csv', chunksize=chunk_size)
+
+        for chunk in chunks:
+            # Process chunk
+            processed = chunk.groupby('category').agg({
+                'revenue': 'sum',
+                'quantity': 'count'
+            })
+            # Write to database
+            processed.to_sql('aggregates', engine, if_exists='append')
+        ```
+
+        #### Using Polars (Faster)
+
+        ```python
+        import polars as pl
+
+        # Read and process with Polars
+        df = pl.read_csv('data.csv')
+        result = (
+            df
+            .filter(pl.col('revenue') > 1000)
+            .group_by('category')
+            .agg([
+                pl.col('revenue').sum().alias('total_revenue'),
+                pl.col('quantity').mean().alias('avg_quantity')
+            ])
+        )
+        ```
+
+        #### Data Lake Organization
+
+        Organize data in MinIO using partitions:
+
+        ```
+        raw-data/
+        ├── sales/
+        │   ├── 2024/
+        │   │   ├── 01/
+        │   │   │   └── data.csv
+        │   │   └── 02/
+        │   └── 2023/
+        └── inventory/
+            └── current/
+                └── stock.json
+
+        processed-data/
+        ├── sales/
+        │   ├── daily_aggregates/
+        │   │   └── 2024-01-15.parquet
+        │   └── monthly_summary/
+        │       └── 2024-01.parquet
+        ```
+
+        ### Database Analytics
+
+        #### PostgreSQL
+
+        ```python
+        import pandas as pd
+        from sqlalchemy import create_engine
+
+        engine = create_engine('postgresql://postgres:postgres@postgres:5432/datawarehouse')
+
+        # Read data
+        df = pd.read_sql('SELECT * FROM sales WHERE date >= CURRENT_DATE - 30', engine)
+
+        # Write data
+        df.to_sql('sales_summary', engine, if_exists='replace')
+
+        # Execute custom SQL
+        with engine.connect() as conn:
+            result = conn.execute("""
+                SELECT category, SUM(revenue) as total
+                FROM sales
+                GROUP BY category
+                ORDER BY total DESC
+            """)
+            for row in result:
+                print(row)
+        ```
+
+        ### Modern CLI Tools for Data
+
+        ```bash
+        # Inspect JSON data
+        cat data.json | jq '.[] | select(.revenue > 1000)'
+
+        # Search in CSV files
+        rg -t csv 'product_name'
+
+        # Find data files
+        fd -e csv -e parquet -e json
+
+        # Preview files with syntax highlighting
+        bat sales.csv
+        ```
+
+        ### Workflow Automation
+
+        Create data pipelines with Python scripts:
+
+        ```python
+        # pipeline.py
+        import schedule
+        import time
+
+        def etl_job():
+            print("Running ETL pipeline...")
+            # Extract, transform, load
+            pass
+
+        # Run every hour
+        schedule.every().hour.do(etl_job)
+
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+        ```
+
+        Or use cron:
+
+        ```bash
+        # Add to crontab
+        0 * * * * python /workspace/pipeline.py
+        ```
+
+        ### Data Quality
+
+        ```python
+        # Data validation with pandas
+        def validate_data(df):
+            # Check for nulls
+            assert df['revenue'].notna().all(), "Revenue has null values"
+
+            # Check data types
+            assert df['date'].dtype == 'datetime64[ns]', "Date is not datetime"
+
+            # Check ranges
+            assert (df['quantity'] > 0).all(), "Quantity must be positive"
+
+            # Check uniqueness
+            assert df['transaction_id'].is_unique, "Duplicate transactions found"
+
+        validate_data(df)
+        ```
+
+        ### Future Enhancements
+
+        When Jupyter and DuckDB overlays are available:
+
+        #### Jupyter Notebooks
+
+        - Interactive data exploration
+        - Visualization with matplotlib, seaborn
+        - Experiment tracking
+        - Collaborative analysis
+
+        #### DuckDB
+
+        - In-process SQL analytics
+        - Query MinIO Parquet files directly
+        - Faster than loading to pandas
+        - OLAP-style aggregations
+
+        ### Next Steps
+
+        - Design your data lake structure in MinIO
+        - Set up database schemas for analytics
+        - Create ETL pipelines for data ingestion
+        - Implement data quality checks
+        - Set up scheduled jobs for recurring pipelines
+        - Add data monitoring and alerting
+        - Document data lineage
+        - Create data catalog

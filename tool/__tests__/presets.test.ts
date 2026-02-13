@@ -12,7 +12,16 @@ describe('Preset Definitions', () => {
     const presetsDir = path.join(__dirname, '..', '..', 'overlays', 'presets');
 
     it('should have valid YAML files for all presets', () => {
-        const presetFiles = ['web-api.yml', 'microservice.yml', 'docs-site.yml', 'fullstack.yml'];
+        const presetFiles = [
+            'web-api.yml',
+            'microservice.yml',
+            'docs-site.yml',
+            'fullstack.yml',
+            'event-sourced-service.yml',
+            'frontend.yml',
+            'data-engineering.yml',
+            'k8s-operator-dev.yml',
+        ];
 
         for (const file of presetFiles) {
             const filePath = path.join(presetsDir, file);
@@ -102,5 +111,90 @@ describe('Preset Definitions', () => {
         expect(preset.selects.userChoice.backend).toBeDefined();
         expect(preset.selects.userChoice.backend.options).toContain('dotnet');
         expect(preset.selects.userChoice.backend.options).toContain('python');
+    });
+
+    it('event-sourced-service preset should have correct structure', () => {
+        const filePath = path.join(presetsDir, 'event-sourced-service.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('event-sourced-service');
+        expect(preset.selects.required).toContain('minio');
+        expect(preset.selects.required).toContain('otel-collector');
+        expect(preset.selects.required).toContain('jaeger');
+        expect(preset.selects.required).toContain('prometheus');
+        expect(preset.selects.required).toContain('grafana');
+
+        expect(preset.selects.userChoice.language).toBeDefined();
+        expect(preset.selects.userChoice.language.options).toContain('nodejs');
+        expect(preset.selects.userChoice.language.options).toContain('go');
+
+        expect(preset.selects.userChoice.eventStore).toBeDefined();
+        expect(preset.selects.userChoice.eventStore.options).toContain('postgres');
+        expect(preset.selects.userChoice.eventStore.options).toContain('mongodb');
+
+        expect(preset.selects.userChoice.messaging).toBeDefined();
+        expect(preset.selects.userChoice.messaging.options).toContain('rabbitmq');
+        expect(preset.selects.userChoice.messaging.options).toContain('redpanda');
+        expect(preset.selects.userChoice.messaging.options).toContain('nats');
+
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment).toBeDefined();
+        expect(preset.glueConfig.environment.MINIO_ENDPOINT).toBeDefined();
+    });
+
+    it('frontend preset should have correct structure', () => {
+        const filePath = path.join(presetsDir, 'frontend.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('frontend');
+        expect(preset.selects.required).toContain('playwright');
+        expect(preset.selects.required).toContain('modern-cli-tools');
+        expect(preset.supports).toEqual([]); // Works with both plain and compose
+
+        expect(preset.selects.userChoice.language).toBeDefined();
+        expect(preset.selects.userChoice.language.options).toContain('nodejs');
+        expect(preset.selects.userChoice.language.options).toContain('bun');
+
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment).toBeDefined();
+        expect(preset.glueConfig.environment.DEV_SERVER_PORT).toBeDefined();
+    });
+
+    it('data-engineering preset should have correct structure', () => {
+        const filePath = path.join(presetsDir, 'data-engineering.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('data-engineering');
+        expect(preset.selects.required).toContain('python');
+        expect(preset.selects.required).toContain('minio');
+        expect(preset.selects.required).toContain('modern-cli-tools');
+
+        expect(preset.selects.userChoice.database).toBeDefined();
+        expect(preset.selects.userChoice.database.options).toContain('postgres');
+        expect(preset.selects.userChoice.database.options).toContain('mongodb');
+
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment).toBeDefined();
+        expect(preset.glueConfig.environment.MINIO_ENDPOINT).toBeDefined();
+        expect(preset.glueConfig.environment.DATABASE_URL).toBeDefined();
+    });
+
+    it('k8s-operator-dev preset should have correct structure', () => {
+        const filePath = path.join(presetsDir, 'k8s-operator-dev.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('k8s-operator-dev');
+        expect(preset.selects.required).toContain('go');
+        expect(preset.selects.required).toContain('kubectl-helm');
+        expect(preset.selects.required).toContain('modern-cli-tools');
+        expect(preset.supports).toEqual([]); // Works with both plain and compose
+
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment).toBeDefined();
+        expect(preset.glueConfig.environment.KUBECONFIG).toBeDefined();
     });
 });
