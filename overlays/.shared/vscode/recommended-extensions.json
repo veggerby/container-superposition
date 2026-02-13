@@ -1,0 +1,24 @@
+{
+  "description": "Commonly recommended VS Code extensions across overlays",
+  "extensions": {
+    "productivity": [
+      "streetsidesoftware.code-spell-checker",
+      "usernamehw.errorlens",
+      "eamodio.gitlens"
+    ],
+    "formatting": [
+      "editorconfig.editorconfig",
+      "esbenp.prettier-vscode"
+    ],
+    "docker": [
+      "ms-azuretools.vscode-docker"
+    ],
+    "yaml": [
+      "redhat.vscode-yaml"
+    ],
+    "markdown": [
+      "yzhang.markdown-all-in-one",
+      "davidanson.vscode-markdownlint"
+    ]
+  }
+}

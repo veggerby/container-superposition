@@ -80,6 +80,16 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             return [];
         };
 
+        const ensureBoolean = (value: any): boolean => {
+            if (typeof value === 'boolean') {
+                return value;
+            }
+            if (typeof value === 'string') {
+                return value.toLowerCase() === 'true';
+            }
+            return false;
+        };
+
         // Set defaults for optional fields with type validation
         return {
             ...manifest,
@@ -89,6 +99,8 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             conflicts: ensureArray(manifest.conflicts),
             tags: ensureArray(manifest.tags),
             ports: ensureNumberArray(manifest.ports),
+            imports: ensureArray(manifest.imports),
+            minimal: manifest.minimal !== undefined ? ensureBoolean(manifest.minimal) : false,
         };
     } catch (error) {
         console.warn(`Warning: Failed to parse manifest in ${overlayDir}:`, error);
@@ -113,13 +125,8 @@ export function loadOverlayManifests(overlaysDir: string): Map<string, OverlayMe
             continue;
         }
 
-        // Skip special directories (but not presets - handled separately)
+        // Skip special directories
         if (entry.name.startsWith('.')) {
-            continue;
-        }
-
-        // Skip presets directory (presets are loaded separately)
-        if (entry.name === 'presets') {
             continue;
         }
 
@@ -143,10 +150,10 @@ export function loadOverlayManifests(overlaysDir: string): Map<string, OverlayMe
 }
 
 /**
- * Load preset metadata from presets directory
+ * Load preset metadata from .presets directory
  */
 export function loadPresetMetadata(overlaysDir: string): OverlayMetadata[] {
-    const presetsDir = path.join(overlaysDir, 'presets');
+    const presetsDir = path.join(overlaysDir, '.presets');
     const presets: OverlayMetadata[] = [];
 
     if (!fs.existsSync(presetsDir)) {

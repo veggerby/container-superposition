@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-02-13
+
+### Added
+
+- **Overlay imports** — Overlays can now import shared configuration from `overlays/.shared/`
+    - Supports JSON, YAML, and ENV file imports
+    - Reduces duplication across overlays with common patterns
+    - Example shared configs for OTEL, healthchecks, and VS Code extensions
+    - Import validation in doctor command
+- **`--minimal` flag** — Skip optional/nice-to-have overlays for lean configurations
+    - Useful for CI/CD environments, Codespaces, or learning
+    - Marked overlays: `modern-cli-tools`, `git-helpers`, `codex`
+    - Works with both `init` and `regen` commands
+    - Use: `container-superposition init --minimal` or `container-superposition regen --minimal`
+- **`--editor` flag** — Choose editor profile for customizations
+    - `vscode` (default): Include VS Code extensions and settings
+    - `none`: CLI-only, no editor customizations
+    - `jetbrains`: Skip VS Code customizations (reserved for future JetBrains-specific settings)
+    - Works with both `init` and `regen` commands
+    - Use: `container-superposition init --editor none` or `container-superposition regen --editor none`
+- **Preset directory reorganization** — Moved `overlays/presets` to `overlays/.presets` for consistency with `.registry` and `.shared` directories
+- **Regen command enhancements** — `regen` command now supports `--minimal` and `--editor` flags
+    - Regenerate existing configurations without optional features
+    - Change editor profile without recreating from scratch
+    - Example: `container-superposition regen --minimal --editor none`
+
+### Changed
+
+- Overlay manifests now support `imports` field for shared file references
+- Overlay manifests now support `minimal` boolean field to mark optional overlays
+- Regen command can now accept CLI overrides while preserving manifest configuration
+
 ### Added
 
 - **Deployment target support** — Environment-specific optimizations and validation
@@ -121,6 +153,7 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/veggerby/container-superposition/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/veggerby/container-superposition/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/veggerby/container-superposition/releases/tag/v0.1.0

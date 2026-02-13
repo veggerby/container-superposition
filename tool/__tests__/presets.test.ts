@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 describe('Preset Definitions', () => {
-    const presetsDir = path.join(__dirname, '..', '..', 'overlays', 'presets');
+    const presetsDir = path.join(__dirname, '..', '..', 'overlays', '.presets');
 
     it('should have valid YAML files for all presets', () => {
         const presetFiles = [

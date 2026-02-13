@@ -13,3 +13,4 @@ tags:
     - ssh
     - gpg
 ports: []
+minimal: true

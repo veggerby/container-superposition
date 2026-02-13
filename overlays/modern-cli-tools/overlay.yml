@@ -11,3 +11,4 @@ tags:
     - cli
     - productivity
 ports: []
+minimal: true
