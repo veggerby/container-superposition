@@ -522,12 +522,6 @@ Different environments have different capabilities:
 
 The target system ensures you get warnings about incompatibilities before deploying.
 
-### GitHub Codespaces Support (Legacy)
-
-> **Note**: The `--codespaces` flag has been replaced with the more flexible `--target codespaces` approach. See "Deployment Target Support" above for the recommended way to optimize for Codespaces and other cloud IDEs.
-
-For backward compatibility information about the legacy approach, the tool previously used a Codespaces-specific flag. This has been superseded by the deployment target system which supports multiple cloud IDE platforms.
-
 ### Regenerating from Manifest
 
 Every devcontainer generation creates a `superposition.json` manifest file that records your configuration choices. You can use this manifest to:

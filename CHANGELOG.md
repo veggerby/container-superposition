@@ -9,14 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Deployment target support** — Flexible environment-specific optimizations and validation
-    - `--target` flag supports: local, codespaces, gitpod, devpod
+- **Deployment target support** — Environment-specific optimizations and validation
+    - `--target` flag supports: local (default), codespaces, gitpod, devpod
     - Automatic compatibility validation for selected overlays
     - Environment-specific recommendations (e.g., docker-in-docker for cloud IDEs)
     - Interactive target selection when incompatible overlays detected
     - Extensible system for adding new deployment environments
     - Port forwarding behavior adapts to target environment
-    - Replaces narrow `--codespaces` flag with general abstraction
+    - Target-specific constraints (Docker access, privileged containers)
     
 - **GitHub Actions workflows** — Automated validation and documentation
     - `validate-overlays.yml` — Runs on pull requests to validate overlay changes
