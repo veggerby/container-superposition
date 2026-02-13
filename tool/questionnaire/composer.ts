@@ -12,6 +12,8 @@ import type {
     SuperpositionManifest,
     PresetGlueConfig,
     CustomizationConfig,
+    PortsDocumentation,
+    GeneratedPortInfo,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import {
@@ -20,6 +22,11 @@ import {
     getCustomScriptPaths,
 } from '../schema/custom-loader.js';
 import { generateReadme } from '../readme/readme-generator.js';
+import {
+    normalizePorts,
+    generateConnectionString,
+    generateUrl,
+} from '../utils/port-utils.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -699,6 +706,43 @@ function applyGlueConfig(
 }
 
 /**
+ * Apply port offset to docker-compose services
+ */
+function applyPortOffsetToDockerCompose(compose: any, offset: number): void {
+    if (!compose.services) return;
+
+    for (const serviceName in compose.services) {
+        const service = compose.services[serviceName];
+        
+        // Apply offset to ports array
+        if (service.ports && Array.isArray(service.ports)) {
+            service.ports = service.ports.map((portMapping: string | number) => {
+                if (typeof portMapping === 'string') {
+                    // Format: "host:container" or just "port"
+                    const parts = portMapping.split(':');
+                    if (parts.length === 2) {
+                        // "host:container" format - offset the host port
+                        const hostPort = parseInt(parts[0], 10);
+                        if (!isNaN(hostPort)) {
+                            return `${hostPort + offset}:${parts[1]}`;
+                        }
+                    } else if (parts.length === 1) {
+                        // Just "port" format - offset it
+                        const port = parseInt(parts[0], 10);
+                        if (!isNaN(port)) {
+                            return port + offset;
+                        }
+                    }
+                } else if (typeof portMapping === 'number') {
+                    return portMapping + offset;
+                }
+                return portMapping;
+            });
+        }
+    }
+}
+
+/**
  * Merge docker-compose.yml files from base and overlays into a single file
  */
 function mergeDockerComposeFiles(
@@ -794,6 +838,11 @@ function mergeDockerComposeFiles(
                 service.depends_on = filteredDependsOn;
             }
         }
+    }
+
+    // Apply port offset to all services
+    if (portOffset && portOffset > 0) {
+        applyPortOffsetToDockerCompose(merged, portOffset);
     }
 
     // Remove empty sections
@@ -1063,6 +1112,71 @@ function copyCustomFiles(
         // Add file to registry
         fileRegistry.addFile(relativeDest);
     }
+}
+
+/**
+ * Generate ports.json documentation with connection strings and URLs
+ */
+function generatePortsDocumentation(
+    outputPath: string,
+    overlays: string[],
+    portOffset: number,
+    overlaysConfig: OverlaysConfig
+): void {
+    const overlayMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
+    const portsList: GeneratedPortInfo[] = [];
+
+    // Collect ports from all overlays
+    for (const overlayId of overlays) {
+        const overlay = overlayMap.get(overlayId);
+        if (!overlay || !overlay.ports || overlay.ports.length === 0) continue;
+
+        // Normalize ports to get full metadata
+        const normalizedPorts = normalizePorts(overlay.ports, overlayId);
+
+        for (const portInfo of normalizedPorts) {
+            const actualPort = portInfo.port + portOffset;
+            const generatedPort: GeneratedPortInfo = {
+                service: portInfo.service,
+                port: portInfo.port,
+                actualPort,
+                protocol: portInfo.protocol,
+                description: portInfo.description,
+                path: portInfo.path,
+            };
+
+            // Generate URL for HTTP/HTTPS services
+            if (portInfo.protocol === 'http' || portInfo.protocol === 'https') {
+                generatedPort.url = generateUrl(portInfo.protocol, actualPort, portInfo.path);
+            }
+
+            // Generate connection string for databases
+            const connectionString = generateConnectionString(
+                portInfo.service,
+                actualPort,
+                portInfo.protocol
+            );
+            if (connectionString) {
+                generatedPort.connectionString = connectionString;
+            }
+
+            portsList.push(generatedPort);
+        }
+    }
+
+    // Only generate ports.json if there are ports to document
+    if (portsList.length === 0) {
+        return;
+    }
+
+    const portsDoc: PortsDocumentation = {
+        portOffset,
+        ports: portsList,
+    };
+
+    const portsPath = path.join(outputPath, 'ports.json');
+    fs.writeFileSync(portsPath, JSON.stringify(portsDoc, null, 2) + '\n');
+    console.log(chalk.dim(`   🔌 Generated ports.json with ${portsList.length} port(s)`));
 }
 
 /**
@@ -1342,6 +1456,15 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
         answers.containerName || config.name
     );
     fileRegistry.addFile('superposition.json');
+
+    // 13.5. Generate ports.json documentation
+    generatePortsDocumentation(
+        outputPath,
+        overlays,
+        answers.portOffset || 0,
+        overlaysConfig
+    );
+    fileRegistry.addFile('ports.json');
 
     // 14. Merge .env.example files from overlays and apply glue config environment variables
     const envCreated = mergeEnvExamples(
