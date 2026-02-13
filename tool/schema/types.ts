@@ -114,6 +114,7 @@ export interface QuestionnaireAnswers {
     outputPath: string;
     portOffset?: number; // Optional port offset for running multiple instances
     target?: DeploymentTarget; // Deployment target for environment-specific optimizations
+    writeManifestOnly?: boolean; // Only write superposition.json, skip devcontainer generation
 }
 
 /**

@@ -991,8 +991,17 @@ function buildAnswersFromManifest(
 
     const categories = categorizeOverlays(manifest.overlays);
 
-    // Output path is always the directory containing the manifest
-    const outputPath = manifestDir || './.devcontainer';
+    // Determine output path based on manifest location
+    // If manifest is in project root (manifestDir is '.'), use .devcontainer as output
+    // Otherwise, use the manifest directory (maintains backward compatibility)
+    let outputPath: string;
+    if (!manifestDir || manifestDir === '.') {
+        // Manifest in project root (team workflow)
+        outputPath = './.devcontainer';
+    } else {
+        // Manifest in .devcontainer (original workflow)
+        outputPath = manifestDir;
+    }
 
     // Handle baseImage - check if it's a known ID or a custom image string
     const knownBaseImageIds = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
@@ -1037,6 +1046,7 @@ function buildAnswersFromCliArgs(
     if (config.outputPath) answers.outputPath = config.outputPath;
     if (config.preset) answers.preset = config.preset;
     if (config.presetChoices) answers.presetChoices = config.presetChoices;
+    if (config.writeManifestOnly !== undefined) answers.writeManifestOnly = config.writeManifestOnly;
 
     return answers;
 }
@@ -1123,6 +1133,7 @@ async function parseCliArgs(): Promise<{
         )
         .option('--no-backup', 'Skip creating backup before regeneration')
         .option('--backup-dir <path>', 'Custom backup directory location')
+        .option('--write-manifest-only', 'Only write superposition.json, skip devcontainer generation')
         .option('--stack <type>', 'Base template: plain, compose')
         .option(
             '--language <list>',
@@ -1168,16 +1179,38 @@ async function parseCliArgs(): Promise<{
         .option('--no-backup', 'Skip creating backup before regeneration')
         .option('--backup-dir <path>', 'Custom backup directory location')
         .action((options) => {
+            // Search for manifest in multiple locations
+            // 1. Project root (superposition.json) - for team workflow
+            // 2. .devcontainer/superposition.json - default location
+            // 3. Custom output path if specified
+            
             const outputPath = options.output || './.devcontainer';
-            const manifestPath = path.join(outputPath, 'superposition.json');
-
-            if (!fs.existsSync(manifestPath)) {
-                console.error(chalk.red(`✗ Error: No manifest found at ${manifestPath}`));
+            const manifestCandidates = [
+                './superposition.json',  // Project root (team workflow)
+                path.join(outputPath, 'superposition.json'),  // Output directory
+            ];
+            
+            let manifestPath: string | null = null;
+            for (const candidate of manifestCandidates) {
+                if (fs.existsSync(candidate)) {
+                    manifestPath = candidate;
+                    break;
+                }
+            }
+            
+            if (!manifestPath) {
+                console.error(chalk.red('✗ Error: No manifest found'));
+                console.error(chalk.gray('  Searched for:'));
+                manifestCandidates.forEach(loc => {
+                    console.error(chalk.gray(`    - ${loc}`));
+                });
                 console.error(
-                    chalk.gray('  Run "container-superposition init" first to create a configuration')
+                    chalk.gray('\n  Run "container-superposition init" first to create a configuration')
                 );
                 process.exit(1);
             }
+            
+            console.log(chalk.cyan(`📋 Using manifest: ${manifestPath}`));
 
             // Store options for main() to process
             initOptions = {
@@ -1293,6 +1326,7 @@ async function parseCliArgs(): Promise<{
         config.target = initOptions.target as DeploymentTarget;
     }
     if (initOptions.output) config.outputPath = initOptions.output;
+    if (initOptions.writeManifestOnly) config.writeManifestOnly = true;
 
     return {
         config,
@@ -1462,33 +1496,51 @@ async function main() {
 
         // Generate with spinner
         const spinner = ora({
-            text: chalk.cyan('Generating devcontainer configuration...'),
+            text: chalk.cyan(
+                answers.writeManifestOnly 
+                    ? 'Generating manifest...' 
+                    : 'Generating devcontainer configuration...'
+            ),
             color: 'cyan',
         }).start();
 
         try {
             await composeDevContainer(answers);
-            spinner.succeed(chalk.green('DevContainer created successfully!'));
+            spinner.succeed(
+                chalk.green(
+                    answers.writeManifestOnly 
+                        ? 'Manifest created successfully!' 
+                        : 'DevContainer created successfully!'
+                )
+            );
         } catch (error) {
-            spinner.fail(chalk.red('Failed to create devcontainer'));
+            spinner.fail(
+                chalk.red(
+                    answers.writeManifestOnly 
+                        ? 'Failed to create manifest' 
+                        : 'Failed to create devcontainer'
+                )
+            );
             throw error;
         }
 
-        // Success message
-        console.log(
-            '\n' +
-                boxen(
-                    chalk.bold.green('✓ Setup Complete!\n\n') +
-                        chalk.white('Next steps:\n') +
-                        chalk.gray('  1. Review the generated .devcontainer/ folder\n') +
-                        chalk.gray("  2. Customize as needed (it's just normal JSON!)\n") +
-                        chalk.gray('  3. Open in VS Code and rebuild container\n\n') +
-                        chalk.dim(
-                            'The generated configuration is fully editable and independent of this tool.'
-                        ),
-                    { padding: 1, borderColor: 'green', borderStyle: 'double', margin: 1 }
-                )
-        );
+        // Success message (skip for manifest-only, already shown in composer)
+        if (!answers.writeManifestOnly) {
+            console.log(
+                '\n' +
+                    boxen(
+                        chalk.bold.green('✓ Setup Complete!\n\n') +
+                            chalk.white('Next steps:\n') +
+                            chalk.gray('  1. Review the generated .devcontainer/ folder\n') +
+                            chalk.gray("  2. Customize as needed (it's just normal JSON!)\n") +
+                            chalk.gray('  3. Open in VS Code and rebuild container\n\n') +
+                            chalk.dim(
+                                'The generated configuration is fully editable and independent of this tool.'
+                            ),
+                        { padding: 1, borderColor: 'green', borderStyle: 'double', margin: 1 }
+                    )
+            );
+        }
     } catch (error) {
         console.error(
             '\n' +

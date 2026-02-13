@@ -1140,6 +1140,58 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
         allOverlayDefs
     );
 
+    // If writeManifestOnly is set, generate only the manifest and exit early
+    if (answers.writeManifestOnly) {
+        const outputPath = path.resolve(answers.outputPath);
+        
+        if (!fs.existsSync(outputPath)) {
+            fs.mkdirSync(outputPath, { recursive: true });
+        }
+
+        // Order overlays (same logic as full generation)
+        const orderedOverlays: string[] = [];
+        const observabilityOrder = [
+            'jaeger',
+            'prometheus',
+            'loki',
+            'promtail',
+            'otel-collector',
+            'grafana',
+            'otel-demo-nodejs',
+            'otel-demo-python',
+        ];
+
+        for (const obs of observabilityOrder) {
+            if (resolvedOverlays.includes(obs)) {
+                orderedOverlays.push(obs);
+            }
+        }
+
+        for (const overlay of resolvedOverlays) {
+            if (!orderedOverlays.includes(overlay)) {
+                orderedOverlays.push(overlay);
+            }
+        }
+
+        const overlays = orderedOverlays;
+
+        // Generate manifest only
+        generateManifest(outputPath, answers, overlays, autoResolved, answers.containerName);
+        
+        console.log(
+            chalk.green('\n✓ Manifest-only generation complete!')
+        );
+        console.log(chalk.dim(`   📋 Generated: ${path.join(outputPath, 'superposition.json')}`));
+        console.log(
+            chalk.cyan('\n💡 Next steps:')
+        );
+        console.log(chalk.gray('   1. Commit superposition.json to your repository'));
+        console.log(chalk.gray('   2. Team members run: npx container-superposition regen'));
+        console.log(chalk.gray('   3. Add .devcontainer/ to .gitignore (keep .devcontainer/custom/ if needed)'));
+        
+        return; // Exit early, don't generate devcontainer files
+    }
+
     // 3. Determine base template path
     const templatePath = path.join(TEMPLATES_DIR, answers.stack, '.devcontainer');
 
