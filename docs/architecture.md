@@ -76,27 +76,19 @@ scripts/
 
 ### Deep Merge Logic
 
-```typescript
-function deepMerge(base, overlay) {
-  for each key in overlay:
-    if key exists in base and both are objects:
-      if both are arrays:
-        concatenate and deduplicate
-      else:
-        recursively merge
-    else:
-      use overlay value
-  return merged
-}
-```
+The composition system uses a deterministic merge strategy formally specified in [docs/merge-specification.md](merge-specification.md). All merge operations follow this specification to ensure predictable and repeatable composition.
 
-Special handling:
+**Key merge rules:**
 
-- **Arrays**: Concatenate and deduplicate (ports, packages)
-- **apt-get packages**: Merge space-separated lists
-- **Features**: Deep merge feature configs
-- **Environment variables**: Merge key-value pairs
-- **Port attributes**: Merge labeled port configurations
+- **Objects**: Deep merge recursively (source extends target)
+- **Arrays**: Union with deduplication (no duplicates)
+- **Primitives**: Last writer wins (source replaces target)
+- **PATH variables**: Intelligent concatenation preserving order
+- **Package lists**: Space-separated string deduplication
+- **Docker Compose services**: Deep merge by service name
+- **Service dependencies**: Filter out non-existent services
+
+For complete details on merge behavior for each file type and field, see the [Merge Specification](merge-specification.md).
 
 ### File Handling per Overlay
 

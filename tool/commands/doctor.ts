@@ -30,6 +30,7 @@ interface DoctorReport {
     overlays: CheckResult[];
     manifest: CheckResult[];
     ports: CheckResult[];
+    merge: CheckResult[];
     summary: {
         passed: number;
         warnings: number;
