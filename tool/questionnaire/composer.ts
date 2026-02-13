@@ -44,6 +44,18 @@ const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 
 /**
  * Deep merge two objects, with special handling for arrays
+ * 
+ * Implements deterministic merge strategy as specified in docs/merge-specification.md
+ * 
+ * Rules:
+ * - Objects: Deep merge recursively (source extends target)
+ * - Arrays: Union with deduplication (no duplicates via Set)
+ * - remoteEnv: Special PATH handling (see mergeRemoteEnv)
+ * - Primitives: Last writer wins (source replaces target)
+ * 
+ * @param target - Base configuration object
+ * @param source - Overlay configuration to merge
+ * @returns Merged configuration
  */
 function deepMerge(target: any, source: any): any {
     const output = { ...target };
@@ -71,9 +83,16 @@ function deepMerge(target: any, source: any): any {
 
 /**
  * Keep only dependencies that exist in the final compose service set.
+ * 
+ * Implements depends_on filtering rule from docs/merge-specification.md
+ * 
  * Supports both compose syntaxes:
  * - array form: depends_on: [serviceA, serviceB]
  * - object form: depends_on: { serviceA: { condition: ... } }
+ * 
+ * @param dependsOn - Original depends_on value
+ * @param existingServices - Set of service names that exist in final composition
+ * @returns Filtered depends_on or undefined if empty
  */
 function filterDependsOnToExistingServices(
     dependsOn: unknown,
@@ -98,7 +117,15 @@ function filterDependsOnToExistingServices(
 
 /**
  * Split PATH string on colons, but preserve ${...} variable references
- * e.g., "${containerEnv:HOME}/bin:${containerEnv:PATH}" -> ["${containerEnv:HOME}/bin", "${containerEnv:PATH}"]
+ * 
+ * Implements smart PATH parsing for mergeRemoteEnv (docs/merge-specification.md)
+ * 
+ * Example:
+ * "${containerEnv:HOME}/bin:${containerEnv:PATH}" 
+ * -> ["${containerEnv:HOME}/bin", "${containerEnv:PATH}"]
+ * 
+ * @param pathString - PATH value with potential variable references
+ * @returns Array of path components
  */
 function splitPath(pathString: string): string[] {
     const paths: string[] = [];
@@ -136,6 +163,16 @@ function splitPath(pathString: string): string[] {
 
 /**
  * Merge remoteEnv objects, with special handling for PATH variables
+ * 
+ * Implements environment variable merge rules from docs/merge-specification.md
+ * 
+ * Rules:
+ * - PATH: Intelligent concatenation (deduplicate components, preserve ${containerEnv:PATH})
+ * - Other variables: Source overwrites target (last writer wins)
+ * 
+ * @param target - Base environment variables
+ * @param source - Overlay environment variables
+ * @returns Merged environment variables
  */
 function mergeRemoteEnv(
     target: Record<string, string>,
@@ -169,6 +206,18 @@ function mergeRemoteEnv(
 
 /**
  * Merge packages from apt-get-packages feature
+ * 
+ * Implements package list merge from docs/merge-specification.md
+ * 
+ * Rules:
+ * - Split on spaces
+ * - Filter empty strings
+ * - Deduplicate using Set
+ * - Join with spaces
+ * 
+ * @param baseConfig - Base devcontainer configuration
+ * @param packages - Space-separated package list to merge
+ * @returns Updated configuration
  */
 function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContainer {
     const featureKey = 'ghcr.io/devcontainers-extra/features/apt-get-packages:1';
@@ -193,6 +242,16 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
 
 /**
  * Merge packages from cross-distro-packages feature
+ * 
+ * Implements cross-distro package merge from docs/merge-specification.md
+ * 
+ * Separately merges apt (Debian/Ubuntu) and apk (Alpine) package lists
+ * using the same deduplication strategy as mergeAptPackages
+ * 
+ * @param baseConfig - Base devcontainer configuration
+ * @param apt - apt package list to merge
+ * @param apk - apk package list to merge
+ * @returns Updated configuration
  */
 function mergeCrossDistroPackages(
     baseConfig: DevContainer,
@@ -700,6 +759,24 @@ function applyGlueConfig(
 
 /**
  * Merge docker-compose.yml files from base and overlays into a single file
+ */
+/**
+ * Merge Docker Compose files from multiple overlays
+ * 
+ * Implements Docker Compose merge rules from docs/merge-specification.md
+ * 
+ * Rules:
+ * - Services: Deep merge by service name
+ * - Volumes: Shallow merge by volume name
+ * - Networks: Shallow merge by network name
+ * - depends_on: Filter to only existing services
+ * - Port offset: Applied to host ports if specified
+ * 
+ * @param outputPath - Output directory for merged compose file
+ * @param baseStack - Base stack name (plain/compose)
+ * @param overlays - List of overlay IDs to merge
+ * @param portOffset - Optional port offset to apply
+ * @param customImage - Optional custom base image
  */
 function mergeDockerComposeFiles(
     outputPath: string,
