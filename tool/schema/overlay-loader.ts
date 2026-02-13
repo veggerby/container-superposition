@@ -53,12 +53,29 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
 
         const ensureNumberArray = (value: any): number[] => {
             if (Array.isArray(value)) {
-                // Validate all elements are numbers
-                if (!value.every((item) => typeof item === 'number')) {
-                    console.warn(`Warning: Non-number values in ports array in ${overlayDir}`);
-                    return value.filter((item) => typeof item === 'number');
+                const normalized: number[] = [];
+                let hadInvalidValues = false;
+
+                for (const item of value) {
+                    if (typeof item === 'number' && Number.isFinite(item)) {
+                        normalized.push(item);
+                        continue;
+                    }
+
+                    // Accept numeric strings (common in YAML authored by hand)
+                    if (typeof item === 'string' && /^\d+$/.test(item.trim())) {
+                        normalized.push(Number(item.trim()));
+                        continue;
+                    }
+
+                    hadInvalidValues = true;
                 }
-                return value;
+
+                if (hadInvalidValues) {
+                    console.warn(`Warning: Invalid values in ports array in ${overlayDir}`);
+                }
+
+                return normalized;
             }
             return [];
         };

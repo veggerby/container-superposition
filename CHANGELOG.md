@@ -44,10 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Improved overlay information display with better formatting and colors
 - Enhanced error messages with actionable suggestions
+- **Output structure documentation** — Updated `tool/README.md` to reflect the current merged compose output and overlay-suffixed copied files
 
 ### Fixed
 
 - **Grafana dashboard auto-import** — Dashboard provisioning now uses non-overlapping mount paths so default JSON dashboards load reliably on first startup
+- **Compose dependency filtering** — `depends_on` cleanup now supports both list and object syntax during compose merge
+- **Overlay manifest ports parsing** — Numeric string port values in `overlay.yml` are now accepted and normalized
 
 ---
 

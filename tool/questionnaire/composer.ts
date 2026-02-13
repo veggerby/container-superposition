@@ -70,6 +70,33 @@ function deepMerge(target: any, source: any): any {
 }
 
 /**
+ * Keep only dependencies that exist in the final compose service set.
+ * Supports both compose syntaxes:
+ * - array form: depends_on: [serviceA, serviceB]
+ * - object form: depends_on: { serviceA: { condition: ... } }
+ */
+function filterDependsOnToExistingServices(
+    dependsOn: unknown,
+    existingServices: Set<string>
+): unknown {
+    if (Array.isArray(dependsOn)) {
+        const filtered = dependsOn.filter(
+            (dep): dep is string => typeof dep === 'string' && existingServices.has(dep)
+        );
+        return filtered.length > 0 ? filtered : undefined;
+    }
+
+    if (dependsOn && typeof dependsOn === 'object') {
+        const filtered = Object.fromEntries(
+            Object.entries(dependsOn).filter(([dep]) => existingServices.has(dep))
+        );
+        return Object.keys(filtered).length > 0 ? filtered : undefined;
+    }
+
+    return dependsOn;
+}
+
+/**
  * Split PATH string on colons, but preserve ${...} variable references
  * e.g., "${containerEnv:HOME}/bin:${containerEnv:PATH}" -> ["${containerEnv:HOME}/bin", "${containerEnv:PATH}"]
  */
@@ -751,14 +778,20 @@ function mergeDockerComposeFiles(
 
     // Filter depends_on to only include services that exist
     const serviceNames = Object.keys(merged.services);
+    const serviceNameSet = new Set(serviceNames);
     for (const serviceName of serviceNames) {
         const service = merged.services[serviceName];
-        if (service.depends_on && Array.isArray(service.depends_on)) {
-            service.depends_on = service.depends_on.filter((dep: string) =>
-                serviceNames.includes(dep)
+
+        if (service.depends_on !== undefined) {
+            const filteredDependsOn = filterDependsOnToExistingServices(
+                service.depends_on,
+                serviceNameSet
             );
-            if (service.depends_on.length === 0) {
+
+            if (filteredDependsOn === undefined) {
                 delete service.depends_on;
+            } else {
+                service.depends_on = filteredDependsOn;
             }
         }
     }

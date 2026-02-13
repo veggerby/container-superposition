@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import {
@@ -45,6 +46,41 @@ describe('Overlay Loader', () => {
             expect(manifest?.conflicts).toEqual([]);
             expect(manifest?.tags).toBeDefined();
             expect(manifest?.ports).toEqual([]);
+        });
+
+        it('should coerce numeric string port values and drop invalid ones', () => {
+            const tmpRoot = path.join(REPO_ROOT, 'tmp', 'overlay-loader-ports');
+            const overlayDir = path.join(tmpRoot, 'test-overlay');
+
+            if (fs.existsSync(tmpRoot)) {
+                fs.rmSync(tmpRoot, { recursive: true });
+            }
+            fs.mkdirSync(overlayDir, { recursive: true });
+
+            fs.writeFileSync(
+                path.join(overlayDir, 'overlay.yml'),
+                `id: test-overlay
+name: Test Overlay
+description: Test ports coercion
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags: [test]
+ports: ["3000", 4317, "invalid", true]
+`
+            );
+
+            try {
+                const manifest = loadOverlayManifest(overlayDir);
+                expect(manifest).toBeDefined();
+                expect(manifest?.ports).toEqual([3000, 4317]);
+            } finally {
+                if (fs.existsSync(tmpRoot)) {
+                    fs.rmSync(tmpRoot, { recursive: true });
+                }
+            }
         });
     });
 
