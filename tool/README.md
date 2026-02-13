@@ -121,21 +121,16 @@ After running the tool, you'll have:
 ```
 .devcontainer/
 ├── devcontainer.json                  # Main configuration (editable!)
-├── docker-compose.yml                 # Base compose file (if using compose template)
+├── docker-compose.yml                 # Combined compose file with selected services
 ├── .env.example                       # Environment variables from selected overlays
 ├── scripts/
 │   └── post_create.sh                 # Post-creation scripts
-├── docker-compose.postgres.yml        # (if postgres selected)
-├── docker-compose.redis.yml           # (if redis selected)
-├── docker-compose.otel-collector.yml  # (if otel-collector selected)
-├── docker-compose.jaeger.yml          # (if jaeger selected)
-├── docker-compose.prometheus.yml      # (if prometheus selected)
-├── docker-compose.grafana.yml         # (if grafana selected)
-├── docker-compose.loki.yml            # (if loki selected)
-├── otel-collector-config.yaml         # (if otel-collector selected)
-├── prometheus.yml                     # (if prometheus selected)
-├── grafana-datasources.yml            # (if grafana selected)
-└── loki-config.yaml                   # (if loki selected)
+├── otel-collector-config-otel-collector.yaml  # (if otel-collector selected)
+├── prometheus-prometheus.yml                  # (if prometheus selected)
+├── grafana-datasources-grafana.yml            # (if grafana selected)
+├── dashboard-provider-grafana.yml             # (if grafana selected)
+├── dashboards-grafana/                        # (if grafana selected)
+└── loki-config-loki.yaml                      # (if loki selected)
 ```
 
 All `.env.example` files from selected overlays are automatically merged into a single file with all relevant environment variables.
@@ -192,17 +187,17 @@ Each overlay is a composable package that can include:
 ```
 overlays/postgres/
 ├── devcontainer.patch.json    # Features, env vars, ports (merged into devcontainer.json)
-├── docker-compose.yml         # Service definition (copied as docker-compose.{overlay}.yml)
+├── docker-compose.yml         # Service definition (merged into output docker-compose.yml)
 ├── .env.example               # Environment variables (merged into combined .env.example)
-└── [additional files]         # Config files, scripts, directories (copied as-is)
+└── [additional files]         # Copied with overlay suffix to avoid filename conflicts
 ```
 
 The tool intelligently handles each file type:
 
 - **devcontainer.patch.json** - Deep-merged into devcontainer.json (arrays concatenated, objects merged)
-- **docker-compose.yml** - Copied as `docker-compose.{overlay}.yml` and referenced in devcontainer.json
+- **docker-compose.yml** - Merged with base compose into one output `docker-compose.yml`
 - **.env.example** - Content merged into combined `.env.example` in output
-- **Other files/directories** - Copied as-is to output (e.g., `otel-collector.yml`, `config/redis.conf`)
+- **Other files/directories** - Copied with an overlay suffix (e.g., `prometheus-prometheus.yml`, `dashboards-grafana/`)
 
 This allows overlays to provide complete, self-contained configurations including any necessary config files.
 

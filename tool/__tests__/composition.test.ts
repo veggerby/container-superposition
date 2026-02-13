@@ -279,4 +279,80 @@ describe('Golden Tests - Composition', () => {
         // Clean up
         fs.rmSync(outputPath, { recursive: true });
     });
+
+    it('should remove missing object-style depends_on entries when merging compose services', async () => {
+        const outputPath = path.join(TEST_OUTPUT_DIR, 'test-depends-on-object-filter');
+        const testOverlayId = 'test-depends-on-object-filter';
+        const testOverlayDir = path.join(REPO_ROOT, 'overlays', testOverlayId);
+
+        if (fs.existsSync(outputPath)) {
+            fs.rmSync(outputPath, { recursive: true });
+        }
+        if (fs.existsSync(testOverlayDir)) {
+            fs.rmSync(testOverlayDir, { recursive: true });
+        }
+
+        fs.mkdirSync(testOverlayDir, { recursive: true });
+        fs.writeFileSync(
+            path.join(testOverlayDir, 'overlay.yml'),
+            `id: ${testOverlayId}
+name: Test Depends On Filter
+description: Test overlay for depends_on object filtering
+category: dev
+supports:
+  - compose
+requires: []
+suggests: []
+conflicts: []
+tags:
+  - test
+ports: []
+`
+        );
+        fs.writeFileSync(path.join(testOverlayDir, 'devcontainer.patch.json'), '{}\n');
+        fs.writeFileSync(
+            path.join(testOverlayDir, 'docker-compose.yml'),
+            `version: '3.8'
+services:
+  test-service:
+    image: alpine:3.20
+    command: ["sh", "-c", "sleep infinity"]
+    depends_on:
+      missing-service:
+        condition: service_started
+networks:
+  devnet:
+`
+        );
+
+        try {
+            const answers: QuestionnaireAnswers = {
+                stack: 'compose',
+                baseImage: 'bookworm',
+                language: [],
+                needsDocker: false,
+                database: [],
+                playwright: false,
+                cloudTools: [],
+                devTools: [testOverlayId as any],
+                observability: [],
+                outputPath,
+            };
+
+            await composeDevContainer(answers);
+
+            const composePath = path.join(outputPath, 'docker-compose.yml');
+            const compose = yaml.load(fs.readFileSync(composePath, 'utf-8')) as any;
+
+            expect(compose.services['test-service']).toBeDefined();
+            expect(compose.services['test-service'].depends_on).toBeUndefined();
+        } finally {
+            if (fs.existsSync(testOverlayDir)) {
+                fs.rmSync(testOverlayDir, { recursive: true });
+            }
+            if (fs.existsSync(outputPath)) {
+                fs.rmSync(outputPath, { recursive: true });
+            }
+        }
+    });
 });
