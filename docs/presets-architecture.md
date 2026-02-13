@@ -65,10 +65,10 @@ interface PresetGlueConfig {
 
 ### Preset File Structure
 
-Presets are defined in `overlays/presets/` with YAML files:
+Presets are defined in `overlays/.presets/` with YAML files:
 
 ```yaml
-# overlays/presets/web-api.yml
+# overlays/.presets/web-api.yml
 id: web-api
 name: Web API Stack
 description: Full-stack web API with database, cache, and observability
@@ -407,7 +407,7 @@ selects:
 
 ### Adding New Presets
 
-1. **Create YAML file** in `overlays/presets/`
+1. **Create YAML file** in `overlays/.presets/`
 2. **Register in** `overlays/index.yml`
 3. **No code changes needed** (declarative system)
 

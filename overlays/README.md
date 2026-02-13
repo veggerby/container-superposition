@@ -150,6 +150,6 @@ See [Creating Overlays Guide](../docs/creating-overlays.md) for complete documen
 
 ## Presets (Meta-Overlays)
 
-Presets are special meta-overlays that select combinations of overlays for common scenarios (web-api, microservice, docs-site, fullstack). They're located in `overlays/presets/*.yml`.
+Presets are special meta-overlays that select combinations of overlays for common scenarios (web-api, microservice, docs-site, fullstack). They're located in `overlays/.presets/*.yml`.
 
 See [Presets Guide](../docs/presets.md) and [Presets Architecture](../docs/presets-architecture.md) for detailed documentation on creating and using presets.
