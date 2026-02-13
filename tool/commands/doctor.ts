@@ -314,7 +314,7 @@ function checkOverlays(overlaysDir: string): CheckResult[] {
 
     const entries = fs.readdirSync(overlaysDir, { withFileTypes: true });
     const overlayDirs = entries.filter(
-        (entry) => entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'presets'
+        (entry) => entry.isDirectory() && !entry.name.startsWith('.')
     );
 
     if (overlayDirs.length === 0) {

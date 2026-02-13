@@ -80,6 +80,19 @@
             "type": "integer",
             "description": "Display order within category (lower = first)",
             "minimum": 1
+        },
+        "imports": {
+            "type": "array",
+            "description": "Shared files to import from overlays/.shared/",
+            "items": {
+                "type": "string"
+            },
+            "default": []
+        },
+        "minimal": {
+            "type": "boolean",
+            "description": "Whether this overlay is excluded in minimal mode (true = extra/optional)",
+            "default": false
         }
     },
     "additionalProperties": false

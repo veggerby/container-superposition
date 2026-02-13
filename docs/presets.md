@@ -281,7 +281,7 @@ This allows you to:
 
 To create your own preset:
 
-1. Create `overlays/presets/my-preset.yml`:
+1. Create `overlays/.presets/my-preset.yml`:
 
 ```yaml
 id: my-preset

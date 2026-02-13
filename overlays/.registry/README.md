@@ -11,4 +11,4 @@ These files are loaded during initialization to provide choices for base images 
 
 ## Note
 
-Preset definitions are stored in `overlays/presets/*.yml`.
+Preset definitions are stored in `overlays/.presets/*.yml`.

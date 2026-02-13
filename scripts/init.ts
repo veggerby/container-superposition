@@ -91,8 +91,8 @@ const OVERLAYS_CONFIG_PATH =
     OVERLAYS_CONFIG_CANDIDATES[0];
 
 const PRESETS_DIR_CANDIDATES = [
-    path.join(__dirname, '..', 'overlays', 'presets'),
-    path.join(__dirname, '..', '..', 'overlays', 'presets'),
+    path.join(__dirname, '..', 'overlays', '.presets'),
+    path.join(__dirname, '..', '..', 'overlays', '.presets'),
 ];
 
 const PRESETS_DIR =
