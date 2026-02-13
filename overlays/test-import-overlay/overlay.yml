@@ -1,0 +1,14 @@
+id: test-import-overlay
+name: Test Import Overlay
+description: Test overlay demonstrating imports feature
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+    - test
+    - imports
+ports: []
+imports:
+    - .shared/vscode/recommended-extensions.json
