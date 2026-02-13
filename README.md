@@ -1,5 +1,9 @@
 # container-superposition
 
+[![Validate Overlays](https://github.com/veggerby/container-superposition/actions/workflows/validate-overlays.yml/badge.svg)](https://github.com/veggerby/container-superposition/actions/workflows/validate-overlays.yml)
+[![Build DevContainers](https://github.com/veggerby/container-superposition/actions/workflows/build-devcontainers.yml/badge.svg)](https://github.com/veggerby/container-superposition/actions/workflows/build-devcontainers.yml)
+[![npm version](https://badge.fury.io/js/container-superposition.svg)](https://www.npmjs.com/package/container-superposition)
+
 Composable devcontainer scaffolds that collapse into working environments.
 
 ## 🎯 Purpose
@@ -456,6 +460,39 @@ npm run init -- --stack compose --language nodejs --postgres --port-offset 200 -
 ```
 
 This automatically adjusts all exposed ports in docker-compose.yml and documents the offset in .env.example.
+
+### GitHub Codespaces Support
+
+Container Superposition is optimized for GitHub Codespaces with the `--codespaces` flag:
+
+```bash
+# Optimize for GitHub Codespaces
+npx container-superposition init --codespaces
+
+# With specific configuration
+npx container-superposition init --stack compose --language nodejs --database postgres --dev-tools docker-in-docker --codespaces
+```
+
+**Key differences in Codespaces mode:**
+
+- ⚠️ **Docker Socket Warning** - If you select `docker-sock`, you'll get a warning that it won't work in Codespaces
+- 💡 **Preference for DinD** - The tool suggests `docker-in-docker` instead for portability
+- ✅ **Port Forwarding** - Codespaces automatically forwards devcontainer ports
+
+**Why docker-in-docker for Codespaces?**
+
+| Feature         | docker-sock (Local)         | docker-in-docker (Codespaces) |
+| --------------- | --------------------------- | ----------------------------- |
+| **Local**       | ✅ Fast (shared cache)      | ⚠️ Slower (isolated)          |
+| **Codespaces**  | ❌ No host Docker daemon    | ✅ Works everywhere           |
+| **Portability** | ⚠️ Local only               | ✅ Cloud, remote, local       |
+| **Isolation**   | ⚠️ Shares host Docker       | ✅ Isolated daemon            |
+
+**Best practices:**
+
+- Use `--codespaces` flag when creating configurations for team repositories
+- The tool will warn you if you select incompatible overlays
+- Codespaces automatically handles port forwarding - no special configuration needed
 
 ### Regenerating from Manifest
 

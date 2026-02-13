@@ -103,6 +103,7 @@ This makes the questionnaire more engaging and the output easier to scan.
 | `--cloud-tools <list>`   | Cloud tools: `aws-cli`, `azure-cli`, `gcloud`, `kubectl-helm`, `terraform`, `pulumi`                                                                                  | `--cloud-tools aws-cli,kubectl-helm`        |
 | `--dev-tools <list>`     | Development tools: `docker-in-docker`, `docker-sock`, `playwright`, `codex`, `git-helpers`, `pre-commit`, `commitlint`, `just`, `direnv`, `modern-cli-tools`, `ngrok` | `--dev-tools docker-in-docker,playwright`   |
 | `--port-offset <number>` | Add offset to all exposed ports (e.g., 100 makes Grafana 3100)                                                                                                        | `--port-offset 100`                         |
+| `--codespaces`           | Optimize for GitHub Codespaces (warns if docker-sock selected)                                                                                                        | `--codespaces`                              |
 | `-o`, `--output <path>`  | Output directory (default: `./.devcontainer`)                                                                                                                         | `-o ./custom-path`                          |
 | `-h`, `--help`           | Show help                                                                                                                                                             | `--help`                                    |
 

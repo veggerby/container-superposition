@@ -361,11 +361,29 @@ npm run init -- --stack my-stack
 
 ## Testing Your Changes
 
-### Run Smoke Tests
+### Run Unit Tests
 
 ```bash
 npm test
 ```
+
+### Run Smoke Tests
+
+```bash
+npm run test:smoke
+```
+
+### Run Doctor Command
+
+```bash
+npm run init -- doctor
+```
+
+This validates:
+- Environment prerequisites (Node.js, Docker, Docker Compose)
+- Overlay integrity (YAML syntax, required files, broken symlinks)
+- Manifest compatibility
+- Port conflicts
 
 ### Test Interactive Mode
 
@@ -382,6 +400,69 @@ npm run init -- --stack my-stack --postgres
 ### Verify Output
 
 Check that `.devcontainer/devcontainer.json` is valid JSON and contains expected features.
+
+## Continuous Integration
+
+The repository uses GitHub Actions for automated testing and validation.
+
+### Workflow: Validate Overlays
+
+**Triggers:** Pull requests that modify overlays, tool code, or scripts
+
+**File:** `.github/workflows/validate-overlays.yml`
+
+**Steps:**
+1. Run `doctor` command to check environment
+2. Run unit tests (`npm test`)
+3. Run smoke tests (`npm run test:smoke`)
+
+This ensures all overlay changes are validated before merge.
+
+### Workflow: Generate Documentation
+
+**Triggers:** Pushes to `main` branch that modify overlays
+
+**File:** `.github/workflows/generate-docs.yml`
+
+**Steps:**
+1. Run `npm run docs:generate`
+2. Auto-commit and push if documentation changed
+
+This keeps overlay documentation in sync automatically.
+
+### Workflow: Build DevContainers
+
+**Triggers:** Push/PR to main branch that modify templates, overlays, or features
+
+**File:** `.github/workflows/build-devcontainers.yml`
+
+**Steps:**
+1. Generate devcontainer configurations for various combinations
+2. Build actual devcontainer images with DevContainer CLI
+3. Verify they build successfully
+
+This validates that overlay combinations work correctly.
+
+### Running CI Locally
+
+Before pushing changes, run the same checks CI will run:
+
+```bash
+# Install dependencies
+npm ci
+
+# Build TypeScript
+npm run build
+
+# Run doctor
+npm run init -- doctor
+
+# Run tests
+npm test
+
+# Run smoke tests
+npm run test:smoke
+```
 
 ## Guidelines
 

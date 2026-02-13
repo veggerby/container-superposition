@@ -1,0 +1,38 @@
+name: Validate Overlays
+
+on:
+    pull_request:
+        paths:
+            - 'overlays/**'
+            - 'tool/**'
+            - 'scripts/**'
+            - '.github/workflows/validate-overlays.yml'
+
+jobs:
+    validate:
+        name: Validate Overlay Configuration
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build TypeScript
+              run: npm run build
+
+            - name: Run doctor
+              run: npm run init -- doctor
+
+            - name: Validate overlays
+              run: npm test
+
+            - name: Test compositions
+              run: npm run test:smoke

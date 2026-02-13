@@ -837,6 +837,33 @@ async function runQuestionnaire(
 
         const playwright = selectedOverlays.includes('playwright');
 
+        // Check for Codespaces compatibility warning
+        const dockerSockSelected = devTools.includes('docker-sock');
+        const dockerInDockerSelected = devTools.includes('docker-in-docker');
+        
+        // Auto-detect or ask about Codespaces mode
+        let codespaces = false;
+        if (dockerSockSelected && !dockerInDockerSelected) {
+            console.log(chalk.yellow('\n⚠️  Codespaces Compatibility Note:\n'));
+            console.log(chalk.yellow('   docker-sock does not work in GitHub Codespaces'));
+            console.log(chalk.gray('   (Codespaces has no host Docker daemon)'));
+            console.log();
+            console.log(chalk.cyan('   Consider using docker-in-docker instead for portable environments:'));
+            console.log(chalk.gray('   • Works in Codespaces, local devcontainers, and remote'));
+            console.log(chalk.gray('   • Isolated Docker daemon (slightly slower but more compatible)'));
+            console.log();
+            
+            const useCodespaces = await confirm({
+                message: 'Are you targeting GitHub Codespaces? (will suggest docker-in-docker)',
+                default: false,
+            });
+            
+            if (useCodespaces) {
+                codespaces = true;
+                console.log(chalk.yellow('\n💡 Tip: Consider removing docker-sock and adding docker-in-docker for Codespaces\n'));
+            }
+        }
+
         return {
             stack,
             baseImage,
@@ -854,6 +881,7 @@ async function runQuestionnaire(
             observability,
             outputPath,
             portOffset,
+            codespaces,
         };
     } catch (error) {
         if ((error as any).name === 'ExitPromptError') {
@@ -1073,6 +1101,10 @@ async function parseCliArgs(): Promise<{
             '--port-offset <number>',
             'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)'
         )
+        .option(
+            '--codespaces',
+            'Optimize for GitHub Codespaces (prefers docker-in-docker over docker-sock)'
+        )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .action((options) => {
             // Store options for main() to process
@@ -1207,6 +1239,9 @@ async function parseCliArgs(): Promise<{
     }
     if (initOptions.portOffset) {
         config.portOffset = parseInt(initOptions.portOffset, 10);
+    }
+    if (initOptions.codespaces) {
+        config.codespaces = true;
     }
     if (initOptions.output) config.outputPath = initOptions.output;
 

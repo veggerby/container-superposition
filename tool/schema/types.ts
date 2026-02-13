@@ -107,6 +107,7 @@ export interface QuestionnaireAnswers {
     observability: ObservabilityTool[];
     outputPath: string;
     portOffset?: number; // Optional port offset for running multiple instances
+    codespaces?: boolean; // Optimize configuration for GitHub Codespaces
 }
 
 /**
