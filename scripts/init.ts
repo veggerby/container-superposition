@@ -34,6 +34,12 @@ import {
     getIncompatibleOverlays,
     DEPLOYMENT_TARGETS,
 } from '../tool/schema/deployment-targets.js';
+import {
+    migrateManifest,
+    detectManifestVersion,
+    isCurrentVersion,
+    CURRENT_MANIFEST_VERSION,
+} from '../tool/schema/manifest-migrations.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -193,45 +199,68 @@ function findManifestFile(manifestPath?: string): string | null {
 }
 
 /**
- * Load and validate manifest file
+ * Load and validate manifest file with automatic migration support
  */
 function loadManifest(manifestPath: string): SuperpositionManifest | null {
     try {
         const content = fs.readFileSync(manifestPath, 'utf-8');
-        const manifest = JSON.parse(content) as SuperpositionManifest;
+        const rawManifest = JSON.parse(content);
 
-        // Basic validation
-        if (!manifest.version || !manifest.baseTemplate) {
+        // Detect manifest version
+        const manifestVersion = detectManifestVersion(rawManifest);
+
+        // Basic validation - check for required fields based on version
+        if (manifestVersion === '1') {
+            // v1 manifests have 'version' (legacy) or 'manifestVersion'/'generatedBy'
+            if (!rawManifest.baseTemplate) {
+                console.error(
+                    chalk.red('✗ Invalid manifest format: missing required field (baseTemplate)')
+                );
+                return null;
+            }
+        } else {
             console.error(
-                chalk.red(
-                    '✗ Invalid manifest format: missing required fields (version, baseTemplate)'
-                )
+                chalk.red(`✗ Unknown manifest version: ${manifestVersion}`)
             );
             return null;
         }
 
-        if (!Array.isArray(manifest.overlays)) {
+        if (!Array.isArray(rawManifest.overlays)) {
             console.error(chalk.red('✗ Invalid manifest format: "overlays" must be an array'));
             return null;
         }
 
-        if (!manifest.overlays.every((overlay) => typeof overlay === 'string')) {
+        if (!rawManifest.overlays.every((overlay: any) => typeof overlay === 'string')) {
             console.error(
                 chalk.red('✗ Invalid manifest format: all "overlays" entries must be strings')
             );
             return null;
         }
 
-        // Version check (warn if different, but continue)
-        if (manifest.version !== '0.1.0') {
-            console.warn(
-                chalk.yellow(
-                    `⚠️  Manifest version ${manifest.version} may not be fully compatible with this tool`
+        // Migrate manifest if needed
+        if (!isCurrentVersion(rawManifest)) {
+            console.log(
+                chalk.cyan(
+                    `ℹ️  Migrating manifest from version ${manifestVersion} to ${CURRENT_MANIFEST_VERSION}...`
                 )
             );
+            const migratedManifest = migrateManifest(rawManifest);
+
+            if (!migratedManifest) {
+                console.error(
+                    chalk.red(
+                        `✗ Failed to migrate manifest from version ${manifestVersion}`
+                    )
+                );
+                return null;
+            }
+
+            console.log(chalk.green('✓ Manifest migrated successfully'));
+            return migratedManifest;
         }
 
-        return manifest;
+        // Already current version, just normalize it
+        return migrateManifest(rawManifest);
     } catch (error) {
         console.error(
             chalk.red(

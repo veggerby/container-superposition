@@ -244,7 +244,8 @@ export interface OverlaysConfig {
  * Superposition manifest generated alongside devcontainer.json
  */
 export interface SuperpositionManifest {
-    version: string;
+    manifestVersion: string; // Schema version (increments on breaking changes)
+    generatedBy: string; // Tool version that created it
     generated: string;
     baseTemplate: Stack;
     baseImage: string;
@@ -261,6 +262,8 @@ export interface SuperpositionManifest {
         enabled: boolean;
         location: string;
     };
+    // Legacy field for backward compatibility (v1 manifests)
+    version?: string;
 }
 
 /**

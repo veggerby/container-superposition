@@ -78,7 +78,8 @@ describe('Golden Tests - Composition', () => {
 
         // Load and verify content
         const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-        expect(manifest.version).toBe('0.1.0');
+        expect(manifest.manifestVersion).toBe('1');
+        expect(manifest.generatedBy).toBeDefined();
         expect(manifest.generated).toBeDefined();
         expect(manifest.baseTemplate).toBe('compose');
         expect(manifest.baseImage).toBe('bookworm');

@@ -20,6 +20,7 @@ import {
     getCustomScriptPaths,
 } from '../schema/custom-loader.js';
 import { generateReadme } from '../readme/readme-generator.js';
+import { CURRENT_MANIFEST_VERSION } from '../schema/manifest-migrations.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -41,6 +42,21 @@ const REPO_ROOT =
 
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
 const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
+
+// Read package.json to get tool version
+const PACKAGE_JSON_CANDIDATES = [
+    path.join(REPO_ROOT, 'package.json'),
+];
+let TOOL_VERSION = '0.1.1'; // Fallback version
+try {
+    const pkgPath = PACKAGE_JSON_CANDIDATES.find(fs.existsSync);
+    if (pkgPath) {
+        const pkgContent = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        TOOL_VERSION = pkgContent.version || TOOL_VERSION;
+    }
+} catch {
+    // Use fallback version if package.json can't be read
+}
 
 /**
  * Deep merge two objects, with special handling for arrays
@@ -326,7 +342,8 @@ function generateManifest(
     containerName?: string
 ): void {
     const manifest: SuperpositionManifest = {
-        version: '0.1.0',
+        manifestVersion: CURRENT_MANIFEST_VERSION,
+        generatedBy: TOOL_VERSION,
         generated: new Date().toISOString(),
         baseTemplate: answers.stack,
         baseImage:
