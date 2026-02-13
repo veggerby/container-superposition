@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **GitHub Codespaces support** — New `--codespaces` flag for portable cloud development
+    - Optimizes configuration for GitHub Codespaces environments
+    - Warns when `docker-sock` is selected (not compatible with Codespaces)
+    - Suggests `docker-in-docker` as portable alternative
+    - Interactive prompt asks if targeting Codespaces when docker-sock detected
+    - Documentation in README with comparison table and best practices
+    
+- **GitHub Actions workflows** — Automated validation and documentation
+    - `validate-overlays.yml` — Runs on pull requests to validate overlay changes
+        - Executes `doctor` command for environment validation
+        - Runs full test suite
+        - Executes smoke tests to ensure overlay combinations work
+    - `generate-docs.yml` — Auto-generates documentation on main branch pushes
+        - Runs when overlays or docs generation scripts change
+        - Auto-commits updated documentation
+        - Keeps overlay docs in sync automatically
+    - Workflow status badges added to README
+
 - **Environment validation command** — Comprehensive `doctor` command for diagnostics
     - Node.js version check (>= 18 required)
     - Docker daemon accessibility verification
