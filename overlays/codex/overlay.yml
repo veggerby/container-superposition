@@ -12,3 +12,4 @@ tags:
     - ai
     - code-generation
 ports: []
+minimal: true

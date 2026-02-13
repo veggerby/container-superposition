@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Overlay imports** — Overlays can now import shared configuration from `overlays/.shared/`
+    - Supports JSON, YAML, and ENV file imports
+    - Reduces duplication across overlays with common patterns
+    - Example shared configs for OTEL, healthchecks, and VS Code extensions
+    - Import validation in doctor command
+- **`--minimal` flag** — Skip optional/nice-to-have overlays for lean configurations
+    - Useful for CI/CD environments, Codespaces, or learning
+    - Marked overlays: `modern-cli-tools`, `git-helpers`, `codex`
+    - Use: `container-superposition init --minimal`
+- **`--editor` flag** — Choose editor profile for customizations
+    - `vscode` (default): Include VS Code extensions and settings
+    - `none`: CLI-only, no editor customizations
+    - `jetbrains`: Skip VS Code customizations (reserved for future JetBrains-specific settings)
+    - Use: `container-superposition init --editor none`
+- **Preset directory reorganization** — Moved `overlays/presets` to `overlays/.presets` for consistency with `.registry` and `.shared` directories
+
+### Changed
+
+- Overlay manifests now support `imports` field for shared file references
+- Overlay manifests now support `minimal` boolean field to mark optional overlays
+
+### Added
+
 - **Deployment target support** — Environment-specific optimizations and validation
     - `--target` flag supports: local (default), codespaces, gitpod, devpod
     - Automatic compatibility validation for selected overlays
