@@ -1176,6 +1176,12 @@ async function parseCliArgs(): Promise<{
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .option('--no-backup', 'Skip creating backup before regeneration')
         .option('--backup-dir <path>', 'Custom backup directory location')
+        .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
+        .option(
+            '--editor <profile>',
+            'Editor profile: vscode (default), jetbrains, none',
+            'vscode'
+        )
         .action((options) => {
             const outputPath = options.output || './.devcontainer';
             const manifestPath = path.join(outputPath, 'superposition.json');
@@ -1387,8 +1393,13 @@ async function main() {
         // Build answers based on mode
         let answers: QuestionnaireAnswers;
 
-        if (useManifestOnly && manifest) {
-            // Mode 1: Manifest-only (--from-manifest --no-interactive)
+        // Check if there are CLI overrides beyond just output path
+        const hasCliOverrides = cliArgs && Object.keys(cliArgs.config).some(
+            key => key !== 'outputPath' && cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
+        );
+
+        if (useManifestOnly && manifest && !hasCliOverrides) {
+            // Mode 1: Manifest-only (--from-manifest --no-interactive, no CLI overrides)
             const manifestAnswers = buildAnswersFromManifest(manifest, manifestDir);
             answers = mergeAnswers(manifestAnswers);
 
@@ -1411,8 +1422,9 @@ async function main() {
                         { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
                     )
             );
-        } else if (cliArgs && cliArgs.config.stack) {
+        } else if (cliArgs && (cliArgs.config.stack || hasCliOverrides)) {
             // Mode 2: CLI-based (with optional manifest defaults)
+            // This includes regen with --minimal or --editor flags
             const cliAnswers = buildAnswersFromCliArgs(cliArgs.config);
             const manifestAnswers = manifest
                 ? buildAnswersFromManifest(manifest, manifestDir)
@@ -1421,14 +1433,28 @@ async function main() {
                 outputPath: cliAnswers.outputPath || './.devcontainer',
             });
 
+            const modeLabel = useManifestOnly && hasCliOverrides 
+                ? 'Regenerating from Manifest with Overrides'
+                : 'Running in CLI mode';
+
             console.log(
                 '\n' +
-                    boxen(chalk.bold('Running in CLI mode'), {
+                    boxen(chalk.bold(modeLabel), {
                         padding: 0.5,
                         borderColor: 'blue',
                         borderStyle: 'round',
                     })
             );
+
+            // Show what's being overridden
+            if (useManifestOnly && hasCliOverrides) {
+                const overrides: string[] = [];
+                if (cliAnswers.minimal) overrides.push('minimal mode');
+                if (cliAnswers.editor) overrides.push(`editor: ${cliAnswers.editor}`);
+                if (overrides.length > 0) {
+                    console.log(chalk.dim(`   Overrides: ${overrides.join(', ')}`));
+                }
+            }
         } else {
             // Mode 3: Interactive (with optional manifest pre-population)
             const interactiveAnswers = await runQuestionnaire(manifest, manifestDir);

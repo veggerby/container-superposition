@@ -152,17 +152,41 @@ container-superposition init --editor none --minimal --language nodejs
 
 ## Combining Flags
 
-Both flags can be used together:
+Both flags can be used together with init or regen commands:
 
 ```bash
 # Minimal, CLI-only configuration
 container-superposition init --minimal --editor none --language nodejs
+
+# Regenerate existing setup in minimal mode without editor customizations
+container-superposition regen --minimal --editor none
 
 # Resource-efficient Codespaces setup
 container-superposition init --minimal --editor vscode --target codespaces --language python
 
 # Lean JetBrains environment
 container-superposition init --minimal --editor jetbrains --language java
+```
+
+## Regeneration Workflow
+
+The `regen` command is particularly useful when you want to modify an existing setup:
+
+```bash
+# Step 1: Create initial setup with all extras
+container-superposition init --language nodejs --dev-tools modern-cli-tools,git-helpers,codex
+
+# Step 2: Later, regenerate without the extras
+container-superposition regen --minimal
+# Reads existing manifest, excludes optional overlays
+
+# Step 3: Or regenerate for a different editor
+container-superposition regen --editor jetbrains
+# Removes VS Code customizations
+
+# Step 4: Or both together
+container-superposition regen --minimal --editor none
+# Lean, CLI-only regeneration
 ```
 
 ## Examples
