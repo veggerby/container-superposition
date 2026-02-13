@@ -12,4 +12,7 @@ tags:
     - sql
     - postgres
 ports:
-    - 5432
+    - service: postgres
+      port: 5432
+      protocol: tcp
+      description: PostgreSQL database connection

@@ -17,5 +17,9 @@ tags:
     - ui
     - visualization
 ports:
-    - 3000
+    - service: grafana
+      port: 3000
+      protocol: http
+      description: Grafana web UI
+      path: /
 order: 3

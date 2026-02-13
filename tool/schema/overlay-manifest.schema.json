@@ -68,11 +68,45 @@
         },
         "ports": {
             "type": "array",
-            "description": "Ports used by the overlay (for offset calculation)",
+            "description": "Ports used by the overlay (for offset calculation). Can be simple numbers or objects with metadata.",
             "items": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
+                "oneOf": [
+                    {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65535
+                    },
+                    {
+                        "type": "object",
+                        "required": ["port"],
+                        "properties": {
+                            "service": {
+                                "type": "string",
+                                "description": "Service name (e.g., 'postgres', 'grafana')"
+                            },
+                            "port": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535,
+                                "description": "Port number"
+                            },
+                            "protocol": {
+                                "type": "string",
+                                "enum": ["http", "https", "tcp", "udp", "grpc"],
+                                "description": "Protocol type"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Human-readable description of the port"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "URL path for HTTP services (e.g., '/', '/admin')"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                ]
             },
             "default": []
         },

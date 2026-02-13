@@ -174,6 +174,28 @@ export type OverlayCategory =
     | 'preset';
 
 /**
+ * Port metadata with rich information
+ */
+export interface PortMetadata {
+    service?: string; // Service name (e.g., 'postgres', 'grafana')
+    port: number; // Port number
+    protocol?: 'http' | 'https' | 'tcp' | 'udp' | 'grpc'; // Protocol type
+    description?: string; // Human-readable description
+    path?: string; // URL path for HTTP services (e.g., '/', '/admin')
+}
+
+/**
+ * Normalized port information used internally
+ */
+export interface NormalizedPortInfo {
+    service: string; // Service name (overlay id if not specified)
+    port: number;
+    protocol: 'http' | 'https' | 'tcp' | 'udp' | 'grpc';
+    description: string;
+    path?: string;
+}
+
+/**
  * Overlay metadata from overlays.yml
  */
 export interface OverlayMetadata {
@@ -186,7 +208,7 @@ export interface OverlayMetadata {
     suggests?: string[];
     conflicts?: string[];
     tags?: string[];
-    ports?: number[];
+    ports?: (number | PortMetadata)[]; // Support both legacy and new format
     order?: number;
     imports?: string[]; // Shared files to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
@@ -247,6 +269,28 @@ export interface OverlaysConfig {
     }>;
     /** All overlays, regardless of category */
     overlays: OverlayMetadata[];
+}
+
+/**
+ * Generated port information in ports.json
+ */
+export interface GeneratedPortInfo {
+    service: string;
+    port: number;
+    actualPort: number;
+    protocol: 'http' | 'https' | 'tcp' | 'udp' | 'grpc';
+    description: string;
+    url?: string; // For HTTP/HTTPS services
+    connectionString?: string; // For databases
+    path?: string; // URL path for HTTP services
+}
+
+/**
+ * Ports documentation structure
+ */
+export interface PortsDocumentation {
+    portOffset: number;
+    ports: GeneratedPortInfo[];
 }
 
 /**
