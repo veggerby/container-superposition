@@ -300,7 +300,7 @@ Access at: http://localhost:3000/dashboards
 2. Click **Dashboard settings** (gear icon)
 3. Click **JSON Model**
 4. Copy JSON
-5. Save to `.devcontainer/dashboards/my-dashboard.json`
+5. Save to `.devcontainer/dashboards-grafana/my-dashboard.json`
 6. Restart Grafana to load
 
 **Option 2: Export from Grafana.com**
@@ -308,14 +308,14 @@ Access at: http://localhost:3000/dashboards
 1. Browse https://grafana.com/grafana/dashboards/
 2. Find dashboard (e.g., Node Exporter Full)
 3. Download JSON
-4. Save to `.devcontainer/dashboards/`
+4. Save to `.devcontainer/dashboards-grafana/`
 5. Restart Grafana
 
 **Dashboard structure:**
 
 ```
 .devcontainer/
-├── dashboards/
+├── dashboards-grafana/
 │   ├── observability-overview.json
 │   ├── my-custom-dashboard.json
 │   └── node-exporter.json
@@ -376,13 +376,13 @@ docker exec tempo cat /etc/tempo/tempo-config.yaml
 docker exec grafana ls /etc/grafana/provisioning/dashboards/
 
 # Check dashboard files are present
-docker exec grafana ls /etc/grafana/provisioning/dashboards/*.json
+docker exec grafana ls /etc/grafana/dashboards/*.json
 
 # Check Grafana logs for errors
 docker logs grafana | grep -i dashboard
 
 # Validate JSON syntax
-jq . .devcontainer/dashboards/my-dashboard.json
+jq . .devcontainer/dashboards-grafana/my-dashboard.json
 ```
 
 ### Issue: Correlation Links Not Working

@@ -8,8 +8,8 @@ services:
             - GF_USERS_ALLOW_SIGN_UP=false
         volumes:
             - ./grafana-datasources-grafana.yml:/etc/grafana/provisioning/datasources/datasources.yml
-            - ./dashboard-provider-grafana.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
-            - ./dashboards-grafana:/etc/grafana/provisioning/dashboards
+            - ./dashboard-provider-grafana.yml:/etc/grafana/provisioning/dashboards/provider.yml
+            - ./dashboards-grafana:/etc/grafana/dashboards
             - grafana_data:/var/lib/grafana
         ports:
             - '${GRAFANA_PORT:-3000}:3000'

@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved overlay information display with better formatting and colors
 - Enhanced error messages with actionable suggestions
 
+### Fixed
+
+- **Grafana dashboard auto-import** — Dashboard provisioning now uses non-overlapping mount paths so default JSON dashboards load reliably on first startup
+
 ---
 
 ## [0.1.1] - 2026-02-11
