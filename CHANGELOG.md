@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **GitHub Codespaces support** — New `--codespaces` flag for portable cloud development
-    - Optimizes configuration for GitHub Codespaces environments
-    - Warns when `docker-sock` is selected (not compatible with Codespaces)
-    - Suggests `docker-in-docker` as portable alternative
-    - Interactive prompt asks if targeting Codespaces when docker-sock detected
-    - Documentation in README with comparison table and best practices
+- **Deployment target support** — Flexible environment-specific optimizations and validation
+    - `--target` flag supports: local, codespaces, gitpod, devpod
+    - Automatic compatibility validation for selected overlays
+    - Environment-specific recommendations (e.g., docker-in-docker for cloud IDEs)
+    - Interactive target selection when incompatible overlays detected
+    - Extensible system for adding new deployment environments
+    - Port forwarding behavior adapts to target environment
+    - Replaces narrow `--codespaces` flag with general abstraction
     
 - **GitHub Actions workflows** — Automated validation and documentation
     - `validate-overlays.yml` — Runs on pull requests to validate overlay changes

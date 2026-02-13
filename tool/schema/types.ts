@@ -5,6 +5,12 @@
 export type Stack = 'plain' | 'compose';
 export type BaseImage = 'bookworm' | 'trixie' | 'alpine' | 'ubuntu' | 'custom';
 export type PackageManager = 'apt' | 'apk';
+
+/**
+ * Deployment target/runtime environment
+ * Determines environment-specific optimizations and compatibility checks
+ */
+export type DeploymentTarget = 'local' | 'codespaces' | 'gitpod' | 'devpod';
 export type LanguageOverlay =
     | 'dotnet'
     | 'nodejs'
@@ -107,7 +113,7 @@ export interface QuestionnaireAnswers {
     observability: ObservabilityTool[];
     outputPath: string;
     portOffset?: number; // Optional port offset for running multiple instances
-    codespaces?: boolean; // Optimize configuration for GitHub Codespaces
+    target?: DeploymentTarget; // Deployment target for environment-specific optimizations
 }
 
 /**

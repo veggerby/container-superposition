@@ -461,38 +461,72 @@ npm run init -- --stack compose --language nodejs --postgres --port-offset 200 -
 
 This automatically adjusts all exposed ports in docker-compose.yml and documents the offset in .env.example.
 
-### GitHub Codespaces Support
+### Deployment Target Support
 
-Container Superposition is optimized for GitHub Codespaces with the `--codespaces` flag:
+Container Superposition validates overlay compatibility with different deployment environments using the `--target` flag:
 
 ```bash
-# Optimize for GitHub Codespaces
-npx container-superposition init --codespaces
+# Specify deployment target
+npx container-superposition init --target codespaces
+npx container-superposition init --target gitpod
+npx container-superposition init --target local  # default
 
 # With specific configuration
-npx container-superposition init --stack compose --language nodejs --database postgres --dev-tools docker-in-docker --codespaces
+npx container-superposition init --stack compose --language nodejs --database postgres --dev-tools docker-in-docker --target codespaces
 ```
 
-**Key differences in Codespaces mode:**
+**Supported Deployment Targets:**
 
-- ⚠️ **Docker Socket Warning** - If you select `docker-sock`, you'll get a warning that it won't work in Codespaces
-- 💡 **Preference for DinD** - The tool suggests `docker-in-docker` instead for portability
-- ✅ **Port Forwarding** - Codespaces automatically forwards devcontainer ports
+| Target        | Description                                | Docker Support      | Auto Port Forward |
+| ------------- | ------------------------------------------ | ------------------- | ----------------- |
+| **local**     | Local machine with Docker Desktop         | ✅ Host Docker      | No                |
+| **codespaces** | GitHub Codespaces (cloud IDE)             | ⚠️  DinD only       | Yes               |
+| **gitpod**    | Gitpod workspaces                          | ⚠️  DinD only       | Yes               |
+| **devpod**    | DevPod client-only environments            | ✅ Host Docker      | No                |
 
-**Why docker-in-docker for Codespaces?**
+**How it works:**
 
-| Feature         | docker-sock (Local)         | docker-in-docker (Codespaces) |
-| --------------- | --------------------------- | ----------------------------- |
-| **Local**       | ✅ Fast (shared cache)      | ⚠️ Slower (isolated)          |
-| **Codespaces**  | ❌ No host Docker daemon    | ✅ Works everywhere           |
-| **Portability** | ⚠️ Local only               | ✅ Cloud, remote, local       |
-| **Isolation**   | ⚠️ Shares host Docker       | ✅ Isolated daemon            |
+1. **Interactive Mode**: If you select incompatible overlays (e.g., `docker-sock` for Codespaces), the tool will:
+   - Show which overlays won't work in your target environment
+   - Suggest compatible alternatives
+   - Let you choose your deployment target with informed guidance
 
-**Best practices:**
+2. **CLI Mode**: The target validates your selection and generates the configuration
+   - Incompatibilities are allowed (you know what you're doing)
+   - Generated documentation notes any compatibility issues
 
-- Use `--codespaces` flag when creating configurations for team repositories
-- The tool will warn you if you select incompatible overlays
-- Codespaces automatically handles port forwarding - no special configuration needed
+**Example - Codespaces Configuration:**
+
+```bash
+# Optimized for GitHub Codespaces
+npx container-superposition init \
+    --stack compose \
+    --language nodejs \
+    --database postgres \
+    --dev-tools docker-in-docker \
+    --target codespaces
+```
+
+**Key Compatibility Rules:**
+
+- ⚠️ **docker-sock** requires host Docker → Use in `local` or `devpod` only
+- ✅ **docker-in-docker** works everywhere → Recommended for `codespaces` and `gitpod`
+- 🔄 Cloud targets auto-forward ports → No manual forwarding needed
+
+**Why deployment targets?**
+
+Different environments have different capabilities:
+- **Codespaces/Gitpod**: No access to host Docker daemon, but auto-forward ports
+- **Local**: Full access to host Docker, faster builds, shared cache
+- **DevPod**: Client-managed, can access host Docker depending on setup
+
+The target system ensures you get warnings about incompatibilities before deploying.
+
+### GitHub Codespaces Support (Legacy)
+
+> **Note**: The `--codespaces` flag has been replaced with the more flexible `--target codespaces` approach. See "Deployment Target Support" above for the recommended way to optimize for Codespaces and other cloud IDEs.
+
+For backward compatibility information about the legacy approach, the tool previously used a Codespaces-specific flag. This has been superseded by the deployment target system which supports multiple cloud IDE platforms.
 
 ### Regenerating from Manifest
 
