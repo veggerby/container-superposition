@@ -1,0 +1,21 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["localstack"],
+    "forwardPorts": [4566, 4571],
+    "portsAttributes": {
+        "4566": {
+            "label": "LocalStack Edge",
+            "onAutoForward": "notify"
+        },
+        "4571": {
+            "label": "LocalStack S3",
+            "onAutoForward": "ignore"
+        }
+    },
+    "remoteEnv": {
+        "AWS_ENDPOINT_URL": "http://localstack:4566",
+        "AWS_ACCESS_KEY_ID": "test",
+        "AWS_SECRET_ACCESS_KEY": "test",
+        "AWS_DEFAULT_REGION": "us-east-1"
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["jupyter"],
+    "forwardPorts": [8888],
+    "portsAttributes": {
+        "8888": {
+            "label": "Jupyter Notebook",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "remoteEnv": {
+        "JUPYTER_URL": "http://jupyter:8888"
+    }
+}

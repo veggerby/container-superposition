@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+    localstack:
+        image: localstack/localstack:${LOCALSTACK_VERSION:-latest}
+        restart: unless-stopped
+        volumes:
+            - localstack-data:/var/lib/localstack
+            - /var/run/docker.sock:/var/run/docker.sock
+        environment:
+            SERVICES: ${LOCALSTACK_SERVICES:-s3,sqs,sns,dynamodb,lambda,cloudformation}
+            DEBUG: ${LOCALSTACK_DEBUG:-0}
+            DATA_DIR: /var/lib/localstack
+            DOCKER_HOST: unix:///var/run/docker.sock
+        ports:
+            - '${LOCALSTACK_EDGE_PORT:-4566}:4566'
+            - '${LOCALSTACK_S3_PORT:-4571}:4571'
+        networks:
+            - devnet
+
+volumes:
+    localstack-data:
+
+networks:
+    devnet:

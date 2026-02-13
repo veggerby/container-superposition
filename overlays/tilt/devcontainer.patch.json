@@ -1,0 +1,17 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "curl",
+            "apk": "curl"
+        }
+    },
+    "forwardPorts": [10350],
+    "portsAttributes": {
+        "10350": {
+            "label": "Tilt UI",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "postCreateCommand": "bash .devcontainer/scripts/setup-tilt.sh"
+}
