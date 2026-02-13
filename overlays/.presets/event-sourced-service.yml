@@ -200,7 +200,7 @@ glueConfig:
         async function handleCommand(command: Command) {
             const events = aggregate.process(command);
             await eventStore.append(aggregateId, events);
-            await messagebroker.publish(events);
+            await messageBroker.publish(events);
         }
         ```
 
