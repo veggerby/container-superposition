@@ -1,0 +1,18 @@
+id: kind
+name: kind (Kubernetes in Docker)
+description: Local Kubernetes cluster for development and testing
+category: cloud
+supports: []
+requires:
+    - docker-in-docker
+suggests:
+    - kubectl-helm
+conflicts:
+    - k3d
+tags:
+    - cloud
+    - kubernetes
+    - k8s
+    - kind
+    - testing
+ports: []

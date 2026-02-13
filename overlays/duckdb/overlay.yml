@@ -1,0 +1,17 @@
+id: duckdb
+name: DuckDB
+description: In-process analytical database for OLAP workloads
+category: database
+supports: []
+requires: []
+suggests:
+    - python
+    - jupyter
+conflicts: []
+tags:
+    - database
+    - analytics
+    - sql
+    - duckdb
+    - olap
+ports: []

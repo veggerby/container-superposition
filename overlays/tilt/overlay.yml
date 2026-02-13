@@ -1,0 +1,19 @@
+id: tilt
+name: Tilt
+description: Live update and orchestration for Kubernetes development
+category: dev
+supports: []
+requires: []
+suggests:
+    - kind
+    - kubectl-helm
+conflicts:
+    - skaffold
+tags:
+    - dev
+    - kubernetes
+    - k8s
+    - development
+    - live-reload
+ports:
+    - 10350

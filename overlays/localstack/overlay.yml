@@ -1,0 +1,18 @@
+id: localstack
+name: LocalStack
+description: Local AWS cloud stack for development and testing
+category: cloud
+supports:
+    - compose
+requires: []
+suggests:
+    - aws-cli
+conflicts: []
+tags:
+    - cloud
+    - aws
+    - testing
+    - localstack
+ports:
+    - 4566
+    - 4571

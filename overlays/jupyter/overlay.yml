@@ -1,0 +1,18 @@
+id: jupyter
+name: Jupyter
+description: Jupyter notebook server for interactive computing and data science
+category: language
+supports:
+    - compose
+requires:
+    - python
+suggests: []
+conflicts: []
+tags:
+    - language
+    - jupyter
+    - python
+    - notebook
+    - data-science
+ports:
+    - 8888
