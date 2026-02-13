@@ -289,6 +289,45 @@ function validateOverlayManifest(overlayDir: string, overlayId: string): CheckRe
         };
     }
 
+    // Validate imports if present
+    if (manifest.imports && manifest.imports.length > 0) {
+        const overlaysDir = path.dirname(overlayDir);
+        const missingImports: string[] = [];
+        const invalidImports: string[] = [];
+
+        for (const importPath of manifest.imports) {
+            const fullImportPath = path.join(overlaysDir, importPath);
+            
+            if (!fs.existsSync(fullImportPath)) {
+                missingImports.push(importPath);
+                continue;
+            }
+
+            // Validate import file type
+            const ext = path.extname(importPath).toLowerCase();
+            if (!['.json', '.yaml', '.yml', '.env'].includes(ext)) {
+                invalidImports.push(`${importPath} (unsupported type: ${ext})`);
+            }
+        }
+
+        if (missingImports.length > 0 || invalidImports.length > 0) {
+            const details: string[] = [];
+            if (missingImports.length > 0) {
+                details.push(`Missing imports: ${missingImports.join(', ')}`);
+            }
+            if (invalidImports.length > 0) {
+                details.push(`Invalid imports: ${invalidImports.join(', ')}`);
+            }
+
+            return {
+                name: `Overlay: ${overlayId}`,
+                status: 'warn',
+                message: 'Import validation issues',
+                details,
+            };
+        }
+    }
+
     return {
         name: `Overlay: ${overlayId}`,
         status: 'pass',

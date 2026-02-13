@@ -1037,6 +1037,9 @@ function buildAnswersFromCliArgs(
     if (config.outputPath) answers.outputPath = config.outputPath;
     if (config.preset) answers.preset = config.preset;
     if (config.presetChoices) answers.presetChoices = config.presetChoices;
+    if (config.target) answers.target = config.target;
+    if (config.minimal !== undefined) answers.minimal = config.minimal;
+    if (config.editor) answers.editor = config.editor;
 
     return answers;
 }
@@ -1153,6 +1156,12 @@ async function parseCliArgs(): Promise<{
             '--target <environment>',
             'Deployment target: local, codespaces, gitpod, devpod (optimizes for environment)',
             'local'
+        )
+        .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
+        .option(
+            '--editor <profile>',
+            'Editor profile: vscode (default), jetbrains, none',
+            'vscode'
         )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .action((options) => {
@@ -1291,6 +1300,18 @@ async function parseCliArgs(): Promise<{
     }
     if (initOptions.target) {
         config.target = initOptions.target as DeploymentTarget;
+    }
+    if (initOptions.minimal) {
+        config.minimal = true;
+    }
+    if (initOptions.editor) {
+        const editorLower = initOptions.editor.toLowerCase();
+        if (['vscode', 'jetbrains', 'none'].includes(editorLower)) {
+            config.editor = editorLower as 'vscode' | 'jetbrains' | 'none';
+        } else {
+            console.warn(chalk.yellow(`⚠️  Invalid editor profile: ${initOptions.editor}, using default (vscode)`));
+            config.editor = 'vscode';
+        }
     }
     if (initOptions.output) config.outputPath = initOptions.output;
 

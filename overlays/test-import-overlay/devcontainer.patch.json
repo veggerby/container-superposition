@@ -1,0 +1,10 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "test.extension"
+            ]
+        }
+    }
+}

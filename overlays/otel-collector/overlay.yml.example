@@ -1,0 +1,26 @@
+# Example: OpenTelemetry Collector with shared config
+# This demonstrates the imports feature
+
+id: otel-collector
+name: OpenTelemetry Collector
+description: Telemetry data collection and export
+category: observability
+supports:
+    - compose
+requires: []
+suggests:
+    - jaeger
+    - prometheus
+conflicts: []
+tags:
+    - observability
+    - telemetry
+    - opentelemetry
+ports:
+    - 4317
+    - 4318
+    - 8888
+    - 8889
+order: 2
+imports:
+    - .shared/otel/instrumentation.env
