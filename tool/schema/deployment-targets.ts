@@ -5,12 +5,19 @@
  * overlay compatibility with different deployment targets (local, Codespaces, Gitpod, etc.)
  */
 
-import type { DeploymentTarget, DevTool, PortAttributes } from './types.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import yaml from 'js-yaml';
+import type { DeploymentTarget, PortAttributes } from './types.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Environment-specific configuration and constraints
  */
-interface TargetConfig {
+export interface TargetConfig {
     id: DeploymentTarget;
     name: string;
     description: string;
@@ -57,77 +64,36 @@ interface TargetConfig {
 }
 
 /**
- * Deployment target configurations
+ * Load deployment targets from YAML configuration
  */
-export const DEPLOYMENT_TARGETS: Record<DeploymentTarget, TargetConfig> = {
-    local: {
-        id: 'local',
-        name: 'Local Development',
-        description: 'Running on local machine with Docker Desktop or Docker daemon',
-        incompatibleOverlays: [],
-        recommendations: {},
-        portForwarding: {
-            defaultBehavior: 'notify',
-            autoForward: false,
-        },
-        constraints: {
-            hasHostDocker: true,
-            supportsPrivileged: true,
-        },
-    },
-    
-    codespaces: {
-        id: 'codespaces',
-        name: 'GitHub Codespaces',
-        description: 'Cloud-based development environment on GitHub',
-        incompatibleOverlays: ['docker-sock'],
-        recommendations: {
-            'docker-sock': ['docker-in-docker'],
-        },
-        portForwarding: {
-            defaultBehavior: 'notify', // Codespaces shows port forwarding UI
-            autoForward: true,
-        },
-        constraints: {
-            hasHostDocker: false, // No host Docker in Codespaces
-            supportsPrivileged: true, // Supports DinD
-        },
-    },
-    
-    gitpod: {
-        id: 'gitpod',
-        name: 'Gitpod',
-        description: 'Cloud development environment on Gitpod',
-        incompatibleOverlays: ['docker-sock'],
-        recommendations: {
-            'docker-sock': ['docker-in-docker'],
-        },
-        portForwarding: {
-            defaultBehavior: 'openBrowser', // Gitpod auto-opens forwarded ports
-            autoForward: true,
-        },
-        constraints: {
-            hasHostDocker: false,
-            supportsPrivileged: true,
-        },
-    },
-    
-    devpod: {
-        id: 'devpod',
-        name: 'DevPod',
-        description: 'Client-only development environments',
-        incompatibleOverlays: [],
-        recommendations: {},
-        portForwarding: {
-            defaultBehavior: 'notify',
-            autoForward: false,
-        },
-        constraints: {
-            hasHostDocker: true, // DevPod can use host Docker
-            supportsPrivileged: true,
-        },
-    },
-};
+function loadDeploymentTargets(): Record<DeploymentTarget, TargetConfig> {
+    const candidates = [
+        path.join(__dirname, '..', '..', 'overlays', '.registry', 'deployment-targets.yml'), // From tool/schema/
+        path.join(__dirname, '..', '..', '..', 'overlays', '.registry', 'deployment-targets.yml'), // From dist/tool/schema/
+    ];
+
+    const yamlPath = candidates.find(fs.existsSync);
+    if (!yamlPath) {
+        throw new Error(
+            `Could not find deployment-targets.yml. Searched:\n${candidates.join('\n')}`
+        );
+    }
+
+    const content = fs.readFileSync(yamlPath, 'utf-8');
+    const data = yaml.load(content) as { deployment_targets: TargetConfig[] };
+
+    const targets: Record<string, TargetConfig> = {};
+    for (const target of data.deployment_targets) {
+        targets[target.id] = target;
+    }
+
+    return targets as Record<DeploymentTarget, TargetConfig>;
+}
+
+/**
+ * Deployment target configurations (loaded from YAML)
+ */
+export const DEPLOYMENT_TARGETS: Record<DeploymentTarget, TargetConfig> = loadDeploymentTargets();
 
 /**
  * Check if an overlay is compatible with a deployment target

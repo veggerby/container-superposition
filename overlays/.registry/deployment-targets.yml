@@ -1,0 +1,54 @@
+deployment_targets:
+    - id: local
+      name: Local Development
+      description: Running on local machine with Docker Desktop or Docker daemon
+      incompatibleOverlays: []
+      recommendations: {}
+      portForwarding:
+          defaultBehavior: notify
+          autoForward: false
+      constraints:
+          hasHostDocker: true
+          supportsPrivileged: true
+
+    - id: codespaces
+      name: GitHub Codespaces
+      description: Cloud-based development environment on GitHub
+      incompatibleOverlays:
+          - docker-sock
+      recommendations:
+          docker-sock:
+              - docker-in-docker
+      portForwarding:
+          defaultBehavior: notify
+          autoForward: true
+      constraints:
+          hasHostDocker: false
+          supportsPrivileged: true
+
+    - id: gitpod
+      name: Gitpod
+      description: Cloud development environment on Gitpod
+      incompatibleOverlays:
+          - docker-sock
+      recommendations:
+          docker-sock:
+              - docker-in-docker
+      portForwarding:
+          defaultBehavior: openBrowser
+          autoForward: true
+      constraints:
+          hasHostDocker: false
+          supportsPrivileged: true
+
+    - id: devpod
+      name: DevPod
+      description: Client-only development environments
+      incompatibleOverlays: []
+      recommendations: {}
+      portForwarding:
+          defaultBehavior: notify
+          autoForward: false
+      constraints:
+          hasHostDocker: true
+          supportsPrivileged: true
