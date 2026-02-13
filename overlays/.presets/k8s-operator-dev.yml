@@ -1,0 +1,462 @@
+# Kubernetes Operator Development Preset
+# Go-based Kubernetes operator/controller development
+
+id: k8s-operator-dev
+name: Kubernetes Operator Development
+description: Go-based operator development with kubectl and Helm
+type: meta
+category: preset
+supports: [] # Works with both plain and compose
+tags: [preset, kubernetes, operator, controller, k8s, crd, go]
+
+# Overlays to select
+selects:
+    # Always included
+    required:
+        - go
+        - kubectl-helm
+        - modern-cli-tools
+
+    # No user choices - operators are typically Go
+    userChoice: {}
+
+# Glue configuration - integration helpers
+glueConfig:
+    # Pre-configured environment variables
+    environment:
+        # Go environment
+        GOOS: 'linux'
+        GOARCH: 'amd64'
+        CGO_ENABLED: '0'
+
+        # Kubernetes configuration
+        KUBECONFIG: '/home/vscode/.kube/config'
+
+        # Operator SDK settings
+        OPERATOR_NAME: 'my-operator'
+        OPERATOR_NAMESPACE: 'default'
+
+        # Development cluster settings (for future kind/k3d overlay)
+        # KIND_CLUSTER_NAME: 'operator-dev'
+        # K3D_CLUSTER_NAME: 'operator-dev'
+
+    # Suggested port mappings
+    portMappings:
+        operator-metrics: 8080
+        operator-health: 8081
+
+    # README snippet to add to generated devcontainer
+    readme: |
+        ## Kubernetes Operator Development Stack
+
+        This devcontainer is configured for Kubernetes operator development:
+
+        ### Tools
+
+        - **Go**: Operator runtime and tooling
+        - **kubectl**: Kubernetes CLI
+        - **Helm**: Package manager for Kubernetes
+        - **Modern CLI Tools**: jq, yq, bat for manifest inspection
+
+        ### Operator Frameworks
+
+        This environment supports multiple operator frameworks:
+
+        #### Kubebuilder (Recommended)
+
+        ```bash
+        # Install Kubebuilder
+        curl -L -o kubebuilder "https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)"
+        chmod +x kubebuilder
+        sudo mv kubebuilder /usr/local/bin/
+
+        # Initialize new operator
+        mkdir my-operator && cd my-operator
+        kubebuilder init --domain example.com --repo github.com/myorg/my-operator
+
+        # Create API/Controller
+        kubebuilder create api --group apps --version v1alpha1 --kind MyResource
+        ```
+
+        #### Operator SDK
+
+        ```bash
+        # Install Operator SDK
+        export ARCH=$(case "$(uname -m)" in
+          x86_64) echo -n amd64 ;;
+          aarch64) echo -n arm64 ;;
+          *) echo -n "$(uname -m)" ;;
+        esac)
+        export OS=$(uname | awk '{print tolower($0)}')
+        export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/latest/download
+        curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+        chmod +x operator-sdk_${OS}_${ARCH}
+        sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+
+        # Create new operator
+        mkdir my-operator && cd my-operator
+        operator-sdk init --domain example.com --repo github.com/myorg/my-operator
+
+        # Create API
+        operator-sdk create api --group apps --version v1alpha1 --kind MyResource
+        ```
+
+        ### Quick Start (Kubebuilder)
+
+        #### 1. Scaffold Operator
+
+        ```bash
+        mkdir my-operator && cd my-operator
+        kubebuilder init --domain example.com --repo github.com/myorg/my-operator
+        kubebuilder create api --group apps --version v1alpha1 --kind MyApp --resource --controller
+        ```
+
+        This creates:
+        - `api/v1alpha1/myapp_types.go` - CRD definition
+        - `internal/controller/myapp_controller.go` - Reconciliation logic
+        - `config/` - Kubernetes manifests
+
+        #### 2. Define CRD
+
+        ```go
+        // api/v1alpha1/myapp_types.go
+        type MyAppSpec struct {
+            // +kubebuilder:validation:Minimum=1
+            Replicas int32 `json:"replicas"`
+
+            // +kubebuilder:validation:Required
+            Image string `json:"image"`
+        }
+
+        type MyAppStatus struct {
+            // Conditions represent the latest available observations
+            Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+            // Ready replicas
+            ReadyReplicas int32 `json:"readyReplicas"`
+        }
+        ```
+
+        #### 3. Implement Controller
+
+        ```go
+        // internal/controller/myapp_controller.go
+        func (r *MyAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+            log := log.FromContext(ctx)
+
+            // Fetch the MyApp instance
+            myApp := &appsv1alpha1.MyApp{}
+            err := r.Get(ctx, req.NamespacedName, myApp)
+            if err != nil {
+                return ctrl.Result{}, client.IgnoreNotFound(err)
+            }
+
+            // Reconciliation logic
+            // 1. Ensure Deployment exists
+            // 2. Update Deployment if spec changed
+            // 3. Update status
+
+            log.Info("Reconciled MyApp", "name", myApp.Name)
+            return ctrl.Result{}, nil
+        }
+        ```
+
+        #### 4. Test Locally
+
+        ```bash
+        # Generate manifests
+        make manifests
+
+        # Run tests
+        make test
+
+        # Run controller locally (no cluster needed initially)
+        make run
+        ```
+
+        ### Connecting to Kubernetes Cluster
+
+        This preset includes kubectl and Helm. You can connect to:
+
+        #### Remote Cluster
+
+        ```bash
+        # Set up kubeconfig
+        export KUBECONFIG=~/.kube/config
+
+        # Or copy config from local machine
+        cp /path/to/kubeconfig ~/.kube/config
+
+        # Verify connection
+        kubectl cluster-info
+        kubectl get nodes
+        ```
+
+        #### Future: Local Cluster (kind/k3d overlay)
+
+        When kind or k3d overlay is available:
+
+        ```bash
+        # kind
+        kind create cluster --name operator-dev
+
+        # k3d
+        k3d cluster create operator-dev
+        ```
+
+        ### Development Workflow
+
+        #### 1. Install CRDs
+
+        ```bash
+        make install
+        # This creates CustomResourceDefinition in cluster
+        ```
+
+        #### 2. Run Operator
+
+        ```bash
+        # Option A: Run locally (outside cluster)
+        make run
+
+        # Option B: Build and deploy to cluster
+        make docker-build docker-push IMG=myregistry/my-operator:v0.1.0
+        make deploy IMG=myregistry/my-operator:v0.1.0
+        ```
+
+        #### 3. Create Custom Resource
+
+        ```yaml
+        # config/samples/apps_v1alpha1_myapp.yaml
+        apiVersion: apps.example.com/v1alpha1
+        kind: MyApp
+        metadata:
+            name: myapp-sample
+        spec:
+            replicas: 3
+            image: nginx:latest
+        ```
+
+        ```bash
+        kubectl apply -f config/samples/apps_v1alpha1_myapp.yaml
+        ```
+
+        #### 4. Watch Reconciliation
+
+        ```bash
+        # Watch controller logs
+        kubectl logs -f -n <namespace> <operator-pod>
+
+        # Watch custom resource
+        kubectl get myapp -w
+
+        # Describe custom resource
+        kubectl describe myapp myapp-sample
+        ```
+
+        ### Testing Operators
+
+        #### Unit Tests
+
+        ```go
+        // internal/controller/myapp_controller_test.go
+        var _ = Describe("MyApp Controller", func() {
+            Context("When reconciling a resource", func() {
+                It("Should create a Deployment", func() {
+                    // Test reconciliation logic
+                })
+            })
+        })
+        ```
+
+        Run tests:
+
+        ```bash
+        make test
+        ```
+
+        #### Integration Tests with envtest
+
+        ```go
+        var k8sClient client.Client
+        var testEnv *envtest.Environment
+
+        BeforeSuite(func() {
+            testEnv = &envtest.Environment{
+                CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+            }
+            cfg, err := testEnv.Start()
+            Expect(err).NotTo(HaveOccurred())
+
+            k8sClient, err = client.New(cfg, client.Options{})
+            Expect(err).NotTo(HaveOccurred())
+        })
+        ```
+
+        ### Helm Chart for Operator
+
+        ```bash
+        # Create Helm chart
+        mkdir -p charts/my-operator
+        helm create charts/my-operator
+
+        # Package chart
+        helm package charts/my-operator
+
+        # Install from chart
+        helm install my-operator charts/my-operator
+        ```
+
+        ### RBAC Configuration
+
+        Operators need appropriate permissions:
+
+        ```yaml
+        # config/rbac/role.yaml
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+            name: operator-role
+        rules:
+        - apiGroups: ["apps.example.com"]
+          resources: ["myapps"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["apps"]
+          resources: ["deployments"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        ```
+
+        Kubebuilder generates RBAC with markers:
+
+        ```go
+        // +kubebuilder:rbac:groups=apps.example.com,resources=myapps,verbs=get;list;watch;create;update;patch;delete
+        // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+        ```
+
+        ### Operator Patterns
+
+        #### Level-Based Reconciliation
+
+        ```go
+        func (r *MyAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+            // Get desired state
+            myApp := &appsv1alpha1.MyApp{}
+            if err := r.Get(ctx, req.NamespacedName, myApp); err != nil {
+                return ctrl.Result{}, client.IgnoreNotFound(err)
+            }
+
+            // Get current state
+            deployment := &appsv1.Deployment{}
+            err := r.Get(ctx, types.NamespacedName{
+                Name: myApp.Name, Namespace: myApp.Namespace,
+            }, deployment)
+
+            if err != nil {
+                // Create if not exists
+                return r.createDeployment(ctx, myApp)
+            }
+
+            // Update if different
+            if deployment.Spec.Replicas != &myApp.Spec.Replicas {
+                return r.updateDeployment(ctx, myApp, deployment)
+            }
+
+            return ctrl.Result{}, nil
+        }
+        ```
+
+        #### Finalizers
+
+        ```go
+        const myFinalizerName = "myapp.example.com/finalizer"
+
+        func (r *MyAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+            myApp := &appsv1alpha1.MyApp{}
+            if err := r.Get(ctx, req.NamespacedName, myApp); err != nil {
+                return ctrl.Result{}, client.IgnoreNotFound(err)
+            }
+
+            // Handle deletion
+            if myApp.DeletionTimestamp != nil {
+                if controllerutil.ContainsFinalizer(myApp, myFinalizerName) {
+                    // Cleanup logic
+                    if err := r.cleanup(ctx, myApp); err != nil {
+                        return ctrl.Result{}, err
+                    }
+
+                    controllerutil.RemoveFinalizer(myApp, myFinalizerName)
+                    return ctrl.Result{}, r.Update(ctx, myApp)
+                }
+                return ctrl.Result{}, nil
+            }
+
+            // Add finalizer if not present
+            if !controllerutil.ContainsFinalizer(myApp, myFinalizerName) {
+                controllerutil.AddFinalizer(myApp, myFinalizerName)
+                return ctrl.Result{}, r.Update(ctx, myApp)
+            }
+
+            // Normal reconciliation
+            return ctrl.Result{}, nil
+        }
+        ```
+
+        ### Debugging
+
+        ```bash
+        # Use kubectl to inspect resources
+        kubectl get myapp -o yaml
+        kubectl describe myapp myapp-sample
+
+        # Check events
+        kubectl get events --sort-by='.lastTimestamp'
+
+        # Debug with delve
+        dlv debug ./cmd/main.go
+        ```
+
+        ### Modern CLI Tools for K8s
+
+        ```bash
+        # Inspect manifests with yq
+        yq eval '.spec.replicas' config/samples/myapp.yaml
+
+        # Format YAML with bat
+        bat config/crd/bases/apps.example.com_myapps.yaml
+
+        # Search in manifests
+        rg 'kind: Deployment' config/
+
+        # Find manifest files
+        fd -e yaml config/
+        ```
+
+        ### Future Enhancements
+
+        When kind/k3d and tilt/skaffold overlays are available:
+
+        #### Local Kubernetes Cluster
+
+        - Fast inner development loop
+        - No external cluster dependencies
+        - Test CRD installations locally
+
+        #### Live Reload with Tilt/Skaffold
+
+        - Automatic rebuild on code changes
+        - Fast feedback cycle
+        - Port forwarding management
+        - Log aggregation
+
+        ### Next Steps
+
+        - Choose operator framework (Kubebuilder or Operator SDK)
+        - Design your Custom Resource Definition (CRD)
+        - Implement reconciliation logic
+        - Add unit and integration tests
+        - Configure RBAC permissions
+        - Create Helm chart for distribution
+        - Set up CI/CD for operator builds
+        - Document operator usage
+        - Implement metrics and monitoring
+        - Add webhooks for validation/mutation

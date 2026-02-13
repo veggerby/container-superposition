@@ -1,0 +1,287 @@
+# Frontend Development Preset
+# Modern frontend development environment
+
+id: frontend
+name: Frontend Application
+description: Modern frontend development with testing and tooling
+type: meta
+category: preset
+supports: [] # Works with both plain and compose
+tags: [preset, frontend, web, ui, react, vue, svelte]
+
+# Overlays to select
+selects:
+    # Always included
+    required:
+        - playwright
+        - modern-cli-tools
+
+    # User makes choices
+    userChoice:
+        language:
+            id: language
+            prompt: Select JavaScript runtime
+            options: [nodejs, bun]
+            defaultOption: nodejs
+
+# Glue configuration - integration helpers
+glueConfig:
+    # Pre-configured environment variables
+    environment:
+        # Development server
+        DEV_SERVER_PORT: '3000'
+        DEV_SERVER_HOST: '0.0.0.0'
+
+        # Node.js configuration
+        NODE_ENV: 'development'
+
+        # Package manager (npm, pnpm, yarn)
+        # Users can override in their project
+
+        # Hot reload settings
+        WATCHPACK_POLLING: 'false'
+        CHOKIDAR_USEPOLLING: 'false'
+
+        # Playwright configuration
+        PLAYWRIGHT_BROWSERS_PATH: '/home/vscode/.cache/ms-playwright'
+
+    # Suggested port mappings
+    portMappings:
+        dev-server: 3000
+        preview: 4173 # Vite preview port
+        storybook: 6006 # Future: when storybook overlay exists
+
+    # README snippet to add to generated devcontainer
+    readme: |
+        ## Frontend Development Stack
+
+        This devcontainer is configured for modern frontend development:
+
+        ### Tools
+
+        - **JavaScript Runtime**: Your chosen runtime (Node.js or Bun)
+        - **Playwright**: End-to-end testing framework
+        - **Modern CLI Tools**: bat, fd, ripgrep, fzf for productivity
+
+        ### Supported Frameworks
+
+        This environment works with any modern frontend framework:
+
+        - **React** - Create React App, Next.js, Remix
+        - **Vue** - Vue CLI, Nuxt, Vite
+        - **Svelte** - SvelteKit, Vite
+        - **Angular** - Angular CLI
+        - **Solid** - Solid Start, Vite
+
+        ### Quick Start
+
+        #### Create New Project
+
+        ```bash
+        # React with Vite
+        npm create vite@latest my-app -- --template react-ts
+        cd my-app
+        npm install
+
+        # Vue with Vite
+        npm create vite@latest my-app -- --template vue-ts
+        cd my-app
+        npm install
+
+        # SvelteKit
+        npm create svelte@latest my-app
+        cd my-app
+        npm install
+
+        # Next.js
+        npx create-next-app@latest my-app --typescript
+        cd my-app
+
+        # Remix
+        npx create-remix@latest my-app
+        cd my-app
+        ```
+
+        #### Start Development Server
+
+        ```bash
+        npm run dev
+        # Access at http://localhost:3000
+        ```
+
+        ### Package Managers
+
+        Choose your preferred package manager:
+
+        ```bash
+        # npm (default)
+        npm install
+
+        # pnpm (faster, disk-efficient)
+        npm install -g pnpm
+        pnpm install
+
+        # yarn
+        npm install -g yarn
+        yarn install
+
+        # Bun (if using Bun runtime)
+        bun install
+        ```
+
+        ### Playwright Testing
+
+        Playwright is pre-installed for E2E testing:
+
+        #### Install Playwright in Your Project
+
+        ```bash
+        npm init playwright@latest
+        # Select TypeScript, GitHub Actions, browsers
+        ```
+
+        #### Run Tests
+
+        ```bash
+        # Headless
+        npx playwright test
+
+        # UI mode (recommended for development)
+        npx playwright test --ui
+
+        # Debug mode
+        npx playwright test --debug
+
+        # Specific browser
+        npx playwright test --project=chromium
+        ```
+
+        #### Example Test
+
+        ```typescript
+        // tests/example.spec.ts
+        import { test, expect } from '@playwright/test';
+
+        test('homepage has title', async ({ page }) => {
+            await page.goto('http://localhost:3000');
+            await expect(page).toHaveTitle(/My App/);
+        });
+
+        test('navigation works', async ({ page }) => {
+            await page.goto('http://localhost:3000');
+            await page.click('text=About');
+            await expect(page).toHaveURL(/.*about/);
+        });
+        ```
+
+        ### Development Workflow
+
+        #### Hot Reload
+
+        Modern dev servers (Vite, Next.js, etc.) have hot reload by default:
+
+        - Edit component files → instant updates
+        - Edit CSS → no page refresh needed
+        - TypeScript errors shown in browser
+
+        #### Code Quality
+
+        Consider adding these tools:
+
+        ```bash
+        # ESLint
+        npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
+
+        # Prettier
+        npm install -D prettier
+
+        # Type checking
+        npm run tsc --noEmit
+        ```
+
+        ### Modern CLI Tools
+
+        This preset includes productivity tools:
+
+        - **bat**: Syntax-highlighted cat (`bat package.json`)
+        - **fd**: Fast file finder (`fd '*.tsx'`)
+        - **ripgrep**: Fast grep (`rg 'useState'`)
+        - **fzf**: Fuzzy finder (Ctrl+R for history)
+        - **jq**: JSON processor (`cat package.json | jq .scripts`)
+
+        ### Build and Preview
+
+        ```bash
+        # Build for production
+        npm run build
+
+        # Preview production build
+        npm run preview
+        # Access at http://localhost:4173
+        ```
+
+        ### Vite Configuration Tips
+
+        ```typescript
+        // vite.config.ts
+        import { defineConfig } from 'vite'
+        import react from '@vitejs/plugin-react'
+
+        export default defineConfig({
+            plugins: [react()],
+            server: {
+                host: '0.0.0.0', // Allow external connections
+                port: 3000,
+                hmr: {
+                    host: 'localhost'
+                }
+            }
+        })
+        ```
+
+        ### TypeScript Configuration
+
+        ```json
+        // tsconfig.json
+        {
+            "compilerOptions": {
+                "target": "ES2022",
+                "lib": ["ES2022", "DOM", "DOM.Iterable"],
+                "module": "ESNext",
+                "moduleResolution": "bundler",
+                "jsx": "react-jsx",
+                "strict": true,
+                "esModuleInterop": true
+            }
+        }
+        ```
+
+        ### Deployment
+
+        This environment is for development. For production:
+
+        - **Vercel**: `npm install -g vercel && vercel`
+        - **Netlify**: `npm install -g netlify-cli && netlify deploy`
+        - **GitHub Pages**: Build and push to `gh-pages` branch
+        - **Docker**: Create production Dockerfile (nginx + static files)
+
+        ### Future Enhancements
+
+        When the Storybook overlay is available:
+
+        - Component development in isolation
+        - Visual regression testing
+        - Component documentation
+        - Design system development
+
+        ### Next Steps
+
+        - Choose and scaffold your frontend framework
+        - Set up ESLint and Prettier
+        - Configure Playwright for E2E tests
+        - Add pre-commit hooks for code quality
+        - Set up CI/CD pipeline
+        - Configure environment variables
+        - Add state management (Redux, Zustand, Pinia, etc.)
+        - Implement routing
+        - Add component library (MUI, Chakra, etc.)
