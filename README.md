@@ -463,64 +463,22 @@ This automatically adjusts all exposed ports in docker-compose.yml and documents
 
 ### Deployment Target Support
 
-Container Superposition validates overlay compatibility with different deployment environments using the `--target` flag:
+Container Superposition validates overlay compatibility with different deployment environments (local, Codespaces, Gitpod, DevPod) using the `--target` flag.
 
 ```bash
 # Specify deployment target
 npx container-superposition init --target codespaces
 npx container-superposition init --target gitpod
 npx container-superposition init --target local  # default
-
-# With specific configuration
-npx container-superposition init --stack compose --language nodejs --database postgres --dev-tools docker-in-docker --target codespaces
 ```
 
-**Supported Deployment Targets:**
+The tool automatically validates overlay compatibility and warns you when selecting overlays that won't work in your target environment (e.g., `docker-sock` doesn't work in Codespaces).
 
-| Target        | Description                                | Docker Support      | Auto Port Forward |
-| ------------- | ------------------------------------------ | ------------------- | ----------------- |
-| **local**     | Local machine with Docker Desktop         | ✅ Host Docker      | No                |
-| **codespaces** | GitHub Codespaces (cloud IDE)             | ⚠️  DinD only       | Yes               |
-| **gitpod**    | Gitpod workspaces                          | ⚠️  DinD only       | Yes               |
-| **devpod**    | DevPod client-only environments            | ✅ Host Docker      | No                |
-
-**How it works:**
-
-1. **Interactive Mode**: If you select incompatible overlays (e.g., `docker-sock` for Codespaces), the tool will:
-   - Show which overlays won't work in your target environment
-   - Suggest compatible alternatives
-   - Let you choose your deployment target with informed guidance
-
-2. **CLI Mode**: The target validates your selection and generates the configuration
-   - Incompatibilities are allowed (you know what you're doing)
-   - Generated documentation notes any compatibility issues
-
-**Example - Codespaces Configuration:**
-
-```bash
-# Optimized for GitHub Codespaces
-npx container-superposition init \
-    --stack compose \
-    --language nodejs \
-    --database postgres \
-    --dev-tools docker-in-docker \
-    --target codespaces
-```
-
-**Key Compatibility Rules:**
-
-- ⚠️ **docker-sock** requires host Docker → Use in `local` or `devpod` only
-- ✅ **docker-in-docker** works everywhere → Recommended for `codespaces` and `gitpod`
-- 🔄 Cloud targets auto-forward ports → No manual forwarding needed
-
-**Why deployment targets?**
-
-Different environments have different capabilities:
-- **Codespaces/Gitpod**: No access to host Docker daemon, but auto-forward ports
-- **Local**: Full access to host Docker, faster builds, shared cache
-- **DevPod**: Client-managed, can access host Docker depending on setup
-
-The target system ensures you get warnings about incompatibilities before deploying.
+**📖 See [Deployment Targets Documentation](docs/deployment-targets.md) for:**
+- Complete target comparison table
+- Interactive mode examples
+- Environment-specific configuration
+- Compatibility rules and best practices
 
 ### Regenerating from Manifest
 

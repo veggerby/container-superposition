@@ -418,17 +418,17 @@ The repository uses GitHub Actions for automated testing and validation.
 
 This ensures all overlay changes are validated before merge.
 
-### Workflow: Generate Documentation
+### Workflow: Validate Documentation
 
-**Triggers:** Pushes to `main` branch that modify overlays
+**Triggers:** Pull requests that modify overlays or documentation generation scripts
 
 **File:** `.github/workflows/generate-docs.yml`
 
 **Steps:**
 1. Run `npm run docs:generate`
-2. Auto-commit and push if documentation changed
+2. Fail if generated documentation is out of sync
 
-This keeps overlay documentation in sync automatically.
+This ensures documentation is committed and up-to-date before merge. No auto-commits to main - documentation must be generated and committed as part of the PR.
 
 ### Workflow: Build DevContainers
 

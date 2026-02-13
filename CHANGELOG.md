@@ -17,16 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Extensible system for adding new deployment environments
     - Port forwarding behavior adapts to target environment
     - Target-specific constraints (Docker access, privileged containers)
+    - Configuration stored in `overlays/.registry/deployment-targets.yml`
     
-- **GitHub Actions workflows** — Automated validation and documentation
+- **GitHub Actions workflows** — Automated validation and documentation checks
     - `validate-overlays.yml` — Runs on pull requests to validate overlay changes
         - Executes `doctor` command for environment validation
         - Runs full test suite
         - Executes smoke tests to ensure overlay combinations work
-    - `generate-docs.yml` — Auto-generates documentation on main branch pushes
+        - Uses Node.js LTS version
+    - `generate-docs.yml` — Validates generated documentation on pull requests
         - Runs when overlays or docs generation scripts change
-        - Auto-commits updated documentation
-        - Keeps overlay docs in sync automatically
+        - Fails if generated docs are out of sync (prevents drift)
+        - Ensures documentation is committed before merge
     - Workflow status badges added to README
 
 - **Environment validation command** — Comprehensive `doctor` command for diagnostics
