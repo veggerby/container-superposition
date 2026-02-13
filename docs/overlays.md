@@ -521,5 +521,3 @@ For example, selecting `grafana` will automatically include `prometheus`.
 Each overlay declares its ports explicitly. When using port offset, all declared ports are shifted by the same offset.
 
 ---
-
-*Documentation generated on 2026-02-13T08:21:39.064Z*
