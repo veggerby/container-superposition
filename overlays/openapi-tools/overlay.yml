@@ -1,0 +1,16 @@
+id: openapi-tools
+name: OpenAPI Tools
+description: OpenAPI/Swagger tooling for API development and documentation
+category: dev
+supports: []
+requires: []
+suggests:
+    - nodejs
+conflicts: []
+tags:
+    - dev
+    - openapi
+    - swagger
+    - api
+    - documentation
+ports: []
