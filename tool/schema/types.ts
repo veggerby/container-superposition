@@ -94,6 +94,11 @@ export interface DevContainerConfig {
 }
 
 /**
+ * Editor profile for customizations
+ */
+export type EditorProfile = 'vscode' | 'jetbrains' | 'none';
+
+/**
  * Questionnaire response interface
  */
 export interface QuestionnaireAnswers {
@@ -114,6 +119,8 @@ export interface QuestionnaireAnswers {
     outputPath: string;
     portOffset?: number; // Optional port offset for running multiple instances
     target?: DeploymentTarget; // Deployment target for environment-specific optimizations
+    minimal?: boolean; // Whether to use minimal mode (exclude optional/nice-to-have features)
+    editor?: EditorProfile; // Editor profile for customizations (default: vscode)
 }
 
 /**
@@ -181,6 +188,8 @@ export interface OverlayMetadata {
     tags?: string[];
     ports?: number[];
     order?: number;
+    imports?: string[]; // Shared files to import from overlays/.shared/
+    minimal?: boolean; // Whether this overlay is excluded in minimal mode
 }
 
 /**

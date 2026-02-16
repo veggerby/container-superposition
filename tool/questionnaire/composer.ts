@@ -370,6 +370,65 @@ function generateManifest(
 }
 
 /**
+ * Load and resolve imports from shared files for an overlay
+ */
+function loadImportsForOverlay(overlayName: string): DevContainer {
+    let importedConfig: DevContainer = {};
+    
+    // Load overlay manifest to get imports
+    const overlayDir = path.join(OVERLAYS_DIR, overlayName);
+    const manifestPath = path.join(overlayDir, 'overlay.yml');
+    
+    if (!fs.existsSync(manifestPath)) {
+        return importedConfig;
+    }
+    
+    try {
+        const manifestContent = fs.readFileSync(manifestPath, 'utf8');
+        const manifest = yaml.load(manifestContent) as any;
+        
+        if (!manifest.imports || !Array.isArray(manifest.imports) || manifest.imports.length === 0) {
+            return importedConfig;
+        }
+        
+        // Process each import
+        for (const importPath of manifest.imports) {
+            const fullImportPath = path.join(OVERLAYS_DIR, importPath);
+            
+            if (!fs.existsSync(fullImportPath)) {
+                console.warn(chalk.yellow(`⚠️  Import not found: ${importPath} (for overlay: ${overlayName})`));
+                continue;
+            }
+            
+            // Determine file type and merge appropriately
+            const ext = path.extname(importPath).toLowerCase();
+            
+            if (ext === '.json') {
+                // JSON files are merged as devcontainer patches
+                const importedPatch = loadJson<DevContainer>(fullImportPath);
+                importedConfig = deepMerge(importedConfig, importedPatch);
+            } else if (ext === '.yaml' || ext === '.yml') {
+                // YAML files are loaded and merged as devcontainer patches
+                try {
+                    const yamlContent = fs.readFileSync(fullImportPath, 'utf8');
+                    const importedPatch = yaml.load(yamlContent) as DevContainer;
+                    if (importedPatch && typeof importedPatch === 'object') {
+                        importedConfig = deepMerge(importedConfig, importedPatch);
+                    }
+                } catch (error) {
+                    console.warn(chalk.yellow(`⚠️  Failed to parse YAML import: ${importPath}`));
+                }
+            }
+            // .env files are handled separately during env merging
+        }
+    } catch (error) {
+        console.warn(chalk.yellow(`⚠️  Failed to load imports for overlay: ${overlayName}`));
+    }
+    
+    return importedConfig;
+}
+
+/**
  * Apply an overlay to the base configuration
  */
 function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContainer {
@@ -378,6 +437,12 @@ function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContain
     if (!fs.existsSync(overlayPath)) {
         console.warn(chalk.yellow(`⚠️  Overlay not found: ${overlayName}`));
         return baseConfig;
+    }
+
+    // First, load and apply any imports
+    const importedConfig = loadImportsForOverlay(overlayName);
+    if (Object.keys(importedConfig).length > 0) {
+        baseConfig = deepMerge(baseConfig, importedConfig);
     }
 
     const overlay = loadJson<DevContainer>(overlayPath);
@@ -576,6 +641,35 @@ function mergeEnvExamples(
     const envSections: string[] = [];
 
     for (const overlay of overlays) {
+        // First, check for imports in the overlay and add any .env files from imports
+        const overlayDir = path.join(OVERLAYS_DIR, overlay);
+        const manifestPath = path.join(overlayDir, 'overlay.yml');
+        
+        if (fs.existsSync(manifestPath)) {
+            try {
+                const manifestContent = fs.readFileSync(manifestPath, 'utf8');
+                const manifest = yaml.load(manifestContent) as any;
+                
+                if (manifest.imports && Array.isArray(manifest.imports)) {
+                    for (const importPath of manifest.imports) {
+                        const ext = path.extname(importPath).toLowerCase();
+                        if (ext === '.env') {
+                            const fullImportPath = path.join(OVERLAYS_DIR, importPath);
+                            if (fs.existsSync(fullImportPath)) {
+                                const content = fs.readFileSync(fullImportPath, 'utf-8').trim();
+                                if (content) {
+                                    envSections.push(`# Imported from ${importPath}\n${content}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                // Ignore errors reading manifest
+            }
+        }
+        
+        // Then add the overlay's own .env.example
         const envPath = path.join(OVERLAYS_DIR, overlay, '.env.example');
 
         if (fs.existsSync(envPath)) {
@@ -1088,9 +1182,31 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
     if (answers.devTools) requestedOverlays.push(...answers.devTools);
 
+    // Filter out "minimal" overlays if --minimal flag is set
+    let filteredRequestedOverlays = requestedOverlays;
+    if (answers.minimal) {
+        const minimalExcluded: string[] = [];
+        filteredRequestedOverlays = requestedOverlays.filter((overlayId) => {
+            const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
+            if (overlayDef?.minimal === true) {
+                minimalExcluded.push(overlayId);
+                return false;
+            }
+            return true;
+        });
+
+        if (minimalExcluded.length > 0) {
+            console.log(
+                chalk.dim(
+                    `   📦 Minimal mode: Excluding ${minimalExcluded.length} optional overlay(s): ${minimalExcluded.join(', ')}`
+                )
+            );
+        }
+    }
+
     // Check compatibility
     const incompatible: string[] = [];
-    for (const overlayId of requestedOverlays) {
+    for (const overlayId of filteredRequestedOverlays) {
         const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
         if (overlayDef?.supports && overlayDef.supports.length > 0) {
             if (!overlayDef.supports.includes(answers.stack)) {
@@ -1132,11 +1248,17 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
         if (answers.playwright) requestedOverlays.push('playwright');
         if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
         if (answers.devTools) requestedOverlays.push(...answers.devTools);
+
+        // Re-apply minimal filtering
+        filteredRequestedOverlays = requestedOverlays.filter((overlayId) => {
+            const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
+            return !answers.minimal || overlayDef?.minimal !== true;
+        });
     }
 
     // 2. Resolve dependencies
     const { overlays: resolvedOverlays, autoResolved } = resolveDependencies(
-        requestedOverlays,
+        filteredRequestedOverlays,
         allOverlayDefs
     );
 
@@ -1321,6 +1443,31 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
             delete (config as any)[key];
         }
     });
+
+    // Handle editor profile filtering
+    if (answers.editor === 'none' || answers.editor === 'jetbrains') {
+        // Remove VS Code customizations
+        if (config.customizations?.vscode) {
+            if (answers.editor === 'none') {
+                delete config.customizations.vscode;
+                console.log(chalk.dim(`   🎨 Editor profile 'none': Removed VS Code customizations`));
+            } else if (answers.editor === 'jetbrains') {
+                // For JetBrains, remove VS Code customizations (future: could add JetBrains-specific settings)
+                delete config.customizations.vscode;
+                console.log(
+                    chalk.dim(`   🎨 Editor profile 'jetbrains': Removed VS Code customizations`)
+                );
+            }
+
+            // Clean up empty customizations object
+            if (
+                config.customizations &&
+                Object.keys(config.customizations).length === 0
+            ) {
+                delete config.customizations;
+            }
+        }
+    }
 
     // 12. Write merged devcontainer.json
     const configPath = path.join(outputPath, 'devcontainer.json');

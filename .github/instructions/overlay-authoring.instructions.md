@@ -970,7 +970,7 @@ Before submitting overlay files, verify:
 
 - `overlays/.registry/base-images.yml` - Available base container images
 - `overlays/.registry/base-templates.yml` - Base devcontainer templates
-- `overlays/presets/*.yml` - Preset definitions (meta-overlays)
+- `overlays/.presets/*.yml` - Preset definitions (meta-overlays)
 
 **Documentation:**
 

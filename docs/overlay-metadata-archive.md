@@ -10,7 +10,7 @@ This central `index.yml` file (592 lines) has been split into:
 
 - **46 individual overlay manifests** - `overlays/*/overlay.yml`
 - **Registry files** - `overlays/.registry/base-images.yml` and `base-templates.yml`
-- **Preset definitions** - Individual YAML files in `overlays/presets/*.yml`
+- **Preset definitions** - Individual YAML files in `overlays/.presets/*.yml`
 
 ## New Structure
 

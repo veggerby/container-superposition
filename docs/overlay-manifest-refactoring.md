@@ -73,7 +73,7 @@ The overlay loader (`tool/schema/overlay-loader.ts`) discovers overlays by:
 3. Validating manifest structure and fields
 4. Grouping overlays by category
 5. Loading base images/templates from `.registry/` files
-6. Loading preset metadata from `overlays/presets/*.yml`
+6. Loading preset metadata from `overlays/.presets/*.yml`
 
 ### Discovery Process
 
@@ -92,7 +92,7 @@ The loader:
 
 ### Preset Handling
 
-Presets are meta-overlays defined in `overlays/presets/*.yml`. Each preset file contains:
+Presets are meta-overlays defined in `overlays/.presets/*.yml`. Each preset file contains:
 
 - Metadata (id, name, description, tags, supports)
 - Selection rules (required overlays, user choices)

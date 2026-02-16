@@ -40,3 +40,4 @@ examples/.devcontainer/
 !scripts/**/*
 !overlays/**/*
 *.tgz
+overlays/test-import-overlay/
