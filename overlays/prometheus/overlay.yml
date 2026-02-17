@@ -18,5 +18,5 @@ ports:
       protocol: http
       description: Prometheus web UI and API
       path: /
-      onAutoForward: notify
+      onAutoForward: openBrowser
 order: 1
