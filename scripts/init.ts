@@ -31,6 +31,13 @@ import { explainCommand } from '../tool/commands/explain.js';
 import { planCommand } from '../tool/commands/plan.js';
 import { doctorCommand } from '../tool/commands/doctor.js';
 import { getIncompatibleOverlays, DEPLOYMENT_TARGETS } from '../tool/schema/deployment-targets.js';
+import {
+    migrateManifest,
+    needsMigration,
+    detectManifestVersion,
+    isVersionSupported,
+    CURRENT_MANIFEST_VERSION,
+} from '../tool/schema/manifest-migrations.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -195,14 +202,41 @@ function findManifestFile(manifestPath?: string): string | null {
 function loadManifest(manifestPath: string): SuperpositionManifest | null {
     try {
         const content = fs.readFileSync(manifestPath, 'utf-8');
-        const manifest = JSON.parse(content) as SuperpositionManifest;
+        const rawManifest = JSON.parse(content);
 
-        // Basic validation
-        if (!manifest.version || !manifest.baseTemplate) {
+        // Detect manifest version
+        const detectedVersion = detectManifestVersion(rawManifest);
+
+        // Check if version is supported
+        if (!isVersionSupported(detectedVersion)) {
             console.error(
                 chalk.red(
-                    '✗ Invalid manifest format: missing required fields (version, baseTemplate)'
+                    `✗ Manifest version ${detectedVersion} is not supported.\n` +
+                        `  This tool supports versions: ${detectedVersion === '0' ? 'unknown/invalid' : detectedVersion}\n` +
+                        `  Please upgrade your tool or regenerate the manifest.`
                 )
+            );
+            return null;
+        }
+
+        // Migrate if needed
+        let manifest: SuperpositionManifest;
+        if (needsMigration(rawManifest)) {
+            const oldVersion = rawManifest.manifestVersion || rawManifest.version || 'legacy';
+            console.log(
+                chalk.cyan(
+                    `ℹ️  Migrating manifest from version ${oldVersion} to ${CURRENT_MANIFEST_VERSION}...`
+                )
+            );
+            manifest = migrateManifest(rawManifest);
+        } else {
+            manifest = rawManifest as SuperpositionManifest;
+        }
+
+        // Basic validation
+        if (!manifest.baseTemplate) {
+            console.error(
+                chalk.red('✗ Invalid manifest format: missing required field "baseTemplate"')
             );
             return null;
         }
@@ -217,15 +251,6 @@ function loadManifest(manifestPath: string): SuperpositionManifest | null {
                 chalk.red('✗ Invalid manifest format: all "overlays" entries must be strings')
             );
             return null;
-        }
-
-        // Version check (warn if different, but continue)
-        if (manifest.version !== '0.1.0') {
-            console.warn(
-                chalk.yellow(
-                    `⚠️  Manifest version ${manifest.version} may not be fully compatible with this tool`
-                )
-            );
         }
 
         return manifest;
