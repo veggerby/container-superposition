@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Manifest versioning system** — Separate schema version from tool version for better compatibility
+    - New `manifestVersion` field tracks schema version (increments on breaking changes)
+    - New `generatedBy` field tracks tool version that created the manifest
+    - Legacy `version` field maintained for backward compatibility
+    - Automatic migration framework migrates old manifests transparently
+    - Support window: Current version + N-1 (e.g., v1 supports legacy format)
+    - Migration happens automatically during manifest loading
+    - Doctor command validates manifest versions and migration status
+    - JSON schema for manifest validation (`superposition-manifest.schema.json`)
+
 ## [0.1.2] - 2026-02-17
 
 ### Added

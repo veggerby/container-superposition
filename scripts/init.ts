@@ -104,6 +104,25 @@ const PRESETS_DIR =
     PRESETS_DIR_CANDIDATES[0];
 
 /**
+ * Get the version from package.json
+ */
+function getToolVersion(): string {
+    try {
+        const packageJsonCandidates = [
+            path.join(__dirname, '..', 'package.json'), // From source
+            path.join(__dirname, '..', '..', 'package.json'), // From dist
+        ];
+        const packageJsonPath =
+            packageJsonCandidates.find((candidate) => fs.existsSync(candidate)) ??
+            packageJsonCandidates[0];
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        return packageJson.version || '0.0.0';
+    } catch (error) {
+        return '0.0.0';
+    }
+}
+
+/**
  * Load overlay metadata from individual manifests or fallback to YAML file
  */
 function loadOverlaysConfigWrapper(): OverlaysConfig {
@@ -1142,7 +1161,7 @@ async function parseCliArgs(): Promise<{
     program
         .name('container-superposition')
         .description('Composable devcontainer scaffolds')
-        .version('0.1.0');
+        .version(getToolVersion());
 
     // Init command (default)
     program
