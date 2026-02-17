@@ -68,11 +68,58 @@
         },
         "ports": {
             "type": "array",
-            "description": "Ports used by the overlay (for offset calculation)",
+            "description": "Ports used by the overlay (for offset calculation and documentation)",
             "items": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
+                "oneOf": [
+                    {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65535,
+                        "description": "Simple port number (legacy format)"
+                    },
+                    {
+                        "type": "object",
+                        "description": "Rich port metadata with service info and connection details",
+                        "required": ["port"],
+                        "properties": {
+                            "port": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535,
+                                "description": "Port number"
+                            },
+                            "service": {
+                                "type": "string",
+                                "description": "Service name (e.g., postgres, grafana, jaeger)",
+                                "pattern": "^[a-z0-9-]+$"
+                            },
+                            "protocol": {
+                                "type": "string",
+                                "description": "Protocol type",
+                                "enum": ["http", "https", "tcp", "udp", "grpc"]
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Human-readable description of what this port is for"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Default path for HTTP/HTTPS services (e.g., /, /metrics)",
+                                "pattern": "^/"
+                            },
+                            "onAutoForward": {
+                                "type": "string",
+                                "description": "VS Code port auto-forward behavior",
+                                "enum": ["notify", "openBrowser", "openPreview", "silent", "ignore"]
+                            },
+                            "connectionStringTemplate": {
+                                "type": "string",
+                                "description": "Template for connection string (e.g., postgresql://{user}:{password}@{host}:{port}/{database})"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                ]
             },
             "default": []
         },

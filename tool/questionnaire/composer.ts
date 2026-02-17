@@ -12,6 +12,7 @@ import type {
     SuperpositionManifest,
     PresetGlueConfig,
     CustomizationConfig,
+    PortsDocumentation,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import {
@@ -30,6 +31,7 @@ import {
     applyPortOffset,
     applyPortOffsetToEnv,
 } from '../utils/merge.js';
+import { generatePortsDocumentation } from '../utils/port-utils.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1408,7 +1410,49 @@ export async function composeDevContainer(
         chalk.dim(`   📝 Created README.md with documentation from ${overlays.length} overlay(s)`)
     );
 
-    // 17. Clean up stale files from previous runs (preserves superposition.json and .env)
+    // 17. Generate ports.json documentation
+    const portOffset = answers.portOffset ?? 0;
+    if (portOffset > 0 || overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length)) {
+        console.log(chalk.cyan('\n📡 Generating ports documentation...'));
+        
+        const selectedOverlayMetadata = overlays
+            .map((id) => overlayMetadataMap.get(id))
+            .filter((m): m is OverlayMetadata => m !== undefined);
+
+        // Extract environment variables from .env.example for connection strings
+        const envPath = path.join(outputPath, '.env.example');
+        const envVars: Record<string, string> = {};
+        if (fs.existsSync(envPath)) {
+            const envContent = fs.readFileSync(envPath, 'utf8');
+            for (const line of envContent.split('\n')) {
+                const match = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+                if (match) {
+                    envVars[match[1].toLowerCase()] = match[2];
+                }
+            }
+        }
+
+        const portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
+        
+        const portsPath = path.join(outputPath, 'ports.json');
+        fs.writeFileSync(portsPath, JSON.stringify(portsDoc, null, 2) + '\n');
+        fileRegistry.addFile('ports.json');
+        
+        console.log(chalk.dim(`   📡 Created ports.json with ${portsDoc.ports.length} port(s)`));
+        
+        // Log summary of ports
+        if (portsDoc.ports.length > 0) {
+            console.log(chalk.dim('\n   Available services:'));
+            for (const port of portsDoc.ports) {
+                const serviceLabel = port.service || 'unknown';
+                const desc = port.description ? ` - ${port.description}` : '';
+                const proto = port.protocol ? ` (${port.protocol})` : '';
+                console.log(chalk.dim(`   • ${serviceLabel}: ${port.actualPort}${proto}${desc}`));
+            }
+        }
+    }
+
+    // 18. Clean up stale files from previous runs (preserves superposition.json and .env)
     cleanupStaleFiles(outputPath, fileRegistry);
 }
 

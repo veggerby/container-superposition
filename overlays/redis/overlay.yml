@@ -12,4 +12,9 @@ tags:
     - cache
     - redis
 ports:
-    - 6379
+    - port: 6379
+      service: redis
+      protocol: tcp
+      description: Redis server connection
+      onAutoForward: notify
+      connectionStringTemplate: 'redis://{host}:{port}'

@@ -48,6 +48,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Supports JSON, YAML, and ENV file imports
     - Reduces duplication across overlays with common patterns
     - Example shared configs for OTEL, healthchecks, and VS Code extensions
+- **Enhanced port metadata system** — Ports now support rich metadata with service names, protocols, descriptions, and connection details
+    - Port definitions can include service name, protocol (http/https/tcp/udp/grpc), description, path, and onAutoForward behavior
+    - Connection string templates for common services (PostgreSQL, Redis, MongoDB, MySQL, RabbitMQ, NATS)
+    - Backward compatible with simple numeric port definitions
+    - `ports.json` documentation file automatically generated with all port details, connection strings, and URLs
+    - Environment variables from `.env.example` used to populate connection string templates
+    - HTTP/HTTPS services get auto-generated URLs with correct ports and paths
+    - onAutoForward port configuration controls VS Code port forwarding behavior (notify, openBrowser, openPreview, silent, ignore)
+    - Service summaries displayed during generation for better discoverability
+    - Supports multi-repo microservice development with clear port documentation
     - Import validation in doctor command
 - **`--minimal` flag** — Skip optional/nice-to-have overlays for lean configurations
     - Useful for CI/CD environments, Codespaces, or learning
@@ -117,6 +127,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Port schema extended** — overlay.yml ports field now accepts both numbers and rich port objects
+    - Legacy format (array of numbers) still fully supported for backward compatibility
+    - New format includes service, protocol, description, path, onAutoForward, and connectionStringTemplate fields
+    - Schema validation in `overlay-manifest.schema.json` supports both formats via oneOf
+- **Updated key overlays with rich port metadata** — PostgreSQL, Redis, Grafana, Jaeger, and Prometheus
+    - Proper onAutoForward settings (openBrowser for UIs, notify for APIs, ignore for internal ports)
+    - Connection string templates for databases
+    - Service descriptions for better discoverability
 - Overlay manifests now support `imports` field for shared file references
 - Overlay manifests now support `minimal` boolean field to mark optional overlays
 - Regen command can now accept CLI overrides while preserving manifest configuration

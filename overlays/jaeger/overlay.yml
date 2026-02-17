@@ -13,7 +13,20 @@ tags:
     - tracing
     - jaeger
 ports:
-    - 16686
-    - 14250
-    - 14268
+    - port: 16686
+      service: jaeger
+      protocol: http
+      description: Jaeger UI
+      path: /
+      onAutoForward: openBrowser
+    - port: 14250
+      service: jaeger
+      protocol: grpc
+      description: Jaeger gRPC receiver
+      onAutoForward: ignore
+    - port: 14268
+      service: jaeger
+      protocol: http
+      description: Jaeger HTTP receiver
+      onAutoForward: ignore
 order: 1
