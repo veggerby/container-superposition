@@ -1414,7 +1414,7 @@ export async function composeDevContainer(
     const portOffset = answers.portOffset ?? 0;
     if (portOffset > 0 || overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length)) {
         console.log(chalk.cyan('\n📡 Generating ports documentation...'));
-        
+
         const selectedOverlayMetadata = overlays
             .map((id) => overlayMetadataMap.get(id))
             .filter((m): m is OverlayMetadata => m !== undefined);
@@ -1433,13 +1433,13 @@ export async function composeDevContainer(
         }
 
         const portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
-        
+
         const portsPath = path.join(outputPath, 'ports.json');
         fs.writeFileSync(portsPath, JSON.stringify(portsDoc, null, 2) + '\n');
         fileRegistry.addFile('ports.json');
-        
+
         console.log(chalk.dim(`   📡 Created ports.json with ${portsDoc.ports.length} port(s)`));
-        
+
         // Log summary of ports
         if (portsDoc.ports.length > 0) {
             console.log(chalk.dim('\n   Available services:'));

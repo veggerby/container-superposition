@@ -172,7 +172,9 @@ describe('Overlay Dependency Resolution', () => {
         // Ports can now be numbers or objects with a port property
         const hasPort = (overlay: any, portNum: number) => {
             if (!overlay?.ports) return false;
-            return overlay.ports.some((p: any) => (typeof p === 'number' ? p === portNum : p.port === portNum));
+            return overlay.ports.some((p: any) =>
+                typeof p === 'number' ? p === portNum : p.port === portNum
+            );
         };
 
         expect(hasPort(grafana, 3000)).toBe(true);

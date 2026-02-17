@@ -2,7 +2,12 @@
  * Port utilities for normalizing and documenting ports
  */
 
-import type { PortMetadata, NormalizedPort, PortsDocumentation, OverlayMetadata } from '../schema/types.js';
+import type {
+    PortMetadata,
+    NormalizedPort,
+    PortsDocumentation,
+    OverlayMetadata,
+} from '../schema/types.js';
 
 /**
  * Normalize a port entry (number or PortMetadata) to NormalizedPort format
@@ -61,7 +66,10 @@ export function generateConnectionString(
 /**
  * Get default connection string template for common services
  */
-export function getDefaultConnectionStringTemplate(service: string, protocol?: string): string | undefined {
+export function getDefaultConnectionStringTemplate(
+    service: string,
+    protocol?: string
+): string | undefined {
     const templates: Record<string, string> = {
         postgres: 'postgresql://{user}:{password}@{host}:{port}/{database}',
         postgresql: 'postgresql://{user}:{password}@{host}:{port}/{database}',
@@ -115,18 +123,21 @@ export function generatePortsDocumentation(
             const template =
                 typeof portEntry === 'object' && portEntry.connectionStringTemplate
                     ? portEntry.connectionStringTemplate
-                    : getDefaultConnectionStringTemplate(normalizedPort.service || '', normalizedPort.protocol);
+                    : getDefaultConnectionStringTemplate(
+                          normalizedPort.service || '',
+                          normalizedPort.protocol
+                      );
 
             if (template) {
                 const connStr = generateConnectionString(template, normalizedPort, envVars);
                 // Use unique key for multi-port services by appending port number if service already exists
                 let key = normalizedPort.service || `port-${normalizedPort.port}`;
-                
+
                 // If key already exists, make it unique by adding port number
                 if (connectionStrings[key]) {
                     key = `${key}-${normalizedPort.port}`;
                 }
-                
+
                 connectionStrings[key] = connStr;
             }
 

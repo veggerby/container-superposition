@@ -336,8 +336,7 @@ describe('Port Utilities', () => {
                 protocol: 'tcp',
                 description: 'PostgreSQL connection',
                 onAutoForward: 'notify',
-                connectionStringTemplate:
-                    'postgresql://{user}:{password}@{host}:{port}/{database}',
+                connectionStringTemplate: 'postgresql://{user}:{password}@{host}:{port}/{database}',
                 actualPort: 5532,
             });
 
