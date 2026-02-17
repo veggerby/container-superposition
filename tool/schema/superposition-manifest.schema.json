@@ -92,6 +92,6 @@
             "description": "Information about custom patches/overrides (optional)"
         }
     },
-    "required": ["generated", "baseTemplate", "baseImage", "overlays"],
+    "required": ["manifestVersion", "generatedBy", "generated", "baseTemplate", "baseImage", "overlays"],
     "additionalProperties": false
 }

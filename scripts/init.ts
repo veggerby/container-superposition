@@ -37,7 +37,9 @@ import {
     detectManifestVersion,
     isVersionSupported,
     CURRENT_MANIFEST_VERSION,
+    SUPPORTED_MANIFEST_VERSIONS,
 } from '../tool/schema/manifest-migrations.js';
+import { getToolVersion } from '../tool/utils/version.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -102,25 +104,6 @@ const PRESETS_DIR_CANDIDATES = [
 const PRESETS_DIR =
     PRESETS_DIR_CANDIDATES.find((candidate) => fs.existsSync(candidate)) ??
     PRESETS_DIR_CANDIDATES[0];
-
-/**
- * Get the version from package.json
- */
-function getToolVersion(): string {
-    try {
-        const packageJsonCandidates = [
-            path.join(__dirname, '..', 'package.json'), // From source
-            path.join(__dirname, '..', '..', 'package.json'), // From dist
-        ];
-        const packageJsonPath =
-            packageJsonCandidates.find((candidate) => fs.existsSync(candidate)) ??
-            packageJsonCandidates[0];
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-        return packageJson.version || '0.0.0';
-    } catch (error) {
-        return '0.0.0';
-    }
-}
 
 /**
  * Load overlay metadata from individual manifests or fallback to YAML file
@@ -231,7 +214,7 @@ function loadManifest(manifestPath: string): SuperpositionManifest | null {
             console.error(
                 chalk.red(
                     `✗ Manifest version ${detectedVersion} is not supported.\n` +
-                        `  This tool supports versions: ${detectedVersion === '0' ? 'unknown/invalid' : detectedVersion}\n` +
+                        `  This tool supports versions: ${SUPPORTED_MANIFEST_VERSIONS.join(', ')}\n` +
                         `  Please upgrade your tool or regenerate the manifest.`
                 )
             );

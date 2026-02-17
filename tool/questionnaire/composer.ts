@@ -21,6 +21,7 @@ import {
 } from '../schema/custom-loader.js';
 import { generateReadme } from '../readme/readme-generator.js';
 import { CURRENT_MANIFEST_VERSION } from '../schema/manifest-migrations.js';
+import { getToolVersion } from '../utils/version.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -41,19 +42,6 @@ const REPO_ROOT =
     ) ?? REPO_ROOT_CANDIDATES[0];
 
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
-
-/**
- * Get the current tool version from package.json
- */
-function getToolVersion(): string {
-    try {
-        const packageJsonPath = path.join(REPO_ROOT, 'package.json');
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-        return packageJson.version || 'unknown';
-    } catch (error) {
-        return 'unknown';
-    }
-}
 
 /**
  * Deep merge two objects, with special handling for arrays
