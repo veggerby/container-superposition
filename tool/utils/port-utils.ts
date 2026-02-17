@@ -46,6 +46,7 @@ export function generateConnectionString(
     const replacements: Record<string, string> = {
         host: 'localhost',
         service: port.service || 'unknown',
+        path: port.path || '',
         ...envVars,
     };
 

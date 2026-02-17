@@ -58,7 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - onAutoForward port configuration controls VS Code port forwarding behavior (notify, openBrowser, openPreview, silent, ignore)
     - Service summaries displayed during generation for better discoverability
     - Supports multi-repo microservice development with clear port documentation
-    - Import validation in doctor command
 - **`--minimal` flag** — Skip optional/nice-to-have overlays for lean configurations
     - Useful for CI/CD environments, Codespaces, or learning
     - Marked overlays: `modern-cli-tools`, `git-helpers`, `codex`

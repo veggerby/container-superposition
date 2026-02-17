@@ -415,8 +415,8 @@ describe('Port Utilities', () => {
 
             // First port gets the service name
             expect(doc.connectionStrings?.rabbitmq).toBe('amqp://localhost:5672');
-            // Second port with same service gets service-port format (template includes {path})
-            expect(doc.connectionStrings?.['rabbitmq-15672']).toBe('http://localhost:15672{path}');
+            // Second port with same service gets service-port format (path resolved)
+            expect(doc.connectionStrings?.['rabbitmq-15672']).toBe('http://localhost:15672/');
             // URL gets -url suffix and resolves path
             expect(doc.connectionStrings?.['rabbitmq-url']).toBe('http://localhost:15672/');
         });
