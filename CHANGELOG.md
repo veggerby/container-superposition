@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.2] - 2026-02-17
+## [0.1.3] - 2026-02-17
+
+### Note
+
+Re-release of version 0.1.2 as non-beta release
+
+## [0.1.2] - 2026-02-17 [RECALLED]
+
+### Note
+
+This version was recalled as it was inadvertently tagged beta.
 
 ### Added
 
