@@ -118,7 +118,14 @@ export function generatePortsDocumentation(
 
             if (template) {
                 const connStr = generateConnectionString(template, normalizedPort, envVars);
-                const key = normalizedPort.service || `port-${normalizedPort.port}`;
+                // Use unique key for multi-port services by appending port number if service already exists
+                let key = normalizedPort.service || `port-${normalizedPort.port}`;
+                
+                // If key already exists, make it unique by adding port number
+                if (connectionStrings[key]) {
+                    key = `${key}-${normalizedPort.port}`;
+                }
+                
                 connectionStrings[key] = connStr;
             }
 

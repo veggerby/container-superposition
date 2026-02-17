@@ -386,5 +386,39 @@ describe('Port Utilities', () => {
 
             expect(doc.connectionStrings?.redis).toBe('redis://localhost:6379');
         });
+
+        it('should handle services with multiple ports using unique keys', () => {
+            const overlays: OverlayMetadata[] = [
+                {
+                    id: 'rabbitmq',
+                    name: 'RabbitMQ',
+                    description: 'Message broker',
+                    category: 'database',
+                    ports: [
+                        {
+                            port: 5672,
+                            service: 'rabbitmq',
+                            protocol: 'tcp',
+                            connectionStringTemplate: 'amqp://{host}:{port}',
+                        },
+                        {
+                            port: 15672,
+                            service: 'rabbitmq',
+                            protocol: 'http',
+                            path: '/',
+                        },
+                    ],
+                },
+            ];
+
+            const doc = generatePortsDocumentation(overlays, 0);
+
+            // First port gets the service name
+            expect(doc.connectionStrings?.rabbitmq).toBe('amqp://localhost:5672');
+            // Second port with same service gets service-port format (template includes {path})
+            expect(doc.connectionStrings?.['rabbitmq-15672']).toBe('http://localhost:15672{path}');
+            // URL gets -url suffix and resolves path
+            expect(doc.connectionStrings?.['rabbitmq-url']).toBe('http://localhost:15672/');
+        });
     });
 });

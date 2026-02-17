@@ -19,7 +19,7 @@ ports:
       protocol: tcp
       description: RabbitMQ AMQP connection
       onAutoForward: notify
-      connectionStringTemplate: 'amqp://{rabbitmq_default_user}:{rabbitmq_default_pass}@{host}:{port}'
+      connectionStringTemplate: 'amqp://{rabbitmq_user}:{rabbitmq_password}@{host}:{port}{rabbitmq_vhost}'
     - port: 15672
       service: rabbitmq
       protocol: http
