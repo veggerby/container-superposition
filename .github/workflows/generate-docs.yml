@@ -40,6 +40,11 @@ jobs:
                     echo "The following files have uncommitted changes:"
                     git status --porcelain docs/
                     echo ""
+                    echo "Diff of changes:"
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    git diff docs/
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo ""
                     echo "Please run 'npm run docs:generate' locally and commit the changes."
                     exit 1
                   else
