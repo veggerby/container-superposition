@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Team collaboration workflow** — Manifest-first workflow for standardizing dev environments across teams
+    - `--write-manifest-only` flag generates only `superposition.json` without creating `.devcontainer/` files
+    - Enables version control pattern: commit manifest, gitignore generated files
+    - `regen` command now searches current directory for manifest (team workflow pattern)
+    - New comprehensive guide at `docs/team-workflow.md` with CI examples
+    - README updated with team collaboration quick start
+    - Supports personal customizations via `.devcontainer/custom/` (can be committed)
+    - One-command onboarding: `npx container-superposition regen`
+    - No lock-in - generated files remain plain JSON/YAML
 - **Manifest versioning system** — Separate schema version from tool version for better compatibility
     - New `manifestVersion` field tracks schema version (increments on breaking changes)
     - New `generatedBy` field tracks tool version that created the manifest

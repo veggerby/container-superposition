@@ -1,0 +1,44 @@
+# Example .gitignore entries for Container Superposition team workflow
+#
+# Add these entries to your project's .gitignore to implement the
+# manifest-first team collaboration pattern.
+#
+# Pattern:
+# - Commit: superposition.json (team standard)
+# - Gitignore: .devcontainer/ (generated locally)
+# - Optional commit: .devcontainer/custom/ (shared customizations)
+
+# ============================================================
+# DevContainer - Generated Files (Do Not Commit)
+# ============================================================
+
+# Ignore the entire .devcontainer directory
+.devcontainer/
+
+# Exceptions: Allow custom patches and .gitignore itself
+!.devcontainer/custom/
+!.devcontainer/.gitignore
+
+# ============================================================
+# Backup Files
+# ============================================================
+
+# Backups created by container-superposition
+*.backup-*/
+.devcontainer.backup-*/
+
+# ============================================================
+# Optional: .devcontainer/.gitignore
+# ============================================================
+# 
+# Also create .devcontainer/.gitignore with:
+#
+# # Ignore all generated files in .devcontainer/
+# *
+# 
+# # Except custom directory and this .gitignore
+# !custom/
+# !.gitignore
+#
+# This provides double protection against accidentally committing
+# generated files.
