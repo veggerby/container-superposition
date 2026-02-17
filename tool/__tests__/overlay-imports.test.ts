@@ -49,14 +49,18 @@ describe('Overlay Imports', () => {
     });
 
     it('should create test overlay with imports for manual testing', () => {
-        // Create a test overlay with imports
-        const testOverlayDir = path.join(__dirname, '..', '..', 'overlays', 'test-import-overlay');
-        
-        if (!fs.existsSync(testOverlayDir)) {
-            fs.mkdirSync(testOverlayDir, { recursive: true });
-            
-            // Create overlay.yml with imports
-            const overlayYml = `id: test-import-overlay
+        // Create a test overlay with imports in tmp directory
+        const testOverlaysDir = path.join(__dirname, '..', '..', 'tmp', 'test-overlays');
+        const testOverlayDir = path.join(testOverlaysDir, 'test-import-overlay');
+
+        if (fs.existsSync(testOverlayDir)) {
+            fs.rmSync(testOverlayDir, { recursive: true });
+        }
+
+        fs.mkdirSync(testOverlayDir, { recursive: true });
+
+        // Create overlay.yml with imports
+        const overlayYml = `id: test-import-overlay
 name: Test Import Overlay
 description: Test overlay demonstrating imports feature
 category: dev
@@ -71,25 +75,28 @@ ports: []
 imports:
     - .shared/vscode/recommended-extensions.json
 `;
-            fs.writeFileSync(path.join(testOverlayDir, 'overlay.yml'), overlayYml);
-            
-            // Create minimal devcontainer.patch.json
-            const patchJson = {
-                "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-                "customizations": {
-                    "vscode": {
-                        "extensions": ["test.extension"]
-                    }
-                }
-            };
-            fs.writeFileSync(
-                path.join(testOverlayDir, 'devcontainer.patch.json'),
-                JSON.stringify(patchJson, null, 4)
-            );
-        }
+        fs.writeFileSync(path.join(testOverlayDir, 'overlay.yml'), overlayYml);
+
+        // Create minimal devcontainer.patch.json
+        const patchJson = {
+            $schema:
+                'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json',
+            customizations: {
+                vscode: {
+                    extensions: ['test.extension'],
+                },
+            },
+        };
+        fs.writeFileSync(
+            path.join(testOverlayDir, 'devcontainer.patch.json'),
+            JSON.stringify(patchJson, null, 4)
+        );
 
         expect(fs.existsSync(testOverlayDir)).toBe(true);
         expect(fs.existsSync(path.join(testOverlayDir, 'overlay.yml'))).toBe(true);
         expect(fs.existsSync(path.join(testOverlayDir, 'devcontainer.patch.json'))).toBe(true);
+
+        // Clean up
+        fs.rmSync(testOverlayDir, { recursive: true });
     });
 });

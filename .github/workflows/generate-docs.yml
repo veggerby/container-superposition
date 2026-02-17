@@ -26,6 +26,9 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            - name: Lint code
+              run: npm run lint
+
             - name: Build TypeScript
               run: npm run build
 
@@ -39,6 +42,11 @@ jobs:
                     echo ""
                     echo "The following files have uncommitted changes:"
                     git status --porcelain docs/
+                    echo ""
+                    echo "Diff of changes:"
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    git diff docs/
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     echo ""
                     echo "Please run 'npm run docs:generate' locally and commit the changes."
                     exit 1

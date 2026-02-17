@@ -380,6 +380,7 @@ npm run init -- doctor
 ```
 
 This validates:
+
 - Environment prerequisites (Node.js, Docker, Docker Compose)
 - Overlay integrity (YAML syntax, required files, broken symlinks)
 - Manifest compatibility
@@ -412,6 +413,7 @@ The repository uses GitHub Actions for automated testing and validation.
 **File:** `.github/workflows/validate-overlays.yml`
 
 **Steps:**
+
 1. Run `doctor` command to check environment
 2. Run unit tests (`npm test`)
 3. Run smoke tests (`npm run test:smoke`)
@@ -425,6 +427,7 @@ This ensures all overlay changes are validated before merge.
 **File:** `.github/workflows/generate-docs.yml`
 
 **Steps:**
+
 1. Run `npm run docs:generate`
 2. Fail if generated documentation is out of sync
 
@@ -437,6 +440,7 @@ This ensures documentation is committed and up-to-date before merge. No auto-com
 **File:** `.github/workflows/build-devcontainers.yml`
 
 **Steps:**
+
 1. Generate devcontainer configurations for various combinations
 2. Build actual devcontainer images with DevContainer CLI
 3. Verify they build successfully

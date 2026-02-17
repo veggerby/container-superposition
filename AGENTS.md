@@ -82,6 +82,12 @@ npm run init -- --stack compose --language nodejs --database postgres --observab
 ### Building and Testing
 
 ```bash
+# Lint code (TypeScript + Prettier)
+npm run lint
+
+# Auto-fix formatting issues
+npm run lint:fix
+
 # Compile TypeScript to dist/
 npm run build
 
@@ -94,7 +100,7 @@ npm test:watch
 # Smoke test generated devcontainers
 npm run test:smoke
 
-# Generate documentation
+# Generate documentation (auto-formats output)
 npm run docs:generate
 
 # Clean build artifacts
@@ -598,18 +604,20 @@ Examples:
 ### Required Checks Before Submission
 
 ```bash
-# 1. Build successfully
+# 1. Lint code (TypeScript type checking + Prettier formatting)
+npm run lint
+
+# 2. Build successfully
 npm run build
 
-# 2. All tests pass
+# 3. All tests pass
 npm test
-
-# 3. No TypeScript errors
-npx tsc --noEmit
 
 # 4. Smoke test (if modifying composition logic)
 npm run test:smoke
 ```
+
+**Note:** Linting is enforced in CI. All workflows run `npm run lint` before building, and failures block PR merges and npm publishing.
 
 ### Commit Message Conventions
 

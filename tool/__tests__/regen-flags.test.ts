@@ -46,8 +46,10 @@ describe('Regen with Minimal and Editor Flags', () => {
 
         // Verify initial manifest has all overlays
         const manifestPath = path.join(testOutputPath, 'superposition.json');
-        const initialManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as SuperpositionManifest;
-        
+        const initialManifest = JSON.parse(
+            fs.readFileSync(manifestPath, 'utf-8')
+        ) as SuperpositionManifest;
+
         expect(initialManifest.overlays).toContain('nodejs');
         expect(initialManifest.overlays).toContain('modern-cli-tools');
         expect(initialManifest.overlays).toContain('git-helpers');
@@ -71,8 +73,10 @@ describe('Regen with Minimal and Editor Flags', () => {
         await composeDevContainer(regenAnswers);
 
         // Verify regenerated manifest excludes minimal overlays
-        const regenManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as SuperpositionManifest;
-        
+        const regenManifest = JSON.parse(
+            fs.readFileSync(manifestPath, 'utf-8')
+        ) as SuperpositionManifest;
+
         expect(regenManifest.overlays).toContain('nodejs');
         expect(regenManifest.overlays).not.toContain('modern-cli-tools');
         expect(regenManifest.overlays).not.toContain('git-helpers');
@@ -101,7 +105,7 @@ describe('Regen with Minimal and Editor Flags', () => {
         // Verify initial devcontainer has VS Code customizations
         const devcontainerPath = path.join(testOutputPath, 'devcontainer.json');
         const initialDevcontainer = JSON.parse(fs.readFileSync(devcontainerPath, 'utf-8'));
-        
+
         expect(initialDevcontainer.customizations?.vscode).toBeDefined();
         expect(initialDevcontainer.customizations?.vscode?.extensions).toBeDefined();
 
@@ -123,7 +127,7 @@ describe('Regen with Minimal and Editor Flags', () => {
 
         // Verify regenerated devcontainer has no VS Code customizations
         const regenDevcontainer = JSON.parse(fs.readFileSync(devcontainerPath, 'utf-8'));
-        
+
         if (regenDevcontainer.customizations) {
             expect(regenDevcontainer.customizations.vscode).toBeUndefined();
         }
@@ -167,14 +171,16 @@ describe('Regen with Minimal and Editor Flags', () => {
 
         // Verify both flags were applied
         const manifestPath = path.join(testOutputPath, 'superposition.json');
-        const regenManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as SuperpositionManifest;
-        
+        const regenManifest = JSON.parse(
+            fs.readFileSync(manifestPath, 'utf-8')
+        ) as SuperpositionManifest;
+
         expect(regenManifest.overlays).toContain('nodejs');
         expect(regenManifest.overlays).not.toContain('modern-cli-tools');
 
         const devcontainerPath = path.join(testOutputPath, 'devcontainer.json');
         const regenDevcontainer = JSON.parse(fs.readFileSync(devcontainerPath, 'utf-8'));
-        
+
         if (regenDevcontainer.customizations) {
             expect(regenDevcontainer.customizations.vscode).toBeUndefined();
         }

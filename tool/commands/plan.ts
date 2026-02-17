@@ -81,11 +81,7 @@ function detectConflicts(
 /**
  * Get all files that will be created/modified
  */
-function getFilesToCreate(
-    overlayIds: string[],
-    overlaysDir: string,
-    outputPath: string
-): string[] {
+function getFilesToCreate(overlayIds: string[], overlaysDir: string, outputPath: string): string[] {
     const files: string[] = [];
 
     // Base devcontainer files

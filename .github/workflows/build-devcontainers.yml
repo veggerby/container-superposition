@@ -24,7 +24,7 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             fail-fast: false
-            max-parallel: 2 # Limit parallel jobs to avoid MCR rate limits
+            max-parallel: 4 # Limit parallel jobs to avoid MCR rate limits
             matrix:
                 include:
                     # Base templates only

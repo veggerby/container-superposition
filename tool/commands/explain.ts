@@ -61,12 +61,12 @@ function getDockerComposeServices(overlaysDir: string, overlayId: string): strin
     try {
         const content = fs.readFileSync(composePath, 'utf8');
         const parsed = yaml.load(content) as any;
-        
+
         // Extract service names from the services section
         if (parsed && parsed.services && typeof parsed.services === 'object') {
             return Object.keys(parsed.services);
         }
-        
+
         return [];
     } catch (error) {
         return [];
@@ -199,7 +199,7 @@ function formatAsText(
         lines.push('');
         lines.push(chalk.bold('Docker Compose Services:'));
         lines.push(chalk.dim('  (Services will be added to docker-compose.yml)'));
-        
+
         for (const serviceName of services) {
             lines.push(`  🐳 ${serviceName}`);
         }

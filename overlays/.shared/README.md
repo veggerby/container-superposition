@@ -18,8 +18,8 @@ Overlays can import shared files by adding them to the `imports` field in `overl
 ```yaml
 id: prometheus
 imports:
-  - .shared/otel/otel-base-config.yaml
-  - .shared/compose/common-healthchecks.yml
+    - .shared/otel/otel-base-config.yaml
+    - .shared/compose/common-healthchecks.yml
 ```
 
 ## Benefits

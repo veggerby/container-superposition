@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import type { OverlayMetadata } from '../tool/schema/types.js';
+import type { OverlayMetadata, OverlaysConfig } from '../tool/schema/types.js';
 import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
 
 // Get __dirname equivalent in ESM
@@ -184,7 +184,8 @@ if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
 }
 
-// Write documentation
-fs.writeFileSync(OUTPUT_PATH, documentation);
+// Write documentation with trailing newline
+const formattedDocumentation = documentation.endsWith('\n') ? documentation : documentation + '\n';
+fs.writeFileSync(OUTPUT_PATH, formattedDocumentation);
 
 console.log(`✅ Generated overlay documentation at ${OUTPUT_PATH}`);

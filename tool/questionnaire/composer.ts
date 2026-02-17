@@ -40,7 +40,6 @@ const REPO_ROOT =
     ) ?? REPO_ROOT_CANDIDATES[0];
 
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
-const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 
 /**
  * Deep merge two objects, with special handling for arrays
@@ -372,37 +371,45 @@ function generateManifest(
 /**
  * Load and resolve imports from shared files for an overlay
  */
-function loadImportsForOverlay(overlayName: string): DevContainer {
+function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevContainer {
     let importedConfig: DevContainer = {};
-    
+
     // Load overlay manifest to get imports
-    const overlayDir = path.join(OVERLAYS_DIR, overlayName);
+    const overlayDir = path.join(overlaysDir, overlayName);
     const manifestPath = path.join(overlayDir, 'overlay.yml');
-    
+
     if (!fs.existsSync(manifestPath)) {
         return importedConfig;
     }
-    
+
     try {
         const manifestContent = fs.readFileSync(manifestPath, 'utf8');
         const manifest = yaml.load(manifestContent) as any;
-        
-        if (!manifest.imports || !Array.isArray(manifest.imports) || manifest.imports.length === 0) {
+
+        if (
+            !manifest.imports ||
+            !Array.isArray(manifest.imports) ||
+            manifest.imports.length === 0
+        ) {
             return importedConfig;
         }
-        
+
         // Process each import
         for (const importPath of manifest.imports) {
-            const fullImportPath = path.join(OVERLAYS_DIR, importPath);
-            
+            const fullImportPath = path.join(overlaysDir, importPath);
+
             if (!fs.existsSync(fullImportPath)) {
-                console.warn(chalk.yellow(`⚠️  Import not found: ${importPath} (for overlay: ${overlayName})`));
+                console.warn(
+                    chalk.yellow(
+                        `⚠️  Import not found: ${importPath} (for overlay: ${overlayName})`
+                    )
+                );
                 continue;
             }
-            
+
             // Determine file type and merge appropriately
             const ext = path.extname(importPath).toLowerCase();
-            
+
             if (ext === '.json') {
                 // JSON files are merged as devcontainer patches
                 const importedPatch = loadJson<DevContainer>(fullImportPath);
@@ -424,15 +431,19 @@ function loadImportsForOverlay(overlayName: string): DevContainer {
     } catch (error) {
         console.warn(chalk.yellow(`⚠️  Failed to load imports for overlay: ${overlayName}`));
     }
-    
+
     return importedConfig;
 }
 
 /**
  * Apply an overlay to the base configuration
  */
-function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContainer {
-    const overlayPath = path.join(OVERLAYS_DIR, overlayName, 'devcontainer.patch.json');
+function applyOverlay(
+    baseConfig: DevContainer,
+    overlayName: string,
+    overlaysDir: string
+): DevContainer {
+    const overlayPath = path.join(overlaysDir, overlayName, 'devcontainer.patch.json');
 
     if (!fs.existsSync(overlayPath)) {
         console.warn(chalk.yellow(`⚠️  Overlay not found: ${overlayName}`));
@@ -440,7 +451,7 @@ function applyOverlay(baseConfig: DevContainer, overlayName: string): DevContain
     }
 
     // First, load and apply any imports
-    const importedConfig = loadImportsForOverlay(overlayName);
+    const importedConfig = loadImportsForOverlay(overlayName, overlaysDir);
     if (Object.keys(importedConfig).length > 0) {
         baseConfig = deepMerge(baseConfig, importedConfig);
     }
@@ -571,8 +582,13 @@ function copyDir(src: string, dest: string): void {
  * Copy additional files from overlay to output directory
  * Excludes devcontainer.patch.json and .env.example (handled separately)
  */
-function copyOverlayFiles(outputPath: string, overlayName: string, registry: FileRegistry): void {
-    const overlayPath = path.join(OVERLAYS_DIR, overlayName);
+function copyOverlayFiles(
+    outputPath: string,
+    overlayName: string,
+    registry: FileRegistry,
+    overlaysDir: string
+): void {
+    const overlayPath = path.join(overlaysDir, overlayName);
 
     if (!fs.existsSync(overlayPath)) {
         return;
@@ -634,6 +650,7 @@ function copyOverlayFiles(outputPath: string, overlayName: string, registry: Fil
 function mergeEnvExamples(
     outputPath: string,
     overlays: string[],
+    overlaysDir: string,
     portOffset?: number,
     glueConfig?: PresetGlueConfig,
     presetName?: string
@@ -642,19 +659,19 @@ function mergeEnvExamples(
 
     for (const overlay of overlays) {
         // First, check for imports in the overlay and add any .env files from imports
-        const overlayDir = path.join(OVERLAYS_DIR, overlay);
+        const overlayDir = path.join(overlaysDir, overlay);
         const manifestPath = path.join(overlayDir, 'overlay.yml');
-        
+
         if (fs.existsSync(manifestPath)) {
             try {
                 const manifestContent = fs.readFileSync(manifestPath, 'utf8');
                 const manifest = yaml.load(manifestContent) as any;
-                
+
                 if (manifest.imports && Array.isArray(manifest.imports)) {
                     for (const importPath of manifest.imports) {
                         const ext = path.extname(importPath).toLowerCase();
                         if (ext === '.env') {
-                            const fullImportPath = path.join(OVERLAYS_DIR, importPath);
+                            const fullImportPath = path.join(overlaysDir, importPath);
                             if (fs.existsSync(fullImportPath)) {
                                 const content = fs.readFileSync(fullImportPath, 'utf-8').trim();
                                 if (content) {
@@ -668,9 +685,9 @@ function mergeEnvExamples(
                 // Ignore errors reading manifest
             }
         }
-        
+
         // Then add the overlay's own .env.example
-        const envPath = path.join(OVERLAYS_DIR, overlay, '.env.example');
+        const envPath = path.join(overlaysDir, overlay, '.env.example');
 
         if (fs.existsSync(envPath)) {
             const content = fs.readFileSync(envPath, 'utf-8').trim();
@@ -799,6 +816,7 @@ function mergeDockerComposeFiles(
     outputPath: string,
     baseStack: string,
     overlays: string[],
+    overlaysDir: string,
     portOffset?: number,
     customImage?: string
 ): void {
@@ -817,7 +835,7 @@ function mergeDockerComposeFiles(
 
     // Add overlay docker-compose files
     for (const overlay of overlays) {
-        const overlayComposePath = path.join(OVERLAYS_DIR, overlay, 'docker-compose.yml');
+        const overlayComposePath = path.join(overlaysDir, overlay, 'docker-compose.yml');
         if (fs.existsSync(overlayComposePath)) {
             composeFiles.push(overlayComposePath);
         }
@@ -1162,11 +1180,14 @@ function copyCustomFiles(
 /**
  * Main composition logic
  */
-export async function composeDevContainer(answers: QuestionnaireAnswers): Promise<void> {
+export async function composeDevContainer(
+    answers: QuestionnaireAnswers,
+    overlaysDir?: string
+): Promise<void> {
     // 1. Load overlay configuration
-    const overlaysDir = path.join(REPO_ROOT, 'overlays');
-    const indexYmlPath = path.join(REPO_ROOT, 'overlays', 'index.yml');
-    const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
+    const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
+    const indexYmlPath = path.join(actualOverlaysDir, 'index.yml');
+    const overlaysConfig = loadOverlaysConfig(actualOverlaysDir, indexYmlPath);
 
     // Collect all overlay definitions
     const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
@@ -1354,7 +1375,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     // 6. Apply overlays
     for (const overlay of overlays) {
         console.log(chalk.dim(`   🔧 Applying overlay: ${chalk.cyan(overlay)}`));
-        config = applyOverlay(config, overlay);
+        config = applyOverlay(config, overlay, actualOverlaysDir);
     }
 
     // 7. Copy template files (docker-compose, scripts, etc.)
@@ -1377,7 +1398,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
 
     // 8. Copy overlay files (docker-compose, configs, etc.)
     for (const overlay of overlays) {
-        copyOverlayFiles(outputPath, overlay, fileRegistry);
+        copyOverlayFiles(outputPath, overlay, fileRegistry, actualOverlaysDir);
     }
 
     // 8.5. Copy cross-distro-packages feature if used
@@ -1396,7 +1417,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     filterDockerComposeDependencies(outputPath, overlays);
 
     // 9. Merge runServices array in correct order
-    mergeRunServices(config, overlays);
+    mergeRunServices(config, overlays, actualOverlaysDir);
 
     // 11. Merge docker-compose files into single combined file
     if (answers.stack === 'compose') {
@@ -1405,6 +1426,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
             outputPath,
             answers.stack,
             overlays,
+            actualOverlaysDir,
             answers.portOffset,
             customImage
         );
@@ -1420,7 +1442,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     }
 
     // Merge setup scripts from overlays into postCreateCommand
-    mergeSetupScripts(config, overlays, outputPath, fileRegistry);
+    mergeSetupScripts(config, overlays, outputPath, fileRegistry, actualOverlaysDir);
 
     // 10. Apply custom patches from .devcontainer/custom/ (if present)
     const customPatches = loadCustomPatches(outputPath);
@@ -1450,7 +1472,9 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
         if (config.customizations?.vscode) {
             if (answers.editor === 'none') {
                 delete config.customizations.vscode;
-                console.log(chalk.dim(`   🎨 Editor profile 'none': Removed VS Code customizations`));
+                console.log(
+                    chalk.dim(`   🎨 Editor profile 'none': Removed VS Code customizations`)
+                );
             } else if (answers.editor === 'jetbrains') {
                 // For JetBrains, remove VS Code customizations (future: could add JetBrains-specific settings)
                 delete config.customizations.vscode;
@@ -1460,10 +1484,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
             }
 
             // Clean up empty customizations object
-            if (
-                config.customizations &&
-                Object.keys(config.customizations).length === 0
-            ) {
+            if (config.customizations && Object.keys(config.customizations).length === 0) {
                 delete config.customizations;
             }
         }
@@ -1494,6 +1515,7 @@ export async function composeDevContainer(answers: QuestionnaireAnswers): Promis
     const envCreated = mergeEnvExamples(
         outputPath,
         overlays,
+        actualOverlaysDir,
         answers.portOffset,
         answers.presetGlueConfig,
         answers.preset
@@ -1567,7 +1589,8 @@ function mergeSetupScripts(
     config: DevContainer,
     overlays: string[],
     outputPath: string,
-    fileRegistry: FileRegistry
+    fileRegistry: FileRegistry,
+    overlaysDir: string
 ): void {
     const setupScripts: string[] = [];
     const verifyScripts: string[] = [];
@@ -1581,8 +1604,8 @@ function mergeSetupScripts(
     // Add scripts directory to registry if any scripts will be added
     const hasScripts = overlays.some(
         (o) =>
-            fs.existsSync(path.join(OVERLAYS_DIR, o, 'setup.sh')) ||
-            fs.existsSync(path.join(OVERLAYS_DIR, o, 'verify.sh'))
+            fs.existsSync(path.join(overlaysDir, o, 'setup.sh')) ||
+            fs.existsSync(path.join(overlaysDir, o, 'verify.sh'))
     );
     if (hasScripts) {
         fileRegistry.addDirectory('scripts');
@@ -1590,7 +1613,7 @@ function mergeSetupScripts(
 
     for (const overlay of overlays) {
         // Handle setup scripts
-        const setupPath = path.join(OVERLAYS_DIR, overlay, 'setup.sh');
+        const setupPath = path.join(overlaysDir, overlay, 'setup.sh');
         if (fs.existsSync(setupPath)) {
             // Copy setup script to scripts subdirectory
             const destPath = path.join(scriptsDir, `setup-${overlay}.sh`);
@@ -1604,7 +1627,7 @@ function mergeSetupScripts(
         }
 
         // Handle verify scripts
-        const verifyPath = path.join(OVERLAYS_DIR, overlay, 'verify.sh');
+        const verifyPath = path.join(overlaysDir, overlay, 'verify.sh');
         if (fs.existsSync(verifyPath)) {
             // Copy verify script to scripts subdirectory
             const destPath = path.join(scriptsDir, `verify-${overlay}.sh`);
@@ -1632,7 +1655,7 @@ function mergeSetupScripts(
         // Add setup scripts
         for (let i = 0; i < setupScripts.length; i++) {
             const overlay = overlays.filter((o) => {
-                const setupPath = path.join(OVERLAYS_DIR, o, 'setup.sh');
+                const setupPath = path.join(overlaysDir, o, 'setup.sh');
                 return fs.existsSync(setupPath);
             })[i];
             config.postCreateCommand[`setup-${overlay}`] = setupScripts[i];
@@ -1655,7 +1678,7 @@ function mergeSetupScripts(
         // Add verify scripts
         for (let i = 0; i < verifyScripts.length; i++) {
             const overlay = overlays.filter((o) => {
-                const verifyPath = path.join(OVERLAYS_DIR, o, 'verify.sh');
+                const verifyPath = path.join(overlaysDir, o, 'verify.sh');
                 return fs.existsSync(verifyPath);
             })[i];
             config.postStartCommand[`verify-${overlay}`] = verifyScripts[i];
@@ -1719,11 +1742,11 @@ function filterDockerComposeDependencies(outputPath: string, selectedOverlays: s
 /**
  * Merge runServices from all overlays in correct order
  */
-function mergeRunServices(config: DevContainer, overlays: string[]): void {
+function mergeRunServices(config: DevContainer, overlays: string[], overlaysDir: string): void {
     const services: Array<{ name: string; order: number }> = [];
 
     for (const overlay of overlays) {
-        const overlayPath = path.join(OVERLAYS_DIR, overlay, 'devcontainer.patch.json');
+        const overlayPath = path.join(overlaysDir, overlay, 'devcontainer.patch.json');
         if (fs.existsSync(overlayPath)) {
             const overlayConfig = loadJson<any>(overlayPath);
             if (overlayConfig.runServices) {

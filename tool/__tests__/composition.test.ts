@@ -282,8 +282,13 @@ describe('Golden Tests - Composition', () => {
 
     it('should remove missing object-style depends_on entries when merging compose services', async () => {
         const outputPath = path.join(TEST_OUTPUT_DIR, 'test-depends-on-object-filter');
+        const testOverlaysDir = path.join(REPO_ROOT, 'tmp', 'test-overlays');
         const testOverlayId = 'test-depends-on-object-filter';
-        const testOverlayDir = path.join(REPO_ROOT, 'overlays', testOverlayId);
+        const testOverlayDir = path.join(testOverlaysDir, testOverlayId);
+
+        if (!fs.existsSync(testOverlaysDir)) {
+            fs.mkdirSync(testOverlaysDir, { recursive: true });
+        }
 
         if (fs.existsSync(outputPath)) {
             fs.rmSync(outputPath, { recursive: true });
@@ -293,6 +298,33 @@ describe('Golden Tests - Composition', () => {
         }
 
         fs.mkdirSync(testOverlayDir, { recursive: true });
+
+        // Create .registry directory structure for overlay loader
+        const registryDir = path.join(testOverlaysDir, '.registry');
+        if (!fs.existsSync(registryDir)) {
+            fs.mkdirSync(registryDir, { recursive: true });
+        }
+        fs.writeFileSync(
+            path.join(registryDir, 'base-images.yml'),
+            `base_images:
+  - id: bookworm
+    name: Debian 12 (Bookworm)
+    description: Latest stable Debian release
+    image: mcr.microsoft.com/devcontainers/base:bookworm
+    package_manager: apt
+`
+        );
+        fs.writeFileSync(
+            path.join(registryDir, 'base-templates.yml'),
+            `base_templates:
+  - id: plain
+    name: Single Image
+    description: Development environment in a single container
+  - id: compose
+    name: Multi-Service
+    description: Development environment with multiple services
+`
+        );
         fs.writeFileSync(
             path.join(testOverlayDir, 'overlay.yml'),
             `id: ${testOverlayId}
@@ -339,7 +371,7 @@ networks:
                 outputPath,
             };
 
-            await composeDevContainer(answers);
+            await composeDevContainer(answers, testOverlaysDir);
 
             const composePath = path.join(outputPath, 'docker-compose.yml');
             const compose = yaml.load(fs.readFileSync(composePath, 'utf-8')) as any;

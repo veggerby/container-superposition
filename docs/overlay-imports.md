@@ -81,12 +81,12 @@ Loaded and merged as devcontainer patches. Useful for complex configurations.
 
 ```yaml
 receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
+    otlp:
+        protocols:
+            grpc:
+                endpoint: 0.0.0.0:4317
+            http:
+                endpoint: 0.0.0.0:4318
 ```
 
 ### Environment Files (`.env`)
@@ -106,9 +106,9 @@ OTEL_TRACES_SAMPLER=always_on
 
 1. **Resolution**: Imports are resolved relative to the `overlays/` directory
 2. **Order**: Imports are applied in the order listed, then the overlay's own files
-3. **Merging**: 
-   - JSON/YAML: Deep merged into devcontainer configuration
-   - ENV: Concatenated into `.env.example` with source comments
+3. **Merging**:
+    - JSON/YAML: Deep merged into devcontainer configuration
+    - ENV: Concatenated into `.env.example` with source comments
 4. **Validation**: Doctor command validates that all imports exist and are valid
 
 ## Benefits
@@ -116,6 +116,7 @@ OTEL_TRACES_SAMPLER=always_on
 ### Reduced Duplication
 
 Before imports:
+
 ```
 prometheus/devcontainer.patch.json  (200 lines with OTEL config)
 jaeger/devcontainer.patch.json      (200 lines with OTEL config)
@@ -123,6 +124,7 @@ grafana/devcontainer.patch.json     (200 lines with OTEL config)
 ```
 
 After imports:
+
 ```
 .shared/otel/otel-base-config.yaml  (50 lines, shared)
 prometheus/overlay.yml              (imports: [.shared/otel/otel-base-config.yaml])
@@ -147,6 +149,7 @@ container-superposition doctor
 ```
 
 Checks performed:
+
 - Import files exist
 - File types are supported (`.json`, `.yaml`, `.yml`, `.env`)
 - No broken import references

@@ -1,0 +1,10 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "curl",
+            "apk": "curl"
+        }
+    },
+    "postCreateCommand": "bash .devcontainer/scripts/setup-openapi-tools.sh"
+}

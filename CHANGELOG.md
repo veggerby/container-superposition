@@ -7,10 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.2] - 2026-02-13
+## [0.1.2] - 2026-02-17
 
 ### Added
 
+- **New infrastructure overlays** — Cloud and development tooling for modern workflows
+    - `duckdb` — In-process analytical database for OLAP workloads and data analysis
+    - `jupyter` — Jupyter notebook server for interactive computing and data science (compose only, requires Python)
+    - `kind` — Kubernetes in Docker for local K8s development and testing (requires docker-in-docker)
+    - `localstack` — Local AWS cloud stack for development without real AWS resources (compose only, ports 4566, 4571)
+    - `openapi-tools` — OpenAPI/Swagger tooling for API development and documentation
+    - `tilt` — Live update and orchestration for Kubernetes development (port 10350, suggests kind + kubectl-helm)
+- **Code quality enforcement** — Automatic linting in development and CI
+    - `npm run lint` — Runs TypeScript type checking and Prettier format validation
+    - `npm run lint:fix` — Auto-formats all code with Prettier
+    - Linting integrated into all CI workflows (runs before build)
+    - Documentation generation now auto-formats output with Prettier
+    - Linting failures block PRs and npm publish
 - **Overlay imports** — Overlays can now import shared configuration from `overlays/.shared/`
     - Supports JSON, YAML, and ENV file imports
     - Reduces duplication across overlays with common patterns
@@ -32,15 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Regenerate existing configurations without optional features
     - Change editor profile without recreating from scratch
     - Example: `container-superposition regen --minimal --editor none`
-
-### Changed
-
-- Overlay manifests now support `imports` field for shared file references
-- Overlay manifests now support `minimal` boolean field to mark optional overlays
-- Regen command can now accept CLI overrides while preserving manifest configuration
-
-### Added
-
 - **Deployment target support** — Environment-specific optimizations and validation
     - `--target` flag supports: local (default), codespaces, gitpod, devpod
     - Automatic compatibility validation for selected overlays
@@ -50,7 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Port forwarding behavior adapts to target environment
     - Target-specific constraints (Docker access, privileged containers)
     - Configuration stored in `overlays/.registry/deployment-targets.yml`
-    
 - **GitHub Actions workflows** — Automated validation and documentation checks
     - `validate-overlays.yml` — Runs on pull requests to validate overlay changes
         - Executes `doctor` command for environment validation
@@ -62,7 +65,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Fails if generated docs are out of sync (prevents drift)
         - Ensures documentation is committed before merge
     - Workflow status badges added to README
-
 - **Environment validation command** — Comprehensive `doctor` command for diagnostics
     - Node.js version check (>= 18 required)
     - Docker daemon accessibility verification
@@ -73,7 +75,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `--json` flag for programmatic output
     - `--fix` flag for automatic corrections (placeholder for future fixes)
     - Run `container-superposition doctor` to validate your environment
-
 - **Discovery commands** — New commands to explore available overlays before generating
     - `container-superposition list` — Browse all overlays with filtering options
         - Filter by category: `--category language`, `--category database`, etc.
@@ -96,6 +97,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Overlay manifests now support `imports` field for shared file references
+- Overlay manifests now support `minimal` boolean field to mark optional overlays
+- Regen command can now accept CLI overrides while preserving manifest configuration
 - Improved overlay information display with better formatting and colors
 - Enhanced error messages with actionable suggestions
 - **Output structure documentation** — Updated `tool/README.md` to reflect the current merged compose output and overlay-suffixed copied files

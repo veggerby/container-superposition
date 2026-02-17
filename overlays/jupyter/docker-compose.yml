@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+    jupyter:
+        image: jupyter/minimal-notebook:${JUPYTER_VERSION:-latest}
+        restart: unless-stopped
+        volumes:
+            - jupyter-data:/home/jovyan/work
+            - ${JUPYTER_NOTEBOOKS_PATH:-./notebooks}:/home/jovyan/notebooks
+        environment:
+            JUPYTER_ENABLE_LAB: ${JUPYTER_ENABLE_LAB:-yes}
+            JUPYTER_TOKEN: ${JUPYTER_TOKEN:-}
+        ports:
+            - '${JUPYTER_PORT:-8888}:8888'
+        networks:
+            - devnet
+        command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+
+volumes:
+    jupyter-data:
+
+networks:
+    devnet:

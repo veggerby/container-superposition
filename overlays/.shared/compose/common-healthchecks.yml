@@ -2,37 +2,37 @@
 # These can be referenced by overlays to ensure consistent healthcheck configuration
 
 healthchecks:
-  http:
-    test: ["CMD-SHELL", "curl -f http://localhost:${PORT}/health || exit 1"]
-    interval: 30s
-    timeout: 10s
-    retries: 3
-    start_period: 40s
+    http:
+        test: ['CMD-SHELL', 'curl -f http://localhost:${PORT}/health || exit 1']
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 40s
 
-  postgres:
-    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
-    start_period: 10s
+    postgres:
+        test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 10s
 
-  redis:
-    test: ["CMD", "redis-cli", "ping"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
-    start_period: 10s
+    redis:
+        test: ['CMD', 'redis-cli', 'ping']
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 10s
 
-  mongodb:
-    test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
-    start_period: 10s
+    mongodb:
+        test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 10s
 
-  mysql:
-    test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
-    start_period: 10s
+    mysql:
+        test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 10s
