@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-02-17
+
 ### Added
 
 - **Manifest versioning system** — Separate schema version from tool version for better compatibility
@@ -18,11 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Migration happens automatically during manifest loading
     - Doctor command validates manifest versions and migration status
     - JSON schema for manifest validation (`superposition-manifest.schema.json`)
-
-## [0.1.2] - 2026-02-17
-
-### Added
-
+- **Merge strategy specification** — Formalized and documented merge behavior for deterministic composition
+    - New comprehensive specification document at `docs/merge-strategy.md`
+    - Extracted merge utilities to `tool/utils/merge.ts` with full documentation
+    - Comprehensive test suite in `tool/__tests__/merge-strategy.test.ts`
+    - Documents exact merge rules for devcontainer.json, docker-compose.yml, and .env files
+    - References RFC 7386 (JSON Merge Patch) and relevant standards
+    - 100% deterministic merge behavior with no undocumented special cases
+    - Field-specific strategies for arrays (features, extensions, mounts, forwardPorts)
+    - Intelligent PATH variable merging in remoteEnv
+    - Package list merging with deduplication (apt, apk)
+    - Service dependency filtering (depends_on)
 - **New infrastructure overlays** — Cloud and development tooling for modern workflows
     - `duckdb` — In-process analytical database for OLAP workloads and data analysis
     - `jupyter` — Jupyter notebook server for interactive computing and data science (compose only, requires Python)

@@ -74,29 +74,30 @@ scripts/
 5. **Merge .env.example** files from all selected overlays
 6. **Write merged configuration** to output path
 
-### Deep Merge Logic
+### Merge Strategy
 
-```typescript
-function deepMerge(base, overlay) {
-  for each key in overlay:
-    if key exists in base and both are objects:
-      if both are arrays:
-        concatenate and deduplicate
-      else:
-        recursively merge
-    else:
-      use overlay value
-  return merged
-}
-```
+Container-superposition uses a **formal, deterministic merge strategy** for combining configurations from base templates and overlays.
 
-Special handling:
+**Core principles:**
+- **Deterministic**: Same inputs always produce same output
+- **Deep merge**: Objects are recursively merged, not replaced
+- **Union by default**: Arrays and collections are merged (unioned), not replaced
+- **Last writer wins**: For conflicting primitive values
 
-- **Arrays**: Concatenate and deduplicate (ports, packages)
-- **apt-get packages**: Merge space-separated lists
-- **Features**: Deep merge feature configs
-- **Environment variables**: Merge key-value pairs
-- **Port attributes**: Merge labeled port configurations
+**Key behaviors:**
+- **Objects**: Recursively merged
+- **Arrays**: Concatenated and deduplicated (union strategy)
+- **Features**: Deep merged by feature key
+- **remoteEnv**: Intelligent PATH variable merging
+- **Package lists**: Space-separated strings merged with deduplication
+- **depends_on**: Filtered to only existing services
+
+For the complete specification with examples, see **[Merge Strategy Specification](merge-strategy.md)**.
+
+Implementation details:
+- Merge utilities: `tool/utils/merge.ts`
+- Integration: `tool/questionnaire/composer.ts`
+- Tests: `tool/__tests__/merge-strategy.test.ts`
 
 ### File Handling per Overlay
 
