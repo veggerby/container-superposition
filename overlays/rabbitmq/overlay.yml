@@ -14,5 +14,15 @@ tags:
     - rabbitmq
     - amqp
 ports:
-    - 5672
-    - 15672
+    - port: 5672
+      service: rabbitmq
+      protocol: tcp
+      description: RabbitMQ AMQP connection
+      onAutoForward: notify
+      connectionStringTemplate: 'amqp://{rabbitmq_default_user}:{rabbitmq_default_pass}@{host}:{port}'
+    - port: 15672
+      service: rabbitmq
+      protocol: http
+      description: RabbitMQ management UI
+      path: /
+      onAutoForward: openBrowser
