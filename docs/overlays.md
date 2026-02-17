@@ -53,6 +53,18 @@ Eclipse Temurin JDK 21 with Maven and Gradle
 | **Tags** | `language`, `java`, `maven`, `gradle` |
 | **Ports** | 8080, 8081 |
 
+### Jupyter (`jupyter`)
+
+Jupyter notebook server for interactive computing and data science
+
+| Property | Value |
+|----------|-------|
+| **Category** | language |
+| **Supports** | compose |
+| **Requires** | `python` |
+| **Tags** | `language`, `jupyter`, `python`, `notebook`, `data-science` |
+| **Ports** | 8888 |
+
 ### MkDocs (`mkdocs`)
 
 Material for MkDocs - professional documentation generator
@@ -102,6 +114,16 @@ Rust stable with cargo, rustfmt, and clippy
 | **Ports** | 8080, 3000 |
 
 ## Database Overlays
+
+### DuckDB (`duckdb`)
+
+In-process analytical database for OLAP workloads
+
+| Property | Value |
+|----------|-------|
+| **Category** | database |
+| **Suggests** | `python`, `jupyter` |
+| **Tags** | `database`, `analytics`, `sql`, `duckdb`, `olap` |
 
 ### MinIO (`minio`)
 
@@ -367,6 +389,18 @@ Google Cloud Platform command-line tools (gcloud, gsutil, bq)
 | **Category** | cloud |
 | **Tags** | `cloud`, `gcp`, `google`, `cli` |
 
+### kind (Kubernetes in Docker) (`kind`)
+
+Local Kubernetes cluster for development and testing
+
+| Property | Value |
+|----------|-------|
+| **Category** | cloud |
+| **Requires** | `docker-in-docker` |
+| **Suggests** | `kubectl-helm` |
+| **Conflicts** | `k3d` |
+| **Tags** | `cloud`, `kubernetes`, `k8s`, `kind`, `testing` |
+
 ### kubectl + Helm (`kubectl-helm`)
 
 Kubernetes CLI and Helm package manager
@@ -375,6 +409,18 @@ Kubernetes CLI and Helm package manager
 |----------|-------|
 | **Category** | cloud |
 | **Tags** | `cloud`, `kubernetes`, `helm` |
+
+### LocalStack (`localstack`)
+
+Local AWS cloud stack for development and testing
+
+| Property | Value |
+|----------|-------|
+| **Category** | cloud |
+| **Supports** | compose |
+| **Suggests** | `aws-cli` |
+| **Tags** | `cloud`, `aws`, `testing`, `localstack` |
+| **Ports** | 4566, 4571 |
 
 ### Pulumi (`pulumi`)
 
@@ -483,6 +529,16 @@ Secure tunneling for webhook testing and external access
 | **Tags** | `dev`, `tunneling`, `webhooks` |
 | **Ports** | 4040 |
 
+### OpenAPI Tools (`openapi-tools`)
+
+OpenAPI/Swagger tooling for API development and documentation
+
+| Property | Value |
+|----------|-------|
+| **Category** | dev |
+| **Suggests** | `nodejs` |
+| **Tags** | `dev`, `openapi`, `swagger`, `api`, `documentation` |
+
 ### Playwright (`playwright`)
 
 Browser automation and testing framework
@@ -502,6 +558,27 @@ Automated code quality gates with pre-commit hooks
 | **Requires** | `python` |
 | **Suggests** | `commitlint` |
 | **Tags** | `dev`, `git`, `quality`, `hooks` |
+
+### Test Import Overlay (`test-import-overlay`)
+
+Test overlay demonstrating imports feature
+
+| Property | Value |
+|----------|-------|
+| **Category** | dev |
+| **Tags** | `test`, `imports` |
+
+### Tilt (`tilt`)
+
+Live update and orchestration for Kubernetes development
+
+| Property | Value |
+|----------|-------|
+| **Category** | dev |
+| **Suggests** | `kind`, `kubectl-helm` |
+| **Conflicts** | `skaffold` |
+| **Tags** | `dev`, `kubernetes`, `k8s`, `development`, `live-reload` |
+| **Ports** | 10350 |
 
 ## Dependency Model
 
