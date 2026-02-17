@@ -195,6 +195,125 @@ function resolveDependencies(
 }
 
 /**
+ * Prepare overlays for generation by loading configuration, building requested overlay list,
+ * filtering for minimal mode, checking compatibility, and resolving dependencies.
+ * This shared logic is used by both generateManifestOnly and composeDevContainer.
+ */
+function prepareOverlaysForGeneration(
+    answers: QuestionnaireAnswers,
+    overlaysDir?: string
+): {
+    overlays: string[];
+    autoResolved: { added: string[]; reason: string };
+    overlaysConfig: OverlaysConfig;
+} {
+    // 1. Load overlay configuration
+    const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
+    const indexYmlPath = path.join(actualOverlaysDir, 'index.yml');
+    const overlaysConfig = loadOverlaysConfig(actualOverlaysDir, indexYmlPath);
+
+    // Collect all overlay definitions
+    const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
+
+    // Build list of requested overlays
+    const requestedOverlays: string[] = [];
+    if (answers.language && answers.language.length > 0)
+        requestedOverlays.push(...answers.language);
+    if (answers.database && answers.database.length > 0)
+        requestedOverlays.push(...answers.database);
+    if (answers.observability) requestedOverlays.push(...answers.observability);
+    if (answers.playwright) requestedOverlays.push('playwright');
+    if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
+    if (answers.devTools) requestedOverlays.push(...answers.devTools);
+
+    // Filter out "minimal" overlays if --minimal flag is set
+    let filteredRequestedOverlays = requestedOverlays;
+    if (answers.minimal) {
+        const minimalExcluded: string[] = [];
+        filteredRequestedOverlays = requestedOverlays.filter((overlayId) => {
+            const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
+            if (overlayDef?.minimal === true) {
+                minimalExcluded.push(overlayId);
+                return false;
+            }
+            return true;
+        });
+
+        if (minimalExcluded.length > 0) {
+            console.log(
+                chalk.dim(
+                    `   📦 Minimal mode: Excluding ${minimalExcluded.length} optional overlay(s): ${minimalExcluded.join(', ')}`
+                )
+            );
+        }
+    }
+
+    // Check compatibility
+    const incompatible: string[] = [];
+    for (const overlayId of filteredRequestedOverlays) {
+        const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
+        if (overlayDef?.supports && overlayDef.supports.length > 0) {
+            if (!overlayDef.supports.includes(answers.stack)) {
+                incompatible.push(`${overlayId} (requires: ${overlayDef.supports.join(', ')})`);
+            }
+        }
+    }
+
+    if (incompatible.length > 0) {
+        console.log(
+            chalk.yellow(
+                `\n⚠️  Warning: Some overlays are not compatible with '${answers.stack}' template:`
+            )
+        );
+        incompatible.forEach((overlay) => {
+            console.log(chalk.yellow(`   • ${overlay}`));
+        });
+        console.log(chalk.yellow(`\nThese overlays will be skipped.\n`));
+
+        // Filter out incompatible overlays
+        if (answers.database) {
+            answers.database = answers.database.filter(
+                (d) => !incompatible.some((i) => i.startsWith(d))
+            ) as any;
+        }
+        if (answers.observability) {
+            answers.observability = answers.observability.filter(
+                (o) => !incompatible.some((i) => i.startsWith(o))
+            ) as any;
+        }
+
+        // Update requestedOverlays after filtering
+        requestedOverlays.length = 0;
+        if (answers.language && answers.language.length > 0)
+            requestedOverlays.push(...answers.language);
+        if (answers.database && answers.database.length > 0)
+            requestedOverlays.push(...answers.database);
+        if (answers.observability) requestedOverlays.push(...answers.observability);
+        if (answers.playwright) requestedOverlays.push('playwright');
+        if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
+        if (answers.devTools) requestedOverlays.push(...answers.devTools);
+
+        // Re-apply minimal filtering
+        filteredRequestedOverlays = requestedOverlays.filter((overlayId) => {
+            const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
+            return !answers.minimal || overlayDef?.minimal !== true;
+        });
+    }
+
+    // Resolve dependencies
+    const { overlays: resolvedOverlays, autoResolved } = resolveDependencies(
+        filteredRequestedOverlays,
+        allOverlayDefs
+    );
+
+    return {
+        overlays: resolvedOverlays,
+        autoResolved,
+        overlaysConfig,
+    };
+}
+
+/**
  * Generate superposition.json manifest
  */
 function generateManifest(
@@ -1046,120 +1165,25 @@ export async function generateManifestOnly(
     answers: QuestionnaireAnswers,
     overlaysDir?: string
 ): Promise<void> {
-    // 1. Load overlay configuration
-    const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
-    const indexYmlPath = path.join(actualOverlaysDir, 'index.yml');
-    const overlaysConfig = loadOverlaysConfig(actualOverlaysDir, indexYmlPath);
-
-    // Collect all overlay definitions
-    const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
-
-    // Build list of requested overlays
-    const requestedOverlays: string[] = [];
-    if (answers.language && answers.language.length > 0)
-        requestedOverlays.push(...answers.language);
-    if (answers.database && answers.database.length > 0)
-        requestedOverlays.push(...answers.database);
-    if (answers.observability) requestedOverlays.push(...answers.observability);
-    if (answers.playwright) requestedOverlays.push('playwright');
-    if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
-    if (answers.devTools) requestedOverlays.push(...answers.devTools);
-
-    // Filter out "minimal" overlays if --minimal flag is set
-    let filteredRequestedOverlays = requestedOverlays;
-    if (answers.minimal) {
-        const minimalExcluded: string[] = [];
-        filteredRequestedOverlays = requestedOverlays.filter((overlayId) => {
-            const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
-            if (overlayDef?.minimal === true) {
-                minimalExcluded.push(overlayId);
-                return false;
-            }
-            return true;
-        });
-
-        if (minimalExcluded.length > 0) {
-            console.log(
-                chalk.dim(
-                    `   📦 Minimal mode: Excluding ${minimalExcluded.length} optional overlay(s): ${minimalExcluded.join(', ')}`
-                )
-            );
-        }
-    }
-
-    // Check compatibility
-    const incompatible: string[] = [];
-    for (const overlayId of filteredRequestedOverlays) {
-        const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
-        if (overlayDef?.supports && overlayDef.supports.length > 0) {
-            if (!overlayDef.supports.includes(answers.stack)) {
-                incompatible.push(`${overlayId} (requires: ${overlayDef.supports.join(', ')})`);
-            }
-        }
-    }
-
-    if (incompatible.length > 0) {
-        console.log(
-            chalk.yellow(
-                `\n⚠️  Warning: Some overlays are not compatible with '${answers.stack}' template:`
-            )
-        );
-        incompatible.forEach((overlay) => {
-            console.log(chalk.yellow(`   • ${overlay}`));
-        });
-        console.log(chalk.yellow(`\nThese overlays will be skipped.\n`));
-
-        // Filter out incompatible overlays
-        if (answers.database) {
-            answers.database = answers.database.filter(
-                (d) => !incompatible.some((i) => i.startsWith(d))
-            ) as any;
-        }
-        if (answers.observability) {
-            answers.observability = answers.observability.filter(
-                (o) => !incompatible.some((i) => i.startsWith(o))
-            ) as any;
-        }
-
-        // Update requestedOverlays after filtering
-        requestedOverlays.length = 0;
-        if (answers.language && answers.language.length > 0)
-            requestedOverlays.push(...answers.language);
-        if (answers.database && answers.database.length > 0)
-            requestedOverlays.push(...answers.database);
-        if (answers.observability) requestedOverlays.push(...answers.observability);
-        if (answers.playwright) requestedOverlays.push('playwright');
-        if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
-        if (answers.devTools) requestedOverlays.push(...answers.devTools);
-
-        // Re-apply minimal filtering
-        filteredRequestedOverlays = requestedOverlays.filter((overlayId) => {
-            const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
-            return !answers.minimal || overlayDef?.minimal !== true;
-        });
-    }
-
-    // 2. Resolve dependencies
-    const { overlays: resolvedOverlays, autoResolved } = resolveDependencies(
-        filteredRequestedOverlays,
-        allOverlayDefs
+    // Prepare overlays using shared logic
+    const { overlays: resolvedOverlays, autoResolved } = prepareOverlaysForGeneration(
+        answers,
+        overlaysDir
     );
 
-    // 3. Ensure output directory exists
+    // Ensure output directory exists
     const outputPath = answers.outputPath || '.';
     if (!fs.existsSync(outputPath)) {
         fs.mkdirSync(outputPath, { recursive: true });
     }
 
-    // 4. Generate manifest only
+    // Generate manifest only
     console.log(chalk.cyan('\n📋 Generating manifest only (team collaboration mode)...\n'));
 
     generateManifest(outputPath, answers, resolvedOverlays, autoResolved, answers.containerName);
 
     console.log(
-        chalk.green(
-            `\n✓ Manifest created: ${path.join(outputPath, 'superposition.json')}`
-        )
+        chalk.green(`\n✓ Manifest created: ${path.join(outputPath, 'superposition.json')}`)
     );
     console.log(chalk.dim('  Ready for team collaboration workflow.'));
     console.log(
@@ -1176,106 +1200,15 @@ export async function composeDevContainer(
     answers: QuestionnaireAnswers,
     overlaysDir?: string
 ): Promise<void> {
-    // 1. Load overlay configuration
+    // Prepare overlays using shared logic
     const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
-    const indexYmlPath = path.join(actualOverlaysDir, 'index.yml');
-    const overlaysConfig = loadOverlaysConfig(actualOverlaysDir, indexYmlPath);
+    const { overlays: resolvedOverlays, autoResolved, overlaysConfig } =
+        prepareOverlaysForGeneration(answers, overlaysDir);
 
-    // Collect all overlay definitions
+    // Get all overlay definitions for later use
     const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
 
-    // Build list of requested overlays
-    const requestedOverlays: string[] = [];
-    if (answers.language && answers.language.length > 0)
-        requestedOverlays.push(...answers.language);
-    if (answers.database && answers.database.length > 0)
-        requestedOverlays.push(...answers.database);
-    if (answers.observability) requestedOverlays.push(...answers.observability);
-    if (answers.playwright) requestedOverlays.push('playwright');
-    if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
-    if (answers.devTools) requestedOverlays.push(...answers.devTools);
-
-    // Filter out "minimal" overlays if --minimal flag is set
-    let filteredRequestedOverlays = requestedOverlays;
-    if (answers.minimal) {
-        const minimalExcluded: string[] = [];
-        filteredRequestedOverlays = requestedOverlays.filter((overlayId) => {
-            const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
-            if (overlayDef?.minimal === true) {
-                minimalExcluded.push(overlayId);
-                return false;
-            }
-            return true;
-        });
-
-        if (minimalExcluded.length > 0) {
-            console.log(
-                chalk.dim(
-                    `   📦 Minimal mode: Excluding ${minimalExcluded.length} optional overlay(s): ${minimalExcluded.join(', ')}`
-                )
-            );
-        }
-    }
-
-    // Check compatibility
-    const incompatible: string[] = [];
-    for (const overlayId of filteredRequestedOverlays) {
-        const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
-        if (overlayDef?.supports && overlayDef.supports.length > 0) {
-            if (!overlayDef.supports.includes(answers.stack)) {
-                incompatible.push(`${overlayId} (requires: ${overlayDef.supports.join(', ')})`);
-            }
-        }
-    }
-
-    if (incompatible.length > 0) {
-        console.log(
-            chalk.yellow(
-                `\n⚠️  Warning: Some overlays are not compatible with '${answers.stack}' template:`
-            )
-        );
-        incompatible.forEach((overlay) => {
-            console.log(chalk.yellow(`   • ${overlay}`));
-        });
-        console.log(chalk.yellow(`\nThese overlays will be skipped.\n`));
-
-        // Filter out incompatible overlays
-        if (answers.database) {
-            answers.database = answers.database.filter(
-                (d) => !incompatible.some((i) => i.startsWith(d))
-            ) as any;
-        }
-        if (answers.observability) {
-            answers.observability = answers.observability.filter(
-                (o) => !incompatible.some((i) => i.startsWith(o))
-            ) as any;
-        }
-
-        // Update requestedOverlays after filtering
-        requestedOverlays.length = 0;
-        if (answers.language && answers.language.length > 0)
-            requestedOverlays.push(...answers.language);
-        if (answers.database && answers.database.length > 0)
-            requestedOverlays.push(...answers.database);
-        if (answers.observability) requestedOverlays.push(...answers.observability);
-        if (answers.playwright) requestedOverlays.push('playwright');
-        if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
-        if (answers.devTools) requestedOverlays.push(...answers.devTools);
-
-        // Re-apply minimal filtering
-        filteredRequestedOverlays = requestedOverlays.filter((overlayId) => {
-            const overlayDef = allOverlayDefs.find((o) => o.id === overlayId);
-            return !answers.minimal || overlayDef?.minimal !== true;
-        });
-    }
-
-    // 2. Resolve dependencies
-    const { overlays: resolvedOverlays, autoResolved } = resolveDependencies(
-        filteredRequestedOverlays,
-        allOverlayDefs
-    );
-
-    // 3. Determine base template path
+    // Determine base template path
     const templatePath = path.join(TEMPLATES_DIR, answers.stack, '.devcontainer');
 
     if (!fs.existsSync(templatePath)) {
