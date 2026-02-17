@@ -22,6 +22,14 @@ import {
 import { generateReadme } from '../readme/readme-generator.js';
 import { CURRENT_MANIFEST_VERSION } from '../schema/manifest-migrations.js';
 import { getToolVersion } from '../utils/version.js';
+import {
+    deepMerge,
+    mergeRemoteEnv,
+    mergePackages,
+    filterDependsOn,
+    applyPortOffset,
+    applyPortOffsetToEnv,
+} from '../utils/merge.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -44,131 +52,6 @@ const REPO_ROOT =
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
 
 /**
- * Deep merge two objects, with special handling for arrays
- */
-function deepMerge(target: any, source: any): any {
-    const output = { ...target };
-
-    for (const key in source) {
-        if (source[key] instanceof Object && key in target) {
-            if (Array.isArray(source[key])) {
-                // For arrays, concatenate and deduplicate
-                output[key] = Array.isArray(target[key])
-                    ? [...new Set([...target[key], ...source[key]])]
-                    : source[key];
-            } else if (key === 'remoteEnv') {
-                // Special handling for remoteEnv to merge PATH variables intelligently
-                output[key] = mergeRemoteEnv(target[key], source[key]);
-            } else {
-                output[key] = deepMerge(target[key], source[key]);
-            }
-        } else {
-            output[key] = source[key];
-        }
-    }
-
-    return output;
-}
-
-/**
- * Keep only dependencies that exist in the final compose service set.
- * Supports both compose syntaxes:
- * - array form: depends_on: [serviceA, serviceB]
- * - object form: depends_on: { serviceA: { condition: ... } }
- */
-function filterDependsOnToExistingServices(
-    dependsOn: unknown,
-    existingServices: Set<string>
-): unknown {
-    if (Array.isArray(dependsOn)) {
-        const filtered = dependsOn.filter(
-            (dep): dep is string => typeof dep === 'string' && existingServices.has(dep)
-        );
-        return filtered.length > 0 ? filtered : undefined;
-    }
-
-    if (dependsOn && typeof dependsOn === 'object') {
-        const filtered = Object.fromEntries(
-            Object.entries(dependsOn).filter(([dep]) => existingServices.has(dep))
-        );
-        return Object.keys(filtered).length > 0 ? filtered : undefined;
-    }
-
-    return dependsOn;
-}
-
-/**
- * Split PATH string on colons, but preserve ${...} variable references
- * e.g., "${containerEnv:HOME}/bin:${containerEnv:PATH}" -> ["${containerEnv:HOME}/bin", "${containerEnv:PATH}"]
- */
-function splitPath(pathString: string): string[] {
-    const paths: string[] = [];
-    let current = '';
-    let braceDepth = 0;
-
-    for (let i = 0; i < pathString.length; i++) {
-        const char = pathString[i];
-        const nextChar = pathString[i + 1];
-
-        if (char === '$' && nextChar === '{') {
-            current += char;
-            braceDepth++;
-        } else if (char === '}' && braceDepth > 0) {
-            current += char;
-            braceDepth--;
-        } else if (char === ':' && braceDepth === 0) {
-            // Split here - we're not inside ${...}
-            if (current) {
-                paths.push(current);
-            }
-            current = '';
-        } else {
-            current += char;
-        }
-    }
-
-    // Add the last component
-    if (current) {
-        paths.push(current);
-    }
-
-    return paths;
-}
-
-/**
- * Merge remoteEnv objects, with special handling for PATH variables
- */
-function mergeRemoteEnv(
-    target: Record<string, string>,
-    source: Record<string, string>
-): Record<string, string> {
-    const output = { ...target };
-
-    for (const key in source) {
-        if (key === 'PATH' && target[key]) {
-            // Collect PATH components from both target and source using smart split
-            const targetPaths = splitPath(target[key]).filter(
-                (p) => p && p !== '${containerEnv:PATH}'
-            );
-            const sourcePaths = splitPath(source[key]).filter(
-                (p) => p && p !== '${containerEnv:PATH}'
-            );
-
-            // Combine and deduplicate paths, preserving order
-            const allPaths = [...new Set([...targetPaths, ...sourcePaths])];
-
-            // Rebuild PATH with original ${containerEnv:PATH} at the end
-            output[key] = [...allPaths, '${containerEnv:PATH}'].join(':');
-        } else {
-            // For non-PATH variables, source overwrites target
-            output[key] = source[key];
-        }
-    }
-
-    return output;
-}
-
-/**
  * Merge packages from apt-get-packages feature
  */
 function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContainer {
@@ -182,10 +65,7 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
         baseConfig.features[featureKey] = { packages };
     } else {
         const existing = baseConfig.features[featureKey].packages || '';
-        // Filter out empty tokens from split to avoid leading spaces
-        const existingPackages = existing.split(' ').filter((p: string) => p);
-        const newPackages = packages.split(' ').filter((p) => p);
-        const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
+        const merged = mergePackages(existing, packages);
         baseConfig.features[featureKey].packages = merged;
     }
 
@@ -213,18 +93,14 @@ function mergeCrossDistroPackages(
     // Merge apt packages
     if (apt) {
         const existing = baseConfig.features[featureKey].apt || '';
-        const existingPackages = existing.split(' ').filter((p: string) => p);
-        const newPackages = apt.split(' ').filter((p) => p);
-        const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
+        const merged = mergePackages(existing, apt);
         baseConfig.features[featureKey].apt = merged;
     }
 
     // Merge apk packages
     if (apk) {
         const existing = baseConfig.features[featureKey].apk || '';
-        const existingPackages = existing.split(' ').filter((p: string) => p);
-        const newPackages = apk.split(' ').filter((p) => p);
-        const merged = [...new Set([...existingPackages, ...newPackages])].join(' ');
+        const merged = mergePackages(existing, apk);
         baseConfig.features[featureKey].apk = merged;
     }
 
@@ -754,26 +630,6 @@ function mergeEnvExamples(
 }
 
 /**
- * Apply port offset to environment variables in .env content
- */
-function applyPortOffsetToEnv(envContent: string, offset: number): string {
-    const lines = envContent.split('\n');
-    const portVarPattern = /^([A-Z_]*PORT[A-Z_]*)=(\d+)$/;
-
-    const modifiedLines = lines.map((line) => {
-        const match = line.match(portVarPattern);
-        if (match) {
-            const [, varName, portValue] = match;
-            const newPort = parseInt(portValue, 10) + offset;
-            return `${varName}=${newPort}`;
-        }
-        return line;
-    });
-
-    return modifiedLines.join('\n');
-}
-
-/**
  * Apply preset glue configuration (README and port mappings)
  * Note: Environment variables are handled in mergeEnvExamples to ensure proper port offset application
  */
@@ -901,10 +757,7 @@ function mergeDockerComposeFiles(
         const service = merged.services[serviceName];
 
         if (service.depends_on !== undefined) {
-            const filteredDependsOn = filterDependsOnToExistingServices(
-                service.depends_on,
-                serviceNameSet
-            );
+            const filteredDependsOn = filterDependsOn(service.depends_on, serviceNameSet);
 
             if (filteredDependsOn === undefined) {
                 delete service.depends_on;

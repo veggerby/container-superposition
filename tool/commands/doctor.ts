@@ -16,6 +16,7 @@ import {
     needsMigration,
     CURRENT_MANIFEST_VERSION,
 } from '../schema/manifest-migrations.js';
+import { MERGE_STRATEGY } from '../utils/merge.js';
 
 interface DoctorOptions {
     output?: string;
@@ -35,6 +36,7 @@ interface DoctorReport {
     environment: CheckResult[];
     overlays: CheckResult[];
     manifest: CheckResult[];
+    merge: CheckResult[];
     ports: CheckResult[];
     summary: {
         passed: number;
@@ -595,15 +597,196 @@ function checkManifest(outputPath: string): CheckResult[] {
 }
 
 /**
+ * Check merge strategy configuration and validation
+ */
+function checkMergeStrategy(outputPath: string): CheckResult[] {
+    const results: CheckResult[] = [];
+
+    // Check 1: Merge strategy version info
+    results.push({
+        name: 'Merge strategy version',
+        status: 'pass',
+        message: `v${MERGE_STRATEGY.version} (${MERGE_STRATEGY.description})`,
+    });
+
+    // Check 2: Validate devcontainer.json structure
+    const devcontainerPath = path.join(outputPath, 'devcontainer.json');
+    if (fs.existsSync(devcontainerPath)) {
+        try {
+            const content = fs.readFileSync(devcontainerPath, 'utf8');
+            const devcontainer = JSON.parse(content);
+
+            // Check for potential merge conflicts in features
+            if (devcontainer.features) {
+                const featureKeys = Object.keys(devcontainer.features);
+                const duplicateFeatures = featureKeys.filter(
+                    (key, index) => featureKeys.indexOf(key) !== index
+                );
+
+                if (duplicateFeatures.length > 0) {
+                    results.push({
+                        name: 'Feature merge conflicts',
+                        status: 'warn',
+                        message: `Duplicate feature keys detected: ${duplicateFeatures.join(', ')}`,
+                        details: [
+                            'Features should have unique keys',
+                            'Duplicates may indicate incorrect merge behavior',
+                        ],
+                    });
+                } else {
+                    results.push({
+                        name: 'Feature merge',
+                        status: 'pass',
+                        message: `${featureKeys.length} features merged successfully`,
+                    });
+                }
+            }
+
+            // Check for environment variable conflicts in remoteEnv
+            if (devcontainer.remoteEnv) {
+                const envKeys = Object.keys(devcontainer.remoteEnv);
+                const pathVar = devcontainer.remoteEnv.PATH;
+
+                if (pathVar && pathVar.includes('${containerEnv:PATH}')) {
+                    results.push({
+                        name: 'PATH variable merge',
+                        status: 'pass',
+                        message: 'PATH correctly includes ${containerEnv:PATH}',
+                    });
+                } else if (pathVar) {
+                    results.push({
+                        name: 'PATH variable merge',
+                        status: 'warn',
+                        message: 'PATH does not include ${containerEnv:PATH}',
+                        details: [
+                            'PATH should end with ${containerEnv:PATH} to preserve system paths',
+                            'This may cause unexpected behavior',
+                        ],
+                    });
+                }
+
+                results.push({
+                    name: 'Environment variables',
+                    status: 'pass',
+                    message: `${envKeys.length} environment variables configured`,
+                });
+            }
+
+            // Check for array field integrity
+            if (devcontainer.forwardPorts && Array.isArray(devcontainer.forwardPorts)) {
+                const uniquePorts = new Set(devcontainer.forwardPorts);
+                if (uniquePorts.size !== devcontainer.forwardPorts.length) {
+                    results.push({
+                        name: 'Port forwarding merge',
+                        status: 'warn',
+                        message: 'Duplicate ports in forwardPorts array',
+                        details: [
+                            'Port deduplication may have failed',
+                            'This could indicate a merge strategy issue',
+                        ],
+                    });
+                } else {
+                    results.push({
+                        name: 'Port forwarding merge',
+                        status: 'pass',
+                        message: `${uniquePorts.size} unique ports forwarded`,
+                    });
+                }
+            }
+        } catch (error) {
+            results.push({
+                name: 'DevContainer merge validation',
+                status: 'fail',
+                message: 'Unable to validate merge strategy',
+                details: [`Error: ${error instanceof Error ? error.message : String(error)}`],
+            });
+        }
+    }
+
+    // Check 3: Validate docker-compose.yml if it exists
+    const composePath = path.join(outputPath, 'docker-compose.yml');
+    if (fs.existsSync(composePath)) {
+        try {
+            const content = fs.readFileSync(composePath, 'utf8');
+            // Basic validation: check if it's parseable YAML
+            const yaml = require('js-yaml');
+            const compose = yaml.load(content) as any;
+
+            if (compose.services) {
+                const serviceNames = Object.keys(compose.services);
+                results.push({
+                    name: 'Compose service merge',
+                    status: 'pass',
+                    message: `${serviceNames.length} services merged successfully`,
+                });
+
+                // Check depends_on references
+                let hasInvalidDependencies = false;
+                const serviceNameSet = new Set(serviceNames);
+
+                for (const [serviceName, service] of Object.entries<any>(compose.services)) {
+                    if (service.depends_on) {
+                        const deps = Array.isArray(service.depends_on)
+                            ? service.depends_on
+                            : Object.keys(service.depends_on);
+
+                        for (const dep of deps) {
+                            if (!serviceNameSet.has(dep)) {
+                                hasInvalidDependencies = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (hasInvalidDependencies) {
+                    results.push({
+                        name: 'Service dependencies',
+                        status: 'warn',
+                        message: 'Invalid service dependencies detected',
+                        details: [
+                            'Some depends_on references point to non-existent services',
+                            'Dependencies should be filtered during merge',
+                        ],
+                    });
+                } else {
+                    results.push({
+                        name: 'Service dependencies',
+                        status: 'pass',
+                        message: 'All service dependencies are valid',
+                    });
+                }
+            }
+        } catch (error) {
+            results.push({
+                name: 'Compose merge validation',
+                status: 'warn',
+                message: 'Unable to validate docker-compose merge',
+                details: [`Error: ${error instanceof Error ? error.message : String(error)}`],
+            });
+        }
+    }
+
+    return results;
+}
+
+/**
  * Generate doctor report
  */
 function generateReport(
     environmentChecks: CheckResult[],
     overlayChecks: CheckResult[],
     manifestChecks: CheckResult[],
+    mergeChecks: CheckResult[],
     portChecks: CheckResult[]
 ): DoctorReport {
-    const allChecks = [...environmentChecks, ...overlayChecks, ...manifestChecks, ...portChecks];
+    const allChecks = [
+        ...environmentChecks,
+        ...overlayChecks,
+        ...manifestChecks,
+        ...mergeChecks,
+        ...portChecks,
+    ];
 
     const passed = allChecks.filter((c) => c.status === 'pass').length;
     const warnings = allChecks.filter((c) => c.status === 'warn').length;
@@ -614,6 +797,7 @@ function generateReport(
         environment: environmentChecks,
         overlays: overlayChecks,
         manifest: manifestChecks,
+        merge: mergeChecks,
         ports: portChecks,
         summary: {
             passed,
@@ -689,6 +873,14 @@ function formatAsText(report: DoctorReport): string {
         }
     }
 
+    // Merge strategy section
+    if (report.merge.length > 0) {
+        lines.push(chalk.bold('\nMerge Strategy:'));
+        for (const check of report.merge) {
+            lines.push(formatCheckResult(check));
+        }
+    }
+
     // Ports section
     if (report.ports.length > 0) {
         lines.push(chalk.bold('\nPort Availability:'));
@@ -724,6 +916,7 @@ async function applyFixes(report: DoctorReport, outputPath: string): Promise<voi
         ...report.environment,
         ...report.overlays,
         ...report.manifest,
+        ...report.merge,
         ...report.ports,
     ].filter((c) => c.fixable);
 
@@ -766,11 +959,18 @@ export async function doctorCommand(
     const environmentChecks = checkEnvironment(outputPath);
     const overlayChecks = checkOverlays(overlaysDir);
     const manifestChecks = checkManifest(outputPath);
+    const mergeChecks = checkMergeStrategy(outputPath);
     const manifestPath = path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, manifestPath);
 
     // Generate report
-    const report = generateReport(environmentChecks, overlayChecks, manifestChecks, portChecks);
+    const report = generateReport(
+        environmentChecks,
+        overlayChecks,
+        manifestChecks,
+        mergeChecks,
+        portChecks
+    );
 
     // Output results
     if (options.json) {
