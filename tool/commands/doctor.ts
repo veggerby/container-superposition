@@ -10,6 +10,12 @@ import chalk from 'chalk';
 import boxen from 'boxen';
 import type { OverlaysConfig, SuperpositionManifest } from '../schema/types.js';
 import { loadOverlayManifest } from '../schema/overlay-loader.js';
+import {
+    detectManifestVersion,
+    isVersionSupported,
+    needsMigration,
+    CURRENT_MANIFEST_VERSION,
+} from '../schema/manifest-migrations.js';
 
 interface DoctorOptions {
     output?: string;
@@ -508,23 +514,36 @@ function checkManifest(outputPath: string): CheckResult[] {
         const content = fs.readFileSync(manifestPath, 'utf8');
         const manifest = JSON.parse(content) as SuperpositionManifest;
 
-        // Check manifest format version compatibility
-        const manifestVersion = manifest.version || '0.0.0';
-        const expectedManifestFormatVersion = '0.1.0';
+        // Check manifest version compatibility
+        const manifestVersion = detectManifestVersion(manifest);
+        const supported = isVersionSupported(manifestVersion);
+        const needsUpdate = needsMigration(manifest);
 
-        const versionStatus = manifestVersion === expectedManifestFormatVersion ? 'pass' : 'warn';
+        let versionStatus: 'pass' | 'warn' | 'fail' = 'pass';
+        let versionDetails: string[] | undefined;
+
+        if (!supported) {
+            versionStatus = 'fail';
+            versionDetails = [
+                `Manifest version ${manifestVersion} is not supported`,
+                'Please upgrade your tool or regenerate the manifest',
+            ];
+        } else if (needsUpdate) {
+            versionStatus = 'warn';
+            versionDetails = [
+                `Manifest is using ${manifest.manifestVersion ? 'version ' + manifest.manifestVersion : 'legacy format'}`,
+                `Current manifest version: ${CURRENT_MANIFEST_VERSION}`,
+                'Manifest will be automatically migrated on next regeneration',
+            ];
+        }
 
         results.push({
             name: 'Manifest version',
             status: versionStatus,
-            message: `Manifest format version ${manifestVersion}`,
-            details:
-                manifestVersion !== expectedManifestFormatVersion
-                    ? [
-                          `Expected manifest format version: ${expectedManifestFormatVersion}`,
-                          'Consider regenerating the manifest with the current tool if you encounter issues',
-                      ]
-                    : undefined,
+            message: manifest.manifestVersion
+                ? `Schema version ${manifest.manifestVersion} (tool ${manifest.generatedBy || 'unknown'})`
+                : `Legacy format (tool ${manifest.version || 'unknown'})`,
+            details: versionDetails,
         });
 
         // Check for required fields

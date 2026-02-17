@@ -20,6 +20,8 @@ import {
     getCustomScriptPaths,
 } from '../schema/custom-loader.js';
 import { generateReadme } from '../readme/readme-generator.js';
+import { CURRENT_MANIFEST_VERSION } from '../schema/manifest-migrations.js';
+import { getToolVersion } from '../utils/version.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -324,8 +326,12 @@ function generateManifest(
     autoResolved: { added: string[]; reason: string },
     containerName?: string
 ): void {
+    const toolVersion = getToolVersion();
+
     const manifest: SuperpositionManifest = {
-        version: '0.1.0',
+        manifestVersion: CURRENT_MANIFEST_VERSION,
+        generatedBy: toolVersion,
+        version: '0.1.0', // Legacy field for backward compatibility
         generated: new Date().toISOString(),
         baseTemplate: answers.stack,
         baseImage:
