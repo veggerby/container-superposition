@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.2] - 2026-02-13
+## [0.1.2] - 2026-02-17
 
 ### Added
 
@@ -50,7 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Port forwarding behavior adapts to target environment
     - Target-specific constraints (Docker access, privileged containers)
     - Configuration stored in `overlays/.registry/deployment-targets.yml`
-    
 - **GitHub Actions workflows** — Automated validation and documentation checks
     - `validate-overlays.yml` — Runs on pull requests to validate overlay changes
         - Executes `doctor` command for environment validation

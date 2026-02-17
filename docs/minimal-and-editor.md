@@ -37,21 +37,25 @@ Essential overlays (languages, databases, required tools) are always included.
 ### When to Use Minimal Mode
 
 **CI/CD Environments:**
+
 ```bash
 container-superposition init --minimal --stack compose --language nodejs --database postgres
 ```
 
 **Resource-Constrained Codespaces:**
+
 ```bash
 container-superposition init --minimal --target codespaces --language python
 ```
 
 **Learning/Tutorials:**
+
 ```bash
 container-superposition init --minimal --stack plain --language nodejs
 ```
 
 **Production-like Environments:**
+
 ```bash
 container-superposition init --minimal --stack compose --language dotnet --database sqlserver
 ```
@@ -66,7 +70,7 @@ id: modern-cli-tools
 name: Modern CLI Tools
 description: Enhanced command-line tools
 category: dev
-minimal: true  # Excluded in minimal mode
+minimal: true # Excluded in minimal mode
 ```
 
 ## Editor Profiles
@@ -96,10 +100,7 @@ Includes VS Code extensions and settings from overlays.
 {
     "customizations": {
         "vscode": {
-            "extensions": [
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode"
-            ],
+            "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
             "settings": {
                 "editor.defaultFormatter": "esbenp.prettier-vscode"
             }
@@ -111,6 +112,7 @@ Includes VS Code extensions and settings from overlays.
 #### none
 
 Removes all editor customizations. Useful for:
+
 - CI/CD containers
 - Server environments
 - Terminal-only workflows
@@ -136,16 +138,19 @@ Removes VS Code customizations. Reserved for future JetBrains-specific settings 
 ### When to Use Editor Profiles
 
 **Terminal Workflows:**
+
 ```bash
 container-superposition init --editor none --language python
 ```
 
 **JetBrains IDEs:**
+
 ```bash
 container-superposition init --editor jetbrains --language java
 ```
 
 **CI/CD (no editor needed):**
+
 ```bash
 container-superposition init --editor none --minimal --language nodejs
 ```

@@ -93,22 +93,22 @@ Create a `kind-config.yaml`:
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
-  - role: control-plane
-    kubeadmConfigPatches:
-      - |
-        kind: InitConfiguration
-        nodeRegistration:
-          kubeletExtraArgs:
-            node-labels: "ingress-ready=true"
-    extraPortMappings:
-      - containerPort: 80
-        hostPort: 80
-        protocol: TCP
-      - containerPort: 443
-        hostPort: 443
-        protocol: TCP
-  - role: worker
-  - role: worker
+    - role: control-plane
+      kubeadmConfigPatches:
+          - |
+              kind: InitConfiguration
+              nodeRegistration:
+                kubeletExtraArgs:
+                  node-labels: "ingress-ready=true"
+      extraPortMappings:
+          - containerPort: 80
+            hostPort: 80
+            protocol: TCP
+          - containerPort: 443
+            hostPort: 443
+            protocol: TCP
+    - role: worker
+    - role: worker
 ```
 
 Use it:
@@ -143,14 +143,14 @@ KIND_VERSION=v0.22.0
 
 ## Benefits vs k3d
 
-| Feature              | kind                         | k3d                           |
-| -------------------- | ---------------------------- | ----------------------------- |
-| **Distribution**     | ✅ Full Kubernetes           | ⚠️ k3s (lightweight variant)  |
-| **Conformance**      | ✅ 100% conformant           | ✅ High conformance           |
-| **Speed**            | ⚠️ Moderate startup          | ✅ Faster startup             |
-| **Resource Usage**   | ⚠️ Higher                    | ✅ Lower                      |
-| **Production Parity**| ✅ Identical to production   | ⚠️ Some differences           |
-| **Maturity**         | ✅ CNCF project              | ✅ CNCF sandbox               |
+| Feature               | kind                       | k3d                          |
+| --------------------- | -------------------------- | ---------------------------- |
+| **Distribution**      | ✅ Full Kubernetes         | ⚠️ k3s (lightweight variant) |
+| **Conformance**       | ✅ 100% conformant         | ✅ High conformance          |
+| **Speed**             | ⚠️ Moderate startup        | ✅ Faster startup            |
+| **Resource Usage**    | ⚠️ Higher                  | ✅ Lower                     |
+| **Production Parity** | ✅ Identical to production | ⚠️ Some differences          |
+| **Maturity**          | ✅ CNCF project            | ✅ CNCF sandbox              |
 
 **When to use kind:**
 

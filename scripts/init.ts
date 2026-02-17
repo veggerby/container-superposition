@@ -30,10 +30,7 @@ import { listCommand } from '../tool/commands/list.js';
 import { explainCommand } from '../tool/commands/explain.js';
 import { planCommand } from '../tool/commands/plan.js';
 import { doctorCommand } from '../tool/commands/doctor.js';
-import {
-    getIncompatibleOverlays,
-    DEPLOYMENT_TARGETS,
-} from '../tool/schema/deployment-targets.js';
+import { getIncompatibleOverlays, DEPLOYMENT_TARGETS } from '../tool/schema/deployment-targets.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -844,28 +841,34 @@ async function runQuestionnaire(
 
         // Check for deployment target compatibility
         let target: DeploymentTarget | undefined;
-        
+
         // Check if any incompatible overlays selected
         const incompatibleOverlays = getIncompatibleOverlays(selectedOverlays, undefined);
-        
+
         if (incompatibleOverlays.length > 0) {
             console.log(chalk.yellow('\n⚠️  Deployment Target Compatibility Check:\n'));
             console.log(chalk.gray('Some selected overlays may not work in all environments.'));
             console.log();
-            
+
             // Show incompatibilities
             for (const { overlay, alternatives } of incompatibleOverlays) {
                 const overlayMeta = allOverlaysMap.get(overlay);
                 console.log(chalk.yellow(`   • ${overlayMeta?.name || overlay}`));
-                console.log(chalk.gray(`     Not compatible with: ${DEPLOYMENT_TARGETS.codespaces.name}, ${DEPLOYMENT_TARGETS.gitpod.name}`));
+                console.log(
+                    chalk.gray(
+                        `     Not compatible with: ${DEPLOYMENT_TARGETS.codespaces.name}, ${DEPLOYMENT_TARGETS.gitpod.name}`
+                    )
+                );
                 if (alternatives.length > 0) {
-                    const altNames = alternatives.map(id => allOverlaysMap.get(id)?.name || id).join(', ');
+                    const altNames = alternatives
+                        .map((id) => allOverlaysMap.get(id)?.name || id)
+                        .join(', ');
                     console.log(chalk.cyan(`     Alternatives: ${altNames}`));
                 }
                 console.log();
             }
-            
-            const targetChoice = await select({
+
+            const targetChoice = (await select({
                 message: 'Which environment are you targeting?',
                 choices: [
                     {
@@ -890,20 +893,26 @@ async function runQuestionnaire(
                     },
                 ],
                 default: 'local',
-            }) as DeploymentTarget;
-            
+            })) as DeploymentTarget;
+
             target = targetChoice;
-            
+
             // Show specific incompatibilities for selected target
             if (target !== 'local') {
                 const targetIncompatible = getIncompatibleOverlays(selectedOverlays, target);
                 if (targetIncompatible.length > 0) {
-                    console.log(chalk.yellow(`\n⚠️  Warning: Some overlays won't work in ${DEPLOYMENT_TARGETS[target].name}:\n`));
+                    console.log(
+                        chalk.yellow(
+                            `\n⚠️  Warning: Some overlays won't work in ${DEPLOYMENT_TARGETS[target].name}:\n`
+                        )
+                    );
                     for (const { overlay, alternatives } of targetIncompatible) {
                         const overlayMeta = allOverlaysMap.get(overlay);
                         console.log(chalk.red(`   ✗ ${overlayMeta?.name || overlay}`));
                         if (alternatives.length > 0) {
-                            const altNames = alternatives.map(id => allOverlaysMap.get(id)?.name || id).join(', ');
+                            const altNames = alternatives
+                                .map((id) => allOverlaysMap.get(id)?.name || id)
+                                .join(', ');
                             console.log(chalk.cyan(`     → Recommended: ${altNames}`));
                         }
                     }
@@ -1089,8 +1098,6 @@ function mergeAnswers(
     return merged as QuestionnaireAnswers;
 }
 
-
-
 /**
  * Parse CLI arguments
  */
@@ -1103,7 +1110,7 @@ async function parseCliArgs(): Promise<{
     noInteractive?: boolean;
 } | null> {
     const program = new Command();
-    
+
     // Store init options for access after parsing
     let initOptions: any = null;
 
@@ -1158,11 +1165,7 @@ async function parseCliArgs(): Promise<{
             'local'
         )
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
-        .option(
-            '--editor <profile>',
-            'Editor profile: vscode (default), jetbrains, none',
-            'vscode'
-        )
+        .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .action((options) => {
             // Store options for main() to process
@@ -1177,11 +1180,7 @@ async function parseCliArgs(): Promise<{
         .option('--no-backup', 'Skip creating backup before regeneration')
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
-        .option(
-            '--editor <profile>',
-            'Editor profile: vscode (default), jetbrains, none',
-            'vscode'
-        )
+        .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
         .action((options) => {
             const outputPath = options.output || './.devcontainer';
             const manifestPath = path.join(outputPath, 'superposition.json');
@@ -1189,7 +1188,9 @@ async function parseCliArgs(): Promise<{
             if (!fs.existsSync(manifestPath)) {
                 console.error(chalk.red(`✗ Error: No manifest found at ${manifestPath}`));
                 console.error(
-                    chalk.gray('  Run "container-superposition init" first to create a configuration')
+                    chalk.gray(
+                        '  Run "container-superposition init" first to create a configuration'
+                    )
                 );
                 process.exit(1);
             }
@@ -1315,7 +1316,11 @@ async function parseCliArgs(): Promise<{
         if (['vscode', 'jetbrains', 'none'].includes(editorLower)) {
             config.editor = editorLower as 'vscode' | 'jetbrains' | 'none';
         } else {
-            console.warn(chalk.yellow(`⚠️  Invalid editor profile: ${initOptions.editor}, using default (vscode)`));
+            console.warn(
+                chalk.yellow(
+                    `⚠️  Invalid editor profile: ${initOptions.editor}, using default (vscode)`
+                )
+            );
             config.editor = 'vscode';
         }
     }
@@ -1394,9 +1399,13 @@ async function main() {
         let answers: QuestionnaireAnswers;
 
         // Check if there are CLI overrides beyond just output path
-        const hasCliOverrides = cliArgs && Object.keys(cliArgs.config).some(
-            key => key !== 'outputPath' && cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
-        );
+        const hasCliOverrides =
+            cliArgs &&
+            Object.keys(cliArgs.config).some(
+                (key) =>
+                    key !== 'outputPath' &&
+                    cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
+            );
 
         if (useManifestOnly && manifest && !hasCliOverrides) {
             // Mode 1: Manifest-only (--from-manifest --no-interactive, no CLI overrides)
@@ -1433,9 +1442,10 @@ async function main() {
                 outputPath: cliAnswers.outputPath || './.devcontainer',
             });
 
-            const modeLabel = useManifestOnly && hasCliOverrides 
-                ? 'Regenerating from Manifest with Overrides'
-                : 'Running in CLI mode';
+            const modeLabel =
+                useManifestOnly && hasCliOverrides
+                    ? 'Regenerating from Manifest with Overrides'
+                    : 'Running in CLI mode';
 
             console.log(
                 '\n' +

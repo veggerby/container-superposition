@@ -163,24 +163,24 @@ Access Tilt's web dashboard:
 
 - **URL**: http://localhost:10350
 - **Features**:
-  - Real-time resource status
-  - Build logs and errors
-  - Resource dependencies graph
-  - Manual trigger buttons
-  - Performance metrics
+    - Real-time resource status
+    - Build logs and errors
+    - Resource dependencies graph
+    - Manual trigger buttons
+    - Performance metrics
 
 The UI auto-opens when you run `tilt up`.
 
 ## Benefits vs Skaffold
 
-| Feature              | Tilt                      | Skaffold                  |
-| -------------------- | ------------------------- | ------------------------- |
-| **UI**               | ✅ Rich web UI            | ⚠️ CLI only               |
-| **Live Updates**     | ✅ Sophisticated          | ⚠️ Basic                  |
-| **Configuration**    | ✅ Programmable (Python)  | ⚠️ Declarative (YAML)     |
-| **Flexibility**      | ✅ Very flexible          | ⚠️ More opinionated       |
-| **Learning Curve**   | ⚠️ Steeper                | ✅ Gentler                |
-| **CI Integration**   | ✅ Good                   | ✅ Excellent              |
+| Feature            | Tilt                     | Skaffold              |
+| ------------------ | ------------------------ | --------------------- |
+| **UI**             | ✅ Rich web UI           | ⚠️ CLI only           |
+| **Live Updates**   | ✅ Sophisticated         | ⚠️ Basic              |
+| **Configuration**  | ✅ Programmable (Python) | ⚠️ Declarative (YAML) |
+| **Flexibility**    | ✅ Very flexible         | ⚠️ More opinionated   |
+| **Learning Curve** | ⚠️ Steeper               | ✅ Gentler            |
+| **CI Integration** | ✅ Good                  | ✅ Excellent          |
 
 **When to use Tilt:**
 

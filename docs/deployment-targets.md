@@ -21,18 +21,19 @@ npx container-superposition init \
 
 ## Supported Deployment Targets
 
-| Target        | Description                                | Docker Support      | Auto Port Forward |
-| ------------- | ------------------------------------------ | ------------------- | ----------------- |
-| **local**     | Local machine with Docker Desktop         | ✅ Host Docker      | No                |
-| **codespaces** | GitHub Codespaces (cloud IDE)             | ⚠️  DinD only       | Yes               |
-| **gitpod**    | Gitpod workspaces                          | ⚠️  DinD only       | Yes               |
-| **devpod**    | DevPod client-only environments            | ✅ Host Docker      | No                |
+| Target         | Description                       | Docker Support | Auto Port Forward |
+| -------------- | --------------------------------- | -------------- | ----------------- |
+| **local**      | Local machine with Docker Desktop | ✅ Host Docker | No                |
+| **codespaces** | GitHub Codespaces (cloud IDE)     | ⚠️ DinD only   | Yes               |
+| **gitpod**     | Gitpod workspaces                 | ⚠️ DinD only   | Yes               |
+| **devpod**     | DevPod client-only environments   | ✅ Host Docker | No                |
 
 ## How It Works
 
 ### Interactive Mode
 
 If you select incompatible overlays (e.g., `docker-sock` for Codespaces), the tool will:
+
 - Show which overlays won't work in your target environment
 - Suggest compatible alternatives
 - Let you choose your deployment target with informed guidance
@@ -58,6 +59,7 @@ Which environment are you targeting?
 ### CLI Mode
 
 The target validates your selection and generates the configuration:
+
 - Incompatibilities are allowed (you know what you're doing)
 - Generated documentation notes any compatibility issues
 
@@ -96,16 +98,19 @@ npx container-superposition init \
 Different environments have different capabilities:
 
 ### Codespaces/Gitpod
+
 - **No access to host Docker daemon** - Must use docker-in-docker
 - **Auto-forward ports** - Ports are automatically accessible
 - **Cloud-based** - Resources may be constrained
 
 ### Local
+
 - **Full access to host Docker** - Can use docker-sock for better performance
 - **Faster builds** - Shared cache with host
 - **Manual port forwarding** - Need to expose ports explicitly
 
 ### DevPod
+
 - **Client-managed** - Runs on your infrastructure
 - **Can access host Docker** - Depending on setup
 - **Flexible** - Configure based on your needs
@@ -113,6 +118,7 @@ Different environments have different capabilities:
 ## Why Deployment Targets?
 
 The target system ensures you get warnings about incompatibilities before deploying. This prevents:
+
 - Wasted time debugging environment-specific issues
 - Confusion about why overlays don't work in cloud IDEs
 - Having to manually research compatibility

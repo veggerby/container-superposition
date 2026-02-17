@@ -192,14 +192,14 @@ SELECT * FROM ST_Read('data.xlsx');
 
 ## Benefits vs PostgreSQL
 
-| Feature              | DuckDB                    | PostgreSQL                |
-| -------------------- | ------------------------- | ------------------------- |
-| **Use Case**         | ✅ Analytics (OLAP)       | ✅ Transactions (OLTP)    |
-| **Setup**            | ✅ No server needed       | ⚠️ Separate service       |
-| **File Queries**     | ✅ Direct CSV/Parquet     | ❌ Requires COPY          |
-| **Analytical Speed** | ✅ Very fast              | ⚠️ Slower for analytics   |
-| **Concurrent Writes**| ⚠️ Limited                | ✅ Excellent              |
-| **Data Size**        | ✅ GBs-TBs                | ✅ TBs+                   |
+| Feature               | DuckDB                | PostgreSQL              |
+| --------------------- | --------------------- | ----------------------- |
+| **Use Case**          | ✅ Analytics (OLAP)   | ✅ Transactions (OLTP)  |
+| **Setup**             | ✅ No server needed   | ⚠️ Separate service     |
+| **File Queries**      | ✅ Direct CSV/Parquet | ❌ Requires COPY        |
+| **Analytical Speed**  | ✅ Very fast          | ⚠️ Slower for analytics |
+| **Concurrent Writes** | ⚠️ Limited            | ✅ Excellent            |
+| **Data Size**         | ✅ GBs-TBs            | ✅ TBs+                 |
 
 **When to use DuckDB:**
 

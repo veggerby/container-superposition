@@ -95,7 +95,10 @@ function checkDocker(): CheckResult {
         // Use 'docker info' to verify daemon connectivity, not just CLI presence
         execSync('docker info', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
         // Get version for display
-        const version = execSync('docker --version', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        const version = execSync('docker --version', {
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'ignore'],
+        });
         return {
             name: 'Docker daemon',
             status: 'pass',
@@ -121,7 +124,10 @@ function checkDocker(): CheckResult {
 function checkDockerCompose(): CheckResult {
     try {
         // Try docker compose (v2 syntax) first
-        const version = execSync('docker compose version', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        const version = execSync('docker compose version', {
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'ignore'],
+        });
         const versionMatch = version.match(/v?(\d+\.\d+\.\d+)/);
         const currentVersion = versionMatch ? versionMatch[1] : '0.0.0';
         const [major] = currentVersion.split('.').map((n) => parseInt(n, 10));
@@ -146,7 +152,10 @@ function checkDockerCompose(): CheckResult {
     } catch {
         // Try docker-compose (v1 syntax)
         try {
-            const version = execSync('docker-compose --version', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+            const version = execSync('docker-compose --version', {
+                encoding: 'utf8',
+                stdio: ['pipe', 'pipe', 'ignore'],
+            });
             return {
                 name: 'Docker Compose',
                 status: 'warn',
@@ -189,7 +198,9 @@ function checkEnvironment(outputPath: string): CheckResult[] {
 /**
  * Get base template from manifest if it exists
  */
-function getBaseTemplateFromManifest(outputPath: string): SuperpositionManifest['baseTemplate'] | undefined {
+function getBaseTemplateFromManifest(
+    outputPath: string
+): SuperpositionManifest['baseTemplate'] | undefined {
     const manifestPath = path.join(outputPath, 'superposition.json');
 
     if (!fs.existsSync(manifestPath)) {
@@ -285,7 +296,9 @@ function validateOverlayManifest(overlayDir: string, overlayId: string): CheckRe
             name: `Overlay: ${overlayId}`,
             status: 'fail',
             message: 'Invalid devcontainer.patch.json',
-            details: [`JSON syntax error: ${error instanceof Error ? error.message : String(error)}`],
+            details: [
+                `JSON syntax error: ${error instanceof Error ? error.message : String(error)}`,
+            ],
         };
     }
 
@@ -297,7 +310,7 @@ function validateOverlayManifest(overlayDir: string, overlayId: string): CheckRe
 
         for (const importPath of manifest.imports) {
             const fullImportPath = path.join(overlaysDir, importPath);
-            
+
             if (!fs.existsSync(fullImportPath)) {
                 missingImports.push(importPath);
                 continue;
@@ -597,7 +610,11 @@ function generateReport(
  */
 function formatCheckResult(check: CheckResult): string {
     const icon =
-        check.status === 'pass' ? chalk.green('✓') : check.status === 'warn' ? chalk.yellow('⚠') : chalk.red('✗');
+        check.status === 'pass'
+            ? chalk.green('✓')
+            : check.status === 'warn'
+              ? chalk.yellow('⚠')
+              : chalk.red('✗');
 
     const lines = [`  ${icon} ${chalk.white(check.name)}: ${chalk.gray(check.message)}`];
 
@@ -639,7 +656,9 @@ function formatAsText(report: DoctorReport): string {
             }
         } else {
             lines.push(chalk.bold('\nOverlays:'));
-            lines.push(`  ${chalk.green('✓')} ${chalk.white(`All ${report.overlays.length} overlays valid`)}`);
+            lines.push(
+                `  ${chalk.green('✓')} ${chalk.white(`All ${report.overlays.length} overlays valid`)}`
+            );
         }
     }
 

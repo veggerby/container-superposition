@@ -1,6 +1,6 @@
 /**
  * Deployment target configuration and compatibility checks
- * 
+ *
  * This module provides environment-specific optimizations and validates
  * overlay compatibility with different deployment targets (local, Codespaces, Gitpod, etc.)
  */
@@ -21,17 +21,17 @@ export interface TargetConfig {
     id: DeploymentTarget;
     name: string;
     description: string;
-    
+
     /**
      * Overlays that don't work in this environment
      */
     incompatibleOverlays: string[];
-    
+
     /**
      * Recommended alternatives for incompatible overlays
      */
     recommendations: Record<string, string[]>;
-    
+
     /**
      * Port forwarding behavior
      */
@@ -40,13 +40,13 @@ export interface TargetConfig {
          * Default onAutoForward behavior for this environment
          */
         defaultBehavior: PortAttributes['onAutoForward'];
-        
+
         /**
          * Whether ports are automatically forwarded
          */
         autoForward: boolean;
     };
-    
+
     /**
      * Resource constraints
      */
@@ -55,7 +55,7 @@ export interface TargetConfig {
          * Whether host Docker daemon is available
          */
         hasHostDocker: boolean;
-        
+
         /**
          * Whether environment supports privileged containers
          */
@@ -102,7 +102,7 @@ export function isOverlayCompatible(overlayId: string, target?: DeploymentTarget
     if (!target || target === 'local') {
         return true; // Local supports everything
     }
-    
+
     const targetConfig = DEPLOYMENT_TARGETS[target];
     return !targetConfig.incompatibleOverlays.includes(overlayId);
 }
@@ -110,10 +110,7 @@ export function isOverlayCompatible(overlayId: string, target?: DeploymentTarget
 /**
  * Get recommended alternatives for an incompatible overlay
  */
-export function getRecommendedAlternatives(
-    overlayId: string,
-    target: DeploymentTarget
-): string[] {
+export function getRecommendedAlternatives(overlayId: string, target: DeploymentTarget): string[] {
     const targetConfig = DEPLOYMENT_TARGETS[target];
     return targetConfig.recommendations[overlayId] || [];
 }
@@ -128,10 +125,10 @@ export function getIncompatibleOverlays(
     if (!target || target === 'local') {
         return [];
     }
-    
+
     const targetConfig = DEPLOYMENT_TARGETS[target];
     const incompatible: Array<{ overlay: string; alternatives: string[] }> = [];
-    
+
     for (const overlayId of selectedOverlays) {
         if (!isOverlayCompatible(overlayId, target)) {
             incompatible.push({
@@ -140,7 +137,7 @@ export function getIncompatibleOverlays(
             });
         }
     }
-    
+
     return incompatible;
 }
 
@@ -151,7 +148,7 @@ export function getDefaultPortBehavior(target?: DeploymentTarget): PortAttribute
     if (!target || target === 'local') {
         return 'notify';
     }
-    
+
     return DEPLOYMENT_TARGETS[target].portForwarding.defaultBehavior;
 }
 
@@ -162,6 +159,6 @@ export function supportsAutoForward(target?: DeploymentTarget): boolean {
     if (!target || target === 'local') {
         return false;
     }
-    
+
     return DEPLOYMENT_TARGETS[target].portForwarding.autoForward;
 }

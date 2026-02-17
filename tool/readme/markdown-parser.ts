@@ -23,7 +23,7 @@ export function parseMarkdown(content: string): MarkdownSection[] {
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        
+
         // Track code block state
         if (line.trim().startsWith('```')) {
             inCodeBlock = !inCodeBlock;
@@ -92,8 +92,7 @@ export function findSection(
     sections: MarkdownSection[],
     titlePattern: string | RegExp
 ): MarkdownSection | null {
-    const pattern =
-        typeof titlePattern === 'string' ? new RegExp(titlePattern, 'i') : titlePattern;
+    const pattern = typeof titlePattern === 'string' ? new RegExp(titlePattern, 'i') : titlePattern;
 
     for (const section of sections) {
         if (pattern.test(section.title)) {

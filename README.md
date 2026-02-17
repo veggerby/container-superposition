@@ -307,6 +307,7 @@ npx container-superposition plan --stack compose --overlays nodejs,postgres --js
 ```
 
 The `plan` command shows:
+
 - Selected overlays and auto-added dependencies
 - Port mappings (with offset applied)
 - Files that will be created/modified
@@ -348,14 +349,14 @@ Environment:
   ✓ Node.js version: v20.10.0 (>= 18.0.0 required)
   ✓ Docker daemon: Docker version 24.0.5
   ✓ Docker Compose: v2.23.0 (v2 required)
-  
+
 Overlays:
   ✓ All 46 overlays valid
-  
+
 Manifest:
   ✓ Manifest version: Format version 0.1.0
   ✓ DevContainer config: devcontainer.json valid
-  
+
 Summary:
   ✓ 51 passed
 ```
@@ -475,6 +476,7 @@ npx container-superposition init --target local  # default
 The tool automatically validates overlay compatibility and warns you when selecting overlays that won't work in your target environment (e.g., `docker-sock` doesn't work in Codespaces).
 
 **📖 See [Deployment Targets Documentation](docs/deployment-targets.md) for:**
+
 - Complete target comparison table
 - Interactive mode examples
 - Environment-specific configuration

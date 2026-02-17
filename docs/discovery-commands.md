@@ -93,18 +93,18 @@ npx container-superposition list --category database --json
 
 ```json
 [
-  {
-    "id": "postgres",
-    "name": "PostgreSQL",
-    "description": "PostgreSQL 16 database",
-    "category": "database",
-    "supports": ["compose"],
-    "requires": [],
-    "suggests": [],
-    "conflicts": [],
-    "tags": ["database", "sql", "postgres"],
-    "ports": [5432]
-  }
+    {
+        "id": "postgres",
+        "name": "PostgreSQL",
+        "description": "PostgreSQL 16 database",
+        "category": "database",
+        "supports": ["compose"],
+        "requires": [],
+        "suggests": [],
+        "conflicts": [],
+        "tags": ["database", "sql", "postgres"],
+        "ports": [5432]
+    }
 ]
 ```
 
@@ -186,31 +186,31 @@ npx container-superposition explain nodejs --json
 
 ```json
 {
-  "id": "nodejs",
-  "name": "Node.js",
-  "description": "Node.js LTS with TypeScript and tooling",
-  "category": "language",
-  "supports": [],
-  "requires": [],
-  "suggests": [],
-  "conflicts": [],
-  "tags": ["language", "nodejs", "javascript", "typescript"],
-  "ports": [],
-  "files": [
-    "README.md",
-    "devcontainer.patch.json",
-    "global-packages.txt",
-    "overlay.yml",
-    "setup.sh",
-    "verify.sh"
-  ],
-  "devcontainerPatch": {
-    "features": {
-      "ghcr.io/devcontainers/features/node:1": {
-        "version": "lts"
-      }
+    "id": "nodejs",
+    "name": "Node.js",
+    "description": "Node.js LTS with TypeScript and tooling",
+    "category": "language",
+    "supports": [],
+    "requires": [],
+    "suggests": [],
+    "conflicts": [],
+    "tags": ["language", "nodejs", "javascript", "typescript"],
+    "ports": [],
+    "files": [
+        "README.md",
+        "devcontainer.patch.json",
+        "global-packages.txt",
+        "overlay.yml",
+        "setup.sh",
+        "verify.sh"
+    ],
+    "devcontainerPatch": {
+        "features": {
+            "ghcr.io/devcontainers/features/node:1": {
+                "version": "lts"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -340,25 +340,25 @@ npx container-superposition plan --stack compose --overlays postgres --json
 
 ```json
 {
-  "stack": "compose",
-  "selectedOverlays": ["postgres"],
-  "autoAddedOverlays": [],
-  "conflicts": [],
-  "portMappings": [
-    {
-      "overlay": "postgres",
-      "ports": [5432],
-      "offsetPorts": [5432]
-    }
-  ],
-  "files": [
-    ".devcontainer/devcontainer.json",
-    ".devcontainer/superposition.json",
-    ".devcontainer/docker-compose.yml",
-    ".devcontainer/.env.example",
-    ".devcontainer/README.md"
-  ],
-  "portOffset": 0
+    "stack": "compose",
+    "selectedOverlays": ["postgres"],
+    "autoAddedOverlays": [],
+    "conflicts": [],
+    "portMappings": [
+        {
+            "overlay": "postgres",
+            "ports": [5432],
+            "offsetPorts": [5432]
+        }
+    ],
+    "files": [
+        ".devcontainer/devcontainer.json",
+        ".devcontainer/superposition.json",
+        ".devcontainer/docker-compose.yml",
+        ".devcontainer/.env.example",
+        ".devcontainer/README.md"
+    ],
+    "portOffset": 0
 }
 ```
 

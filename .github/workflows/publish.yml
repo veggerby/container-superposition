@@ -49,6 +49,9 @@ jobs:
                   npm version $VERSION --no-git-tag-version
                   echo "Updated package.json to version $VERSION"
 
+            - name: Lint code
+              run: npm run lint
+
             - name: Build
               run: npm run build
 

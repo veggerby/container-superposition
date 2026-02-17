@@ -79,18 +79,18 @@ Create `.spectral.yaml` for custom linting rules:
 extends: [[spectral:oas, all]]
 
 rules:
-  operation-description: error
-  operation-tags: error
-  operation-operationId: error
-  
-  # Custom rules
-  my-custom-rule:
-    description: Ensure all operations have examples
-    given: $.paths[*][*].responses[*].content[*]
-    severity: warn
-    then:
-      field: example
-      function: truthy
+    operation-description: error
+    operation-tags: error
+    operation-operationId: error
+
+    # Custom rules
+    my-custom-rule:
+        description: Ensure all operations have examples
+        given: $.paths[*][*].responses[*].content[*]
+        severity: warn
+        then:
+            field: example
+            function: truthy
 ```
 
 ### Redocly Configuration
@@ -99,16 +99,16 @@ Create `redocly.yaml`:
 
 ```yaml
 apis:
-  main:
-    root: ./openapi.yaml
+    main:
+        root: ./openapi.yaml
 
 lint:
-  extends:
-    - recommended
-  
-  rules:
-    operation-description: error
-    operation-tags: error
+    extends:
+        - recommended
+
+    rules:
+        operation-description: error
+        operation-tags: error
 ```
 
 ## Use Cases
@@ -132,46 +132,46 @@ lint:
 ```yaml
 openapi: 3.0.0
 info:
-  title: My API
-  version: 1.0.0
-  description: API description
+    title: My API
+    version: 1.0.0
+    description: API description
 
 servers:
-  - url: http://localhost:3000
-    description: Development server
+    - url: http://localhost:3000
+      description: Development server
 
 paths:
-  /users:
-    get:
-      summary: Get all users
-      operationId: getUsers
-      tags:
-        - users
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
+    /users:
+        get:
+            summary: Get all users
+            operationId: getUsers
+            tags:
+                - users
+            responses:
+                '200':
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/User'
 
 components:
-  schemas:
-    User:
-      type: object
-      required:
-        - id
-        - name
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        email:
-          type: string
-          format: email
+    schemas:
+        User:
+            type: object
+            required:
+                - id
+                - name
+            properties:
+                id:
+                    type: integer
+                name:
+                    type: string
+                email:
+                    type: string
+                    format: email
 ```
 
 ## Workflow
