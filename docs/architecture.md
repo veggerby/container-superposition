@@ -79,12 +79,14 @@ scripts/
 Container-superposition uses a **formal, deterministic merge strategy** for combining configurations from base templates and overlays.
 
 **Core principles:**
+
 - **Deterministic**: Same inputs always produce same output
 - **Deep merge**: Objects are recursively merged, not replaced
 - **Union by default**: Arrays and collections are merged (unioned), not replaced
 - **Last writer wins**: For conflicting primitive values
 
 **Key behaviors:**
+
 - **Objects**: Recursively merged
 - **Arrays**: Concatenated and deduplicated (union strategy)
 - **Features**: Deep merged by feature key
@@ -95,6 +97,7 @@ Container-superposition uses a **formal, deterministic merge strategy** for comb
 For the complete specification with examples, see **[Merge Strategy Specification](merge-strategy.md)**.
 
 Implementation details:
+
 - Merge utilities: `tool/utils/merge.ts`
 - Integration: `tool/questionnaire/composer.ts`
 - Tests: `tool/__tests__/merge-strategy.test.ts`
