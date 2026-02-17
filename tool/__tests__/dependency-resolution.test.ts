@@ -169,9 +169,17 @@ describe('Overlay Dependency Resolution', () => {
         const postgres = allOverlayDefs.find((o) => o.id === 'postgres');
         const prometheus = allOverlayDefs.find((o) => o.id === 'prometheus');
 
-        expect(grafana?.ports).toContain(3000);
-        expect(postgres?.ports).toContain(5432);
-        expect(prometheus?.ports).toContain(9090);
+        // Ports can now be numbers or objects with a port property
+        const hasPort = (overlay: any, portNum: number) => {
+            if (!overlay?.ports) return false;
+            return overlay.ports.some((p: any) =>
+                typeof p === 'number' ? p === portNum : p.port === portNum
+            );
+        };
+
+        expect(hasPort(grafana, 3000)).toBe(true);
+        expect(hasPort(postgres, 5432)).toBe(true);
+        expect(hasPort(prometheus, 9090)).toBe(true);
     });
 
     it('should verify tags are present and meaningful', () => {

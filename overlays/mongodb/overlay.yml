@@ -13,5 +13,15 @@ tags:
     - mongodb
     - document
 ports:
-    - 27017
-    - 8081
+    - port: 27017
+      service: mongodb
+      protocol: tcp
+      description: MongoDB database connection
+      onAutoForward: notify
+      connectionStringTemplate: 'mongodb://{mongo_initdb_root_username}:{mongo_initdb_root_password}@{host}:{port}/'
+    - port: 8081
+      service: mongo-express
+      protocol: http
+      description: Mongo Express web UI
+      path: /
+      onAutoForward: openBrowser

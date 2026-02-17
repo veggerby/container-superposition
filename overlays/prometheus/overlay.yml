@@ -13,5 +13,10 @@ tags:
     - metrics
     - prometheus
 ports:
-    - 9090
+    - port: 9090
+      service: prometheus
+      protocol: http
+      description: Prometheus web UI and API
+      path: /
+      onAutoForward: openBrowser
 order: 1

@@ -12,5 +12,15 @@ tags:
     - sql
     - mysql
 ports:
-    - 3306
-    - 8080
+    - port: 3306
+      service: mysql
+      protocol: tcp
+      description: MySQL database connection
+      onAutoForward: notify
+      connectionStringTemplate: 'mysql://{mysql_user}:{mysql_password}@{host}:{port}/{mysql_database}'
+    - port: 8080
+      service: phpmyadmin
+      protocol: http
+      description: phpMyAdmin web UI
+      path: /
+      onAutoForward: openBrowser

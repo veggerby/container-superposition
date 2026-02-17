@@ -145,18 +145,18 @@ MongoDB 8 with Mongo Express web UI
 | **Category** | database                                   |
 | **Supports** | compose                                    |
 | **Tags**     | `database`, `nosql`, `mongodb`, `document` |
-| **Ports**    | 27017, 8081                                |
+| **Ports**    | [object Object], [object Object]           |
 
 ### MySQL (`mysql`)
 
 MySQL 8 with phpMyAdmin web UI
 
-| Property     | Value                      |
-| ------------ | -------------------------- |
-| **Category** | database                   |
-| **Supports** | compose                    |
-| **Tags**     | `database`, `sql`, `mysql` |
-| **Ports**    | 3306, 8080                 |
+| Property     | Value                            |
+| ------------ | -------------------------------- |
+| **Category** | database                         |
+| **Supports** | compose                          |
+| **Tags**     | `database`, `sql`, `mysql`       |
+| **Ports**    | [object Object], [object Object] |
 
 ### NATS (`nats`)
 
@@ -167,7 +167,7 @@ Lightweight pub/sub messaging with JetStream
 | **Category** | database                                               |
 | **Supports** | compose                                                |
 | **Tags**     | `database`, `messaging`, `pubsub`, `nats`, `jetstream` |
-| **Ports**    | 4222, 8222                                             |
+| **Ports**    | [object Object], [object Object]                       |
 
 ### PostgreSQL (`postgres`)
 
@@ -178,7 +178,7 @@ PostgreSQL 16 database
 | **Category** | database                      |
 | **Supports** | compose                       |
 | **Tags**     | `database`, `sql`, `postgres` |
-| **Ports**    | 5432                          |
+| **Ports**    | [object Object]               |
 
 ### RabbitMQ (`rabbitmq`)
 
@@ -189,7 +189,7 @@ Message broker with AMQP protocol and management UI
 | **Category** | database                                             |
 | **Supports** | compose                                              |
 | **Tags**     | `database`, `messaging`, `queue`, `rabbitmq`, `amqp` |
-| **Ports**    | 5672, 15672                                          |
+| **Ports**    | [object Object], [object Object]                     |
 
 ### Redis (`redis`)
 
@@ -200,7 +200,7 @@ Redis 7 cache
 | **Category** | database                     |
 | **Supports** | compose                      |
 | **Tags**     | `database`, `cache`, `redis` |
-| **Ports**    | 6379                         |
+| **Ports**    | [object Object]              |
 
 ### Redpanda (`redpanda`)
 
@@ -241,13 +241,13 @@ SQLite with litecli and VS Code extensions
 
 Distributed tracing backend
 
-| Property      | Value                                |
-| ------------- | ------------------------------------ |
-| **Category**  | observability                        |
-| **Supports**  | compose                              |
-| **Conflicts** | `tempo`                              |
-| **Tags**      | `observability`, `tracing`, `jaeger` |
-| **Ports**     | 16686, 14250, 14268                  |
+| Property      | Value                                             |
+| ------------- | ------------------------------------------------- |
+| **Category**  | observability                                     |
+| **Supports**  | compose                                           |
+| **Conflicts** | `tempo`                                           |
+| **Tags**      | `observability`, `tracing`, `jaeger`              |
+| **Ports**     | [object Object], [object Object], [object Object] |
 
 ### Loki (`loki`)
 
@@ -259,7 +259,7 @@ Log aggregation system
 | **Supports** | compose                         |
 | **Suggests** | `promtail`                      |
 | **Tags**     | `observability`, `logs`, `loki` |
-| **Ports**    | 3100                            |
+| **Ports**    | [object Object]                 |
 
 ### Prometheus (`prometheus`)
 
@@ -271,7 +271,7 @@ Metrics collection and monitoring
 | **Supports** | compose                                  |
 | **Suggests** | `alertmanager`                           |
 | **Tags**     | `observability`, `metrics`, `prometheus` |
-| **Ports**    | 9090                                     |
+| **Ports**    | [object Object]                          |
 
 ### Tempo (`tempo`)
 
@@ -332,7 +332,7 @@ Observability visualization dashboard with auto-provisioning
 | **Requires** | `prometheus`                           |
 | **Suggests** | `loki`, `jaeger`, `tempo`, `promtail`  |
 | **Tags**     | `observability`, `ui`, `visualization` |
-| **Ports**    | 3000                                   |
+| **Ports**    | [object Object]                        |
 
 ### OTel Demo (Node.js) (`otel-demo-nodejs`)
 

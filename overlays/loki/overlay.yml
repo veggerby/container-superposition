@@ -13,5 +13,10 @@ tags:
     - logs
     - loki
 ports:
-    - 3100
+    - port: 3100
+      service: loki
+      protocol: http
+      description: Loki HTTP API and query interface
+      path: /
+      onAutoForward: notify
 order: 1

@@ -17,6 +17,7 @@ import {
     CURRENT_MANIFEST_VERSION,
 } from '../schema/manifest-migrations.js';
 import { MERGE_STRATEGY } from '../utils/merge.js';
+import { extractPorts } from '../utils/port-utils.js';
 
 interface DoctorOptions {
     output?: string;
@@ -439,8 +440,10 @@ function checkPorts(overlaysConfig: OverlaysConfig, manifestPath?: string): Chec
 
             for (const overlayId of selectedOverlays) {
                 const overlay = overlaysConfig.overlays.find((o) => o.id === overlayId);
-                if (overlay && overlay.ports) {
-                    for (const port of overlay.ports) {
+                if (overlay && overlay.ports && overlay.ports.length > 0) {
+                    // Extract numeric ports from overlay
+                    const ports = extractPorts([overlay]);
+                    for (const port of ports) {
                         const actualPort = port + (manifest.portOffset || 0);
                         if (!portsToCheck.has(actualPort)) {
                             portsToCheck.set(actualPort, []);

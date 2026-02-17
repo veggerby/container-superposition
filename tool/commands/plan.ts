@@ -7,6 +7,7 @@ import * as path from 'path';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import type { OverlayMetadata, OverlaysConfig, Stack } from '../schema/types.js';
+import { extractPorts } from '../utils/port-utils.js';
 
 interface PlanOptions {
     stack?: Stack;
@@ -169,10 +170,13 @@ function getPortMappings(
         const overlay = overlayMap.get(id);
         if (!overlay || !overlay.ports || overlay.ports.length === 0) continue;
 
+        // Extract numeric ports from overlay
+        const ports = extractPorts([overlay]);
+
         mappings.push({
             overlay: id,
-            ports: overlay.ports,
-            offsetPorts: overlay.ports.map((p) => p + portOffset),
+            ports: ports,
+            offsetPorts: ports.map((p) => p + portOffset),
         });
     }
 

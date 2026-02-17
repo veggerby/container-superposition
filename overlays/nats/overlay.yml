@@ -14,5 +14,15 @@ tags:
     - nats
     - jetstream
 ports:
-    - 4222
-    - 8222
+    - port: 4222
+      service: nats
+      protocol: tcp
+      description: NATS client connection
+      onAutoForward: notify
+      connectionStringTemplate: 'nats://{host}:{port}'
+    - port: 8222
+      service: nats
+      protocol: http
+      description: NATS monitoring/stats endpoint
+      path: /
+      onAutoForward: ignore

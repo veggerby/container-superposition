@@ -51,12 +51,13 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             return [];
         };
 
-        const ensureNumberArray = (value: any): number[] => {
+        const ensurePortsArray = (value: any): (number | import('./types.js').PortMetadata)[] => {
             if (Array.isArray(value)) {
-                const normalized: number[] = [];
+                const normalized: (number | import('./types.js').PortMetadata)[] = [];
                 let hadInvalidValues = false;
 
                 for (const item of value) {
+                    // Handle numeric port (legacy format)
                     if (typeof item === 'number' && Number.isFinite(item)) {
                         normalized.push(item);
                         continue;
@@ -66,6 +67,15 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
                     if (typeof item === 'string' && /^\d+$/.test(item.trim())) {
                         normalized.push(Number(item.trim()));
                         continue;
+                    }
+
+                    // Handle rich port metadata object
+                    if (typeof item === 'object' && item !== null && 'port' in item) {
+                        const port = item.port;
+                        if (typeof port === 'number' && Number.isFinite(port)) {
+                            normalized.push(item as import('./types.js').PortMetadata);
+                            continue;
+                        }
                     }
 
                     hadInvalidValues = true;
@@ -98,7 +108,7 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             suggests: ensureArray(manifest.suggests),
             conflicts: ensureArray(manifest.conflicts),
             tags: ensureArray(manifest.tags),
-            ports: ensureNumberArray(manifest.ports),
+            ports: ensurePortsArray(manifest.ports),
             imports: ensureArray(manifest.imports),
             minimal: manifest.minimal !== undefined ? ensureBoolean(manifest.minimal) : false,
         };

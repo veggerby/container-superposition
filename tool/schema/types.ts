@@ -174,6 +174,26 @@ export type OverlayCategory =
     | 'preset';
 
 /**
+ * Port metadata - can be simple number or rich object
+ */
+export interface PortMetadata {
+    port: number;
+    service?: string;
+    protocol?: 'http' | 'https' | 'tcp' | 'udp' | 'grpc';
+    description?: string;
+    path?: string;
+    onAutoForward?: 'notify' | 'openBrowser' | 'openPreview' | 'silent' | 'ignore';
+    connectionStringTemplate?: string;
+}
+
+/**
+ * Normalized port information (always in object form)
+ */
+export interface NormalizedPort extends PortMetadata {
+    actualPort: number; // Port after offset is applied
+}
+
+/**
  * Overlay metadata from overlays.yml
  */
 export interface OverlayMetadata {
@@ -186,7 +206,7 @@ export interface OverlayMetadata {
     suggests?: string[];
     conflicts?: string[];
     tags?: string[];
-    ports?: number[];
+    ports?: (number | PortMetadata)[]; // Support both legacy and rich format
     order?: number;
     imports?: string[]; // Shared files to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
@@ -227,6 +247,15 @@ export interface MetaOverlay {
         userChoice?: Record<string, PresetUserChoice>;
     };
     glueConfig?: PresetGlueConfig;
+}
+
+/**
+ * Generated port documentation
+ */
+export interface PortsDocumentation {
+    portOffset: number;
+    ports: NormalizedPort[];
+    connectionStrings?: Record<string, string>;
 }
 
 /**

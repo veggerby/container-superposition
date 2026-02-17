@@ -12,4 +12,9 @@ tags:
     - sql
     - postgres
 ports:
-    - 5432
+    - port: 5432
+      service: postgres
+      protocol: tcp
+      description: PostgreSQL database connection
+      onAutoForward: notify
+      connectionStringTemplate: 'postgresql://{postgres_user}:{postgres_password}@{host}:{port}/{postgres_db}'
