@@ -610,6 +610,86 @@ npm run init -- --from-manifest .devcontainer/superposition.json
 
 See **[Custom Patches Guide](docs/custom-patches.md)** for complete documentation and examples.
 
+### Team Collaboration Workflow
+
+**Use Case:** Standardize dev environments across a team while allowing personal customizations.
+
+Container Superposition supports a **manifest-first workflow** where:
+
+- **Manifest** (`superposition.json`) is committed to version control
+- **.devcontainer/** is generated locally and gitignored
+- **Custom patches** (`.devcontainer/custom/`) can be committed for shared customizations
+
+#### Quick Setup
+
+**1. Team lead creates the manifest:**
+
+```bash
+# Generate manifest only (no .devcontainer/ files)
+npx container-superposition init --write-manifest-only \
+  --stack compose \
+  --language nodejs \
+  --database postgres,redis
+
+# Commit to repo
+git add superposition.json .gitignore
+git commit -m "Add team devcontainer manifest"
+```
+
+**2. Add to `.gitignore`:**
+
+```gitignore
+# DevContainer - generated locally
+.devcontainer/
+
+# Except custom directory (personal/shared customizations)
+!.devcontainer/custom/
+```
+
+**3. Team members clone and generate:**
+
+```bash
+git clone <repo>
+cd <repo>
+
+# Generate .devcontainer/ from manifest
+npx container-superposition regen
+
+# Open in VS Code and rebuild container
+code .
+```
+
+**4. Personal customizations (optional):**
+
+```bash
+# Add personal VS Code extensions, themes, etc.
+mkdir -p .devcontainer/custom
+cat > .devcontainer/custom/devcontainer.patch.json << 'EOF'
+{
+  "customizations": {
+    "vscode": {
+      "extensions": ["eamodio.gitlens"],
+      "settings": {
+        "editor.fontSize": 14
+      }
+    }
+  }
+}
+EOF
+
+# Regenerate to apply
+npx container-superposition regen
+```
+
+**Benefits:**
+
+- ✅ One command onboarding for new developers
+- ✅ No lock-in - generated files are plain JSON/YAML
+- ✅ Personal customizations don't conflict with team standard
+- ✅ CI can validate manifest without committing generated files
+
+See **[Team Workflow Guide](docs/team-workflow.md)** for complete documentation, CI examples, and troubleshooting.
+
 ### Option 2: Manual Composition
 
 1. **Copy a base template:**

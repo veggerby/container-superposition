@@ -24,7 +24,7 @@ import type {
     OverlayMetadata,
     DeploymentTarget,
 } from '../tool/schema/types.js';
-import { composeDevContainer } from '../tool/questionnaire/composer.js';
+import { composeDevContainer, generateManifestOnly } from '../tool/questionnaire/composer.js';
 import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
 import { listCommand } from '../tool/commands/list.js';
 import { explainCommand } from '../tool/commands/explain.js';
@@ -1135,6 +1135,7 @@ async function parseCliArgs(): Promise<{
     backupDir?: string;
     yes?: boolean;
     noInteractive?: boolean;
+    writeManifestOnly?: boolean;
 } | null> {
     const program = new Command();
 
@@ -1194,6 +1195,10 @@ async function parseCliArgs(): Promise<{
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
+        .option(
+            '--write-manifest-only',
+            'Generate only superposition.json manifest without creating .devcontainer/ files'
+        )
         .action((options) => {
             // Store options for main() to process
             initOptions = options;
@@ -1210,13 +1215,34 @@ async function parseCliArgs(): Promise<{
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
         .action((options) => {
             const outputPath = options.output || './.devcontainer';
-            const manifestPath = path.join(outputPath, 'superposition.json');
 
-            if (!fs.existsSync(manifestPath)) {
-                console.error(chalk.red(`✗ Error: No manifest found at ${manifestPath}`));
+            // Look for manifest in multiple locations for team workflow:
+            // 1. Current directory (./superposition.json) - team workflow
+            // 2. Output directory (e.g., ./.devcontainer/superposition.json) - legacy
+            const manifestSearchPaths = [
+                'superposition.json',
+                path.join(outputPath, 'superposition.json'),
+            ];
+
+            let manifestPath: string | null = null;
+            for (const searchPath of manifestSearchPaths) {
+                if (fs.existsSync(searchPath)) {
+                    manifestPath = searchPath;
+                    break;
+                }
+            }
+
+            if (!manifestPath) {
+                console.error(chalk.red(`✗ Error: No manifest found`));
                 console.error(
                     chalk.gray(
-                        '  Run "container-superposition init" first to create a configuration'
+                        '  Searched for: ./superposition.json, ' +
+                            path.join(outputPath, 'superposition.json')
+                    )
+                );
+                console.error(
+                    chalk.gray(
+                        '  Run "container-superposition init --write-manifest-only" to create a manifest'
                     )
                 );
                 process.exit(1);
@@ -1359,6 +1385,7 @@ async function parseCliArgs(): Promise<{
         noBackup: initOptions.backup === false, // Commander creates options.backup = false for --no-backup
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
+        writeManifestOnly: initOptions.writeManifestOnly === true,
     };
 }
 
@@ -1544,34 +1571,61 @@ async function main() {
                 })
         );
 
+        // Check if we're in manifest-only mode
+        const isManifestOnly = cliArgs?.writeManifestOnly === true;
+
         // Generate with spinner
         const spinner = ora({
-            text: chalk.cyan('Generating devcontainer configuration...'),
+            text: isManifestOnly
+                ? chalk.cyan('Generating manifest file...')
+                : chalk.cyan('Generating devcontainer configuration...'),
             color: 'cyan',
         }).start();
 
         try {
-            await composeDevContainer(answers);
-            spinner.succeed(chalk.green('DevContainer created successfully!'));
+            if (isManifestOnly) {
+                await generateManifestOnly(answers);
+                spinner.succeed(chalk.green('Manifest created successfully!'));
+            } else {
+                await composeDevContainer(answers);
+                spinner.succeed(chalk.green('DevContainer created successfully!'));
+            }
         } catch (error) {
-            spinner.fail(chalk.red('Failed to create devcontainer'));
+            spinner.fail(
+                chalk.red(
+                    isManifestOnly ? 'Failed to create manifest' : 'Failed to create devcontainer'
+                )
+            );
             throw error;
         }
 
         // Success message
+        const successMessage = isManifestOnly
+            ? chalk.bold.green('✓ Manifest Created!\n\n') +
+              chalk.white('Next steps:\n') +
+              chalk.gray('  1. Review the generated superposition.json file\n') +
+              chalk.gray('  2. Commit it to your repository\n') +
+              chalk.gray('  3. Team members can run "npx container-superposition regen"\n\n') +
+              chalk.dim(
+                  'Team workflow: commit manifest, .gitignore .devcontainer/, customize with .devcontainer/custom/'
+              )
+            : chalk.bold.green('✓ Setup Complete!\n\n') +
+              chalk.white('Next steps:\n') +
+              chalk.gray('  1. Review the generated .devcontainer/ folder\n') +
+              chalk.gray("  2. Customize as needed (it's just normal JSON!)\n") +
+              chalk.gray('  3. Open in VS Code and rebuild container\n\n') +
+              chalk.dim(
+                  'The generated configuration is fully editable and independent of this tool.'
+              );
+
         console.log(
             '\n' +
-                boxen(
-                    chalk.bold.green('✓ Setup Complete!\n\n') +
-                        chalk.white('Next steps:\n') +
-                        chalk.gray('  1. Review the generated .devcontainer/ folder\n') +
-                        chalk.gray("  2. Customize as needed (it's just normal JSON!)\n") +
-                        chalk.gray('  3. Open in VS Code and rebuild container\n\n') +
-                        chalk.dim(
-                            'The generated configuration is fully editable and independent of this tool.'
-                        ),
-                    { padding: 1, borderColor: 'green', borderStyle: 'double', margin: 1 }
-                )
+                boxen(successMessage, {
+                    padding: 1,
+                    borderColor: 'green',
+                    borderStyle: 'double',
+                    margin: 1,
+                })
         );
     } catch (error) {
         console.error(

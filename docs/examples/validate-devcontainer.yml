@@ -1,0 +1,79 @@
+# Example GitHub Actions workflow for validating devcontainer manifest
+# Copy this to your project's .github/workflows/ directory
+
+name: Validate DevContainer Manifest
+
+on:
+    pull_request:
+        paths:
+            - 'superposition.json'
+            - '.github/workflows/validate-devcontainer.yml'
+    push:
+        branches:
+            - main
+        paths:
+            - 'superposition.json'
+
+jobs:
+    validate-manifest:
+        name: Validate Manifest
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Validate manifest with plan command
+              run: |
+                  npx container-superposition plan --from-manifest superposition.json
+
+            - name: Generate devcontainer files
+              run: |
+                  npx container-superposition regen --no-interactive
+
+            - name: Verify generated files exist
+              run: |
+                  test -f .devcontainer/devcontainer.json || { echo "devcontainer.json not found"; exit 1; }
+                  test -f .devcontainer/docker-compose.yml || { echo "docker-compose.yml not found"; exit 1; }
+                  test -f .devcontainer/superposition.json || { echo "superposition.json not found"; exit 1; }
+                  echo "✓ All expected files generated"
+
+            - name: Run environment validation
+              run: |
+                  npx container-superposition doctor --output .devcontainer
+
+    # Optional: Test the devcontainer actually builds
+    test-build:
+        name: Test DevContainer Build
+        runs-on: ubuntu-latest
+        needs: validate-manifest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Generate devcontainer
+              run: npx container-superposition regen --no-interactive
+
+            - name: Build devcontainer
+              uses: devcontainers/ci@v0.3
+              with:
+                  imageName: test-devcontainer
+                  runCmd: |
+                      # Run smoke tests inside the container
+                      node --version
+                      npm --version
+                      # Add more tests as needed
+
+            - name: Report success
+              run: echo "✓ DevContainer built and tested successfully"
