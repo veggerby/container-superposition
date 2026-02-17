@@ -40,3 +40,9 @@ examples/.devcontainer/
 !scripts/**/*
 !overlays/**/*
 *.tgz
+
+
+# Container Superposition backups
+.devcontainer.backup-*/
+*.backup-*
+superposition.json.backup-*
