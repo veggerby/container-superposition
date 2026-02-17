@@ -559,15 +559,6 @@ Automated code quality gates with pre-commit hooks
 | **Suggests** | `commitlint` |
 | **Tags** | `dev`, `git`, `quality`, `hooks` |
 
-### Test Import Overlay (`test-import-overlay`)
-
-Test overlay demonstrating imports feature
-
-| Property | Value |
-|----------|-------|
-| **Category** | dev |
-| **Tags** | `test`, `imports` |
-
 ### Tilt (`tilt`)
 
 Live update and orchestration for Kubernetes development
