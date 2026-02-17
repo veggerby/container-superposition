@@ -1202,8 +1202,11 @@ export async function composeDevContainer(
 ): Promise<void> {
     // Prepare overlays using shared logic
     const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
-    const { overlays: resolvedOverlays, autoResolved, overlaysConfig } =
-        prepareOverlaysForGeneration(answers, overlaysDir);
+    const {
+        overlays: resolvedOverlays,
+        autoResolved,
+        overlaysConfig,
+    } = prepareOverlaysForGeneration(answers, overlaysDir);
 
     // Get all overlay definitions for later use
     const allOverlayDefs = getAllOverlayDefs(overlaysConfig);

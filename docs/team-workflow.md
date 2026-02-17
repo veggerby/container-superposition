@@ -50,13 +50,13 @@ This creates `superposition.json` in the current directory:
 
 ```json
 {
-  "manifestVersion": "1",
-  "generatedBy": "0.1.2",
-  "generated": "2026-02-17T14:00:00.000Z",
-  "baseTemplate": "compose",
-  "baseImage": "bookworm",
-  "overlays": ["nodejs", "postgres", "redis", "prometheus", "grafana"],
-  "portOffset": 0
+    "manifestVersion": "1",
+    "generatedBy": "0.1.2",
+    "generated": "2026-02-17T14:00:00.000Z",
+    "baseTemplate": "compose",
+    "baseImage": "bookworm",
+    "overlays": ["nodejs", "postgres", "redis", "prometheus", "grafana"],
+    "portOffset": 0
 }
 ```
 
@@ -98,7 +98,7 @@ git push
 
 Add to your `README.md`:
 
-```markdown
+````markdown
 ## Development Setup
 
 This project uses [Container Superposition](https://github.com/veggerby/container-superposition) for standardized development environments.
@@ -118,10 +118,11 @@ This project uses [Container Superposition](https://github.com/veggerby/containe
 3. Open in VS Code and rebuild container (Command Palette: "Dev Containers: Rebuild Container")
 
 The devcontainer includes:
+
 - Node.js with TypeScript
 - PostgreSQL and Redis
 - Prometheus and Grafana for observability
-```
+````
 
 ## Developer Onboarding
 
@@ -151,6 +152,7 @@ code .
 ```
 
 Then:
+
 1. Command Palette (`Cmd/Ctrl+Shift+P`)
 2. Select "Dev Containers: Rebuild and Reopen in Container"
 3. Wait for container to build
@@ -166,19 +168,15 @@ Create `.devcontainer/custom/devcontainer.patch.json`:
 
 ```json
 {
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "eamodio.gitlens",
-        "usernamehw.errorlens",
-        "pkief.material-icon-theme"
-      ],
-      "settings": {
-        "editor.fontSize": 14,
-        "workbench.colorTheme": "Monokai"
-      }
+    "customizations": {
+        "vscode": {
+            "extensions": ["eamodio.gitlens", "usernamehw.errorlens", "pkief.material-icon-theme"],
+            "settings": {
+                "editor.fontSize": 14,
+                "workbench.colorTheme": "Monokai"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -188,12 +186,12 @@ Create `.devcontainer/custom/docker-compose.patch.yml`:
 
 ```yaml
 services:
-  my-debug-service:
-    image: redis-commander:latest
-    ports:
-      - "8081:8081"
-    networks:
-      - devnet
+    my-debug-service:
+        image: redis-commander:latest
+        ports:
+            - '8081:8081'
+        networks:
+            - devnet
 ```
 
 ### Regenerate to Apply
@@ -225,14 +223,14 @@ You can either:
 
 ```json
 {
-  "overlays": [
-    "nodejs",
-    "postgres",
-    "redis",
-    "prometheus",
-    "grafana",
-    "jaeger"  // Added
-  ]
+    "overlays": [
+        "nodejs",
+        "postgres",
+        "redis",
+        "prometheus",
+        "grafana",
+        "jaeger" // Added
+    ]
 }
 ```
 
@@ -285,48 +283,48 @@ Create `.github/workflows/validate-devcontainer.yml`:
 name: Validate DevContainer
 
 on:
-  pull_request:
-    paths:
-      - 'superposition.json'
-      - '.github/workflows/validate-devcontainer.yml'
+    pull_request:
+        paths:
+            - 'superposition.json'
+            - '.github/workflows/validate-devcontainer.yml'
 
 jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    validate:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
 
-      - name: Validate manifest with plan command
-        run: |
-          npx container-superposition plan --from-manifest superposition.json
+            - name: Validate manifest with plan command
+              run: |
+                  npx container-superposition plan --from-manifest superposition.json
 
-      - name: Generate and smoke test
-        run: |
-          npx container-superposition regen --no-interactive
-          # Verify key files exist
-          test -f .devcontainer/devcontainer.json
-          test -f .devcontainer/docker-compose.yml
+            - name: Generate and smoke test
+              run: |
+                  npx container-superposition regen --no-interactive
+                  # Verify key files exist
+                  test -f .devcontainer/devcontainer.json
+                  test -f .devcontainer/docker-compose.yml
 ```
 
 ### GitLab CI Example
 
 ```yaml
 validate-devcontainer:
-  image: node:20
-  stage: test
-  only:
-    changes:
-      - superposition.json
-      - .gitlab-ci.yml
-  script:
-    - npx container-superposition plan --from-manifest superposition.json
-    - npx container-superposition regen --no-interactive
-    - test -f .devcontainer/devcontainer.json
+    image: node:20
+    stage: test
+    only:
+        changes:
+            - superposition.json
+            - .gitlab-ci.yml
+    script:
+        - npx container-superposition plan --from-manifest superposition.json
+        - npx container-superposition regen --no-interactive
+        - test -f .devcontainer/devcontainer.json
 ```
 
 ## Migration from Existing Setup
@@ -396,6 +394,7 @@ git commit -m "Migrate to manifest-first workflow"
 **Problem:** `npx container-superposition regen` says "No manifest found"
 
 **Solution:** Ensure `superposition.json` exists in:
+
 - Current directory (`./superposition.json`), or
 - `.devcontainer/` directory (legacy location)
 
@@ -414,6 +413,7 @@ git commit -m "Migrate to manifest-first workflow"
 **Problem:** Changes in `.devcontainer/custom/` aren't showing up
 
 **Solution:**
+
 1. Verify custom patches are valid JSON/YAML
 2. Run `npx container-superposition regen` to regenerate
 3. Check that custom directory is not in `.gitignore`
@@ -506,20 +506,22 @@ monorepo/
 Each service can have its own manifest that extends the base:
 
 **service-a/superposition.json:**
+
 ```json
 {
-  "baseTemplate": "compose",
-  "baseImage": "bookworm",
-  "overlays": ["nodejs", "postgres"]
+    "baseTemplate": "compose",
+    "baseImage": "bookworm",
+    "overlays": ["nodejs", "postgres"]
 }
 ```
 
 **service-b/superposition.json:**
+
 ```json
 {
-  "baseTemplate": "compose",
-  "baseImage": "bookworm",
-  "overlays": ["python", "redis", "rabbitmq"]
+    "baseTemplate": "compose",
+    "baseImage": "bookworm",
+    "overlays": ["python", "redis", "rabbitmq"]
 }
 ```
 

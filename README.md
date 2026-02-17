@@ -615,6 +615,7 @@ See **[Custom Patches Guide](docs/custom-patches.md)** for complete documentatio
 **Use Case:** Standardize dev environments across a team while allowing personal customizations.
 
 Container Superposition supports a **manifest-first workflow** where:
+
 - **Manifest** (`superposition.json`) is committed to version control
 - **.devcontainer/** is generated locally and gitignored
 - **Custom patches** (`.devcontainer/custom/`) can be committed for shared customizations
@@ -681,6 +682,7 @@ npx container-superposition regen
 ```
 
 **Benefits:**
+
 - ✅ One command onboarding for new developers
 - ✅ No lock-in - generated files are plain JSON/YAML
 - ✅ Personal customizations don't conflict with team standard

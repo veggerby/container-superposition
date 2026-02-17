@@ -1593,9 +1593,7 @@ async function main() {
         } catch (error) {
             spinner.fail(
                 chalk.red(
-                    isManifestOnly
-                        ? 'Failed to create manifest'
-                        : 'Failed to create devcontainer'
+                    isManifestOnly ? 'Failed to create manifest' : 'Failed to create devcontainer'
                 )
             );
             throw error;
@@ -1607,9 +1605,7 @@ async function main() {
               chalk.white('Next steps:\n') +
               chalk.gray('  1. Review the generated superposition.json file\n') +
               chalk.gray('  2. Commit it to your repository\n') +
-              chalk.gray(
-                  '  3. Team members can run "npx container-superposition regen"\n\n'
-              ) +
+              chalk.gray('  3. Team members can run "npx container-superposition regen"\n\n') +
               chalk.dim(
                   'Team workflow: commit manifest, .gitignore .devcontainer/, customize with .devcontainer/custom/'
               )
