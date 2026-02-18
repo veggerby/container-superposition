@@ -555,23 +555,23 @@ The tool automatically validates overlay compatibility and warns you when select
 
 Common overlays and their compatibility with different deployment targets:
 
-| Overlay              | Local | Codespaces | Gitpod | Notes                                       |
-| -------------------- | ----- | ---------- | ------ | ------------------------------------------- |
-| **docker-sock**      | ✅    | ❌         | ❌     | Requires host Docker socket (local only)    |
-| **docker-in-docker** | ✅    | ✅         | ✅     | Slower but portable                         |
-| **postgres**         | ✅    | ✅         | ✅     |                                             |
-| **redis**            | ✅    | ✅         | ✅     |                                             |
-| **mysql**            | ✅    | ✅         | ✅     |                                             |
-| **mongodb**          | ✅    | ✅         | ✅     |                                             |
-| **sqlserver**        | ✅    | ✅         | ✅     | Needs memory (>2GB recommended)             |
-| **rabbitmq**         | ✅    | ✅         | ✅     |                                             |
-| **grafana**          | ✅    | ✅         | ✅     |                                             |
-| **prometheus**       | ✅    | ✅         | ✅     |                                             |
-| **jaeger**           | ✅    | ✅         | ✅     |                                             |
-| **playwright**       | ✅    | ✅         | ✅     | Requires browser dependencies               |
-| **aws-cli**          | ✅    | ✅         | ✅     | CLI tools work everywhere                   |
-| **kubectl-helm**     | ✅    | ✅         | ✅     |                                             |
-| **terraform**        | ✅    | ✅         | ✅     |                                             |
+| Overlay              | Local | Codespaces | Gitpod | Notes                                    |
+| -------------------- | ----- | ---------- | ------ | ---------------------------------------- |
+| **docker-sock**      | ✅    | ❌         | ❌     | Requires host Docker socket (local only) |
+| **docker-in-docker** | ✅    | ✅         | ✅     | Slower but portable                      |
+| **postgres**         | ✅    | ✅         | ✅     |                                          |
+| **redis**            | ✅    | ✅         | ✅     |                                          |
+| **mysql**            | ✅    | ✅         | ✅     |                                          |
+| **mongodb**          | ✅    | ✅         | ✅     |                                          |
+| **sqlserver**        | ✅    | ✅         | ✅     | Needs memory (>2GB recommended)          |
+| **rabbitmq**         | ✅    | ✅         | ✅     |                                          |
+| **grafana**          | ✅    | ✅         | ✅     |                                          |
+| **prometheus**       | ✅    | ✅         | ✅     |                                          |
+| **jaeger**           | ✅    | ✅         | ✅     |                                          |
+| **playwright**       | ✅    | ✅         | ✅     | Requires browser dependencies            |
+| **aws-cli**          | ✅    | ✅         | ✅     | CLI tools work everywhere                |
+| **kubectl-helm**     | ✅    | ✅         | ✅     |                                          |
+| **terraform**        | ✅    | ✅         | ✅     |                                          |
 
 **Legend:**
 
@@ -655,16 +655,16 @@ Every devcontainer generation creates a `superposition.json` manifest file that 
 
 **When to regenerate (regen) vs manual edit:**
 
-| Scenario                            | Use                         | Why                                                  |
-| ----------------------------------- | --------------------------- | ---------------------------------------------------- |
-| Update to latest overlay versions   | `regen`                     | Get bug fixes and improvements automatically         |
-| Add/remove overlays                 | `init --from-manifest`      | Let the tool handle merge complexity                 |
-| Change port offset                  | `init --from-manifest`      | Automatic port recalculation                         |
-| Tweak VS Code settings              | Manual edit                 | Simple JSON change, no regeneration needed           |
-| Add custom script                   | Manual edit                 | Direct file addition                                 |
-| Fix specific devcontainer bug       | Manual edit                 | Quick fix without full regeneration                  |
-| Switch base image                   | `init --from-manifest`      | Template dependencies may change                     |
-| Your project evolved significantly  | `init` (fresh)              | Clean slate with new requirements                    |
+| Scenario                           | Use                    | Why                                          |
+| ---------------------------------- | ---------------------- | -------------------------------------------- |
+| Update to latest overlay versions  | `regen`                | Get bug fixes and improvements automatically |
+| Add/remove overlays                | `init --from-manifest` | Let the tool handle merge complexity         |
+| Change port offset                 | `init --from-manifest` | Automatic port recalculation                 |
+| Tweak VS Code settings             | Manual edit            | Simple JSON change, no regeneration needed   |
+| Add custom script                  | Manual edit            | Direct file addition                         |
+| Fix specific devcontainer bug      | Manual edit            | Quick fix without full regeneration          |
+| Switch base image                  | `init --from-manifest` | Template dependencies may change             |
+| Your project evolved significantly | `init` (fresh)         | Clean slate with new requirements            |
 
 **Quick regeneration (recommended):**
 

@@ -22,7 +22,7 @@ This development environment uses Docker Compose to orchestrate multiple service
 
 .NET 10 SDK with C# DevKit
 
-*For complete documentation, see [.NET overlay](../../overlays/dotnet/README.md)*
+_For complete documentation, see [.NET overlay](../../../overlays/dotnet/README.md)_
 
 ### Databases and Storage
 
@@ -54,6 +54,7 @@ Key command categories:
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Environment Variables
 - Port Configuration
 
@@ -64,7 +65,7 @@ Available settings:
 - **Learning SQL**
 - **Data Analysis**
 
-*For complete documentation, see [PostgreSQL overlay](../../overlays/postgres/README.md)*
+_For complete documentation, see [PostgreSQL overlay](../../../overlays/postgres/README.md)_
 
 ### Observability and Monitoring
 
@@ -77,6 +78,7 @@ Distributed tracing backend
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Ports
 - Environment Variables
 - Port Configuration
@@ -88,7 +90,7 @@ Available settings:
 - **Error Investigation**
 - **Capacity Planning**
 
-*For complete documentation, see [Jaeger overlay](../../overlays/jaeger/README.md)*
+_For complete documentation, see [Jaeger overlay](../../../overlays/jaeger/README.md)_
 
 #### Prometheus
 
@@ -99,6 +101,7 @@ Metrics collection and monitoring
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Ports
 - Environment Variables
 - Prometheus Configuration File
@@ -110,7 +113,7 @@ Available settings:
 - **SLI/SLO Tracking**
 - **Capacity Planning**
 
-*For complete documentation, see [Prometheus overlay](../../overlays/prometheus/README.md)*
+_For complete documentation, see [Prometheus overlay](../../../overlays/prometheus/README.md)_
 
 #### OpenTelemetry Collector
 
@@ -121,6 +124,7 @@ Telemetry collection pipeline
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Ports
 - Environment Variables
 - Collector Configuration File
@@ -132,7 +136,7 @@ Available settings:
 - **Data Processing**
 - **Multi-Tenant Environments**
 
-*For complete documentation, see [OpenTelemetry Collector overlay](../../overlays/otel-collector/README.md)*
+_For complete documentation, see [OpenTelemetry Collector overlay](../../../overlays/otel-collector/README.md)_
 
 ## Environment Variables
 
@@ -151,6 +155,7 @@ Then edit `.env` to customize for your environment.
 ### Jaeger
 
 Common issues:
+
 - **No traces appearing**
 - **UI not loading**
 - **Spans missing or incomplete**
@@ -159,6 +164,7 @@ Common issues:
 ### Prometheus
 
 Common issues:
+
 - **Target not being scraped**
 - **Metrics not appearing**
 - **High memory usage**
@@ -167,6 +173,7 @@ Common issues:
 ### OpenTelemetry Collector
 
 Common issues:
+
 - **No telemetry appearing**
 - **Collector crashes or OOM**
 - **Data not reaching backends**
@@ -175,6 +182,7 @@ Common issues:
 ### .NET
 
 Common issues:
+
 - **Tool not found after adding to global-tools.txt**
 - **Restore fails**
 - **Want to use local tools instead?**
@@ -182,6 +190,7 @@ Common issues:
 ### PostgreSQL
 
 Common issues:
+
 - **Cannot connect to database**
 - **Password authentication failed**
 - **Database does not exist**
@@ -191,13 +200,13 @@ Common issues:
 
 **Overlay Documentation:**
 
-- [jaeger](../../overlays/jaeger/README.md)
-- [prometheus](../../overlays/prometheus/README.md)
-- [otel-collector](../../overlays/otel-collector/README.md)
-- [dotnet](../../overlays/dotnet/README.md)
-- [postgres](../../overlays/postgres/README.md)
+- [jaeger](../../../overlays/jaeger/README.md)
+- [prometheus](../../../overlays/prometheus/README.md)
+- [otel-collector](../../../overlays/otel-collector/README.md)
+- [dotnet](../../../overlays/dotnet/README.md)
+- [postgres](../../../overlays/postgres/README.md)
 
 **Project Documentation:**
 
-- [Container Superposition](../../README.md)
-- [Documentation](../../docs/README.md)
+- [Container Superposition](../../../README.md)
+- [Documentation](../../../docs/README.md)

@@ -1,0 +1,80 @@
+{
+    "portOffset": 0,
+    "ports": [
+        {
+            "port": 9090,
+            "service": "prometheus",
+            "protocol": "http",
+            "description": "Prometheus web UI and API",
+            "path": "/",
+            "onAutoForward": "openBrowser",
+            "actualPort": 9090
+        },
+        {
+            "port": 3100,
+            "service": "loki",
+            "protocol": "http",
+            "description": "Loki HTTP API and query interface",
+            "path": "/",
+            "onAutoForward": "notify",
+            "actualPort": 3100
+        },
+        {
+            "port": 4317,
+            "actualPort": 4317,
+            "service": "otel-collector"
+        },
+        {
+            "port": 4318,
+            "actualPort": 4318,
+            "service": "otel-collector"
+        },
+        {
+            "port": 8888,
+            "actualPort": 8888,
+            "service": "otel-collector"
+        },
+        {
+            "port": 8889,
+            "actualPort": 8889,
+            "service": "otel-collector"
+        },
+        {
+            "port": 3000,
+            "service": "grafana",
+            "protocol": "http",
+            "description": "Grafana web UI",
+            "path": "/",
+            "onAutoForward": "openBrowser",
+            "actualPort": 3000
+        },
+        {
+            "port": 5432,
+            "service": "postgres",
+            "protocol": "tcp",
+            "description": "PostgreSQL database connection",
+            "onAutoForward": "notify",
+            "connectionStringTemplate": "postgresql://{postgres_user}:{postgres_password}@{host}:{port}/{postgres_db}",
+            "actualPort": 5432
+        },
+        {
+            "port": 6379,
+            "service": "redis",
+            "protocol": "tcp",
+            "description": "Redis server connection",
+            "onAutoForward": "notify",
+            "connectionStringTemplate": "redis://{host}:{port}",
+            "actualPort": 6379
+        }
+    ],
+    "connectionStrings": {
+        "prometheus": "http://localhost:9090/",
+        "prometheus-url": "http://localhost:9090/",
+        "loki": "http://localhost:3100/",
+        "loki-url": "http://localhost:3100/",
+        "grafana": "http://localhost:3000/",
+        "grafana-url": "http://localhost:3000/",
+        "postgres": "postgresql://postgres:postgres@localhost:5432/devdb",
+        "redis": "redis://localhost:6379"
+    }
+}

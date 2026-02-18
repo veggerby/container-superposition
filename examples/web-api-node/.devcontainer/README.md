@@ -22,7 +22,7 @@ This development environment uses Docker Compose to orchestrate multiple service
 
 Node.js LTS with TypeScript and tooling
 
-*For complete documentation, see [Node.js overlay](../../overlays/nodejs/README.md)*
+_For complete documentation, see [Node.js overlay](../../../overlays/nodejs/README.md)_
 
 ### Databases and Storage
 
@@ -54,6 +54,7 @@ Key command categories:
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Environment Variables
 - Port Configuration
 
@@ -64,7 +65,7 @@ Available settings:
 - **Learning SQL**
 - **Data Analysis**
 
-*For complete documentation, see [PostgreSQL overlay](../../overlays/postgres/README.md)*
+_For complete documentation, see [PostgreSQL overlay](../../../overlays/postgres/README.md)_
 
 #### Redis
 
@@ -94,6 +95,7 @@ Key command categories:
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Environment Variables
 - Port Configuration
 
@@ -104,7 +106,7 @@ Available settings:
 - **Real-time Features**
 - **Rate Limiting**
 
-*For complete documentation, see [Redis overlay](../../overlays/redis/README.md)*
+_For complete documentation, see [Redis overlay](../../../overlays/redis/README.md)_
 
 ### Observability and Monitoring
 
@@ -117,6 +119,7 @@ Metrics collection and monitoring
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Ports
 - Environment Variables
 - Prometheus Configuration File
@@ -128,7 +131,7 @@ Available settings:
 - **SLI/SLO Tracking**
 - **Capacity Planning**
 
-*For complete documentation, see [Prometheus overlay](../../overlays/prometheus/README.md)*
+_For complete documentation, see [Prometheus overlay](../../../overlays/prometheus/README.md)_
 
 #### Loki
 
@@ -139,6 +142,7 @@ Log aggregation system
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Ports
 - Environment Variables
 - Loki Configuration File
@@ -150,7 +154,7 @@ Available settings:
 - **Correlation with Metrics and Traces**
 - **Real-time Monitoring**
 
-*For complete documentation, see [Loki overlay](../../overlays/loki/README.md)*
+_For complete documentation, see [Loki overlay](../../../overlays/loki/README.md)_
 
 #### OpenTelemetry Collector
 
@@ -161,6 +165,7 @@ Telemetry collection pipeline
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Ports
 - Environment Variables
 - Collector Configuration File
@@ -172,7 +177,7 @@ Available settings:
 - **Data Processing**
 - **Multi-Tenant Environments**
 
-*For complete documentation, see [OpenTelemetry Collector overlay](../../overlays/otel-collector/README.md)*
+_For complete documentation, see [OpenTelemetry Collector overlay](../../../overlays/otel-collector/README.md)_
 
 #### Grafana
 
@@ -183,10 +188,11 @@ Observability visualization dashboard with auto-provisioning
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - Pre-configured Datasources
 - Adding Custom Datasources
 
-*For complete documentation, see [Grafana overlay](../../overlays/grafana/README.md)*
+_For complete documentation, see [Grafana overlay](../../../overlays/grafana/README.md)_
 
 ## Environment Variables
 
@@ -205,6 +211,7 @@ Then edit `.env` to customize for your environment.
 ### Prometheus
 
 Common issues:
+
 - **Target not being scraped**
 - **Metrics not appearing**
 - **High memory usage**
@@ -213,6 +220,7 @@ Common issues:
 ### Loki
 
 Common issues:
+
 - **Logs not appearing**
 - **Out of memory**
 - **Slow queries**
@@ -221,6 +229,7 @@ Common issues:
 ### OpenTelemetry Collector
 
 Common issues:
+
 - **No telemetry appearing**
 - **Collector crashes or OOM**
 - **Data not reaching backends**
@@ -229,6 +238,7 @@ Common issues:
 ### Grafana
 
 Common issues:
+
 - **Cannot connect to datasource**
 - **Dashboard not updating**
 - **Slow queries**
@@ -236,6 +246,7 @@ Common issues:
 ### Node.js
 
 Common issues:
+
 - **Package not found after adding to global-packages.txt**
 - **pnpm vs npm conflict**
 - **Node version mismatch**
@@ -244,6 +255,7 @@ Common issues:
 ### PostgreSQL
 
 Common issues:
+
 - **Cannot connect to database**
 - **Password authentication failed**
 - **Database does not exist**
@@ -252,6 +264,7 @@ Common issues:
 ### Redis
 
 Common issues:
+
 - **Cannot connect to Redis**
 - **Authentication errors**
 - **Out of memory**
@@ -261,15 +274,15 @@ Common issues:
 
 **Overlay Documentation:**
 
-- [prometheus](../../overlays/prometheus/README.md)
-- [loki](../../overlays/loki/README.md)
-- [otel-collector](../../overlays/otel-collector/README.md)
-- [grafana](../../overlays/grafana/README.md)
-- [nodejs](../../overlays/nodejs/README.md)
-- [postgres](../../overlays/postgres/README.md)
-- [redis](../../overlays/redis/README.md)
+- [prometheus](../../../overlays/prometheus/README.md)
+- [loki](../../../overlays/loki/README.md)
+- [otel-collector](../../../overlays/otel-collector/README.md)
+- [grafana](../../../overlays/grafana/README.md)
+- [nodejs](../../../overlays/nodejs/README.md)
+- [postgres](../../../overlays/postgres/README.md)
+- [redis](../../../overlays/redis/README.md)
 
 **Project Documentation:**
 
-- [Container Superposition](../../README.md)
-- [Documentation](../../docs/README.md)
+- [Container Superposition](../../../README.md)
+- [Documentation](../../../docs/README.md)
