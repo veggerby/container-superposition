@@ -1,6 +1,6 @@
 # Web API Example (Node.js)
 
-This is a complete reference example of a production-ready web API development environment generated with Container Superposition.
+This is a complete reference example of a production-ready web API development environment.
 
 ## What's Included
 
@@ -27,29 +27,26 @@ This is a complete reference example of a production-ready web API development e
 - Docker, YAML, REST Client
 - Grafana dashboard editor
 
-## How It Was Created
-
-This example was generated with:
-
-```bash
-npx container-superposition init \
-  --stack compose \
-  --language nodejs \
-  --database postgres,redis \
-  --observability otel-collector,prometheus,grafana,loki \
-  -o .devcontainer
-```
-
 ## Getting Started
 
-### 1. Open in VS Code
+### 1. Generate the devcontainer
+
+This example includes a `superposition.json` manifest that you can use to generate the complete devcontainer configuration:
 
 ```bash
 cd examples/web-api-node
+npx container-superposition regen
+```
+
+This will create the `.devcontainer/` directory with all necessary configuration files.
+
+### 2. Open in VS Code
+
+```bash
 code .
 ```
 
-### 2. Reopen in Container
+### 3. Reopen in Container
 
 When prompted, click **"Reopen in Container"** or press `F1` and select:
 
@@ -57,7 +54,7 @@ When prompted, click **"Reopen in Container"** or press `F1` and select:
 Dev Containers: Reopen in Container
 ```
 
-### 3. Configure Environment
+### 4. Configure Environment
 
 Copy the environment template and customize:
 
@@ -66,7 +63,7 @@ cp .devcontainer/.env.example .devcontainer/.env
 # Edit .devcontainer/.env with your values
 ```
 
-### 4. Verify Services
+### 5. Verify Services
 
 All services start automatically. Check status:
 
@@ -75,7 +72,7 @@ All services start automatically. Check status:
 docker-compose ps
 ```
 
-### 5. Access Services
+### 6. Access Services
 
 Open in your browser:
 
@@ -93,14 +90,16 @@ psql -h postgres -U postgres -d devdb
 redis-cli -h redis
 ```
 
-## Extending This Example
+## Customizing This Example
 
-Regenerate with additional overlays:
+The `superposition.json` manifest defines the configuration. To modify:
 
 ```bash
-npx container-superposition init \
-  --from-manifest .devcontainer/superposition.json
-# Add mongodb, minio, aws-cli, etc. in the questionnaire
+# Regenerate with changes (interactive)
+npx container-superposition init --from-manifest superposition.json
+
+# Or edit the manifest directly and regenerate
+npx container-superposition regen
 ```
 
 ## Related Examples

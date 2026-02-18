@@ -883,8 +883,11 @@ Full-stack web API with complete observability:
 - **Observability**: OpenTelemetry Collector + Prometheus + Grafana + Loki
 - **Use case**: Production-ready web API development
 
+Each example includes a `superposition.json` manifest. To use:
+
 ```bash
 cd examples/web-api-node
+npx container-superposition regen
 code .
 # Reopen in Container
 ```
@@ -899,18 +902,18 @@ Microservice with distributed tracing and monitoring:
 
 ```bash
 cd examples/dotnet-service
+npx container-superposition regen
 code .
 # Reopen in Container
 ```
 
 Each example includes:
 
-- ✅ Fully configured `.devcontainer/` ready to use
 - ✅ `superposition.json` manifest for regeneration
-- ✅ Complete documentation on services and ports
+- ✅ Complete documentation on services and usage
 - ✅ Instructions for extending and customizing
 
-**Want to create your own?** Use the examples as templates or generate fresh with:
+**Want to create your own?** Generate a manifest with:
 
 ```bash
 npx container-superposition init --stack compose --language nodejs --database postgres

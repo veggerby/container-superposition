@@ -1,6 +1,6 @@
 # .NET Microservice Example
 
-This is a complete reference example of a .NET microservice development environment with distributed tracing and monitoring, generated with Container Superposition.
+This is a complete reference example of a .NET microservice development environment with distributed tracing and monitoring.
 
 ## What's Included
 
@@ -24,29 +24,26 @@ This is a complete reference example of a .NET microservice development environm
 - C# Dev Kit, .NET Extension Pack
 - Docker, YAML, REST Client
 
-## How It Was Created
-
-This example was generated with:
-
-```bash
-npx container-superposition init \
-  --stack compose \
-  --language dotnet \
-  --database postgres \
-  --observability otel-collector,jaeger,prometheus \
-  -o .devcontainer
-```
-
 ## Getting Started
 
-### 1. Open in VS Code
+### 1. Generate the devcontainer
+
+This example includes a `superposition.json` manifest that you can use to generate the complete devcontainer configuration:
 
 ```bash
 cd examples/dotnet-service
+npx container-superposition regen
+```
+
+This will create the `.devcontainer/` directory with all necessary configuration files.
+
+### 2. Open in VS Code
+
+```bash
 code .
 ```
 
-### 2. Reopen in Container
+### 3. Reopen in Container
 
 When prompted, click **"Reopen in Container"** or press `F1` and select:
 
@@ -54,7 +51,7 @@ When prompted, click **"Reopen in Container"** or press `F1` and select:
 Dev Containers: Reopen in Container
 ```
 
-### 3. Configure Environment
+### 4. Configure Environment
 
 Copy the environment template and customize:
 
@@ -63,7 +60,7 @@ cp .devcontainer/.env.example .devcontainer/.env
 # Edit .devcontainer/.env with your values
 ```
 
-### 4. Verify Services
+### 5. Verify Services
 
 All services start automatically. Check status:
 
@@ -72,7 +69,7 @@ All services start automatically. Check status:
 docker-compose ps
 ```
 
-### 5. Access Services
+### 6. Access Services
 
 Open in your browser:
 
@@ -86,14 +83,16 @@ Connect to database:
 psql -h postgres -U postgres -d devdb
 ```
 
-## Extending This Example
+## Customizing This Example
 
-Regenerate with additional overlays:
+The `superposition.json` manifest defines the configuration. To modify:
 
 ```bash
-npx container-superposition init \
-  --from-manifest .devcontainer/superposition.json
-# Add grafana, redis, rabbitmq, etc. in the questionnaire
+# Regenerate with changes (interactive)
+npx container-superposition init --from-manifest superposition.json
+
+# Or edit the manifest directly and regenerate
+npx container-superposition regen
 ```
 
 ## Related Examples
