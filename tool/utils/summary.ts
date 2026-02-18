@@ -75,10 +75,7 @@ export function detectWarnings(
     }
 
     // Check for high port count
-    const portCount = overlays.reduce(
-        (count, o) => count + (o.ports?.length || 0),
-        0
-    );
+    const portCount = overlays.reduce((count, o) => count + (o.ports?.length || 0), 0);
     if (portCount > 10) {
         warnings.push(
             `High port count (${portCount} ports) may cause conflicts\n  Consider using --port-offset to avoid conflicts with other projects.`
@@ -86,7 +83,9 @@ export function detectWarnings(
     }
 
     // Check for no port offset with multiple services
-    const hasServices = overlays.some((o) => o.category === 'database' || o.category === 'observability');
+    const hasServices = overlays.some(
+        (o) => o.category === 'database' || o.category === 'observability'
+    );
     if (hasServices && (!answers.portOffset || answers.portOffset === 0)) {
         warnings.push(
             'Running multiple devcontainers simultaneously may cause port conflicts\n  Use --port-offset 100 (or higher) to avoid conflicts.'
@@ -99,10 +98,7 @@ export function detectWarnings(
 /**
  * Generate helpful tips based on configuration
  */
-export function generateTips(
-    overlays: OverlayMetadata[],
-    answers: QuestionnaireAnswers
-): string[] {
+export function generateTips(overlays: OverlayMetadata[], answers: QuestionnaireAnswers): string[] {
     const tips: string[] = [];
 
     // Suggest committing manifest
@@ -177,7 +173,7 @@ export function portsToPortInfo(
     return ports.map((port) => {
         const service = port.service || 'unknown';
         const url = generateUrl(port);
-        
+
         // Try to find connection string for this service
         let connectionString: string | undefined;
         if (connectionStrings[service]) {
@@ -210,8 +206,8 @@ export function printSummary(summary: GenerationSummary, quiet: boolean = false)
     const title = summary.isManifestOnly
         ? '📋 Manifest Generated'
         : summary.backupPath
-        ? '🔄 DevContainer Regenerated'
-        : '✨ DevContainer Generated';
+          ? '🔄 DevContainer Regenerated'
+          : '✨ DevContainer Generated';
 
     lines.push(chalk.bold.green(title));
     lines.push('');

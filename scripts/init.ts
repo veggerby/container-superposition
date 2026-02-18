@@ -1600,7 +1600,7 @@ async function main() {
             if (actualBackupPath) {
                 summary.backupPath = actualBackupPath;
             }
-            
+
             // Regenerate next steps if this is a regen
             if (isRegen && !isManifestOnly) {
                 summary.nextSteps = [

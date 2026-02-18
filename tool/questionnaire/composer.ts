@@ -1518,12 +1518,12 @@ export async function composeDevContainer(
 
     // 17. Generate ports.json documentation
     const portOffset = answers.portOffset ?? 0;
-    
+
     // Prepare overlay metadata for summary
     const selectedOverlayMetadata = overlays
         .map((id) => overlayMetadataMap.get(id))
         .filter((m): m is OverlayMetadata => m !== undefined);
-    
+
     // Extract environment variables from .env.example for connection strings
     const envPath = path.join(outputPath, '.env.example');
     const envVars: Record<string, string> = {};
@@ -1536,7 +1536,7 @@ export async function composeDevContainer(
             }
         }
     }
-    
+
     if (portOffset > 0 || overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length)) {
         console.log(chalk.cyan('\n📡 Generating ports documentation...'));
 
@@ -1566,7 +1566,7 @@ export async function composeDevContainer(
     // 19. Generate and return summary
     const files = Array.from(fileRegistry.getFiles());
     const services = overlaysToServices(selectedOverlayMetadata);
-    
+
     // Get port information
     let portInfos: any[] = [];
     if (portOffset > 0 || overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length)) {
