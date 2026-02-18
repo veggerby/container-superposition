@@ -193,9 +193,17 @@ export function portsToPortInfo(
 }
 
 /**
- * Format and print generation summary
+ * Format and print generation summary.
+ *
+ * @param summary The generation summary to render.
+ * @param quiet   When true, suppresses all console output. This parameter is
+ *                reserved for callers (for example, CLI commands or tests)
+ *                that need to generate a summary object but handle user
+ *                messaging themselves.
  */
 export function printSummary(summary: GenerationSummary, quiet: boolean = false): void {
+    // If quiet mode is enabled, skip printing while still allowing callers
+    // to invoke this function consistently. See the JSDoc for intended usage.
     if (quiet) {
         return;
     }
