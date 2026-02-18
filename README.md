@@ -6,6 +6,75 @@
 
 Composable devcontainer scaffolds that collapse into working environments.
 
+## ⚡ 30-Second Quickstart
+
+Get a fully-configured development environment in one command:
+
+```bash
+# Web API with database and observability (Node.js)
+npx container-superposition init --preset web-api --language nodejs
+# Creates: Node.js + PostgreSQL + Redis + Grafana + Prometheus + Loki
+
+# Or compose + specific language
+npx container-superposition init --stack compose --language nodejs --database postgres
+# Creates: Node.js + PostgreSQL devcontainer
+
+# Then open in VS Code
+code .
+# Click "Reopen in Container" when prompted
+```
+
+**That's it!** Your devcontainer is ready. Jump to [Quick Start](#-quick-start) for more options or [Examples](#-examples) for real-world references.
+
+### 👁️ Preview Before You Commit
+
+Use the `plan` command to see exactly what will be created:
+
+```bash
+npx container-superposition plan --stack compose --overlays nodejs,postgres,grafana,prometheus
+```
+
+**Example output:**
+
+```
+╭──────────────────╮
+│ Generation Plan  │
+╰──────────────────╯
+
+Stack: compose
+
+Overlays Selected:
+  ✓ nodejs (Node.js)
+  ✓ postgres (PostgreSQL)
+  ✓ grafana (Grafana)
+  ✓ prometheus (Prometheus)
+
+Port Mappings:
+  postgres: 5432
+  grafana: 3000
+  prometheus: 9090
+
+Files to Create/Modify:
+  .devcontainer/
+    📄 .env.example
+    📄 README.md
+    📄 devcontainer.json
+    📄 docker-compose.yml
+    📄 global-packages-nodejs.txt
+    📄 ports.json
+    📄 superposition.json
+  .devcontainer/scripts/
+    📄 setup-nodejs.sh
+    📄 verify-grafana.sh
+    📄 verify-nodejs.sh
+    📄 verify-postgres.sh
+    📄 verify-prometheus.sh
+
+✓ No conflicts detected. Ready to generate!
+```
+
+This gives you full visibility into the configuration before any files are created.
+
 ## 🎯 Purpose
 
 Container Superposition provides a **modular, overlay-based system** for building devcontainer configurations. Start with a minimal base template, then compose it with language frameworks, databases, observability tools, and cloud utilities to create your ideal development environment.
@@ -333,7 +402,7 @@ npx container-superposition doctor --fix
 
 **Doctor checks:**
 
-- ✅ Node.js version compatibility (>= 18)
+- ✅ Node.js version compatibility (>= 20)
 - ✅ Docker daemon connectivity
 - ✅ Docker Compose v2 availability (when using compose stack)
 - ✅ Overlay integrity (valid manifests, required files)
@@ -346,7 +415,7 @@ npx container-superposition doctor --fix
 🔍 Running diagnostics...
 
 Environment:
-  ✓ Node.js version: v20.10.0 (>= 18.0.0 required)
+  ✓ Node.js version: v20.10.0 (>= 20.0.0 required)
   ✓ Docker daemon: Docker version 24.0.5
   ✓ Docker Compose: v2.23.0 (v2 required)
 
@@ -482,22 +551,140 @@ The tool automatically validates overlay compatibility and warns you when select
 - Environment-specific configuration
 - Compatibility rules and best practices
 
-### Regenerating from Manifest
+### Overlay Compatibility Matrix
 
-Every devcontainer generation creates a `superposition.json` manifest file that records your configuration choices. You can use this manifest to:
+Common overlays and their compatibility with different deployment targets:
 
-- **Iterate on your setup** - Modify overlay selections and regenerate
-- **Update to latest** - Regenerate with newer overlay versions
-- **Experiment safely** - Try different configurations with automatic backup
-- **Share configurations** - Commit the manifest for team consistency
+| Overlay              | Local | Codespaces | Gitpod | Notes                                    |
+| -------------------- | ----- | ---------- | ------ | ---------------------------------------- |
+| **docker-sock**      | ✅    | ❌         | ❌     | Requires host Docker socket (local only) |
+| **docker-in-docker** | ✅    | ✅         | ✅     | Slower but portable                      |
+| **postgres**         | ✅    | ✅         | ✅     |                                          |
+| **redis**            | ✅    | ✅         | ✅     |                                          |
+| **mysql**            | ✅    | ✅         | ✅     |                                          |
+| **mongodb**          | ✅    | ✅         | ✅     |                                          |
+| **sqlserver**        | ✅    | ✅         | ✅     | Needs memory (>2GB recommended)          |
+| **rabbitmq**         | ✅    | ✅         | ✅     |                                          |
+| **grafana**          | ✅    | ✅         | ✅     |                                          |
+| **prometheus**       | ✅    | ✅         | ✅     |                                          |
+| **jaeger**           | ✅    | ✅         | ✅     |                                          |
+| **playwright**       | ✅    | ✅         | ✅     | Requires browser dependencies            |
+| **aws-cli**          | ✅    | ✅         | ✅     | CLI tools work everywhere                |
+| **kubectl-helm**     | ✅    | ✅         | ✅     |                                          |
+| **terraform**        | ✅    | ✅         | ✅     |                                          |
+
+**Legend:**
+
+- ✅ Fully supported
+- ❌ Not supported (technical limitation)
+
+The `--target` flag enables automatic validation during generation.
+
+## ⚠️ Security Considerations
+
+**Important:** Container Superposition is designed for **development environments only**. Be aware of these security implications:
+
+### docker-sock Overlay
+
+- **⚠️ Risk:** Provides **root-level access** to host Docker daemon
+- **⚠️ Limitation:** Not supported in GitHub Codespaces (requires local Docker)
+- **✅ Alternative:** Use `docker-in-docker` for isolation and portability
+- **✅ When to use:** Local development only, trusted code only
+
+**Why this matters:**
+
+Mounting `/var/run/docker.sock` gives the container full control over the host's Docker daemon. A compromised container could:
+
+- Access your entire filesystem via volume mounts
+- Create privileged containers
+- Effectively gain root access to your host machine
+
+**Best practices:**
+
+- ✅ Only use on your local development machine
+- ✅ Never use in multi-tenant or production environments
+- ✅ Audit containers created from within the devcontainer
+- ❌ Don't use with untrusted code or dependencies
+
+### Database Default Credentials
+
+All database overlays (PostgreSQL, Redis, MySQL, etc.) use **development-only default credentials**:
+
+- Default passwords like `postgres`, `redis`, `admin`
+- No authentication enabled by default (where applicable)
+- Designed for local development convenience
+
+**Best practices:**
+
+- ✅ Change default passwords for any networked testing
+- ✅ Never expose database ports publicly
+- ✅ Use `.env` (gitignored) for custom credentials
+- ❌ Never commit real credentials to version control
+
+### Environment Files
+
+- **`.env.example`** - Committed to git, contains templates and defaults
+- **`.env`** - Gitignored, contains your actual values (may include secrets)
+
+**Best practices:**
+
+- ✅ Copy `.env.example` to `.env` and customize
+- ✅ Use placeholder values in `.env.example` (`CHANGEME`, `your-key-here`)
+- ✅ Verify `.env` is in `.gitignore` before committing
+- ❌ Never commit `.env` files with real credentials
+
+### General Security Principles
+
+- **Development only** - These configurations are optimized for developer productivity, not security
+- **Local networks** - Keep devcontainer services on local networks, don't expose to internet
+- **Update regularly** - Keep base images and overlays up to date
+- **Audit dependencies** - Be aware of what's installed in your devcontainer
+
+See individual overlay READMEs (especially [docker-sock](overlays/docker-sock/README.md)) for specific security considerations.
+
+### Safe Upgrade and Regeneration
+
+Every devcontainer generation creates a `superposition.json` manifest file that records your configuration choices. This manifest is the key to safe updates and iterations.
+
+**Why the manifest exists:**
+
+- **🔄 Reproducibility** - Recreate exact same configuration on any machine
+- **⬆️ Upgrades** - Pull latest overlay improvements without starting from scratch
+- **🧪 Experimentation** - Try different configurations with automatic backup
+- **👥 Team Sharing** - Commit the manifest for consistent team environments
+
+**When to regenerate (regen) vs manual edit:**
+
+| Scenario                           | Use                    | Why                                          |
+| ---------------------------------- | ---------------------- | -------------------------------------------- |
+| Update to latest overlay versions  | `regen`                | Get bug fixes and improvements automatically |
+| Add/remove overlays                | `init --from-manifest` | Let the tool handle merge complexity         |
+| Change port offset                 | `init --from-manifest` | Automatic port recalculation                 |
+| Tweak VS Code settings             | Manual edit            | Simple JSON change, no regeneration needed   |
+| Add custom script                  | Manual edit            | Direct file addition                         |
+| Fix specific devcontainer bug      | Manual edit            | Quick fix without full regeneration          |
+| Switch base image                  | `init --from-manifest` | Template dependencies may change             |
+| Your project evolved significantly | `init` (fresh)         | Clean slate with new requirements            |
 
 **Quick regeneration (recommended):**
 
 ```bash
-# Simple regen command - automatically finds manifest in .devcontainer/
+# Simple regen command - automatically finds manifest in .devcontainer/ or project root
 npx container-superposition regen
 
 # Creates backup and regenerates with exact same settings from manifest
+# Perfect for updating to latest overlay versions
+```
+
+**Update to latest version and regenerate:**
+
+```bash
+# Update the tool and regenerate in one go
+npx container-superposition@latest regen
+
+# Or update globally first
+npm update -g container-superposition
+container-superposition regen
 ```
 
 **Interactive regeneration with changes:**
@@ -562,6 +749,175 @@ npx container-superposition init --from-manifest ./.devcontainer/superposition.j
 - Container name
 
 See [tool/README.md](tool/README.md) for full documentation.
+
+## 📂 Filesystem Contract
+
+Understanding what Container Superposition writes and where helps you manage your devcontainer configuration effectively.
+
+### What Gets Written Where
+
+**Generated by the tool:**
+
+```
+your-project/
+├── .devcontainer/               # Main devcontainer directory
+│   ├── devcontainer.json        # Container configuration
+│   ├── docker-compose.yml       # Services (if using compose stack)
+│   ├── .env.example             # Environment variable templates
+│   ├── ports.json               # Port documentation and connection strings
+│   ├── scripts/                 # Setup and verification scripts
+│   │   ├── post-create.sh       # Runs once when container is created
+│   │   └── post-start.sh        # Runs every time container starts
+│   └── custom/                  # Your customizations (preserved across regen)
+│       ├── devcontainer.patch.json
+│       └── docker-compose.patch.yml
+├── superposition.json           # Manifest file (enables regeneration)
+└── .devcontainer.backup-*/      # Automatic backups (gitignored)
+```
+
+### Files You Should Customize
+
+**After generation:**
+
+- **`.env`** - Copy from `.env.example`, add your actual values
+- **`.devcontainer/custom/`** - Add your project-specific patches here
+
+**Direct edits (survive regeneration):**
+
+- `.devcontainer/custom/devcontainer.patch.json` - Extra devcontainer settings
+- `.devcontainer/custom/docker-compose.patch.yml` - Additional services
+- `.devcontainer/custom/environment.env` - Extra environment variables
+- `.devcontainer/custom/scripts/*` - Custom setup scripts
+
+**Direct edits (lost on regeneration):**
+
+- `.devcontainer/devcontainer.json` - Regenerated from overlays
+- `.devcontainer/docker-compose.yml` - Regenerated from overlays
+- `.devcontainer/scripts/` - Regenerated from overlays
+
+### Files You Should Commit
+
+**Essential for team collaboration:**
+
+- ✅ `superposition.json` - Enables `regen` command
+- ✅ `.devcontainer/` - The generated configuration (team shares setup)
+- ✅ `.env.example` - Template for environment variables
+- ✅ `.devcontainer/custom/` - Your project-specific customizations
+
+**Only for certain workflows:**
+
+- ⚠️ `superposition.json` only - See [Team Workflow](docs/team-workflow.md) for manifest-only pattern
+
+### Files in .gitignore
+
+**Automatically added to your `.gitignore`:**
+
+```gitignore
+# Environment secrets (never commit)
+.env
+.devcontainer/.env
+
+# Regeneration backups (local only)
+.devcontainer.backup-*
+```
+
+### Workflow Examples
+
+**Individual developer:**
+
+```bash
+# 1. Generate devcontainer
+npx container-superposition init --preset web-api --language nodejs
+
+# 2. Customize .env from template
+cp .devcontainer/.env.example .devcontainer/.env
+# Edit .env with your values
+
+# 3. Add project-specific customization
+mkdir -p .devcontainer/custom
+echo '{"customizations": {"vscode": {"extensions": ["eamodio.gitlens"]}}}' > .devcontainer/custom/devcontainer.patch.json
+
+# 4. Commit everything except .env
+git add .devcontainer/ superposition.json
+git commit -m "Add devcontainer configuration"
+```
+
+**Team collaboration:**
+
+```bash
+# Developer 1: Create and commit
+npx container-superposition init --preset web-api --language nodejs
+git add superposition.json .devcontainer/
+git commit -m "Add devcontainer"
+
+# Developer 2: Clone and use
+git clone repo
+code .
+# VS Code: "Reopen in Container"
+cp .devcontainer/.env.example .devcontainer/.env
+# Customize .env with your values
+
+# Developer 1: Update to add Redis
+npx container-superposition init --from-manifest superposition.json
+# Add redis in questionnaire
+git add superposition.json .devcontainer/
+git commit -m "Add Redis to devcontainer"
+
+# Developer 2: Pull and regenerate
+git pull
+npx container-superposition regen
+# VS Code: "Rebuild Container"
+```
+
+See **[Team Workflow Guide](docs/team-workflow.md)** for manifest-only workflow and CI integration.
+
+## 📚 Examples
+
+Real-world reference configurations to help you get started quickly.
+
+### [Web API (Node.js)](examples/web-api-node/)
+
+Full-stack web API with complete observability:
+
+- **Stack**: Node.js + PostgreSQL + Redis
+- **Observability**: OpenTelemetry Collector + Prometheus + Grafana + Loki
+- **Use case**: Production-ready web API development
+
+Each example includes a `superposition.json` manifest. To use:
+
+```bash
+cd examples/web-api-node
+npx container-superposition regen
+code .
+# Reopen in Container
+```
+
+### [.NET Microservice](examples/dotnet-service/)
+
+Microservice with distributed tracing and monitoring:
+
+- **Stack**: .NET + PostgreSQL
+- **Observability**: OpenTelemetry Collector + Jaeger + Prometheus
+- **Use case**: Microservice development with full observability
+
+```bash
+cd examples/dotnet-service
+npx container-superposition regen
+code .
+# Reopen in Container
+```
+
+Each example includes:
+
+- ✅ `superposition.json` manifest for regeneration
+- ✅ Complete documentation on services and usage
+- ✅ Instructions for extending and customizing
+
+**Want to create your own?** Generate a manifest with:
+
+```bash
+npx container-superposition init --stack compose --language nodejs --database postgres
+```
 
 ### Preserving Project-Specific Customizations
 

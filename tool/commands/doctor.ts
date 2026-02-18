@@ -76,7 +76,7 @@ function isVersionAtLeast(current: string, required: string): boolean {
  */
 function checkNodeVersion(): CheckResult {
     const nodeVersion = process.version;
-    const requiredVersion = '18.0.0';
+    const requiredVersion = '20.0.0';
     const versionMatch = nodeVersion.match(/^v(\d+\.\d+\.\d+)/);
     const currentVersion = versionMatch ? versionMatch[1] : '0.0.0';
     const ok = isVersionAtLeast(currentVersion, requiredVersion);
@@ -90,7 +90,7 @@ function checkNodeVersion(): CheckResult {
         details: ok
             ? undefined
             : [
-                  'Update Node.js to version 18 or later',
+                  'Update Node.js to version 20 or later',
                   'Visit https://nodejs.org/ to download the latest version',
               ],
     };
