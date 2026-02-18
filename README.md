@@ -26,6 +26,55 @@ code .
 
 **That's it!** Your devcontainer is ready. Jump to [Quick Start](#-quick-start) for more options or [Examples](#-examples) for real-world references.
 
+### 👁️ Preview Before You Commit
+
+Use the `plan` command to see exactly what will be created:
+
+```bash
+npx container-superposition plan --stack compose --overlays nodejs,postgres,grafana,prometheus
+```
+
+**Example output:**
+
+```
+╭──────────────────╮
+│ Generation Plan  │
+╰──────────────────╯
+
+Stack: compose
+
+Overlays Selected:
+  ✓ nodejs (Node.js)
+  ✓ postgres (PostgreSQL)
+  ✓ grafana (Grafana)
+  ✓ prometheus (Prometheus)
+
+Port Mappings:
+  postgres: 5432
+  grafana: 3000
+  prometheus: 9090
+
+Files to Create/Modify:
+  .devcontainer/
+    📄 .env.example
+    📄 README.md
+    📄 devcontainer.json
+    📄 docker-compose.yml
+    📄 global-packages-nodejs.txt
+    📄 ports.json
+    📄 superposition.json
+  .devcontainer/scripts/
+    📄 setup-nodejs.sh
+    📄 verify-grafana.sh
+    📄 verify-nodejs.sh
+    📄 verify-postgres.sh
+    📄 verify-prometheus.sh
+
+✓ No conflicts detected. Ready to generate!
+```
+
+This gives you full visibility into the configuration before any files are created.
+
 ## 🎯 Purpose
 
 Container Superposition provides a **modular, overlay-based system** for building devcontainer configurations. Start with a minimal base template, then compose it with language frameworks, databases, observability tools, and cloud utilities to create your ideal development environment.
@@ -821,6 +870,51 @@ npx container-superposition regen
 ```
 
 See **[Team Workflow Guide](docs/team-workflow.md)** for manifest-only workflow and CI integration.
+
+## 📚 Examples
+
+Real-world reference configurations to help you get started quickly.
+
+### [Web API (Node.js)](examples/web-api-node/)
+
+Full-stack web API with complete observability:
+
+- **Stack**: Node.js + PostgreSQL + Redis
+- **Observability**: OpenTelemetry Collector + Prometheus + Grafana + Loki
+- **Use case**: Production-ready web API development
+
+```bash
+cd examples/web-api-node
+code .
+# Reopen in Container
+```
+
+### [.NET Microservice](examples/dotnet-service/)
+
+Microservice with distributed tracing and monitoring:
+
+- **Stack**: .NET + PostgreSQL
+- **Observability**: OpenTelemetry Collector + Jaeger + Prometheus
+- **Use case**: Microservice development with full observability
+
+```bash
+cd examples/dotnet-service
+code .
+# Reopen in Container
+```
+
+Each example includes:
+
+- ✅ Fully configured `.devcontainer/` ready to use
+- ✅ `superposition.json` manifest for regeneration
+- ✅ Complete documentation on services and ports
+- ✅ Instructions for extending and customizing
+
+**Want to create your own?** Use the examples as templates or generate fresh with:
+
+```bash
+npx container-superposition init --stack compose --language nodejs --database postgres
+```
 
 ### Preserving Project-Specific Customizations
 
