@@ -333,7 +333,7 @@ npx container-superposition doctor --fix
 
 **Doctor checks:**
 
-- ✅ Node.js version compatibility (>= 18)
+- ✅ Node.js version compatibility (>= 20)
 - ✅ Docker daemon connectivity
 - ✅ Docker Compose v2 availability (when using compose stack)
 - ✅ Overlay integrity (valid manifests, required files)
@@ -346,7 +346,7 @@ npx container-superposition doctor --fix
 🔍 Running diagnostics...
 
 Environment:
-  ✓ Node.js version: v20.10.0 (>= 18.0.0 required)
+  ✓ Node.js version: v20.10.0 (>= 20.0.0 required)
   ✓ Docker daemon: Docker version 24.0.5
   ✓ Docker Compose: v2.23.0 (v2 required)
 
