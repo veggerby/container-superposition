@@ -40,6 +40,7 @@ import {
     SUPPORTED_MANIFEST_VERSIONS,
 } from '../tool/schema/manifest-migrations.js';
 import { getToolVersion } from '../tool/utils/version.js';
+import { printSummary } from '../tool/utils/summary.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1438,12 +1439,14 @@ async function main() {
         }
 
         // Create backup if needed
+        let actualBackupPath: string | undefined;
         if (shouldBackup && manifest) {
             // Output path is the directory containing the manifest
             const outputPath = manifestDir || './.devcontainer';
 
             const backupPath = await createBackup(outputPath, backupDir);
             if (backupPath) {
+                actualBackupPath = backupPath;
                 console.log(chalk.green(`✓ Backup created: ${backupPath}\n`));
                 await ensureBackupPatternsInGitignore(outputPath);
             }
@@ -1451,6 +1454,7 @@ async function main() {
 
         // Build answers based on mode
         let answers: QuestionnaireAnswers;
+        const isRegen = !!manifest;
 
         // Check if there are CLI overrides beyond just output path
         const hasCliOverrides =
@@ -1583,13 +1587,22 @@ async function main() {
         }).start();
 
         try {
+            let summary;
             if (isManifestOnly) {
-                await generateManifestOnly(answers);
+                summary = await generateManifestOnly(answers, undefined, { isRegen });
                 spinner.succeed(chalk.green('Manifest created successfully!'));
             } else {
-                await composeDevContainer(answers);
+                summary = await composeDevContainer(answers, undefined, { isRegen });
                 spinner.succeed(chalk.green('DevContainer created successfully!'));
             }
+
+            // Update summary with backup path and regen status
+            if (actualBackupPath) {
+                summary.backupPath = actualBackupPath;
+            }
+
+            // Print comprehensive summary
+            printSummary(summary);
         } catch (error) {
             spinner.fail(
                 chalk.red(
@@ -1598,35 +1611,6 @@ async function main() {
             );
             throw error;
         }
-
-        // Success message
-        const successMessage = isManifestOnly
-            ? chalk.bold.green('✓ Manifest Created!\n\n') +
-              chalk.white('Next steps:\n') +
-              chalk.gray('  1. Review the generated superposition.json file\n') +
-              chalk.gray('  2. Commit it to your repository\n') +
-              chalk.gray('  3. Team members can run "npx container-superposition regen"\n\n') +
-              chalk.dim(
-                  'Team workflow: commit manifest, .gitignore .devcontainer/, customize with .devcontainer/custom/'
-              )
-            : chalk.bold.green('✓ Setup Complete!\n\n') +
-              chalk.white('Next steps:\n') +
-              chalk.gray('  1. Review the generated .devcontainer/ folder\n') +
-              chalk.gray("  2. Customize as needed (it's just normal JSON!)\n") +
-              chalk.gray('  3. Open in VS Code and rebuild container\n\n') +
-              chalk.dim(
-                  'The generated configuration is fully editable and independent of this tool.'
-              );
-
-        console.log(
-            '\n' +
-                boxen(successMessage, {
-                    padding: 1,
-                    borderColor: 'green',
-                    borderStyle: 'double',
-                    margin: 1,
-                })
-        );
     } catch (error) {
         console.error(
             '\n' +

@@ -32,6 +32,14 @@ import {
     applyPortOffsetToEnv,
 } from '../utils/merge.js';
 import { generatePortsDocumentation } from '../utils/port-utils.js';
+import type { GenerationSummary } from '../utils/summary.js';
+import {
+    detectWarnings,
+    generateTips,
+    generateNextSteps,
+    overlaysToServices,
+    portsToPortInfo,
+} from '../utils/summary.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1163,8 +1171,9 @@ function copyCustomFiles(
  */
 export async function generateManifestOnly(
     answers: QuestionnaireAnswers,
-    overlaysDir?: string
-): Promise<void> {
+    overlaysDir?: string,
+    options: { isRegen?: boolean } = {}
+): Promise<GenerationSummary> {
     // Prepare overlays using shared logic
     const { overlays: resolvedOverlays, autoResolved } = prepareOverlaysForGeneration(
         answers,
@@ -1191,6 +1200,37 @@ export async function generateManifestOnly(
             '  Commit this manifest to your repository and let team members run "npx container-superposition regen"'
         )
     );
+
+    // Load overlay configs to get metadata
+    const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
+    const indexYmlPath = path.join(actualOverlaysDir, 'index.yml');
+    const overlaysConfig = loadOverlaysConfig(actualOverlaysDir, indexYmlPath);
+    const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
+    const overlayMetadataMap = new Map<string, OverlayMetadata>(
+        allOverlayDefs.map((o) => [o.id, o])
+    );
+    const selectedOverlayMetadata = resolvedOverlays
+        .map((id) => overlayMetadataMap.get(id))
+        .filter((m): m is OverlayMetadata => m !== undefined);
+
+    // Return summary for manifest-only mode
+    const services = overlaysToServices(selectedOverlayMetadata);
+    const warnings = detectWarnings(selectedOverlayMetadata, answers);
+    const tips = generateTips(selectedOverlayMetadata, answers);
+    const nextSteps = generateNextSteps(true, options.isRegen === true);
+
+    return {
+        files: ['superposition.json'],
+        services,
+        ports: [],
+        warnings,
+        tips,
+        nextSteps,
+        portOffset: answers.portOffset ?? 0,
+        target: answers.target || 'local',
+        isManifestOnly: true,
+        manifestPath: path.join(outputPath, 'superposition.json'),
+    };
 }
 
 /**
@@ -1198,8 +1238,9 @@ export async function generateManifestOnly(
  */
 export async function composeDevContainer(
     answers: QuestionnaireAnswers,
-    overlaysDir?: string
-): Promise<void> {
+    overlaysDir?: string,
+    options: { isRegen?: boolean } = {}
+): Promise<GenerationSummary> {
     // Prepare overlays using shared logic
     const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
     const {
@@ -1479,27 +1520,33 @@ export async function composeDevContainer(
 
     // 17. Generate ports.json documentation
     const portOffset = answers.portOffset ?? 0;
-    if (portOffset > 0 || overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length)) {
-        console.log(chalk.cyan('\n📡 Generating ports documentation...'));
 
-        const selectedOverlayMetadata = overlays
-            .map((id) => overlayMetadataMap.get(id))
-            .filter((m): m is OverlayMetadata => m !== undefined);
+    // Prepare overlay metadata for summary
+    const selectedOverlayMetadata = overlays
+        .map((id) => overlayMetadataMap.get(id))
+        .filter((m): m is OverlayMetadata => m !== undefined);
 
-        // Extract environment variables from .env.example for connection strings
-        const envPath = path.join(outputPath, '.env.example');
-        const envVars: Record<string, string> = {};
-        if (fs.existsSync(envPath)) {
-            const envContent = fs.readFileSync(envPath, 'utf8');
-            for (const line of envContent.split('\n')) {
-                const match = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
-                if (match) {
-                    envVars[match[1].toLowerCase()] = match[2];
-                }
+    // Extract environment variables from .env.example for connection strings
+    const envPath = path.join(outputPath, '.env.example');
+    const envVars: Record<string, string> = {};
+    if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        for (const line of envContent.split('\n')) {
+            const match = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+            if (match) {
+                envVars[match[1].toLowerCase()] = match[2];
             }
         }
+    }
 
-        const portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
+    const hasOverlayPorts = overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length);
+    const shouldGeneratePortsDocumentation = portOffset > 0 || hasOverlayPorts;
+    let portsDoc: PortsDocumentation | null = null;
+
+    if (shouldGeneratePortsDocumentation) {
+        console.log(chalk.cyan('\n📡 Generating ports documentation...'));
+
+        portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
 
         const portsPath = path.join(outputPath, 'ports.json');
         fs.writeFileSync(portsPath, JSON.stringify(portsDoc, null, 2) + '\n');
@@ -1521,6 +1568,31 @@ export async function composeDevContainer(
 
     // 18. Clean up stale files from previous runs (preserves superposition.json and .env)
     cleanupStaleFiles(outputPath, fileRegistry);
+
+    // 19. Generate and return summary
+    const files = Array.from(fileRegistry.getFiles());
+    const services = overlaysToServices(selectedOverlayMetadata);
+
+    const portInfos = portsDoc
+        ? portsToPortInfo(portsDoc.ports, portsDoc.connectionStrings || {})
+        : [];
+
+    const warnings = detectWarnings(selectedOverlayMetadata, answers);
+    const tips = generateTips(selectedOverlayMetadata, answers);
+    const nextSteps = generateNextSteps(false, options.isRegen === true);
+
+    return {
+        files,
+        services,
+        ports: portInfos,
+        warnings,
+        tips,
+        nextSteps,
+        portOffset: answers.portOffset ?? 0,
+        target: answers.target || 'local',
+        isManifestOnly: false,
+        manifestPath: path.join(outputPath, 'superposition.json'),
+    };
 }
 
 /**
