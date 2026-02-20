@@ -7,22 +7,25 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import boxen from 'boxen';
-import type { OverlayMetadata, OverlaysConfig, Stack } from '../schema/types.js';
+import type { DevContainer, OverlayMetadata, OverlaysConfig, Stack } from '../schema/types.js';
 import { extractPorts } from '../utils/port-utils.js';
-import { deepMerge } from '../utils/merge.js';
+import { applyOverlay } from '../questionnaire/composer.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Resolve TEMPLATES_DIR that works in both source and compiled output
+// Resolve TEMPLATES_DIR that works in both source and compiled output.
+// Validate each candidate by checking for a known template file.
+const EXPECTED_TEMPLATE_SUBPATH = path.join('compose', '.devcontainer', 'devcontainer.json');
 const TEMPLATES_DIR_CANDIDATES = [
-    path.join(__dirname, '..', '..', 'templates'), // From source: tool/commands -> root
-    path.join(__dirname, '..', '..', '..', 'templates'), // From dist: dist/tool/commands -> root
+    path.join(__dirname, '..', '..', 'templates'), // From source: tool/commands -> root/templates
+    path.join(__dirname, '..', '..', '..', 'templates'), // From dist: dist/tool/commands -> root/templates
 ];
 const TEMPLATES_DIR =
-    TEMPLATES_DIR_CANDIDATES.find((candidate) => fs.existsSync(candidate)) ??
-    TEMPLATES_DIR_CANDIDATES[0];
+    TEMPLATES_DIR_CANDIDATES.find((candidate) =>
+        fs.existsSync(path.join(candidate, EXPECTED_TEMPLATE_SUBPATH))
+    ) ?? TEMPLATES_DIR_CANDIDATES[0];
 
 interface PlanOptions {
     stack?: Stack;
@@ -57,7 +60,8 @@ export interface PlanDiffResult {
     existingPath: string;
     hasExistingConfig: boolean;
     created: string[];
-    modified: FileDiffEntry[];
+    modified: FileDiffEntry[]; // files with a computed unified diff
+    overwritten: string[]; // files that exist but content could not be compared
     unchanged: string[];
     preserved: string[];
     removed: string[];
@@ -243,7 +247,7 @@ function generateUnifiedDiff(
 
 /**
  * Compute the approximate planned devcontainer.json content by loading the
- * base template and applying each overlay's devcontainer.patch.json.
+ * base template and applying each overlay using the same logic as the composer.
  * This mirrors the core of composeDevContainer without writing to disk.
  */
 function computePlannedDevcontainerJson(
@@ -255,18 +259,10 @@ function computePlannedDevcontainerJson(
         const basePath = path.join(TEMPLATES_DIR, stack, '.devcontainer', 'devcontainer.json');
         if (!fs.existsSync(basePath)) return null;
 
-        let config: Record<string, unknown> = JSON.parse(fs.readFileSync(basePath, 'utf8'));
+        let config: DevContainer = JSON.parse(fs.readFileSync(basePath, 'utf8'));
 
         for (const id of overlayIds) {
-            const patchPath = path.join(overlaysDir, id, 'devcontainer.patch.json');
-            if (!fs.existsSync(patchPath)) continue;
-
-            const patch: Record<string, unknown> = JSON.parse(fs.readFileSync(patchPath, 'utf8'));
-
-            // Remove schema field (not part of generated output)
-            delete patch.$schema;
-
-            config = deepMerge(config, patch);
+            config = applyOverlay(config, id, overlaysDir);
         }
 
         return JSON.stringify(config, null, 2);
@@ -369,19 +365,18 @@ export function generatePlanDiff(
     // ── File status ──────────────────────────────────────────────────────────
     const created: string[] = [];
     const modified: FileDiffEntry[] = [];
+    const overwritten: string[] = []; // files that exist but content was not compared
     const unchanged: string[] = [];
 
-    // Use relative paths for display: prefer cwd-relative paths but fall back to
+    // Helper: produce a display path preferring cwd-relative, falling back to
     // paths relative to existingPath's parent (e.g., ".devcontainer/file.json").
     const existingParent = path.dirname(path.resolve(existingPath));
-    const relFiles = plan.files.map((f) => {
-        const abs = path.isAbsolute(f) ? f : path.resolve(f);
+    const toDisplayPath = (abs: string): string => {
         const cwdRel = path.relative(process.cwd(), abs);
-        // Use cwd-relative path only if it doesn't go upwards
-        if (!cwdRel.startsWith('..')) return cwdRel;
-        // Fall back to path relative to parent of existingPath
-        return path.relative(existingParent, abs);
-    });
+        return cwdRel.startsWith('..') ? path.relative(existingParent, abs) : cwdRel;
+    };
+
+    const relFiles = plan.files.map((f) => toDisplayPath(path.isAbsolute(f) ? f : path.resolve(f)));
 
     for (let idx = 0; idx < plan.files.length; idx++) {
         const absFile = plan.files[idx];
@@ -392,8 +387,9 @@ export function generatePlanDiff(
             continue;
         }
 
-        // File exists – check if content would change
-        // We only compute actual diffs for devcontainer.json
+        // File exists – compute a real diff only for devcontainer.json where we
+        // can reconstruct the planned content. All other existing files are marked
+        // as "overwritten" since we don't have their planned content.
         const basename = path.basename(absFile);
         if (basename === 'devcontainer.json') {
             const existingContent = fs.readFileSync(absFile, 'utf8');
@@ -404,7 +400,7 @@ export function generatePlanDiff(
             );
 
             if (plannedContent === null) {
-                modified.push({ path: relFile });
+                overwritten.push(relFile);
             } else if (plannedContent.trimEnd() === existingContent.trimEnd()) {
                 unchanged.push(relFile);
             } else {
@@ -417,8 +413,8 @@ export function generatePlanDiff(
                 modified.push({ path: relFile, diff: diff || undefined });
             }
         } else {
-            // For all other files, mark as "modified" without a content diff
-            modified.push({ path: relFile });
+            // Content not compared – will be overwritten on next generation
+            overwritten.push(relFile);
         }
     }
 
@@ -430,11 +426,7 @@ export function generatePlanDiff(
             const entries = fs.readdirSync(customDir, { withFileTypes: true });
             for (const entry of entries) {
                 if (entry.isFile()) {
-                    const abs = path.join(customDir, entry.name);
-                    const cwdRel = path.relative(process.cwd(), abs);
-                    preserved.push(
-                        cwdRel.startsWith('..') ? path.relative(existingParent, abs) : cwdRel
-                    );
+                    preserved.push(toDisplayPath(path.join(customDir, entry.name)));
                 }
             }
         } catch {
@@ -442,29 +434,45 @@ export function generatePlanDiff(
         }
     }
 
-    // ── Removed files (exist in existing dir but not in plan) ────────────────
+    // ── Removed files: walk the existing dir recursively and compare relative paths ──
     const removed: string[] = [];
     if (existsDir) {
         try {
-            const existingFiles = fs.readdirSync(existingPath, { withFileTypes: true });
-            const plannedBasenames = new Set(plan.files.map((f) => path.basename(f)));
-            // Skip files that are user-managed (superposition.json, .env) or not
-            // tracked as plain files (custom/ directory, ports.json documentation)
-            const skipFiles = new Set(['superposition.json', '.env', 'custom', 'ports.json']);
+            // Build a set of planned paths relative to existingPath for accurate comparison
+            const absExisting = path.resolve(existingPath);
+            const plannedRelPaths = new Set(
+                plan.files.map((f) =>
+                    path.normalize(
+                        path.relative(absExisting, path.isAbsolute(f) ? f : path.resolve(f))
+                    )
+                )
+            );
 
-            for (const entry of existingFiles) {
-                if (
-                    entry.isFile() &&
-                    !skipFiles.has(entry.name) &&
-                    !plannedBasenames.has(entry.name)
-                ) {
-                    const abs = path.join(existingPath, entry.name);
-                    const cwdRel = path.relative(process.cwd(), abs);
-                    removed.push(
-                        cwdRel.startsWith('..') ? path.relative(existingParent, abs) : cwdRel
-                    );
+            // Files to skip regardless (user-managed or auto-generated docs)
+            const skipTopLevel = new Set(['superposition.json', '.env', 'ports.json']);
+
+            const walkExisting = (dir: string) => {
+                const entries = fs.readdirSync(dir, { withFileTypes: true });
+                for (const entry of entries) {
+                    const abs = path.join(dir, entry.name);
+                    const relFromRoot = path.normalize(path.relative(absExisting, abs));
+                    const segments = relFromRoot.split(path.sep);
+
+                    // Skip the custom/ directory entirely (preserved separately)
+                    if (segments[0] === 'custom') continue;
+
+                    // Skip specific top-level user-managed files
+                    if (segments.length === 1 && skipTopLevel.has(entry.name)) continue;
+
+                    if (entry.isDirectory()) {
+                        walkExisting(abs);
+                    } else if (entry.isFile() && !plannedRelPaths.has(relFromRoot)) {
+                        removed.push(toDisplayPath(abs));
+                    }
                 }
-            }
+            };
+
+            walkExisting(absExisting);
         } catch {
             // ignore
         }
@@ -475,6 +483,7 @@ export function generatePlanDiff(
         hasExistingConfig: existsDir,
         created,
         modified,
+        overwritten,
         unchanged,
         preserved,
         removed,
@@ -534,6 +543,14 @@ function formatDiffAsText(diff: PlanDiffResult, contextLines = 3): string {
         lines.push(chalk.bold.yellow('Files to be modified:'));
         for (const f of diff.modified) {
             lines.push(`  ${chalk.yellow('~')} ${f.path}`);
+        }
+        lines.push('');
+    }
+
+    if (diff.overwritten.length > 0) {
+        lines.push(chalk.bold.yellow('Files to be overwritten:'));
+        for (const f of diff.overwritten) {
+            lines.push(`  ${chalk.yellow('~')} ${f} ${chalk.dim('(content not compared)')}`);
         }
         lines.push('');
     }

@@ -375,6 +375,7 @@ describe('Command Tests', () => {
             expect(parsed.hasExistingConfig).toBe(false);
             expect(Array.isArray(parsed.created)).toBe(true);
             expect(Array.isArray(parsed.modified)).toBe(true);
+            expect(Array.isArray(parsed.overwritten)).toBe(true);
             expect(Array.isArray(parsed.unchanged)).toBe(true);
             expect(Array.isArray(parsed.preserved)).toBe(true);
         });
@@ -430,6 +431,7 @@ describe('Command Tests', () => {
             expect(result.hasExistingConfig).toBe(false);
             expect(result.created).toEqual([]);
             expect(result.modified).toEqual([]);
+            expect(result.overwritten).toEqual([]);
             expect(result.unchanged).toEqual([]);
         });
 
@@ -520,6 +522,7 @@ describe('Command Tests', () => {
 
             expect(result.created.length).toBe(1);
             expect(result.modified.length).toBe(0);
+            expect(result.overwritten.length).toBe(0);
         });
 
         it('should list preserved files from custom directory', () => {
@@ -539,6 +542,47 @@ describe('Command Tests', () => {
 
             expect(result.preserved.length).toBe(1);
             expect(result.preserved[0]).toContain('patch.json');
+        });
+
+        it('should classify non-devcontainer.json files as overwritten (not modified)', () => {
+            const existingDir = path.join(tmpDir, 'dc');
+            fs.mkdirSync(existingDir, { recursive: true });
+            const existingReadme = path.join(existingDir, 'README.md');
+            fs.writeFileSync(existingReadme, '# old readme\n');
+
+            const plan = {
+                stack: 'plain' as const,
+                selectedOverlays: ['nodejs'],
+                autoAddedOverlays: [],
+                portMappings: [],
+                files: [existingReadme],
+            };
+
+            const result = generatePlanDiff(plan, overlaysConfig, OVERLAYS_DIR, existingDir);
+
+            // README.md exists but content is not compared → overwritten, not modified
+            expect(result.overwritten.some((p) => p.endsWith('README.md'))).toBe(true);
+            expect(result.modified.length).toBe(0);
+        });
+
+        it('should detect removed files recursively (nested scripts/)', () => {
+            const existingDir = path.join(tmpDir, 'dc');
+            fs.mkdirSync(path.join(existingDir, 'scripts'), { recursive: true });
+            // Create a stale script not in the plan
+            fs.writeFileSync(path.join(existingDir, 'scripts', 'setup-old.sh'), '#!/bin/bash\n');
+
+            const plan = {
+                stack: 'compose' as const,
+                selectedOverlays: [],
+                autoAddedOverlays: [],
+                portMappings: [],
+                files: [], // stale script is NOT in plan
+            };
+
+            const result = generatePlanDiff(plan, overlaysConfig, OVERLAYS_DIR, existingDir);
+
+            const removedPaths = result.removed.join('\n');
+            expect(removedPaths).toContain('setup-old.sh');
         });
     });
 
