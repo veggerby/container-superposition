@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { fileURLToPath } from 'url';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import { listCommand } from '../commands/list.js';
 import { explainCommand } from '../commands/explain.js';
-import { planCommand } from '../commands/plan.js';
+import { planCommand, generatePlanDiff } from '../commands/plan.js';
 import { doctorCommand } from '../commands/doctor.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -294,6 +296,249 @@ describe('Command Tests', () => {
             expect(consoleErrorSpy).toHaveBeenCalled();
             const errorOutput = consoleErrorSpy.mock.calls.join('\n');
             expect(errorOutput).toContain('Unknown overlay');
+        });
+    });
+
+    describe('planCommand --diff', () => {
+        let tmpDir: string;
+
+        beforeEach(() => {
+            tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-diff-test-'));
+        });
+
+        afterEach(() => {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        });
+
+        it('should show diff output when --diff flag is used (no existing config)', async () => {
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres,redis',
+                diff: true,
+                output: path.join(tmpDir, 'nonexistent'),
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Plan Diff');
+        });
+
+        it('should mark all files as created when no existing config', async () => {
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres',
+                diff: true,
+                output: path.join(tmpDir, 'nonexistent'),
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Files to be created');
+            expect(output).toContain('devcontainer.json');
+        });
+
+        it('should show overlay changes when existing superposition.json exists', async () => {
+            // Create a fake existing .devcontainer with superposition.json
+            const existingDir = path.join(tmpDir, 'existing');
+            fs.mkdirSync(existingDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(existingDir, 'superposition.json'),
+                JSON.stringify({ overlays: ['mongodb'] })
+            );
+
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres',
+                diff: true,
+                output: existingDir,
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Overlays');
+            expect(output).toContain('postgres');
+        });
+
+        it('should output JSON when --diff and --diff-format json are used', async () => {
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres',
+                diff: true,
+                diffFormat: 'json',
+                output: path.join(tmpDir, 'nonexistent'),
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls[0][0];
+            expect(() => JSON.parse(output)).not.toThrow();
+            const parsed = JSON.parse(output);
+            expect(parsed.hasExistingConfig).toBe(false);
+            expect(Array.isArray(parsed.created)).toBe(true);
+            expect(Array.isArray(parsed.modified)).toBe(true);
+            expect(Array.isArray(parsed.unchanged)).toBe(true);
+            expect(Array.isArray(parsed.preserved)).toBe(true);
+        });
+
+        it('should show preserved files from custom/ directory', async () => {
+            const existingDir = path.join(tmpDir, 'existing');
+            fs.mkdirSync(path.join(existingDir, 'custom'), { recursive: true });
+            fs.writeFileSync(path.join(existingDir, 'custom', 'my-script.sh'), '#!/bin/bash\n');
+
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres',
+                diff: true,
+                output: existingDir,
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('preserved');
+            expect(output).toContain('my-script.sh');
+        });
+    });
+
+    describe('generatePlanDiff', () => {
+        let tmpDir: string;
+        let overlaysConfig: any;
+
+        beforeEach(() => {
+            tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-diff-unit-'));
+            overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+        });
+
+        afterEach(() => {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        });
+
+        it('should return hasExistingConfig=false for non-existent path', () => {
+            const plan = {
+                stack: 'compose' as const,
+                selectedOverlays: ['postgres'],
+                autoAddedOverlays: [],
+                portMappings: [{ overlay: 'postgres', ports: [5432], offsetPorts: [5432] }],
+                files: [],
+            };
+
+            const result = generatePlanDiff(
+                plan,
+                overlaysConfig,
+                OVERLAYS_DIR,
+                path.join(tmpDir, 'nonexistent')
+            );
+
+            expect(result.hasExistingConfig).toBe(false);
+            expect(result.created).toEqual([]);
+            expect(result.modified).toEqual([]);
+            expect(result.unchanged).toEqual([]);
+        });
+
+        it('should detect added overlays vs existing manifest', () => {
+            const existingDir = path.join(tmpDir, 'dc');
+            fs.mkdirSync(existingDir);
+            fs.writeFileSync(
+                path.join(existingDir, 'superposition.json'),
+                JSON.stringify({ overlays: ['nodejs'] })
+            );
+
+            const plan = {
+                stack: 'compose' as const,
+                selectedOverlays: ['nodejs', 'postgres'],
+                autoAddedOverlays: [],
+                portMappings: [{ overlay: 'postgres', ports: [5432], offsetPorts: [5432] }],
+                files: [],
+            };
+
+            const result = generatePlanDiff(plan, overlaysConfig, OVERLAYS_DIR, existingDir);
+
+            expect(result.hasExistingConfig).toBe(true);
+            const addedIds = result.overlayChanges.added.map((o) => o.id);
+            expect(addedIds).toContain('postgres');
+            expect(result.overlayChanges.unchanged).toContain('nodejs');
+        });
+
+        it('should detect removed overlays vs existing manifest', () => {
+            const existingDir = path.join(tmpDir, 'dc');
+            fs.mkdirSync(existingDir);
+            fs.writeFileSync(
+                path.join(existingDir, 'superposition.json'),
+                JSON.stringify({ overlays: ['nodejs', 'redis'] })
+            );
+
+            const plan = {
+                stack: 'compose' as const,
+                selectedOverlays: ['nodejs'],
+                autoAddedOverlays: [],
+                portMappings: [],
+                files: [],
+            };
+
+            const result = generatePlanDiff(plan, overlaysConfig, OVERLAYS_DIR, existingDir);
+
+            const removedIds = result.overlayChanges.removed.map((o) => o.id);
+            expect(removedIds).toContain('redis');
+        });
+
+        it('should detect added ports from new overlays', () => {
+            const existingDir = path.join(tmpDir, 'dc');
+            fs.mkdirSync(existingDir);
+            fs.writeFileSync(
+                path.join(existingDir, 'superposition.json'),
+                JSON.stringify({ overlays: [] })
+            );
+
+            const plan = {
+                stack: 'compose' as const,
+                selectedOverlays: ['postgres'],
+                autoAddedOverlays: [],
+                portMappings: [{ overlay: 'postgres', ports: [5432], offsetPorts: [5432] }],
+                files: [],
+            };
+
+            const result = generatePlanDiff(plan, overlaysConfig, OVERLAYS_DIR, existingDir);
+
+            const addedPorts = result.portChanges.added.map((p) => p.port);
+            expect(addedPorts).toContain(5432);
+        });
+
+        it('should identify created files when they do not exist', () => {
+            const existingDir = path.join(tmpDir, 'dc');
+            fs.mkdirSync(existingDir);
+
+            const newFile = path.join(existingDir, 'devcontainer.json');
+            // File does NOT exist
+
+            const plan = {
+                stack: 'compose' as const,
+                selectedOverlays: ['nodejs'],
+                autoAddedOverlays: [],
+                portMappings: [],
+                files: [newFile],
+            };
+
+            const result = generatePlanDiff(plan, overlaysConfig, OVERLAYS_DIR, existingDir);
+
+            expect(result.created.length).toBe(1);
+            expect(result.modified.length).toBe(0);
+        });
+
+        it('should list preserved files from custom directory', () => {
+            const existingDir = path.join(tmpDir, 'dc');
+            fs.mkdirSync(path.join(existingDir, 'custom'), { recursive: true });
+            fs.writeFileSync(path.join(existingDir, 'custom', 'patch.json'), '{}');
+
+            const plan = {
+                stack: 'compose' as const,
+                selectedOverlays: [],
+                autoAddedOverlays: [],
+                portMappings: [],
+                files: [],
+            };
+
+            const result = generatePlanDiff(plan, overlaysConfig, OVERLAYS_DIR, existingDir);
+
+            expect(result.preserved.length).toBe(1);
+            expect(result.preserved[0]).toContain('patch.json');
         });
     });
 
