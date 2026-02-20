@@ -12,13 +12,7 @@ tags: [preset, api, web, backend, observability]
 # Overlays to select
 selects:
     # Always included
-    required:
-        - postgres
-        - redis
-        - otel-collector
-        - prometheus
-        - grafana
-        - loki
+    required: []
 
     # User makes choices
     userChoice:
@@ -27,6 +21,67 @@ selects:
             prompt: Select API language/framework
             options: [dotnet, nodejs, python, go, java]
             defaultOption: nodejs
+
+# Parameterized slots - users can customize these without micro-managing individual overlays
+parameters:
+    database:
+        description: 'Primary data store'
+        default: postgres
+        options:
+            - id: postgres
+              overlays: [postgres]
+              description: 'PostgreSQL relational database'
+            - id: mongodb
+              overlays: [mongodb]
+              description: 'MongoDB document database'
+            - id: mysql
+              overlays: [mysql]
+              description: 'MySQL relational database'
+            - id: none
+              overlays: []
+              description: 'No database (manage separately)'
+
+    cache:
+        description: 'In-memory cache'
+        default: redis
+        options:
+            - id: redis
+              overlays: [redis]
+              description: 'Redis cache and session store'
+            - id: none
+              overlays: []
+              description: 'No cache'
+
+    broker:
+        description: 'Message broker (optional)'
+        default: none
+        options:
+            - id: rabbitmq
+              overlays: [rabbitmq]
+              description: 'RabbitMQ AMQP message broker'
+            - id: nats
+              overlays: [nats]
+              description: 'NATS lightweight messaging'
+            - id: redpanda
+              overlays: [redpanda]
+              description: 'Redpanda Kafka-compatible streaming'
+            - id: none
+              overlays: []
+              description: 'No message broker'
+
+    observability:
+        description: 'Monitoring and observability stack'
+        default: standard
+        options:
+            - id: minimal
+              overlays: []
+              description: 'No observability tools'
+            - id: standard
+              overlays: [prometheus, grafana]
+              description: 'Metrics and dashboards'
+            - id: full
+              overlays: [otel-collector, prometheus, grafana, loki]
+              description: 'Full stack - metrics, logs, and traces'
 
 # Glue configuration - integration helpers
 glueConfig:

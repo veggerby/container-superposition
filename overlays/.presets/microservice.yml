@@ -26,11 +26,35 @@ selects:
             options: [dotnet, nodejs, python, go, java]
             defaultOption: nodejs
 
-        messaging:
-            id: messaging
-            prompt: Select message broker
-            options: [rabbitmq, redpanda, nats]
-            defaultOption: rabbitmq
+# Parameterized slots
+parameters:
+    broker:
+        description: 'Message broker'
+        default: rabbitmq
+        options:
+            - id: rabbitmq
+              overlays: [rabbitmq]
+              description: 'RabbitMQ AMQP message broker'
+            - id: nats
+              overlays: [nats]
+              description: 'NATS lightweight messaging'
+            - id: redpanda
+              overlays: [redpanda]
+              description: 'Redpanda Kafka-compatible streaming'
+            - id: none
+              overlays: []
+              description: 'No message broker'
+
+    observability:
+        description: 'Observability stack level'
+        default: standard
+        options:
+            - id: standard
+              overlays: []
+              description: 'Standard (Jaeger + Prometheus + Grafana, already included)'
+            - id: full
+              overlays: [loki]
+              description: 'Full stack - adds Loki for log aggregation'
 
 # Glue configuration - integration helpers
 glueConfig:
