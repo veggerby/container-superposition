@@ -1171,7 +1171,8 @@ function copyCustomFiles(
  */
 export async function generateManifestOnly(
     answers: QuestionnaireAnswers,
-    overlaysDir?: string
+    overlaysDir?: string,
+    options: { isRegen?: boolean } = {}
 ): Promise<GenerationSummary> {
     // Prepare overlays using shared logic
     const { overlays: resolvedOverlays, autoResolved } = prepareOverlaysForGeneration(
@@ -1216,7 +1217,7 @@ export async function generateManifestOnly(
     const services = overlaysToServices(selectedOverlayMetadata);
     const warnings = detectWarnings(selectedOverlayMetadata, answers);
     const tips = generateTips(selectedOverlayMetadata, answers);
-    const nextSteps = generateNextSteps(true, false);
+    const nextSteps = generateNextSteps(true, options.isRegen === true);
 
     return {
         files: ['superposition.json'],
@@ -1237,7 +1238,8 @@ export async function generateManifestOnly(
  */
 export async function composeDevContainer(
     answers: QuestionnaireAnswers,
-    overlaysDir?: string
+    overlaysDir?: string,
+    options: { isRegen?: boolean } = {}
 ): Promise<GenerationSummary> {
     // Prepare overlays using shared logic
     const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
@@ -1537,10 +1539,14 @@ export async function composeDevContainer(
         }
     }
 
-    if (portOffset > 0 || overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length)) {
+    const hasOverlayPorts = overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length);
+    const shouldGeneratePortsDocumentation = portOffset > 0 || hasOverlayPorts;
+    let portsDoc: PortsDocumentation | null = null;
+
+    if (shouldGeneratePortsDocumentation) {
         console.log(chalk.cyan('\n📡 Generating ports documentation...'));
 
-        const portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
+        portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
 
         const portsPath = path.join(outputPath, 'ports.json');
         fs.writeFileSync(portsPath, JSON.stringify(portsDoc, null, 2) + '\n');
@@ -1567,16 +1573,13 @@ export async function composeDevContainer(
     const files = Array.from(fileRegistry.getFiles());
     const services = overlaysToServices(selectedOverlayMetadata);
 
-    // Get port information
-    let portInfos: any[] = [];
-    if (portOffset > 0 || overlays.some((o) => overlayMetadataMap.get(o)?.ports?.length)) {
-        const portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
-        portInfos = portsToPortInfo(portsDoc.ports, portsDoc.connectionStrings || {});
-    }
+    const portInfos = portsDoc
+        ? portsToPortInfo(portsDoc.ports, portsDoc.connectionStrings || {})
+        : [];
 
     const warnings = detectWarnings(selectedOverlayMetadata, answers);
     const tips = generateTips(selectedOverlayMetadata, answers);
-    const nextSteps = generateNextSteps(false, false);
+    const nextSteps = generateNextSteps(false, options.isRegen === true);
 
     return {
         files,

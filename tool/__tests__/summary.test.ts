@@ -98,6 +98,33 @@ describe('Summary Utilities', () => {
             expect(warnings.some((w) => w.includes('High port count'))).toBe(true);
         });
 
+        it('should suppress generic port conflict warning when high port count warning is shown', () => {
+            const overlays: OverlayMetadata[] = [
+                {
+                    id: 'test-observability',
+                    name: 'Test Observability',
+                    description: 'Test overlay',
+                    category: 'observability',
+                    ports: [8000, 8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 8009, 8010],
+                },
+            ];
+            const answers: QuestionnaireAnswers = {
+                stack: 'compose',
+                baseImage: 'bookworm',
+                needsDocker: false,
+                playwright: false,
+                cloudTools: [],
+                devTools: [],
+                observability: [],
+                outputPath: '.devcontainer',
+                portOffset: 0,
+            };
+
+            const warnings = detectWarnings(overlays, answers);
+            expect(warnings.some((w) => w.includes('High port count'))).toBe(true);
+            expect(warnings.some((w) => w.includes('Running multiple devcontainers'))).toBe(false);
+        });
+
         it('should warn about port conflicts without offset', () => {
             const overlays: OverlayMetadata[] = [
                 {

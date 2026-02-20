@@ -76,7 +76,8 @@ export function detectWarnings(
 
     // Check for high port count
     const portCount = overlays.reduce((count, o) => count + (o.ports?.length || 0), 0);
-    if (portCount > 10) {
+    const hasHighPortCountWarning = portCount > 10;
+    if (hasHighPortCountWarning) {
         warnings.push(
             `High port count (${portCount} ports) may cause conflicts\n  Consider using --port-offset to avoid conflicts with other projects.`
         );
@@ -86,7 +87,11 @@ export function detectWarnings(
     const hasServices = overlays.some(
         (o) => o.category === 'database' || o.category === 'observability'
     );
-    if (hasServices && (!answers.portOffset || answers.portOffset === 0)) {
+    if (
+        !hasHighPortCountWarning &&
+        hasServices &&
+        (!answers.portOffset || answers.portOffset === 0)
+    ) {
         warnings.push(
             'Running multiple devcontainers simultaneously may cause port conflicts\n  Use --port-offset 100 (or higher) to avoid conflicts.'
         );

@@ -1589,25 +1589,16 @@ async function main() {
         try {
             let summary;
             if (isManifestOnly) {
-                summary = await generateManifestOnly(answers);
+                summary = await generateManifestOnly(answers, undefined, { isRegen });
                 spinner.succeed(chalk.green('Manifest created successfully!'));
             } else {
-                summary = await composeDevContainer(answers);
+                summary = await composeDevContainer(answers, undefined, { isRegen });
                 spinner.succeed(chalk.green('DevContainer created successfully!'));
             }
 
             // Update summary with backup path and regen status
             if (actualBackupPath) {
                 summary.backupPath = actualBackupPath;
-            }
-
-            // Regenerate next steps if this is a regen
-            if (isRegen && !isManifestOnly) {
-                summary.nextSteps = [
-                    'Rebuild container: F1 → "Dev Containers: Rebuild Container"',
-                    'Test changes manually',
-                    'Review any customizations in .devcontainer/custom/',
-                ];
             }
 
             // Print comprehensive summary
