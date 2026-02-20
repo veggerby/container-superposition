@@ -1297,6 +1297,18 @@ async function parseCliArgs(): Promise<{
             (val) => parseInt(val, 10),
             0
         )
+        .option(
+            '-o, --output <path>',
+            'Compare against existing config at this path (default: ./.devcontainer)'
+        )
+        .option('--diff', 'Compare planned output vs existing configuration')
+        .option('--diff-format <format>', 'Diff output format: color (default), json', 'color')
+        .option(
+            '--diff-context <lines>',
+            'Context lines in diff output',
+            (val) => parseInt(val, 10),
+            3
+        )
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();

@@ -449,7 +449,7 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
 /**
  * Apply an overlay to the base configuration
  */
-function applyOverlay(
+export function applyOverlay(
     baseConfig: DevContainer,
     overlayName: string,
     overlaysDir: string

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`plan --diff`** — Compare planned output vs existing `.devcontainer/` configuration before applying changes
+    - Shows files to be created, modified, unchanged, and removed
+    - Generates colored unified diff for `devcontainer.json` (loads base template + applies overlay patches)
+    - Detects overlay changes (added/removed) by comparing with existing `superposition.json` manifest
+    - Detects port changes (added/removed) derived from overlay comparison
+    - Lists preserved custom files in `custom/` directory
+    - `--output <path>` to compare against a custom existing config path (default: `./.devcontainer`)
+    - `--diff-format json` for machine-readable output (also via `--json`)
+    - `--diff-context <lines>` to control diff context lines (default: 3)
+    - Example: `container-superposition plan --stack compose --overlays postgres,redis --diff`
+
 ## [0.1.3] - 2026-02-17
 
 ### Note
@@ -213,7 +226,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/veggerby/container-superposition/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/veggerby/container-superposition/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/veggerby/container-superposition/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/veggerby/container-superposition/releases/tag/v0.1.0
