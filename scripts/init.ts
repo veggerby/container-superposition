@@ -23,6 +23,9 @@ import type {
     OverlaysConfig,
     OverlayMetadata,
     DeploymentTarget,
+    PresetParameter,
+    PresetParameterOption,
+    PresetGlueConfig,
 } from '../tool/schema/types.js';
 import { composeDevContainer, generateManifestOnly } from '../tool/questionnaire/composer.js';
 import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
@@ -46,19 +49,6 @@ import { printSummary } from '../tool/utils/summary.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-interface PresetParameterOption {
-    id: string;
-    overlays: string[];
-    description?: string;
-}
-
-interface PresetParameter {
-    description?: string;
-    default: string;
-    required?: boolean;
-    options: PresetParameterOption[];
-}
-
 interface PresetDefinition {
     id: string;
     name: string;
@@ -80,11 +70,7 @@ interface PresetDefinition {
         >;
     };
     parameters?: Record<string, PresetParameter>;
-    glueConfig?: {
-        environment?: Record<string, string>;
-        portMappings?: Record<string, number>;
-        readme?: string;
-    };
+    glueConfig?: PresetGlueConfig;
 }
 
 const OVERLAYS_DIR_CANDIDATES = [
@@ -593,6 +579,11 @@ async function runQuestionnaire(
                 if (presetChoice !== 'custom') {
                     usePreset = true;
                     selectedPresetId = presetChoice;
+                } else {
+                    // User chose custom - discard any pre-provided preset choices so the
+                    // manifest cannot end up with presetChoices but no preset.
+                    presetChoices = {};
+                    selectedPresetId = undefined;
                 }
             }
         }
@@ -1489,25 +1480,34 @@ async function parseCliArgs(): Promise<{
 
     // Handle --preset-param flags (can be repeated)
     if (initOptions.presetParam && (initOptions.presetParam as string[]).length > 0) {
-        const presetChoices: Record<string, string> = {};
-        for (const param of initOptions.presetParam as string[]) {
-            const eqIdx = param.indexOf('=');
-            if (eqIdx > 0) {
-                const key = param.slice(0, eqIdx).trim();
-                const value = param.slice(eqIdx + 1).trim();
-                if (key) {
-                    presetChoices[key] = value;
+        if (!initOptions.preset) {
+            console.warn(
+                chalk.yellow(
+                    '⚠️  Ignoring --preset-param because no --preset was provided. ' +
+                        'Preset parameters only apply when a preset is selected (e.g., --preset web-api --preset-param broker=nats).'
+                )
+            );
+        } else {
+            const presetChoices: Record<string, string> = {};
+            for (const param of initOptions.presetParam as string[]) {
+                const eqIdx = param.indexOf('=');
+                if (eqIdx > 0) {
+                    const key = param.slice(0, eqIdx).trim();
+                    const value = param.slice(eqIdx + 1).trim();
+                    if (key) {
+                        presetChoices[key] = value;
+                    }
+                } else {
+                    console.warn(
+                        chalk.yellow(
+                            `⚠️  Invalid --preset-param format: "${param}". Expected "key=value" (e.g., --preset-param broker=nats).`
+                        )
+                    );
                 }
-            } else {
-                console.warn(
-                    chalk.yellow(
-                        `⚠️  Invalid --preset-param format: "${param}". Expected "key=value" (e.g., --preset-param broker=nats).`
-                    )
-                );
             }
-        }
-        if (Object.keys(presetChoices).length > 0) {
-            config.presetChoices = presetChoices;
+            if (Object.keys(presetChoices).length > 0) {
+                config.presetChoices = presetChoices;
+            }
         }
     }
 

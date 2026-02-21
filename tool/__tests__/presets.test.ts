@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as yaml from 'js-yaml';
+import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -10,6 +11,8 @@ const __dirname = path.dirname(__filename);
 
 describe('Preset Definitions', () => {
     const presetsDir = path.join(__dirname, '..', '..', 'overlays', '.presets');
+    const overlaysDir = path.join(__dirname, '..', '..', 'overlays');
+    const indexYmlPath = path.join(overlaysDir, 'index.yml');
 
     it('should have valid YAML files for all presets', () => {
         const presetFiles = [
@@ -82,9 +85,10 @@ describe('Preset Definitions', () => {
         expect(preset.parameters.observability.options.map((o: any) => o.id)).toContain('full');
 
         expect(preset.glueConfig).toBeDefined();
-        expect(preset.glueConfig.environment).toBeDefined();
-        expect(preset.glueConfig.environment.DATABASE_URL).toBeDefined();
-        expect(preset.glueConfig.environment.REDIS_URL).toBeDefined();
+        // glueConfig should have portMappings and readme but no hardcoded service env vars
+        // (env vars are parameter-dependent and come from individual overlay .env.example files)
+        expect(preset.glueConfig.portMappings).toBeDefined();
+        expect(preset.glueConfig.readme).toBeDefined();
     });
 
     it('web-api preset parameters should have valid overlay references', () => {
@@ -92,7 +96,13 @@ describe('Preset Definitions', () => {
         const content = fs.readFileSync(filePath, 'utf-8');
         const preset = yaml.load(content) as any;
 
-        // Each parameter option should have an overlays array
+        // Load the overlay registry to validate referenced IDs
+        const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
+        const validOverlayIds = new Set(
+            overlaysConfig.overlays.filter((o) => o.category !== 'preset').map((o) => o.id)
+        );
+
+        // Each parameter option should have an overlays array whose IDs exist in the registry
         for (const [paramName, param] of Object.entries(preset.parameters as Record<string, any>)) {
             expect(Array.isArray(param.options), `${paramName}: options should be an array`).toBe(
                 true
@@ -103,6 +113,14 @@ describe('Preset Definitions', () => {
                     Array.isArray(opt.overlays),
                     `${paramName}.${opt.id}: overlays should be an array`
                 ).toBe(true);
+
+                // Validate all referenced overlay IDs exist in the registry
+                for (const overlayId of opt.overlays as string[]) {
+                    expect(
+                        validOverlayIds.has(overlayId),
+                        `${paramName}.${opt.id}: overlay '${overlayId}' must exist in the registry`
+                    ).toBe(true);
+                }
             }
         }
     });
