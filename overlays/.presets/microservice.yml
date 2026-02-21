@@ -26,11 +26,35 @@ selects:
             options: [dotnet, nodejs, python, go, java]
             defaultOption: nodejs
 
-        messaging:
-            id: messaging
-            prompt: Select message broker
-            options: [rabbitmq, redpanda, nats]
-            defaultOption: rabbitmq
+# Parameterized slots
+parameters:
+    broker:
+        description: 'Message broker'
+        default: rabbitmq
+        options:
+            - id: rabbitmq
+              overlays: [rabbitmq]
+              description: 'RabbitMQ AMQP message broker'
+            - id: nats
+              overlays: [nats]
+              description: 'NATS lightweight messaging'
+            - id: redpanda
+              overlays: [redpanda]
+              description: 'Redpanda Kafka-compatible streaming'
+            - id: none
+              overlays: []
+              description: 'No message broker'
+
+    observability:
+        description: 'Observability stack level'
+        default: standard
+        options:
+            - id: standard
+              overlays: []
+              description: 'Standard (Jaeger + Prometheus + Grafana, already included)'
+            - id: full
+              overlays: [loki]
+              description: 'Full stack - adds Loki for log aggregation'
 
 # Glue configuration - integration helpers
 glueConfig:
@@ -66,11 +90,12 @@ glueConfig:
 
         ### Services
 
-        - **Message Broker**: Async communication between services
+        - **Message Broker**: Async communication between services (RabbitMQ/NATS/Redpanda based on your choice)
         - **OpenTelemetry Collector**: Distributed tracing collection (ports 4317, 4318)
         - **Jaeger**: Distributed tracing UI (port 16686)
         - **Prometheus**: Metrics storage (port 9090)
         - **Grafana**: Unified observability dashboard (port 3000)
+        - **Loki** _(full observability only)_: Log aggregation (port 3100)
 
         ### Connection Strings
 
@@ -100,6 +125,7 @@ glueConfig:
         2. Publish/subscribe to messages via your chosen broker
         3. View distributed traces in Jaeger at http://localhost:16686
         4. Monitor metrics in Grafana at http://localhost:3000
+        5. _(Full observability)_ Query logs in Loki via Grafana at http://localhost:3000
 
         ### Distributed Tracing
 

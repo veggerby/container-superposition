@@ -7,7 +7,7 @@ import * as path from 'path';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import yaml from 'js-yaml';
-import type { OverlayMetadata, OverlaysConfig } from '../schema/types.js';
+import type { OverlayMetadata, OverlaysConfig, PresetParameter } from '../schema/types.js';
 
 interface ExplainOptions {
     json?: boolean;
@@ -74,6 +74,55 @@ function getDockerComposeServices(overlaysDir: string, overlayId: string): strin
 }
 
 /**
+ * Load preset definition from YAML file (for showing parameters in explain)
+ */
+function loadPresetDefinition(overlaysDir: string, presetId: string): Record<string, any> | null {
+    const presetPath = path.join(overlaysDir, '.presets', `${presetId}.yml`);
+    if (!fs.existsSync(presetPath)) {
+        return null;
+    }
+    try {
+        const content = fs.readFileSync(presetPath, 'utf8');
+        return yaml.load(content) as Record<string, any>;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Format preset parameters section
+ */
+function formatPresetParameters(
+    parameters: Record<string, PresetParameter>,
+    lines: string[]
+): void {
+    lines.push('');
+    lines.push(chalk.bold('Preset Parameters:'));
+    lines.push(
+        chalk.dim(
+            '  Customize this preset with --preset-param key=value (e.g., --preset-param broker=nats)'
+        )
+    );
+
+    for (const [key, param] of Object.entries(parameters)) {
+        lines.push('');
+        const desc = param.description ? ` — ${param.description}` : '';
+        lines.push(
+            `  ${chalk.cyan('--preset-param')} ${chalk.bold(key + '=...')}${chalk.dim(desc)}`
+        );
+        lines.push(chalk.dim(`    Default: ${param.default}`));
+        lines.push(chalk.dim('    Options:'));
+        for (const opt of param.options) {
+            const marker = opt.id === param.default ? chalk.green(' (default)') : '';
+            const optDesc = opt.description ? chalk.dim(` — ${opt.description}`) : '';
+            const overlaysList =
+                opt.overlays.length > 0 ? chalk.dim(` [${opt.overlays.join(', ')}]`) : '';
+            lines.push(`      • ${chalk.white(opt.id)}${marker}${overlaysList}${optDesc}`);
+        }
+    }
+}
+
+/**
  * Format overlay explanation as text
  */
 function formatAsText(
@@ -135,6 +184,69 @@ function formatAsText(
         lines.push(chalk.bold('Ports Exposed:'));
         for (const port of overlay.ports) {
             lines.push(`  ${port}`);
+        }
+    }
+
+    // For preset overlays, show selects and parameters
+    if (overlay.category === 'preset') {
+        const presetDef = loadPresetDefinition(overlaysDir, overlay.id);
+        if (presetDef) {
+            // Show required overlays
+            if (presetDef.selects?.required && presetDef.selects.required.length > 0) {
+                lines.push('');
+                lines.push(chalk.bold('Always Included Overlays:'));
+                lines.push(`  ${presetDef.selects.required.join(', ')}`);
+            }
+
+            // Show user choices (single-select overlays)
+            if (
+                presetDef.selects?.userChoice &&
+                Object.keys(presetDef.selects.userChoice).length > 0
+            ) {
+                lines.push('');
+                lines.push(chalk.bold('User Choices:'));
+                for (const [key, choice] of Object.entries(
+                    presetDef.selects.userChoice as Record<string, any>
+                )) {
+                    const opts = (choice.options as string[]).join(', ');
+                    const def = choice.defaultOption
+                        ? chalk.green(` (default: ${choice.defaultOption})`)
+                        : '';
+                    lines.push(`  ${chalk.cyan(key)}${def}: ${opts}`);
+                }
+            }
+
+            // Show parameterized slots
+            if (presetDef.parameters && Object.keys(presetDef.parameters).length > 0) {
+                formatPresetParameters(
+                    presetDef.parameters as Record<string, PresetParameter>,
+                    lines
+                );
+            }
+
+            // Usage examples
+            lines.push('');
+            lines.push(chalk.bold('Usage Examples:'));
+            lines.push(chalk.dim(`  container-superposition init --preset ${overlay.id}`));
+            if (presetDef.parameters) {
+                const paramExamples = Object.entries(
+                    presetDef.parameters as Record<string, PresetParameter>
+                )
+                    .slice(0, 2)
+                    .map(([k, p]) => {
+                        const nonDefault = p.options.find((o) => o.id !== p.default);
+                        return nonDefault
+                            ? `--preset-param ${k}=${nonDefault.id}`
+                            : `--preset-param ${k}=${p.default}`;
+                    });
+                if (paramExamples.length > 0) {
+                    lines.push(
+                        chalk.dim(
+                            `  container-superposition init --preset ${overlay.id} ${paramExamples.join(' ')}`
+                        )
+                    );
+                }
+            }
         }
     }
 
@@ -235,12 +347,20 @@ export async function explainCommand(
             const patch = getDevcontainerPatch(overlaysDir, overlayId);
             const services = getDockerComposeServices(overlaysDir, overlayId);
 
-            const output = {
+            // For presets, include the full preset definition
+            const presetDef =
+                overlay.category === 'preset' ? loadPresetDefinition(overlaysDir, overlayId) : null;
+
+            const output: Record<string, any> = {
                 ...overlay,
                 files,
                 devcontainerPatch: patch,
                 dockerComposeServices: services,
             };
+
+            if (presetDef) {
+                output.presetDefinition = presetDef;
+            }
 
             console.log(JSON.stringify(output, null, 2));
             return;
