@@ -41,6 +41,7 @@ import {
 } from '../tool/schema/manifest-migrations.js';
 import { getToolVersion } from '../tool/utils/version.js';
 import { printSummary } from '../tool/utils/summary.js';
+import { appendGitignoreSection } from '../tool/utils/gitignore.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -364,32 +365,18 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
 /**
  * Ensure backup patterns are in .gitignore
  */
-async function ensureBackupPatternsInGitignore(outputPath: string): Promise<void> {
-    // Write to the parent directory's .gitignore (project root), not inside outputPath
-    const resolvedOutputPath = path.resolve(outputPath);
-    const projectRoot = path.dirname(resolvedOutputPath);
+function ensureBackupPatternsInGitignore(outputPath: string): void {
+    const projectRoot = path.dirname(path.resolve(outputPath));
     const gitignorePath = path.join(projectRoot, '.gitignore');
 
-    const backupPatterns = [
-        '',
-        '# Container Superposition backups',
+    const written = appendGitignoreSection(gitignorePath, 'container-superposition backups', [
         '.devcontainer.backup-*/',
         '*.backup-*',
         'superposition.json.backup-*',
-    ].join('\n');
+    ]);
 
-    if (!fs.existsSync(gitignorePath)) {
-        // Create new .gitignore with backup patterns
-        await fs.promises.writeFile(gitignorePath, backupPatterns + '\n');
-        console.log(chalk.dim('   📝 Created .gitignore with backup patterns'));
-    } else {
-        // Check if patterns already exist
-        const content = await fs.promises.readFile(gitignorePath, 'utf-8');
-        if (!content.includes('Container Superposition backups')) {
-            // Append patterns
-            await fs.promises.appendFile(gitignorePath, '\n' + backupPatterns + '\n');
-            console.log(chalk.dim('   📝 Updated .gitignore with backup patterns'));
-        }
+    if (written) {
+        console.log(chalk.dim('   📝 Updated .gitignore with backup patterns'));
     }
 }
 
@@ -1460,7 +1447,7 @@ async function main() {
             if (backupPath) {
                 actualBackupPath = backupPath;
                 console.log(chalk.green(`✓ Backup created: ${backupPath}\n`));
-                await ensureBackupPatternsInGitignore(outputPath);
+                ensureBackupPatternsInGitignore(outputPath);
             }
         }
 

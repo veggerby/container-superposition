@@ -20,6 +20,7 @@ Optional files (as needed):
 - `setup.sh` - Post-create setup script (installed packages, configuration)
 - `verify.sh` - Verification script to test overlay functionality
 - `.env.example` - Environment variable template
+- `.gitignore` - Patterns merged into the project root `.gitignore` on generation
 - Configuration files - Service-specific configs (e.g., `grafana-datasources.yml`)
 - `global-packages.txt` - For language overlays (npm, pip packages)
 - `global-tools.txt` - For language overlays (.NET tools, Go binaries)
@@ -664,7 +665,53 @@ POSTGRES_PORT=5432
 - Add comment: `# SECURITY: Change this password for production use`
 - Never use real credentials in examples
 
-### 6. global-packages.txt / global-tools.txt
+### 6. .gitignore
+
+**Purpose:** Patterns to automatically merge into the project root `.gitignore` when this overlay is selected.
+
+**How it works:** The composer reads each selected overlay's `.gitignore`, deduplicates against any existing project `.gitignore`, and appends only new entries grouped under a `# <overlay> (container-superposition)` comment. Safe to run multiple times — entries are never duplicated.
+
+**Format:** Standard `.gitignore` syntax. Comment lines (starting with `#`) are used as section headings in the source file but are not emitted to the project `.gitignore`; each overlay's block gets its own auto-generated heading.
+
+```gitignore
+# Build artefacts
+dist/
+build/
+
+# Caches and temp files
+.cache/
+tmp/
+```
+
+**Guidelines:**
+
+- Include only patterns directly related to this overlay's toolchain
+- Use trailing `/` for directories: `.venv/`, `node_modules/`, `__pycache__/`
+- Use `*.ext` for compiled or generated file types: `*.pyc`, `*.class`
+- Do **not** include generic patterns like `.env` (handled by `.env.example` workflow)
+- Avoid overly broad patterns (`dist/`, `build/`) unless they are unambiguous for this language/tool
+
+**Example (Python overlay):**
+
+```gitignore
+# Python virtual environment
+.venv/
+
+# Compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+
+# Test caches
+.pytest_cache/
+
+# Package build artefacts
+*.egg-info/
+dist/
+build/
+```
+
+### 7. global-packages.txt / global-tools.txt
 
 **Purpose:** List of global packages/tools to install for language overlays.
 

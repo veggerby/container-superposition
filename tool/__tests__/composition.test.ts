@@ -494,11 +494,9 @@ describe('Python Overlay - venv support', () => {
         // Verify requirements-dev.txt is also handled
         expect(content).toContain('requirements-dev.txt');
 
-        // Verify .gitignore entries are added
-        expect(content).toContain('.gitignore');
-        expect(content).toContain('.venv/');
-        expect(content).toContain('__pycache__/');
-        expect(content).toContain('.pytest_cache/');
+        // setup.sh should NOT manage .gitignore — that is the composer's responsibility
+        expect(content).not.toContain('>> .gitignore');
+        expect(content).not.toContain('GITIGNORE_FILE');
     });
 
     it('devcontainer.patch.json should reference .venv interpreter path', () => {
@@ -515,5 +513,146 @@ describe('Python Overlay - venv support', () => {
 
         expect(patch.remoteEnv?.VIRTUAL_ENV).toBeDefined();
         expect(patch.remoteEnv?.PATH).toContain('.venv/bin');
+    });
+});
+
+describe('Gitignore - first-class overlay support', () => {
+    // Each test uses its own parent directory so .gitignore files don’t collide between tests
+    const GITIGNORE_TEST_ROOT = path.join(REPO_ROOT, 'tmp', 'test-gitignore');
+
+    it('python overlay writes gitignore patterns at project root', async () => {
+        const projectRoot = path.join(GITIGNORE_TEST_ROOT, 'python-gitignore-basic');
+        const outputPath = path.join(projectRoot, '.devcontainer');
+
+        if (fs.existsSync(projectRoot)) fs.rmSync(projectRoot, { recursive: true });
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['python'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+        };
+
+        await composeDevContainer(answers);
+
+        // .gitignore should be at project root (parent of outputPath)
+        const gitignorePath = path.join(projectRoot, '.gitignore');
+        expect(fs.existsSync(gitignorePath)).toBe(true);
+
+        const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
+        expect(gitignore).toContain('.venv/');
+        expect(gitignore).toContain('__pycache__/');
+        expect(gitignore).toContain('*.pyc');
+        expect(gitignore).toContain('.pytest_cache/');
+        expect(gitignore).toContain('# python (container-superposition)');
+
+        fs.rmSync(projectRoot, { recursive: true });
+    });
+
+    it('gitignore entries are not duplicated on re-run', async () => {
+        const projectRoot = path.join(GITIGNORE_TEST_ROOT, 'python-gitignore-dedup');
+        const outputPath = path.join(projectRoot, '.devcontainer');
+
+        if (fs.existsSync(projectRoot)) fs.rmSync(projectRoot, { recursive: true });
+        fs.mkdirSync(projectRoot, { recursive: true });
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['python'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+        };
+
+        await composeDevContainer(answers);
+        await composeDevContainer(answers);
+
+        const gitignorePath = path.join(projectRoot, '.gitignore');
+        const content = fs.readFileSync(gitignorePath, 'utf-8');
+
+        // Count occurrences of the sentinel pattern — should appear exactly once
+        const occurrences = (content.match(/\.venv\//g) ?? []).length;
+        expect(occurrences).toBe(1);
+
+        fs.rmSync(projectRoot, { recursive: true });
+    });
+
+    it('merges into existing .gitignore without touching existing entries', async () => {
+        const projectRoot = path.join(GITIGNORE_TEST_ROOT, 'python-gitignore-existing');
+        const outputPath = path.join(projectRoot, '.devcontainer');
+
+        if (fs.existsSync(projectRoot)) fs.rmSync(projectRoot, { recursive: true });
+        fs.mkdirSync(projectRoot, { recursive: true });
+
+        // Pre-existing .gitignore with unrelated content
+        const existingGitignore = '# My Project\nnode_modules/\n.DS_Store\n';
+        fs.writeFileSync(path.join(projectRoot, '.gitignore'), existingGitignore);
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['python'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+        };
+
+        await composeDevContainer(answers);
+
+        const gitignorePath = path.join(projectRoot, '.gitignore');
+        const content = fs.readFileSync(gitignorePath, 'utf-8');
+
+        // Original entries are preserved
+        expect(content).toContain('node_modules/');
+        expect(content).toContain('.DS_Store');
+
+        // Python entries are appended
+        expect(content).toContain('.venv/');
+        expect(content).toContain('__pycache__/');
+
+        fs.rmSync(projectRoot, { recursive: true });
+    });
+
+    it('overlays without .gitignore file do not create one', async () => {
+        const projectRoot = path.join(GITIGNORE_TEST_ROOT, 'nodejs-gitignore-none');
+        const outputPath = path.join(projectRoot, '.devcontainer');
+
+        if (fs.existsSync(projectRoot)) fs.rmSync(projectRoot, { recursive: true });
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+        };
+
+        await composeDevContainer(answers);
+
+        const gitignorePath = path.join(projectRoot, '.gitignore');
+        // nodejs overlay has no .gitignore — no file should be created
+        expect(fs.existsSync(gitignorePath)).toBe(false);
+
+        fs.rmSync(projectRoot, { recursive: true });
     });
 });

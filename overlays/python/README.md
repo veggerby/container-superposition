@@ -21,7 +21,8 @@ Adds Python 3.12 with development tools, linting, and formatting.
     - Black as default formatter
     - Format on save enabled
     - Auto-organize imports
-    - PYTHONPATH and VIRTUAL_ENV set to workspace root / `.venv`
+    - `PYTHONPATH`, `VIRTUAL_ENV`, and `PATH` set for the venv
+- **`.gitignore`** — `.venv/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, and build artefacts added to the project root `.gitignore` automatically
 
 ## Virtual Environment
 
@@ -55,10 +56,10 @@ source .venv/bin/activate
 
 ### Gitignore
 
-The setup script automatically adds Python-specific entries to your root `.gitignore` on container creation (creating the file if it doesn't exist):
+When the Python overlay is selected, the composer automatically adds Python-specific entries to the **project root** `.gitignore` (creating the file if it doesn’t exist, and never duplicating existing entries):
 
 ```gitignore
-# Python
+# python (container-superposition)
 .venv/
 __pycache__/
 *.pyc
@@ -69,7 +70,7 @@ dist/
 build/
 ```
 
-If `.venv` is already in your `.gitignore`, the entries are not duplicated.
+This happens at generation time — no container startup required.
 
 ## Automatic Setup
 
@@ -192,7 +193,7 @@ mytool = "mytool.cli:main"
 1. **Pin versions** in requirements.txt for reproducibility
 2. **Separate dev dependencies** in requirements-dev.txt
 3. **Use pyproject.toml** for modern Python projects
-4. **Add `.gitignore`** for `__pycache__`, `.pytest_cache`, etc.
+4. **Add `.gitignore`** — handled automatically by the overlay
 
 ## Troubleshooting
 

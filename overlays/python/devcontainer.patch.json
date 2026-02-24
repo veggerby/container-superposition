@@ -26,16 +26,18 @@
                         "source.organizeImports": "explicit"
                     }
                 },
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
                 "files.exclude": {
                     "**/__pycache__": true,
-                    "**/.pytest_cache": true
+                    "**/.pytest_cache": true,
+                    "**/.venv": true
                 }
             }
         }
     },
     "remoteEnv": {
-        "PATH": "${containerEnv:HOME}/.local/bin:${containerEnv:PATH}",
-        "PYTHONPATH": "${containerWorkspaceFolder}"
+        "PATH": "${containerWorkspaceFolder}/.venv/bin:${containerEnv:HOME}/.local/bin:${containerEnv:PATH}",
+        "PYTHONPATH": "${containerWorkspaceFolder}",
+        "VIRTUAL_ENV": "${containerWorkspaceFolder}/.venv"
     }
 }

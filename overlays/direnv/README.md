@@ -214,7 +214,7 @@ dotenv_if_exists .env
 source_env_if_exists .envrc.local
 ```
 
-Create `.envrc.local` (add to `.gitignore`):
+Create `.envrc.local` (automatically gitignored at generation time):
 
 ```bash
 export PERSONAL_API_KEY="my-secret-key"
@@ -293,7 +293,7 @@ export NODE_ENV="development"
 dotenv_if_exists .env
 ```
 
-**.env** - Do NOT commit (add to `.gitignore`):
+**.env** - Do NOT commit (automatically gitignored at generation time):
 
 ```bash
 # Secrets - never commit
@@ -447,15 +447,17 @@ Settings are automatically loaded. Reload window if needed:
 
 ### Git
 
-Prevent committing secrets:
+When this overlay is selected, the following patterns are automatically added to your project’s `.gitignore` at generation time — no manual step required:
 
 ```bash
-# .gitignore
+# .gitignore (managed automatically)
 .env
 .env.local
 .envrc.local
 .direnv/
 ```
+
+This ensures environment secrets are never accidentally committed.
 
 ### Docker Compose
 
