@@ -1248,7 +1248,10 @@ async function parseCliArgs(): Promise<{
             '--no-interactive',
             'Use manifest values directly without questionnaire (requires --from-manifest)'
         )
-        .option('--backup', 'Force a backup even inside git repositories (default outside git)')
+        .option(
+            '--backup',
+            'Force or suppress backup; default is --no-backup inside a git repo, --backup outside'
+        )
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--stack <type>', 'Base template: plain, compose')
         .option(
@@ -1305,7 +1308,10 @@ async function parseCliArgs(): Promise<{
         .command('regen')
         .description('Regenerate devcontainer from existing superposition.json manifest')
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
-        .option('--backup', 'Force a backup even inside git repositories (default outside git)')
+        .option(
+            '--backup',
+            'Force or suppress backup; default is --no-backup inside a git repo, --backup outside'
+        )
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
@@ -1598,7 +1604,9 @@ async function main() {
             shouldBackup = !inGitRepo;
             if (!shouldBackup) {
                 console.log(
-                    chalk.dim('ℹ  Skipping backup — git repo detected (use --backup to override)\n')
+                    chalk.dim(
+                        'ℹ  Skipping backup — git repo detected (use --backup to force one)\n'
+                    )
                 );
             }
         }
