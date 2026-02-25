@@ -1,0 +1,15 @@
+id: grpc-tools
+name: gRPC Tools
+description: Protocol Buffers compiler, Buf, and grpcurl for gRPC development
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - grpc
+    - protobuf
+    - api
+ports: []
+order: 75

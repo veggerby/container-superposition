@@ -1,0 +1,27 @@
+id: mailpit
+name: Mailpit
+description: Email testing tool with web UI and SMTP server
+category: dev
+supports:
+    - compose
+requires: []
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - email
+    - smtp
+    - testing
+ports:
+    - port: 8025
+      service: mailpit
+      protocol: http
+      description: Mailpit web UI
+      path: /
+      onAutoForward: openBrowser
+    - port: 1025
+      service: mailpit
+      protocol: tcp
+      description: Mailpit SMTP server
+      onAutoForward: ignore
+order: 85

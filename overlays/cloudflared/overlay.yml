@@ -1,0 +1,16 @@
+id: cloudflared
+name: Cloudflared
+description: Cloudflare Tunnel for securely exposing local services to the internet
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts:
+    - ngrok
+tags:
+    - dev
+    - tunnel
+    - proxy
+    - cloudflare
+ports: []
+order: 80
