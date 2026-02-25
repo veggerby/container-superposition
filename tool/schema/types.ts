@@ -232,6 +232,25 @@ export interface PresetGlueConfig {
 }
 
 /**
+ * A single option within a preset parameter
+ */
+export interface PresetParameterOption {
+    id: string;
+    overlays: string[];
+    description?: string;
+}
+
+/**
+ * A parameterized slot in a preset definition (supports multiple overlays per option)
+ */
+export interface PresetParameter {
+    description?: string;
+    default: string;
+    required?: boolean;
+    options: PresetParameterOption[];
+}
+
+/**
  * Meta-overlay (preset) definition
  */
 export interface MetaOverlay {
@@ -246,6 +265,7 @@ export interface MetaOverlay {
         required: string[];
         userChoice?: Record<string, PresetUserChoice>;
     };
+    parameters?: Record<string, PresetParameter>;
     glueConfig?: PresetGlueConfig;
 }
 

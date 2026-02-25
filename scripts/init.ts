@@ -23,6 +23,9 @@ import type {
     OverlaysConfig,
     OverlayMetadata,
     DeploymentTarget,
+    PresetParameter,
+    PresetParameterOption,
+    PresetGlueConfig,
 } from '../tool/schema/types.js';
 import { composeDevContainer, generateManifestOnly } from '../tool/questionnaire/composer.js';
 import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
@@ -66,11 +69,8 @@ interface PresetDefinition {
             }
         >;
     };
-    glueConfig?: {
-        environment?: Record<string, string>;
-        portMappings?: Record<string, number>;
-        readme?: string;
-    };
+    parameters?: Record<string, PresetParameter>;
+    glueConfig?: PresetGlueConfig;
 }
 
 const OVERLAYS_DIR_CANDIDATES = [
@@ -131,7 +131,8 @@ function loadPresetDefinition(presetId: string): PresetDefinition | null {
  */
 async function expandPreset(
     presetId: string,
-    stack: Stack
+    stack: Stack,
+    preProvidedChoices: Record<string, string> = {}
 ): Promise<{
     overlays: string[];
     choices: Record<string, string>;
@@ -147,26 +148,81 @@ async function expandPreset(
     const overlays: string[] = [...preset.selects.required];
     const choices: Record<string, string> = {};
 
-    // Handle user choices
+    // Handle user choices (single overlay per option)
     if (preset.selects.userChoice) {
         for (const [key, choice] of Object.entries(preset.selects.userChoice)) {
-            const selectedOption = (await select({
-                message: choice.prompt,
-                choices: choice.options.map((opt) => ({
-                    name: opt,
-                    value: opt,
-                })),
-                default: choice.defaultOption,
-            })) as string;
+            const preProvidedValue = preProvidedChoices[key];
 
-            overlays.push(selectedOption);
-            choices[key] = selectedOption;
+            if (preProvidedValue !== undefined) {
+                // Validate the pre-provided value
+                if (!choice.options.includes(preProvidedValue)) {
+                    const valid = choice.options.join(', ');
+                    throw new Error(
+                        `Invalid value '${preProvidedValue}' for preset choice '${key}'. Valid options: ${valid}`
+                    );
+                }
+                console.log(chalk.dim(`✓ ${key}: ${preProvidedValue} (from CLI)`));
+                overlays.push(preProvidedValue);
+                choices[key] = preProvidedValue;
+            } else {
+                const selectedOption = (await select({
+                    message: choice.prompt,
+                    choices: choice.options.map((opt) => ({
+                        name: opt,
+                        value: opt,
+                    })),
+                    default: choice.defaultOption,
+                })) as string;
+
+                overlays.push(selectedOption);
+                choices[key] = selectedOption;
+            }
         }
     }
 
-    console.log(chalk.dim(`✓ Preset will include: ${overlays.join(', ')}\n`));
+    // Handle parameterized slots (multiple overlays per option)
+    if (preset.parameters) {
+        for (const [key, param] of Object.entries(preset.parameters)) {
+            const preProvidedValue = preProvidedChoices[key];
+            let selectedId: string;
 
-    return { overlays, choices, glueConfig: preset.glueConfig };
+            if (preProvidedValue !== undefined) {
+                // Validate the pre-provided value
+                const validOption = param.options.find((o) => o.id === preProvidedValue);
+                if (!validOption) {
+                    const valid = param.options.map((o) => o.id).join(', ');
+                    throw new Error(
+                        `Invalid value '${preProvidedValue}' for preset parameter '${key}'. Valid options: ${valid}`
+                    );
+                }
+                console.log(chalk.dim(`✓ ${key}: ${preProvidedValue} (from CLI)`));
+                selectedId = preProvidedValue;
+            } else {
+                const description = param.description || `Select ${key}`;
+                selectedId = (await select({
+                    message: description,
+                    choices: param.options.map((opt) => ({
+                        name: opt.description ? `${opt.id} - ${opt.description}` : opt.id,
+                        value: opt.id,
+                    })),
+                    default: param.default,
+                })) as string;
+            }
+
+            // Add overlays for the selected option
+            const selectedOption = param.options.find((o) => o.id === selectedId);
+            if (selectedOption) {
+                overlays.push(...selectedOption.overlays);
+            }
+            choices[key] = selectedId;
+        }
+    }
+
+    // Deduplicate overlays
+    const uniqueOverlays = [...new Set(overlays)];
+    console.log(chalk.dim(`✓ Preset will include: ${uniqueOverlays.join(', ')}\n`));
+
+    return { overlays: uniqueOverlays, choices, glueConfig: preset.glueConfig };
 }
 
 /**
@@ -436,7 +492,9 @@ function buildOverlayChoices(
  */
 async function runQuestionnaire(
     manifest?: SuperpositionManifest,
-    manifestDir?: string
+    manifestDir?: string,
+    cliPresetId?: string,
+    cliPresetChoices?: Record<string, string>
 ): Promise<QuestionnaireAnswers> {
     const config = loadOverlaysConfigWrapper();
 
@@ -482,35 +540,51 @@ async function runQuestionnaire(
     try {
         // Question 0: Optional preset selection
         let usePreset = false;
-        let selectedPresetId: string | undefined = manifest?.preset;
-        let presetChoices: Record<string, string> = manifest?.presetChoices || {};
+        // CLI preset takes precedence over manifest preset
+        let selectedPresetId: string | undefined = cliPresetId || manifest?.preset;
+        // CLI preset choices merged with manifest choices (CLI takes precedence)
+        let presetChoices: Record<string, string> = {
+            ...(manifest?.presetChoices || {}),
+            ...(cliPresetChoices || {}),
+        };
         let presetGlueConfig: PresetDefinition['glueConfig'] | undefined;
         const presetOverlaysFiltered = config.overlays.filter((o) => o.category === 'preset');
         let presetOverlays: string[] = [];
 
         if (presetOverlaysFiltered.length > 0) {
-            const defaultPreset = manifest?.preset || 'custom';
-
-            const presetChoice = (await select({
-                message: 'Start from a preset or build custom?',
-                choices: [
-                    {
-                        name: 'Custom (select overlays manually)',
-                        value: 'custom',
-                        description: 'Choose individual overlays yourself',
-                    },
-                    ...presetOverlaysFiltered.map((p) => ({
-                        name: p.name,
-                        value: p.id,
-                        description: p.description,
-                    })),
-                ],
-                default: defaultPreset,
-            })) as string;
-
-            if (presetChoice !== 'custom') {
+            // If a preset was pre-selected via CLI or manifest, skip the prompt
+            if (selectedPresetId) {
                 usePreset = true;
-                selectedPresetId = presetChoice;
+                console.log(chalk.cyan(`\n📦 Using preset: ${selectedPresetId}\n`));
+            } else {
+                const defaultPreset = 'custom';
+
+                const presetChoice = (await select({
+                    message: 'Start from a preset or build custom?',
+                    choices: [
+                        {
+                            name: 'Custom (select overlays manually)',
+                            value: 'custom',
+                            description: 'Choose individual overlays yourself',
+                        },
+                        ...presetOverlaysFiltered.map((p) => ({
+                            name: p.name,
+                            value: p.id,
+                            description: p.description,
+                        })),
+                    ],
+                    default: defaultPreset,
+                })) as string;
+
+                if (presetChoice !== 'custom') {
+                    usePreset = true;
+                    selectedPresetId = presetChoice;
+                } else {
+                    // User chose custom - discard any pre-provided preset choices so the
+                    // manifest cannot end up with presetChoices but no preset.
+                    presetChoices = {};
+                    selectedPresetId = undefined;
+                }
             }
         }
 
@@ -525,9 +599,9 @@ async function runQuestionnaire(
             default: manifest?.baseTemplate,
         })) as Stack;
 
-        // If using preset, expand it now
+        // If using preset, expand it now (pass pre-provided choices to skip those prompts)
         if (usePreset && selectedPresetId) {
-            const expansion = await expandPreset(selectedPresetId, stack);
+            const expansion = await expandPreset(selectedPresetId, stack, presetChoices);
 
             if (!expansion.overlays || expansion.overlays.length === 0) {
                 // Preset failed to expand (e.g., missing or invalid preset definition).
@@ -1200,6 +1274,13 @@ async function parseCliArgs(): Promise<{
             '--write-manifest-only',
             'Generate only superposition.json manifest without creating .devcontainer/ files'
         )
+        .option('--preset <id>', 'Start from a preset (e.g., web-api, microservice)')
+        .option(
+            '--preset-param <value>',
+            'Set a preset parameter value (format: key=value, can be repeated)',
+            (value: string, previous: string[]) => previous.concat([value]),
+            [] as string[]
+        )
         .action((options) => {
             // Store options for main() to process
             initOptions = options;
@@ -1392,6 +1473,44 @@ async function parseCliArgs(): Promise<{
     }
     if (initOptions.output) config.outputPath = initOptions.output;
 
+    // Handle --preset flag
+    if (initOptions.preset) {
+        config.preset = initOptions.preset as string;
+    }
+
+    // Handle --preset-param flags (can be repeated)
+    if (initOptions.presetParam && (initOptions.presetParam as string[]).length > 0) {
+        if (!initOptions.preset) {
+            console.warn(
+                chalk.yellow(
+                    '⚠️  Ignoring --preset-param because no --preset was provided. ' +
+                        'Preset parameters only apply when a preset is selected (e.g., --preset web-api --preset-param broker=nats).'
+                )
+            );
+        } else {
+            const presetChoices: Record<string, string> = {};
+            for (const param of initOptions.presetParam as string[]) {
+                const eqIdx = param.indexOf('=');
+                if (eqIdx > 0) {
+                    const key = param.slice(0, eqIdx).trim();
+                    const value = param.slice(eqIdx + 1).trim();
+                    if (key) {
+                        presetChoices[key] = value;
+                    }
+                } else {
+                    console.warn(
+                        chalk.yellow(
+                            `⚠️  Invalid --preset-param format: "${param}". Expected "key=value" (e.g., --preset-param broker=nats).`
+                        )
+                    );
+                }
+            }
+            if (Object.keys(presetChoices).length > 0) {
+                config.presetChoices = presetChoices;
+            }
+        }
+    }
+
     return {
         config,
         manifestPath: initOptions.fromManifest,
@@ -1468,12 +1587,15 @@ async function main() {
         let answers: QuestionnaireAnswers;
         const isRegen = !!manifest;
 
-        // Check if there are CLI overrides beyond just output path
+        // Check if there are CLI overrides beyond just output path and preset flags
+        // Preset/presetChoices alone don't constitute "CLI overrides" that bypass interactive mode
         const hasCliOverrides =
             cliArgs &&
             Object.keys(cliArgs.config).some(
                 (key) =>
                     key !== 'outputPath' &&
+                    key !== 'preset' &&
+                    key !== 'presetChoices' &&
                     cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
             );
 
@@ -1536,8 +1658,13 @@ async function main() {
                 }
             }
         } else {
-            // Mode 3: Interactive (with optional manifest pre-population)
-            const interactiveAnswers = await runQuestionnaire(manifest, manifestDir);
+            // Mode 3: Interactive (with optional manifest pre-population and CLI preset pre-selection)
+            const interactiveAnswers = await runQuestionnaire(
+                manifest,
+                manifestDir,
+                cliArgs?.config.preset,
+                cliArgs?.config.presetChoices
+            );
             answers = mergeAnswers(interactiveAnswers);
         }
 
