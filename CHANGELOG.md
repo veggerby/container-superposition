@@ -14,25 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `--no-backup` flag suppresses a backup even outside a git repo
     - Auto-detection uses `git rev-parse --git-dir`; falls back to walking up the directory tree looking for a `.git` folder when the `git` command is unavailable
 
-- **`.gitignore` as a first-class overlay file** — Overlays can now ship a `.gitignore` file; the composer merges all selected overlays' patterns into the project root `.gitignore` at generation time
-    - Each overlay's entries are grouped under `# <overlay> (container-superposition)` for traceability
-    - Entries already present in the project `.gitignore` are never duplicated (idempotent on reruns)
-    - File is created automatically if it does not exist
-    - Handled by new `mergeGitignoreFiles()` in `composer.ts`; `.gitignore` is excluded from `copyOverlayFiles` and explicitly not tracked in `FileRegistry` (lives at project root, not inside `.devcontainer/`)
-    - Documented in `overlay-authoring.instructions.md` alongside `.env.example`
-- **`tool/utils/gitignore.ts` shared utility** — `appendGitignoreSection(path, sectionName, patterns)` is now the single implementation behind all `.gitignore` management in the tool
-    - Line-level deduplication: patterns already present anywhere in the file are never re-added
-    - Idempotent: safe to call multiple times with the same inputs
-    - Used by `mergeGitignoreFiles()` in `composer.ts` and `ensureBackupPatternsInGitignore()` in `init.ts`
-- **direnv overlay: `.gitignore` via overlay mechanism** — `.envrc.local`, `.env`, and `.env.local` are now written to the project root `.gitignore` at generation time (declarative overlay file) rather than imperatively inside the container startup script
-    - Patterns are added regardless of whether a container has ever started
-    - `overlays/direnv/setup.sh` no longer contains any `.gitignore` manipulation
-- **Python overlay: virtual environment (`.venv`) support** — The Python overlay now creates and configures a `.venv` virtual environment in the workspace root on container creation
-    - `python -m venv .venv` is run by `setup-python.sh` before installing any packages
-    - All dependencies (`requirements.txt`, `requirements-dev.txt`, `pyproject.toml`, `setup.py`) are installed into the venv; no more `pip install --user`
-    - VS Code `python.defaultInterpreterPath` is pre-configured to `${workspaceFolder}/.venv/bin/python`
-    - `VIRTUAL_ENV` is set; `.venv/bin` is prepended to `PATH` for seamless tool resolution
-    - Python-specific `.gitignore` patterns (`.venv/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, etc.) are added via the new overlay `.gitignore` mechanism above
+- **Automatic `.gitignore` management** — Generated projects now include tool-specific `.gitignore` entries automatically; overlay-provided patterns are merged into your project root `.gitignore` at generation time
+    - Entries from each overlay are grouped under a labelled comment for easy identification
+    - Running generation again never duplicates patterns already in your `.gitignore`
+    - Overlay-provided ignore rules are always applied to the project root `.gitignore` (never to files inside `.devcontainer/`), keeping generated configuration isolated from your application's source ignores
+- **direnv overlay: secrets and env files are gitignored automatically** — `.envrc.local`, `.env`, `.env.local`, and `.direnv/` are now excluded from git immediately after generation — no need to start the container first
+- **Python overlay: workspace virtual environment (`.venv`)** — The Python overlay now sets up a `.venv` virtual environment in your project root on container creation
+    - VS Code automatically uses the workspace `.venv` as the Python interpreter
+    - All project dependencies are installed into the venv (`requirements.txt`, `requirements-dev.txt`, `pyproject.toml`, `setup.py`)
+    - `.venv/`, `__pycache__/`, `*.pyc`, and other Python artifacts are added to `.gitignore` automatically
 
 - **`plan --diff`** — Compare planned output vs existing `.devcontainer/` configuration before applying changes
     - Shows files to be created, modified, unchanged, and removed

@@ -15,7 +15,11 @@ VENV_DIR="${WORKSPACE_ROOT}/.venv"
 # Create virtual environment if it doesn't exist
 if [ ! -d "${VENV_DIR}" ]; then
     echo "📦 Creating virtual environment at .venv..."
-    python -m venv "${VENV_DIR}"
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "❌ python3 is not available on PATH. Please ensure python3 is installed."
+        exit 1
+    fi
+    python3 -m venv "${VENV_DIR}"
     echo "✓ Virtual environment created"
 else
     echo "✓ Virtual environment already exists at .venv"

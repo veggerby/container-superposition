@@ -31,8 +31,8 @@ export function appendGitignoreSection(
 
     // Only take non-comment, non-blank patterns that aren't already present
     const newLines = patterns
-        .map((l) => l.trimEnd())
-        .filter((l) => l.length > 0 && !l.startsWith('#') && !existingPatterns.has(l.trim()));
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0 && !l.startsWith('#') && !existingPatterns.has(l));
 
     if (newLines.length === 0) return false;
 

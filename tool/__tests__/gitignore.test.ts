@@ -2,7 +2,7 @@
  * Tests for the shared gitignore utility
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -27,6 +27,12 @@ describe('appendGitignoreSection', () => {
     beforeEach(() => {
         dir = tmpDir();
         gitignorePath = path.join(dir, '.gitignore');
+    });
+
+    afterEach(() => {
+        if (dir && fs.existsSync(dir)) {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     it('creates a new .gitignore when none exists', () => {

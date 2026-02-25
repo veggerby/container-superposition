@@ -688,7 +688,8 @@ tmp/
 - Include only patterns directly related to this overlay's toolchain
 - Use trailing `/` for directories: `.venv/`, `node_modules/`, `__pycache__/`
 - Use `*.ext` for compiled or generated file types: `*.pyc`, `*.class`
-- Do **not** include generic patterns like `.env` (handled by `.env.example` workflow)
+- Do **not** include generic patterns like `.env` in most overlays — prefer the `.env.example` → `.env` workflow instead
+- Exception: overlays that explicitly manage env/secrets files (for example, `direnv`) may add `.env*` / `.env.local*` patterns to their overlay-specific `.gitignore`
 - Avoid overly broad patterns (`dist/`, `build/`) unless they are unambiguous for this language/tool
 
 **Example (Python overlay):**
