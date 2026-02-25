@@ -117,18 +117,6 @@ EOF
     echo "✓ Sample .env.example created"
 fi
 
-# Create .gitignore entries for environment files
-if [ -f .gitignore ]; then
-    if ! grep -q ".envrc" .gitignore; then
-        echo "" >> .gitignore
-        echo "# Direnv" >> .gitignore
-        echo ".envrc.local" >> .gitignore
-        echo ".env" >> .gitignore
-        echo ".env.local" >> .gitignore
-        echo "✓ Added direnv entries to .gitignore"
-    fi
-fi
-
 echo "✓ direnv setup complete"
 echo ""
 echo "💡 Usage:"

@@ -1,0 +1,9 @@
+# Local direnv overrides (personal, not committed)
+.envrc.local
+
+# Actual environment secrets loaded by direnv
+.env
+.env.local
+
+# direnv's generated working directory (may contain sensitive env state)
+.direnv/

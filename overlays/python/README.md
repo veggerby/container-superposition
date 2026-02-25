@@ -5,67 +5,84 @@ Adds Python 3.12 with development tools, linting, and formatting.
 ## Features
 
 - **Python 3.12** with pip, setuptools, and wheel
+- **Virtual environment** (`.venv`) created automatically in the workspace root
 - **VS Code Extensions:**
     - Python (ms-python.python)
     - Pylance (ms-python.vscode-pylance)
     - Black Formatter (ms-python.black-formatter)
     - Ruff (charliermarsh.ruff)
-- **Automatic dependency installation** from:
-    - `requirements.txt`
-    - `requirements-dev.txt`
+- **Automatic dependency installation** into `.venv` from:
+    - `requirements.txt` (project production dependencies)
+    - `requirements-dev.txt` (project development dependencies)
     - `pyproject.toml` (editable install)
     - `setup.py` (legacy support)
 - **Pre-configured settings:**
+    - VS Code interpreter pointed at `.venv/bin/python`
     - Black as default formatter
     - Format on save enabled
     - Auto-organize imports
-    - PYTHONPATH set to workspace root
+    - `PYTHONPATH`, `VIRTUAL_ENV`, and `PATH` set for the venv
+- **`.gitignore`** — `.venv/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, and build artefacts added to the project root `.gitignore` automatically
 
-## Virtual Environment Philosophy
+## Virtual Environment
 
-This overlay uses **user-level pip installations** (`pip install --user`) instead of virtual environments inside the container for these reasons:
+This overlay automatically creates a `.venv` virtual environment in the workspace root on container creation and installs all dependencies into it.
 
-### Why Not venv in Container?
+### Why venv?
 
-1. **Container IS the environment** - The devcontainer already provides isolation
-2. **Simpler workflow** - No need to activate/deactivate venv
-3. **Better VS Code integration** - Python extension finds packages automatically
-4. **Fewer moving parts** - Less to go wrong
+1. **Clean isolation** — Dependencies are scoped to the project, not the system Python
+2. **Production parity** — Matches how the app runs in CI/CD and production
+3. **Tool compatibility** — Works seamlessly with pytest, mypy, ruff, and other dev tools
+4. **VS Code integration** — The Python extension is pre-configured to use `.venv/bin/python`
 
-### When to Use venv
+### How It Works
 
-Use a virtual environment if you need:
+On container creation, the setup script:
 
-- Multiple Python versions in the same container
-- Strict dependency isolation for testing
-- Exact production parity (though containers already provide this)
+1. Creates `.venv` at `${workspaceFolder}/.venv` using `python -m venv`
+2. Upgrades `pip`, `setuptools`, and `wheel` inside the venv
+3. Installs overlay default packages from `.devcontainer/requirements-overlay-python.txt`
+4. Installs project dependencies from `requirements.txt` (if present)
+5. Installs dev dependencies from `requirements-dev.txt` (if present)
+6. Installs project in editable mode if `pyproject.toml` or `setup.py` is present
 
-To create a venv manually:
+### Activating the Virtual Environment
+
+The `.venv/bin` directory is prepended to `PATH` automatically in the devcontainer, so tools like `python`, `pip`, `pytest`, and `ruff` resolve to the venv by default. You can also activate explicitly:
 
 ```bash
-python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
-Then update VS Code settings:
+### Gitignore
 
-```json
-{
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
-}
+When the Python overlay is selected, the composer automatically adds Python-specific entries to the **project root** `.gitignore` (creating the file if it doesn’t exist, and never duplicating existing entries):
+
+```gitignore
+# python (container-superposition)
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
 ```
+
+This happens at generation time — no container startup required.
 
 ## Automatic Setup
 
 The overlay automatically runs on container creation:
 
-1. ✅ Installs overlay packages from `.devcontainer/requirements-overlay.txt`
-2. ✅ Checks for `requirements.txt` → installs with pip
-3. ✅ Checks for `requirements-dev.txt` → installs dev dependencies
-4. ✅ Checks for `pyproject.toml` → installs project in editable mode
-5. ✅ Checks for `setup.py` → installs legacy projects
-6. ✅ Upgrades pip, setuptools, and wheel to latest
+1. ✅ Creates `.venv` virtual environment in the workspace root
+2. ✅ Upgrades pip, setuptools, and wheel inside the venv
+3. ✅ Installs overlay packages from `.devcontainer/requirements-overlay-python.txt`
+4. ✅ Checks for `requirements.txt` → installs into venv
+5. ✅ Checks for `requirements-dev.txt` → installs dev dependencies into venv
+6. ✅ Checks for `pyproject.toml` → installs project in editable mode
+7. ✅ Checks for `setup.py` → installs legacy projects in editable mode
 
 ## Customizing Overlay Packages
 
@@ -176,7 +193,7 @@ mytool = "mytool.cli:main"
 1. **Pin versions** in requirements.txt for reproducibility
 2. **Separate dev dependencies** in requirements-dev.txt
 3. **Use pyproject.toml** for modern Python projects
-4. **Add `.gitignore`** for `__pycache__`, `.pytest_cache`, etc.
+4. **Add `.gitignore`** — handled automatically by the overlay
 
 ## Troubleshooting
 
@@ -200,17 +217,16 @@ Update `devcontainer.patch.json`:
 }
 ```
 
-### Want to use venv anyway?
+### Customizing the Interpreter Path
 
-Add to your project's `.devcontainer/devcontainer.json`:
+The overlay pre-configures VS Code to use `${workspaceFolder}/.venv/bin/python`. If your venv is elsewhere, update `python.defaultInterpreterPath` in your workspace settings or `.devcontainer/custom/devcontainer.patch.json`:
 
 ```json
 {
-    "postCreateCommand": "python -m venv .venv && .venv/bin/pip install -r requirements.txt",
     "customizations": {
         "vscode": {
             "settings": {
-                "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+                "python.defaultInterpreterPath": "${workspaceFolder}/my-custom-venv/bin/python"
             }
         }
     }

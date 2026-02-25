@@ -33,6 +33,7 @@ import {
 } from '../utils/merge.js';
 import { generatePortsDocumentation } from '../utils/port-utils.js';
 import type { GenerationSummary } from '../utils/summary.js';
+import { appendGitignoreSection } from '../utils/gitignore.js';
 import {
     detectWarnings,
     generateTips,
@@ -609,13 +610,14 @@ function copyOverlayFiles(
     let copiedFiles = 0;
 
     for (const entry of entries) {
-        // Skip devcontainer.patch.json, .env.example, docker-compose.yml, setup.sh, verify.sh, and metadata files (handled separately)
+        // Skip devcontainer.patch.json, .env.example, docker-compose.yml, setup.sh, verify.sh, .gitignore, and metadata files (handled separately)
         if (
             entry === 'devcontainer.patch.json' ||
             entry === '.env.example' ||
             entry === 'docker-compose.yml' ||
             entry === 'setup.sh' ||
             entry === 'verify.sh' ||
+            entry === '.gitignore' ||
             entry === 'README.md' ||
             entry === 'overlay.yml'
         ) {
@@ -756,6 +758,55 @@ function mergeEnvExamples(
     }
 
     return true;
+}
+
+/**
+ * Merge .gitignore files from overlays into the project root .gitignore.
+ * Writes to path.dirname(outputPath) — the project root (parent of .devcontainer/).
+ * Only appends entries not already present; safe to run multiple times.
+ * Returns true if any entries were written.
+ */
+function mergeGitignoreFiles(outputPath: string, overlays: string[], overlaysDir: string): boolean {
+    const projectRoot = path.dirname(path.resolve(outputPath));
+    const destPath = path.join(projectRoot, '.gitignore');
+
+    let anyWritten = false;
+    let sectionsWritten = 0;
+
+    for (const overlay of overlays) {
+        const gitignorePath = path.join(overlaysDir, overlay, '.gitignore');
+        if (!fs.existsSync(gitignorePath)) continue;
+
+        const content = fs.readFileSync(gitignorePath, 'utf-8').trim();
+        if (!content) continue;
+
+        const lines = content
+            .split('\n')
+            .map((l) => l.trim())
+            .filter((l) => l.length > 0 && !l.startsWith('#'));
+
+        if (lines.length === 0) continue;
+
+        const written = appendGitignoreSection(
+            destPath,
+            `${overlay} (container-superposition)`,
+            lines
+        );
+        if (written) {
+            anyWritten = true;
+            sectionsWritten++;
+        }
+    }
+
+    if (anyWritten) {
+        console.log(
+            chalk.dim(`   📄 Updated .gitignore with entries from ${sectionsWritten} overlay(s)`)
+        );
+    } else {
+        console.log(chalk.dim(`   📄 .gitignore already up to date`));
+    }
+
+    return anyWritten;
 }
 
 /**
@@ -1501,6 +1552,11 @@ export async function composeDevContainer(
             fileRegistry.addFile('.env.example');
         }
     }
+
+    // 14b. Merge .gitignore files from overlays into project root .gitignore
+    // Note: .gitignore lives at the project root (parent of outputPath), not inside outputPath,
+    // so it is intentionally NOT added to fileRegistry (cleanupStaleFiles must not touch it).
+    mergeGitignoreFiles(outputPath, overlays, actualOverlaysDir);
 
     // 15. Apply preset glue configuration (README and port mappings) if present
     if (answers.presetGlueConfig) {

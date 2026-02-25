@@ -1,0 +1,15 @@
+# Python virtual environment
+.venv/
+
+# Compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+
+# Test caches
+.pytest_cache/
+
+# Package build artefacts
+*.egg-info/
+dist/
+build/

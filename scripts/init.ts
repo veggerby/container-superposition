@@ -3,6 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
@@ -44,6 +45,7 @@ import {
 } from '../tool/schema/manifest-migrations.js';
 import { getToolVersion } from '../tool/utils/version.js';
 import { printSummary } from '../tool/utils/summary.js';
+import { appendGitignoreSection } from '../tool/utils/gitignore.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -324,6 +326,32 @@ function loadManifest(manifestPath: string): SuperpositionManifest | null {
 }
 
 /**
+ * Detect whether a directory (or any of its parents) is inside a git repository.
+ * First tries `git rev-parse --git-dir`; if git is unavailable, falls back to
+ * walking up the directory tree looking for a `.git` entry.
+ */
+function isInsideGitRepo(dirPath: string): boolean {
+    try {
+        execSync('git rev-parse --git-dir', { cwd: dirPath, stdio: 'ignore' });
+        return true;
+    } catch {
+        // git command failed (not a repo) or git is not installed — walk up looking for .git
+        let current = path.resolve(dirPath);
+        while (true) {
+            if (fs.existsSync(path.join(current, '.git'))) {
+                return true;
+            }
+            const parent = path.dirname(current);
+            if (parent === current) {
+                break; // reached filesystem root
+            }
+            current = parent;
+        }
+        return false;
+    }
+}
+
+/**
  * Create timestamped backup of existing devcontainer and manifest
  */
 async function createBackup(outputPath: string, backupDir?: string): Promise<string | null> {
@@ -420,32 +448,18 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
 /**
  * Ensure backup patterns are in .gitignore
  */
-async function ensureBackupPatternsInGitignore(outputPath: string): Promise<void> {
-    // Write to the parent directory's .gitignore (project root), not inside outputPath
-    const resolvedOutputPath = path.resolve(outputPath);
-    const projectRoot = path.dirname(resolvedOutputPath);
+function ensureBackupPatternsInGitignore(outputPath: string): void {
+    const projectRoot = path.dirname(path.resolve(outputPath));
     const gitignorePath = path.join(projectRoot, '.gitignore');
 
-    const backupPatterns = [
-        '',
-        '# Container Superposition backups',
+    const written = appendGitignoreSection(gitignorePath, 'container-superposition backups', [
         '.devcontainer.backup-*/',
         '*.backup-*',
         'superposition.json.backup-*',
-    ].join('\n');
+    ]);
 
-    if (!fs.existsSync(gitignorePath)) {
-        // Create new .gitignore with backup patterns
-        await fs.promises.writeFile(gitignorePath, backupPatterns + '\n');
-        console.log(chalk.dim('   📝 Created .gitignore with backup patterns'));
-    } else {
-        // Check if patterns already exist
-        const content = await fs.promises.readFile(gitignorePath, 'utf-8');
-        if (!content.includes('Container Superposition backups')) {
-            // Append patterns
-            await fs.promises.appendFile(gitignorePath, '\n' + backupPatterns + '\n');
-            console.log(chalk.dim('   📝 Updated .gitignore with backup patterns'));
-        }
+    if (written) {
+        console.log(chalk.dim('   📝 Updated .gitignore with backup patterns'));
     }
 }
 
@@ -1206,7 +1220,7 @@ function mergeAnswers(
 async function parseCliArgs(): Promise<{
     config: Partial<QuestionnaireAnswers>;
     manifestPath?: string;
-    noBackup?: boolean;
+    backupOverride?: boolean;
     backupDir?: string;
     yes?: boolean;
     noInteractive?: boolean;
@@ -1234,7 +1248,10 @@ async function parseCliArgs(): Promise<{
             '--no-interactive',
             'Use manifest values directly without questionnaire (requires --from-manifest)'
         )
-        .option('--no-backup', 'Skip creating backup before regeneration')
+        .option(
+            '--backup',
+            'Force or suppress backup; default is --no-backup inside a git repo, --backup outside'
+        )
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--stack <type>', 'Base template: plain, compose')
         .option(
@@ -1291,7 +1308,10 @@ async function parseCliArgs(): Promise<{
         .command('regen')
         .description('Regenerate devcontainer from existing superposition.json manifest')
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
-        .option('--no-backup', 'Skip creating backup before regeneration')
+        .option(
+            '--backup',
+            'Force or suppress backup; default is --no-backup inside a git repo, --backup outside'
+        )
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
@@ -1514,7 +1534,7 @@ async function parseCliArgs(): Promise<{
     return {
         config,
         manifestPath: initOptions.fromManifest,
-        noBackup: initOptions.backup === false, // Commander creates options.backup = false for --no-backup
+        backupOverride: initOptions.backup, // undefined = auto-detect; true = --backup; false = --no-backup
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
         writeManifestOnly: initOptions.writeManifestOnly === true,
@@ -1536,7 +1556,6 @@ async function main() {
 
         let manifest: SuperpositionManifest | undefined;
         let manifestDir: string | undefined;
-        let shouldBackup = true;
         let backupDir: string | undefined;
         let useManifestOnly = false;
 
@@ -1557,15 +1576,38 @@ async function main() {
             }
             manifest = loadedManifest;
 
-            // Check for backup and interaction options
-            if (cliArgs.noBackup) {
-                shouldBackup = false;
-            }
+            // Check for interaction options
             if (cliArgs.backupDir) {
                 backupDir = cliArgs.backupDir;
             }
             if (cliArgs.noInteractive) {
                 useManifestOnly = true;
+            }
+        }
+
+        // Determine whether to create a backup:
+        //   --backup      → always backup
+        //   --no-backup   → never backup
+        //   (neither)     → backup only when NOT inside a git repository
+        //                   (git already tracks history, so backups are redundant)
+        const backupCheckPath = path.resolve(
+            cliArgs?.config?.outputPath || manifestDir || './.devcontainer'
+        );
+        const inGitRepo = isInsideGitRepo(backupCheckPath);
+        let shouldBackup: boolean;
+        if (cliArgs?.backupOverride === true) {
+            shouldBackup = true;
+        } else if (cliArgs?.backupOverride === false) {
+            shouldBackup = false;
+        } else {
+            // Auto-detect based on git presence
+            shouldBackup = !inGitRepo;
+            if (!shouldBackup) {
+                console.log(
+                    chalk.dim(
+                        'ℹ  Skipping backup — git repo detected (use --backup to force one)\n'
+                    )
+                );
             }
         }
 
@@ -1579,7 +1621,7 @@ async function main() {
             if (backupPath) {
                 actualBackupPath = backupPath;
                 console.log(chalk.green(`✓ Backup created: ${backupPath}\n`));
-                await ensureBackupPatternsInGitignore(outputPath);
+                ensureBackupPatternsInGitignore(outputPath);
             }
         }
 
