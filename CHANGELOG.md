@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Service reference exports** — Three convenience files are now auto-generated during `init` and `regen` for projects that include service overlays
+- **Service reference exports** — Two convenience files are now auto-generated during `init` and `regen` for projects that include service overlays
     - `services.md` — Consolidated service reference with connection info, connection strings (URIs), code examples (Node.js, Python) for common services, common CLI commands, port offset documentation, and a troubleshooting section
     - `env.local.example` — Optional-overrides template derived from each overlay's `.env.example`, with all values commented out and grouped by service — copy to `.env` and uncomment only what you need to customize
     - Both files are tracked in the file registry and cleaned up on regeneration alongside other generated files

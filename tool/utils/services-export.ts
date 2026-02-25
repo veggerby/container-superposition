@@ -11,6 +11,7 @@ import {
     getDefaultConnectionStringTemplate,
     generateUrl,
 } from './port-utils.js';
+import { applyPortOffsetToEnv } from './merge.js';
 
 /**
  * Code connection examples per service type
@@ -26,7 +27,8 @@ const client = new Client({
   user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
 });`,
-        python: `import psycopg2
+        python: `import os
+import psycopg2
 conn = psycopg2.connect(
   host="postgres",
   port=int(os.getenv("POSTGRES_PORT", "5432")),
@@ -40,7 +42,8 @@ conn = psycopg2.connect(
 const client = redis.createClient({
   url: \`redis://redis:\${process.env.REDIS_PORT || 6379}\`
 });`,
-        python: `import redis
+        python: `import os
+import redis
 r = redis.Redis(
   host='redis',
   port=int(os.getenv("REDIS_PORT", "6379"))
@@ -51,7 +54,8 @@ r = redis.Redis(
 const client = new MongoClient(
   \`mongodb://\${process.env.MONGO_USER}:\${process.env.MONGO_PASSWORD}@mongodb:\${process.env.MONGO_PORT || 27017}/\${process.env.MONGO_DB}\`
 );`,
-        python: `from pymongo import MongoClient
+        python: `import os
+from pymongo import MongoClient
 client = MongoClient(
   host='mongodb',
   port=int(os.getenv("MONGO_PORT", "27017"))
@@ -65,7 +69,8 @@ const conn = mysql.createConnection({
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE,
 });`,
-        python: `import mysql.connector
+        python: `import os
+import mysql.connector
 conn = mysql.connector.connect(
   host="mysql",
   user=os.getenv("MYSQL_USER"),
@@ -74,18 +79,29 @@ conn = mysql.connector.connect(
 )`,
     },
     rabbitmq: {
-        nodejs: `const amqp = require('amqplib');
-const conn = await amqp.connect('amqp://rabbitmq:5672');`,
+        nodejs: `(async () => {
+  const amqp = require('amqplib');
+  const conn = await amqp.connect('amqp://rabbitmq:5672');
+  // use conn here
+})();`,
         python: `import pika
 connection = pika.BlockingConnection(
   pika.ConnectionParameters('rabbitmq')
 )`,
     },
     nats: {
-        nodejs: `const { connect } = require('nats');
-const nc = await connect({ servers: 'nats://nats:4222' });`,
-        python: `import nats
-nc = await nats.connect("nats://nats:4222")`,
+        nodejs: `(async () => {
+  const { connect } = require('nats');
+  const nc = await connect({ servers: 'nats://nats:4222' });
+  // use nc here
+})();`,
+        python: `import asyncio
+import nats
+
+async def main():
+    nc = await nats.connect("nats://nats:4222")
+
+asyncio.run(main())`,
     },
 };
 
@@ -284,7 +300,7 @@ export function generateServicesMarkdown(
 
         lines.push('');
 
-        // Connection strings
+        // Connection strings — emit both container (service name) and host (localhost) variants
         const connectionStrings: string[] = [];
         for (const port of ports) {
             const portService = port.service || overlay.id;
@@ -294,13 +310,25 @@ export function generateServicesMarkdown(
                     ? (overlay.ports![ports.indexOf(port)] as any).connectionStringTemplate
                     : getDefaultConnectionStringTemplate(portService, port.protocol);
 
-            if (tmpl) {
-                const connStr = generateConnectionString(tmpl, port, envVars);
-                const portUrl = generateUrl(port);
-                if (portUrl) {
-                    connectionStrings.push(portUrl);
-                } else if (connStr) {
-                    connectionStrings.push(connStr);
+            const portUrl = generateUrl(port);
+            if (portUrl) {
+                connectionStrings.push(portUrl);
+            } else if (tmpl) {
+                // From dev container: use the service name as host
+                const containerStr = generateConnectionString(tmpl, port, {
+                    ...envVars,
+                    host: portService,
+                });
+                // From host machine: use localhost
+                const hostStr = generateConnectionString(tmpl, port, {
+                    ...envVars,
+                    host: 'localhost',
+                });
+                if (containerStr) {
+                    connectionStrings.push(`# From dev container\n${containerStr}`);
+                }
+                if (hostStr && hostStr !== containerStr) {
+                    connectionStrings.push(`# From host machine\n${hostStr}`);
                 }
             }
         }
@@ -463,15 +491,18 @@ export function generateEnvLocalExample(
             continue;
         }
 
-        const content = fs.readFileSync(envPath, 'utf-8').trim();
-        if (!content) {
+        const rawContent = fs.readFileSync(envPath, 'utf-8').trim();
+        if (!rawContent) {
             continue;
         }
+
+        // Apply port offset to the env content so suggested values match .env.example
+        const content = portOffset > 0 ? applyPortOffsetToEnv(rawContent, portOffset) : rawContent;
 
         // Build commented-out version of this overlay's env vars
         const commentedLines = content.split('\n').map((line) => {
             const trimmed = line.trim();
-            // Keep blank lines and already-commented lines as-is (but still comment them out for clarity)
+            // Keep blank lines and already-commented lines as-is
             if (trimmed === '' || trimmed.startsWith('#')) {
                 return line;
             }
@@ -493,9 +524,9 @@ export function generateEnvLocalExample(
     }
 
     let header = `# Local Environment Configuration
-# Copy this file to .env and customize for your machine
+# Copy this file to .devcontainer/.env and customize for your machine
 #
-# This file shows OPTIONAL overrides. The defaults in .env.example
+# This file shows OPTIONAL overrides. The defaults in .devcontainer/.env.example
 # work out of the box for local development.
 #
 # Generated by container-superposition

@@ -205,6 +205,59 @@ describe('generateServicesMarkdown', () => {
         expect(result).toContain('5432 → 5532');
         expect(result).toContain('6379 → 6479');
     });
+
+    it('should include import os in Python postgres example', () => {
+        const result = generateServicesMarkdown([postgresOverlay], 0, {});
+        expect(result).toContain('import os');
+        expect(result).toContain('import psycopg2');
+    });
+
+    it('should include import os in Python redis example', () => {
+        const result = generateServicesMarkdown([redisOverlay], 0, {});
+        expect(result).toContain('import os');
+    });
+
+    it('should wrap RabbitMQ Node.js example in async IIFE', () => {
+        const rabbitmqOverlay: OverlayMetadata = {
+            id: 'rabbitmq',
+            name: 'RabbitMQ',
+            description: 'Message broker',
+            category: 'database',
+            ports: [
+                {
+                    port: 5672,
+                    service: 'rabbitmq',
+                    protocol: 'tcp',
+                    connectionStringTemplate: 'amqp://{host}:{port}',
+                },
+            ],
+        };
+        const result = generateServicesMarkdown([rabbitmqOverlay], 0, {});
+        expect(result).toContain('(async () => {');
+        expect(result).toContain('})();');
+        // await is inside the IIFE (valid async context), not at the top level
+        expect(result).toContain('await amqp.connect');
+    });
+
+    it('should include both container and host connection strings for TCP services', () => {
+        const result = generateServicesMarkdown([postgresOverlay], 0, {
+            postgres_user: 'postgres',
+            postgres_password: 'postgres',
+            postgres_db: 'devdb',
+        });
+        expect(result).toContain('# From dev container');
+        expect(result).toContain('# From host machine');
+        // Container uses service name; host uses localhost
+        expect(result).toContain('@postgres:5432');
+        expect(result).toContain('@localhost:5432');
+    });
+
+    it('should emit only the URL (no dual strings) for HTTP services', () => {
+        const result = generateServicesMarkdown([grafanaOverlay], 0, {});
+        // HTTP services get a URL, not dual container/host strings
+        expect(result).toContain('http://localhost:3000/');
+        expect(result).not.toContain('# From dev container');
+    });
 });
 
 describe('generateEnvLocalExample', () => {
@@ -289,5 +342,18 @@ describe('generateEnvLocalExample', () => {
         // It's a comment line in the source so it stays as-is
         expect(result).toContain('# PostgreSQL Configuration');
         expect(result).not.toContain('# # PostgreSQL Configuration');
+    });
+
+    it('should apply port offset to env values when offset > 0', () => {
+        const result = generateEnvLocalExample([postgresOverlay], tmpDir, 100);
+        // POSTGRES_PORT=5432 should become POSTGRES_PORT=5532 when offset is 100
+        expect(result).toContain('# POSTGRES_PORT=5532');
+        // Original unshifted port should not appear as a value
+        expect(result).not.toContain('POSTGRES_PORT=5432');
+    });
+
+    it('should reference .devcontainer/.env in header', () => {
+        const result = generateEnvLocalExample([postgresOverlay], tmpDir, 0);
+        expect(result).toContain('.devcontainer/.env');
     });
 });
