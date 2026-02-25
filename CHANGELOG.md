@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Service reference exports** — Three convenience files are now auto-generated during `init` and `regen` for projects that include service overlays
+    - `services.md` — Consolidated service reference with connection info, connection strings (URIs), code examples (Node.js, Python) for common services, common CLI commands, port offset documentation, and a troubleshooting section
+    - `env.local.example` — Optional-overrides template derived from each overlay's `.env.example`, with all values commented out and grouped by service — copy to `.env` and uncomment only what you need to customize
+    - Both files are tracked in the file registry and cleaned up on regeneration alongside other generated files
+
 - **Git-aware backup defaults** — Backups are now skipped automatically when the target directory is inside a git repository (git already tracks history), and created by default when it is not
     - `--backup` flag forces a backup even inside a git repo
     - `--no-backup` flag suppresses a backup even outside a git repo

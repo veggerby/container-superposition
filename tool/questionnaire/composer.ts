@@ -32,6 +32,7 @@ import {
     applyPortOffsetToEnv,
 } from '../utils/merge.js';
 import { generatePortsDocumentation } from '../utils/port-utils.js';
+import { generateServicesMarkdown, generateEnvLocalExample } from '../utils/services-export.js';
 import type { GenerationSummary } from '../utils/summary.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
 import {
@@ -1620,6 +1621,32 @@ export async function composeDevContainer(
                 console.log(chalk.dim(`   • ${serviceLabel}: ${port.actualPort}${proto}${desc}`));
             }
         }
+    }
+
+    // 17b. Generate services.md reference document
+    const servicesMdContent = generateServicesMarkdown(
+        selectedOverlayMetadata,
+        portOffset,
+        envVars
+    );
+    if (servicesMdContent) {
+        const servicesMdPath = path.join(outputPath, 'services.md');
+        fs.writeFileSync(servicesMdPath, servicesMdContent);
+        fileRegistry.addFile('services.md');
+        console.log(chalk.dim(`   📋 Created services.md with service reference`));
+    }
+
+    // 17c. Generate env.local.example as an optional-overrides template
+    const envLocalContent = generateEnvLocalExample(
+        selectedOverlayMetadata,
+        actualOverlaysDir,
+        portOffset
+    );
+    if (envLocalContent) {
+        const envLocalPath = path.join(outputPath, 'env.local.example');
+        fs.writeFileSync(envLocalPath, envLocalContent);
+        fileRegistry.addFile('env.local.example');
+        console.log(chalk.dim(`   📄 Created env.local.example with optional overrides`));
     }
 
     // 18. Clean up stale files from previous runs (preserves superposition.json and .env)
