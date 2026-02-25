@@ -2,6 +2,8 @@
 # Verification script for Mailpit overlay
 # Confirms Mailpit is running and accessible
 
+set -e
+
 echo "🔍 Verifying Mailpit overlay..."
 echo ""
 

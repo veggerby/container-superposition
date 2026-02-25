@@ -21,4 +21,3 @@ ports:
       description: Keycloak admin console and auth endpoints
       path: /
       onAutoForward: openBrowser
-order: 90

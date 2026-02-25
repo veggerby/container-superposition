@@ -9,6 +9,10 @@ echo "🌐 Setting up Cloudflared..."
 # Install cloudflared using official package
 echo "📦 Installing cloudflared..."
 
+# Pin to a specific version for reproducibility and security
+# Check https://github.com/cloudflare/cloudflared/releases for newer versions
+CF_VERSION="${CLOUDFLARED_VERSION:-2025.2.1}"
+
 # Detect architecture
 ARCH=$(uname -m)
 case "$ARCH" in
@@ -17,7 +21,7 @@ case "$ARCH" in
     *) echo "   ⚠️  Unsupported architecture: $ARCH" ; CF_ARCH="amd64" ;;
 esac
 
-CF_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}"
+CF_URL="https://github.com/cloudflare/cloudflared/releases/download/${CF_VERSION}/cloudflared-linux-${CF_ARCH}"
 curl -sSL "$CF_URL" -o /tmp/cloudflared
 sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
 rm -f /tmp/cloudflared

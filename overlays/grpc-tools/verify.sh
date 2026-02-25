@@ -2,6 +2,8 @@
 # Verification script for gRPC Tools overlay
 # Confirms protoc, buf, and grpcurl are installed
 
+set -e
+
 echo "🔍 Verifying gRPC Tools overlay..."
 echo ""
 

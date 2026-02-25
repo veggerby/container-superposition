@@ -2,6 +2,8 @@
 # Verification script for Cloudflared overlay
 # Confirms cloudflared is installed
 
+set -e
+
 echo "🔍 Verifying Cloudflared overlay..."
 echo ""
 

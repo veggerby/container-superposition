@@ -24,4 +24,3 @@ ports:
       protocol: tcp
       description: Mailpit SMTP server
       onAutoForward: ignore
-order: 85

@@ -2,6 +2,8 @@
 # Verification script for Keycloak overlay
 # Confirms Keycloak is running and accessible
 
+set -e
+
 echo "🔍 Verifying Keycloak overlay..."
 echo ""
 

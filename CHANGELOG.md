@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keycloak overlay** — Open-source identity and access management for local OAuth2/OIDC development
+    - Runs as a Docker Compose service on port 8180 (avoids collision with common app servers)
+    - Automatically requires and integrates with the `postgres` overlay as its database backend
+    - Exposes OIDC discovery at `/realms/master/.well-known/openid-configuration`
+    - `KEYCLOAK_HOST`, `KEYCLOAK_PORT`, and `KEYCLOAK_ISSUER` wired into the dev container via `remoteEnv`
+- **Mailpit overlay** — Email testing tool that captures all outbound email locally
+    - SMTP server on port 1025 (no authentication required in dev mode)
+    - Web UI on port 8025 for browsing captured emails
+    - REST API at `/api/v1/messages` for automated test assertions
+    - `SMTP_HOST`, `SMTP_PORT`, and `MAILPIT_URL` wired into the dev container via `remoteEnv`
+- **gRPC Tools overlay** — Protocol Buffers and gRPC development toolchain
+    - Installs `protoc` (via system packages), `buf` CLI, and `grpcurl` (from official GitHub releases, multi-arch)
+    - VS Code extensions: `vscode-proto3` and `vscode-buf`
+    - Works with all base stacks (plain and compose)
+- **Cloudflared overlay** — Cloudflare Tunnel for securely exposing local services to the internet
+    - Anonymous tunnels work immediately with no account required
+    - Named tunnels support persistent URLs with a Cloudflare account
+    - Conflicts with `ngrok` overlay (bidirectional — both overlays declare the conflict)
+    - Pinned to a specific release version for reproducibility
+
 - **Service reference exports** — Two convenience files are now auto-generated during `init` and `regen` for projects that include service overlays
     - `services.md` — Consolidated service reference with connection info, connection strings (URIs), code examples (Node.js, Python) for common services, common CLI commands, port offset documentation, and a troubleshooting section
     - `env.local.example` — Optional-overrides template derived from each overlay's `.env.example`, with all values commented out and grouped by service — copy to `.env` and uncomment only what you need to customize
