@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Git-aware backup defaults** — Backups are now skipped automatically when the target directory is inside a git repository (git already tracks history), and created by default when it is not
+    - `--backup` flag forces a backup even inside a git repo
+    - `--no-backup` flag suppresses a backup even outside a git repo
+    - Auto-detection uses `git rev-parse --git-dir`; falls back to walking up the directory tree looking for a `.git` folder when the `git` command is unavailable
+
 - **`.gitignore` as a first-class overlay file** — Overlays can now ship a `.gitignore` file; the composer merges all selected overlays' patterns into the project root `.gitignore` at generation time
     - Each overlay's entries are grouped under `# <overlay> (container-superposition)` for traceability
     - Entries already present in the project `.gitignore` are never duplicated (idempotent on reruns)
