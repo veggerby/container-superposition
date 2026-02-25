@@ -391,10 +391,11 @@ networks:
 
 describe('Python Overlay - venv support', () => {
     it('should configure VS Code to use .venv interpreter', async () => {
-        const outputPath = path.join(TEST_OUTPUT_DIR, 'test-python-venv-interpreter');
+        const projectRoot = path.join(TEST_OUTPUT_DIR, 'test-python-venv-interpreter');
+        const outputPath = path.join(projectRoot, '.devcontainer');
 
-        if (fs.existsSync(outputPath)) {
-            fs.rmSync(outputPath, { recursive: true });
+        if (fs.existsSync(projectRoot)) {
+            fs.rmSync(projectRoot, { recursive: true });
         }
 
         const answers: QuestionnaireAnswers = {
@@ -429,14 +430,15 @@ describe('Python Overlay - venv support', () => {
         expect(devcontainer.remoteEnv?.PATH).toContain('.venv/bin');
 
         // Clean up
-        fs.rmSync(outputPath, { recursive: true });
+        fs.rmSync(projectRoot, { recursive: true });
     });
 
     it('should add setup-python.sh script to postCreateCommand', async () => {
-        const outputPath = path.join(TEST_OUTPUT_DIR, 'test-python-venv-setup-script');
+        const projectRoot = path.join(TEST_OUTPUT_DIR, 'test-python-venv-setup-script');
+        const outputPath = path.join(projectRoot, '.devcontainer');
 
-        if (fs.existsSync(outputPath)) {
-            fs.rmSync(outputPath, { recursive: true });
+        if (fs.existsSync(projectRoot)) {
+            fs.rmSync(projectRoot, { recursive: true });
         }
 
         const answers: QuestionnaireAnswers = {
@@ -468,7 +470,7 @@ describe('Python Overlay - venv support', () => {
         expect(fs.existsSync(setupScriptPath)).toBe(true);
 
         // Clean up
-        fs.rmSync(outputPath, { recursive: true });
+        fs.rmSync(projectRoot, { recursive: true });
     });
 
     it('setup-python.sh should contain venv creation commands', () => {
@@ -479,8 +481,8 @@ describe('Python Overlay - venv support', () => {
 
         const content = fs.readFileSync(setupShPath, 'utf-8');
 
-        // Verify venv is created
-        expect(content).toContain('python -m venv');
+        // Verify venv is created using python3
+        expect(content).toContain('python3 -m venv');
         expect(content).toContain('.venv');
 
         // Verify activation

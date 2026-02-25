@@ -782,7 +782,7 @@ function mergeGitignoreFiles(outputPath: string, overlays: string[], overlaysDir
 
         const lines = content
             .split('\n')
-            .map((l) => l.trimEnd())
+            .map((l) => l.trim())
             .filter((l) => l.length > 0 && !l.startsWith('#'));
 
         if (lines.length === 0) continue;
