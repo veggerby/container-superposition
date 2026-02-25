@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as yaml from 'js-yaml';
+import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -10,6 +11,8 @@ const __dirname = path.dirname(__filename);
 
 describe('Preset Definitions', () => {
     const presetsDir = path.join(__dirname, '..', '..', 'overlays', '.presets');
+    const overlaysDir = path.join(__dirname, '..', '..', 'overlays');
+    const indexYmlPath = path.join(overlaysDir, 'index.yml');
 
     it('should have valid YAML files for all presets', () => {
         const presetFiles = [
@@ -43,31 +46,86 @@ describe('Preset Definitions', () => {
         }
     });
 
-    it('web-api preset should have correct structure', () => {
+    it('web-api preset should have correct structure with parameters', () => {
         const filePath = path.join(presetsDir, 'web-api.yml');
         const content = fs.readFileSync(filePath, 'utf-8');
         const preset = yaml.load(content) as any;
 
         expect(preset.id).toBe('web-api');
-        expect(preset.selects.required).toContain('postgres');
-        expect(preset.selects.required).toContain('redis');
-        expect(preset.selects.required).toContain('otel-collector');
-        expect(preset.selects.required).toContain('prometheus');
-        expect(preset.selects.required).toContain('grafana');
-        expect(preset.selects.required).toContain('loki');
 
+        // Language is still a userChoice
         expect(preset.selects.userChoice).toBeDefined();
         expect(preset.selects.userChoice.language).toBeDefined();
         expect(preset.selects.userChoice.language.options).toContain('nodejs');
         expect(preset.selects.userChoice.language.options).toContain('dotnet');
 
+        // Database, cache, broker, observability are now parameters
+        expect(preset.parameters).toBeDefined();
+        expect(preset.parameters.database).toBeDefined();
+        expect(preset.parameters.database.default).toBe('postgres');
+        expect(preset.parameters.database.options.map((o: any) => o.id)).toContain('postgres');
+        expect(preset.parameters.database.options.map((o: any) => o.id)).toContain('mongodb');
+        expect(preset.parameters.database.options.map((o: any) => o.id)).toContain('none');
+
+        expect(preset.parameters.cache).toBeDefined();
+        expect(preset.parameters.cache.default).toBe('redis');
+        expect(preset.parameters.cache.options.map((o: any) => o.id)).toContain('redis');
+        expect(preset.parameters.cache.options.map((o: any) => o.id)).toContain('none');
+
+        expect(preset.parameters.broker).toBeDefined();
+        expect(preset.parameters.broker.default).toBe('none');
+        expect(preset.parameters.broker.options.map((o: any) => o.id)).toContain('rabbitmq');
+        expect(preset.parameters.broker.options.map((o: any) => o.id)).toContain('nats');
+        expect(preset.parameters.broker.options.map((o: any) => o.id)).toContain('redpanda');
+
+        expect(preset.parameters.observability).toBeDefined();
+        expect(preset.parameters.observability.default).toBe('standard');
+        expect(preset.parameters.observability.options.map((o: any) => o.id)).toContain('minimal');
+        expect(preset.parameters.observability.options.map((o: any) => o.id)).toContain('standard');
+        expect(preset.parameters.observability.options.map((o: any) => o.id)).toContain('full');
+
         expect(preset.glueConfig).toBeDefined();
-        expect(preset.glueConfig.environment).toBeDefined();
-        expect(preset.glueConfig.environment.DATABASE_URL).toBeDefined();
-        expect(preset.glueConfig.environment.REDIS_URL).toBeDefined();
+        // glueConfig should have portMappings and readme but no hardcoded service env vars
+        // (env vars are parameter-dependent and come from individual overlay .env.example files)
+        expect(preset.glueConfig.portMappings).toBeDefined();
+        expect(preset.glueConfig.readme).toBeDefined();
     });
 
-    it('microservice preset should have correct structure', () => {
+    it('web-api preset parameters should have valid overlay references', () => {
+        const filePath = path.join(presetsDir, 'web-api.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        // Load the overlay registry to validate referenced IDs
+        const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
+        const validOverlayIds = new Set(
+            overlaysConfig.overlays.filter((o) => o.category !== 'preset').map((o) => o.id)
+        );
+
+        // Each parameter option should have an overlays array whose IDs exist in the registry
+        for (const [paramName, param] of Object.entries(preset.parameters as Record<string, any>)) {
+            expect(Array.isArray(param.options), `${paramName}: options should be an array`).toBe(
+                true
+            );
+            for (const opt of param.options) {
+                expect(opt.id, `${paramName} option should have id`).toBeDefined();
+                expect(
+                    Array.isArray(opt.overlays),
+                    `${paramName}.${opt.id}: overlays should be an array`
+                ).toBe(true);
+
+                // Validate all referenced overlay IDs exist in the registry
+                for (const overlayId of opt.overlays as string[]) {
+                    expect(
+                        validOverlayIds.has(overlayId),
+                        `${paramName}.${opt.id}: overlay '${overlayId}' must exist in the registry`
+                    ).toBe(true);
+                }
+            }
+        }
+    });
+
+    it('microservice preset should have correct structure with parameters', () => {
         const filePath = path.join(presetsDir, 'microservice.yml');
         const content = fs.readFileSync(filePath, 'utf-8');
         const preset = yaml.load(content) as any;
@@ -79,10 +137,17 @@ describe('Preset Definitions', () => {
         expect(preset.selects.required).toContain('grafana');
 
         expect(preset.selects.userChoice.language).toBeDefined();
-        expect(preset.selects.userChoice.messaging).toBeDefined();
-        expect(preset.selects.userChoice.messaging.options).toContain('rabbitmq');
-        expect(preset.selects.userChoice.messaging.options).toContain('redpanda');
-        expect(preset.selects.userChoice.messaging.options).toContain('nats');
+
+        // broker is now a parameter
+        expect(preset.parameters).toBeDefined();
+        expect(preset.parameters.broker).toBeDefined();
+        expect(preset.parameters.broker.options.map((o: any) => o.id)).toContain('rabbitmq');
+        expect(preset.parameters.broker.options.map((o: any) => o.id)).toContain('redpanda');
+        expect(preset.parameters.broker.options.map((o: any) => o.id)).toContain('nats');
+        expect(preset.parameters.broker.options.map((o: any) => o.id)).toContain('none');
+
+        expect(preset.parameters.observability).toBeDefined();
+        expect(preset.parameters.observability.default).toBe('standard');
     });
 
     it('docs-site preset should have correct structure', () => {
@@ -196,5 +261,64 @@ describe('Preset Definitions', () => {
         expect(preset.glueConfig).toBeDefined();
         expect(preset.glueConfig.environment).toBeDefined();
         expect(preset.glueConfig.environment.KUBECONFIG).toBeDefined();
+    });
+
+    describe('Parameter resolution logic', () => {
+        it('web-api parameter options should resolve to overlay arrays', () => {
+            const filePath = path.join(presetsDir, 'web-api.yml');
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const preset = yaml.load(content) as any;
+
+            // postgres option should include postgres overlay
+            const postgresOption = preset.parameters.database.options.find(
+                (o: any) => o.id === 'postgres'
+            );
+            expect(postgresOption).toBeDefined();
+            expect(postgresOption.overlays).toContain('postgres');
+
+            // none option should have empty overlays
+            const noneDbOption = preset.parameters.database.options.find(
+                (o: any) => o.id === 'none'
+            );
+            expect(noneDbOption).toBeDefined();
+            expect(noneDbOption.overlays).toHaveLength(0);
+
+            // standard observability should include prometheus and grafana
+            const standardObs = preset.parameters.observability.options.find(
+                (o: any) => o.id === 'standard'
+            );
+            expect(standardObs).toBeDefined();
+            expect(standardObs.overlays).toContain('prometheus');
+            expect(standardObs.overlays).toContain('grafana');
+
+            // full observability should include more tools
+            const fullObs = preset.parameters.observability.options.find(
+                (o: any) => o.id === 'full'
+            );
+            expect(fullObs).toBeDefined();
+            expect(fullObs.overlays.length).toBeGreaterThan(standardObs.overlays.length);
+        });
+
+        it('preset parameter defaults should be valid option ids', () => {
+            const presetFiles = ['web-api.yml', 'microservice.yml'];
+            for (const file of presetFiles) {
+                const filePath = path.join(presetsDir, file);
+                const content = fs.readFileSync(filePath, 'utf-8');
+                const preset = yaml.load(content) as any;
+
+                if (!preset.parameters) continue;
+
+                for (const [paramName, param] of Object.entries(
+                    preset.parameters as Record<string, any>
+                )) {
+                    const defaultId = param.default;
+                    const optionIds = param.options.map((o: any) => o.id);
+                    expect(
+                        optionIds,
+                        `${file}: parameter '${paramName}' default '${defaultId}' should be a valid option`
+                    ).toContain(defaultId);
+                }
+            }
+        });
     });
 });

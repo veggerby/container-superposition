@@ -13,7 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `--backup` flag forces a backup even inside a git repo
     - `--no-backup` flag suppresses a backup even outside a git repo
     - Auto-detection uses `git rev-parse --git-dir`; falls back to walking up the directory tree looking for a `.git` folder when the `git` command is unavailable
-
 - **Automatic `.gitignore` management** — Generated projects now include tool-specific `.gitignore` entries automatically; overlay-provided patterns are merged into your project root `.gitignore` at generation time
     - Entries from each overlay are grouped under a labelled comment for easy identification
     - Running generation again never duplicates patterns already in your `.gitignore`
@@ -23,7 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - VS Code automatically uses the workspace `.venv` as the Python interpreter
     - All project dependencies are installed into the venv (`requirements.txt`, `requirements-dev.txt`, `pyproject.toml`, `setup.py`)
     - `.venv/`, `__pycache__/`, `*.pyc`, and other Python artifacts are added to `.gitignore` automatically
-
+- **Preset parameterization** — Customize presets with high-level choices without micro-managing individual overlays
+    - New `parameters` field in preset definitions maps choices to sets of overlays
+    - `web-api` preset now parameterized: `database`, `cache`, `broker`, `observability` slots
+    - `microservice` preset now parameterized: `broker`, `observability` slots
+    - Interactive questionnaire asks for each parameter value with descriptions and defaults
+    - `--preset <id>` CLI flag pre-selects a preset and skips the preset selection prompt
+    - `--preset-param <key=value>` CLI flag pre-fills parameter values (repeatable)
+    - Pre-filled parameters skip their interactive prompt; unfilled ones are still asked
+    - Invalid parameter values produce helpful error messages listing valid options
+    - `explain <preset-id>` now shows parameters, options, defaults, and usage examples
+    - Example: `container-superposition init --preset web-api --preset-param broker=nats --preset-param observability=full`
 - **`plan --diff`** — Compare planned output vs existing `.devcontainer/` configuration before applying changes
     - Shows files to be created, modified, unchanged, and removed
     - Generates colored unified diff for `devcontainer.json` (loads base template + applies overlay patches)
