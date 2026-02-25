@@ -442,6 +442,16 @@ Infrastructure as Code with HCL (includes tflint)
 
 ## Dev Tool Overlays
 
+### Cloudflared (`cloudflared`)
+
+Cloudflare Tunnel for securely exposing local services to the internet
+
+| Property      | Value                                     |
+| ------------- | ----------------------------------------- |
+| **Category**  | dev                                       |
+| **Conflicts** | `ngrok`                                   |
+| **Tags**      | `dev`, `tunneling`, `proxy`, `cloudflare` |
+
 ### Codex (`codex`)
 
 OpenAI Codex CLI for AI-powered code generation and assistance
@@ -501,6 +511,15 @@ Git LFS, GitHub CLI, GPG/SSH support for secure Git operations
 | **Category** | dev                                    |
 | **Tags**     | `dev`, `git`, `security`, `ssh`, `gpg` |
 
+### gRPC Tools (`grpc-tools`)
+
+Protocol Buffers compiler, Buf, and grpcurl for gRPC development
+
+| Property     | Value                            |
+| ------------ | -------------------------------- |
+| **Category** | dev                              |
+| **Tags**     | `dev`, `grpc`, `protobuf`, `api` |
+
 ### Just Task Runner (`just`)
 
 Fast, simple command runner (Rust-based alternative to Make)
@@ -509,6 +528,29 @@ Fast, simple command runner (Rust-based alternative to Make)
 | ------------ | ---------------------------- |
 | **Category** | dev                          |
 | **Tags**     | `dev`, `automation`, `tasks` |
+
+### Keycloak (`keycloak`)
+
+Open-source identity and access management (OIDC/OAuth2)
+
+| Property     | Value                                       |
+| ------------ | ------------------------------------------- |
+| **Category** | dev                                         |
+| **Supports** | compose                                     |
+| **Requires** | `postgres`                                  |
+| **Tags**     | `dev`, `auth`, `oidc`, `oauth2`, `identity` |
+| **Ports**    | [object Object]                             |
+
+### Mailpit (`mailpit`)
+
+Email testing tool with web UI and SMTP server
+
+| Property     | Value                             |
+| ------------ | --------------------------------- |
+| **Category** | dev                               |
+| **Supports** | compose                           |
+| **Tags**     | `dev`, `email`, `smtp`, `testing` |
+| **Ports**    | [object Object], [object Object]  |
 
 ### Modern CLI Tools (`modern-cli-tools`)
 
@@ -523,11 +565,12 @@ jq, yq, ripgrep, fd, bat - Essential modern command-line tools
 
 Secure tunneling for webhook testing and external access
 
-| Property     | Value                          |
-| ------------ | ------------------------------ |
-| **Category** | dev                            |
-| **Tags**     | `dev`, `tunneling`, `webhooks` |
-| **Ports**    | 4040                           |
+| Property      | Value                          |
+| ------------- | ------------------------------ |
+| **Category**  | dev                            |
+| **Conflicts** | `cloudflared`                  |
+| **Tags**      | `dev`, `tunneling`, `webhooks` |
+| **Ports**     | 4040                           |
 
 ### OpenAPI Tools (`openapi-tools`)
 

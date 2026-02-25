@@ -1,0 +1,17 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["keycloak"],
+    "_serviceOrder": 10,
+    "forwardPorts": [8180],
+    "portsAttributes": {
+        "8180": {
+            "label": "Keycloak Admin Console",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "remoteEnv": {
+        "KEYCLOAK_HOST": "keycloak",
+        "KEYCLOAK_PORT": "8180",
+        "KEYCLOAK_ISSUER": "http://keycloak:8180/realms/master"
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["mailpit"],
+    "forwardPorts": [8025, 1025],
+    "portsAttributes": {
+        "8025": {
+            "label": "Mailpit Web UI",
+            "onAutoForward": "openBrowser"
+        },
+        "1025": {
+            "label": "Mailpit SMTP",
+            "onAutoForward": "ignore"
+        }
+    },
+    "remoteEnv": {
+        "SMTP_HOST": "mailpit",
+        "SMTP_PORT": "1025",
+        "MAILPIT_URL": "http://mailpit:8025"
+    }
+}

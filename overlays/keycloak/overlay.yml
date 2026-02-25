@@ -1,0 +1,23 @@
+id: keycloak
+name: Keycloak
+description: Open-source identity and access management (OIDC/OAuth2)
+category: dev
+supports:
+    - compose
+requires:
+    - postgres
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - auth
+    - oidc
+    - oauth2
+    - identity
+ports:
+    - port: 8180
+      service: keycloak
+      protocol: http
+      description: Keycloak admin console and auth endpoints
+      path: /
+      onAutoForward: openBrowser

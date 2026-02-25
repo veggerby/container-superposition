@@ -5,7 +5,8 @@ category: dev
 supports: []
 requires: []
 suggests: []
-conflicts: []
+conflicts:
+    - cloudflared
 tags:
     - dev
     - tunneling

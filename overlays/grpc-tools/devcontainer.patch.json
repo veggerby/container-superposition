@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "protobuf-compiler",
+            "apk": "protobuf"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["zxh404.vscode-proto3", "bufbuild.vscode-buf"]
+        }
+    }
+}
