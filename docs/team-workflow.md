@@ -51,7 +51,7 @@ This creates `superposition.json` in the current directory:
 ```json
 {
     "manifestVersion": "1",
-    "generatedBy": "0.1.2",
+    "generatedBy": "X.Y.Z",
     "generated": "2026-02-17T14:00:00.000Z",
     "baseTemplate": "compose",
     "baseImage": "bookworm",

@@ -213,7 +213,7 @@ async function applyGlueConfig(glueConfig: PresetGlueConfig, envPath: string, ou
 
 ```json
 {
-    "version": "0.1.0",
+    "version": "X.Y.Z",
     "generatedAt": "2026-02-08T10:00:00Z",
     "baseTemplate": "compose",
 

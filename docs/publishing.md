@@ -5,9 +5,9 @@ This guide explains how to publish `container-superposition` to npm, making it a
 ## Package Overview
 
 **Package Name:** `container-superposition`  
-**Current Version:** `0.1.0`  
-**Size:** ~327 KB (compressed), 1.2 MB (unpacked)  
-**Files:** 327 files  
+**Current Version:** See `package.json`  
+**Size:** Varies by release (use `npm pack --dry-run`)  
+**Files:** Varies by release  
 **Entry Point:** `dist/scripts/init.js`
 
 **Available Commands:**
@@ -23,33 +23,45 @@ Publishing is **automated via GitHub Actions** when a new release is created.
 
 ### Automated Publishing (Recommended)
 
-1. **Update version in package.json:**
+1. **Update CHANGELOG.md** with release notes
+
+2. **Commit and push changes:**
 
     ```bash
-    npm version patch   # 0.1.0 → 0.1.1 (bug fixes)
-    npm version minor   # 0.1.0 → 0.2.0 (new features)
-    npm version major   # 0.1.0 → 1.0.0 (breaking changes)
-    ```
-
-2. **Update CHANGELOG.md** with release notes
-
-3. **Commit and push changes:**
-
-    ```bash
-    git add package.json package-lock.json CHANGELOG.md
-    git commit -m "chore: bump version to X.Y.Z"
+    git add CHANGELOG.md
+    git commit -m "docs: update changelog for X.Y.Z"
     git push
     ```
 
-4. **Create GitHub Release:**
+3. **Create GitHub Release:**
     - Go to https://github.com/veggerby/container-superposition/releases/new
     - Tag: `vX.Y.Z` (e.g., `v0.1.1`)
-    - Title: `vX.Y.Z`
-    - Description: Copy from CHANGELOG.md
+    - Title: `Version X.Y.Z` (e.g., `Version 0.1.1`)
+    - Description: Copy the full release section from `CHANGELOG.md`, including the header line
+        - Example (include all subsections like `### Added`, `### Changed`, `### Fixed`):
+
+            ```markdown
+            ## [0.1.5] - 2026-03-01
+
+            ### Added
+
+            - **Foo overlay** — Adds Foo service for local dev
+            - **Bar CLI helpers** — Convenience scripts for common tasks
+
+            ### Changed
+
+            - **Template defaults** — Compose stack now includes a healthcheck by default
+
+            ### Fixed
+
+            - **Port offsets** — Resolved collisions for default web ports
+            ```
+
     - Click "Publish release"
 
-5. **GitHub Actions will automatically:**
+4. **GitHub Actions will automatically:**
     - ✅ Validate semantic version format
+    - ✅ Set `package.json` version from the tag
     - ✅ Install dependencies
     - ✅ Run tests
     - ✅ Build TypeScript
@@ -181,12 +193,13 @@ npm pack --dry-run
 - Compressed: ~122 KB
 - Unpacked: ~462 KB
 
-### 4. Update Version (if needed)
+### 4. Version Source (Automated)
+
+For GitHub Releases, the publish workflow sets `package.json` version from the tag (`vX.Y.Z`). You should not run `npm version` locally for automated releases.
+
+If you are doing a manual publish (outside GitHub Releases), you can use:
 
 ```bash
-# First release (already at 0.1.0)
-# For subsequent releases:
-
 # Patch release (bug fixes): 0.1.0 → 0.1.1
 npm version patch
 

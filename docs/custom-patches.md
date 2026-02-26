@@ -417,7 +417,7 @@ The `superposition.json` manifest tracks whether customizations are present:
 
 ```json
 {
-    "version": "0.1.0",
+    "version": "X.Y.Z",
     "baseTemplate": "compose",
     "overlays": ["nodejs", "postgres"],
     "customizations": {

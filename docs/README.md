@@ -23,6 +23,9 @@ Complete documentation for the container-superposition devcontainer scaffolding 
 - **[Messaging Comparison](messaging-comparison.md)** - Choosing between RabbitMQ, Redpanda, and NATS
 - **[Messaging Quick Start](messaging-quick-start.md)** - Getting started with messaging overlays
 - **[Observability Workflow](observability-workflow.md)** - Setting up monitoring and tracing
+- **[Workflows and Regeneration](workflows.md)** - Regeneration, backups, and manifest-based workflows
+- **[Filesystem Contract](filesystem-contract.md)** - What the tool writes and what to edit
+- **[Security Considerations](security.md)** - Development-only risks and best practices
 
 ### Development
 
@@ -209,7 +212,7 @@ When published to npm, includes:
 - ✅ Type definitions and schema (`tool/schema/`)
 - ✅ Documentation
 
-**Package size**: ~122 KB compressed, ~462 KB unpacked
+**Package size**: Varies by release (use `npm pack --dry-run`)
 
 ## 🤝 Contributing
 
@@ -228,7 +231,7 @@ MIT - See [LICENSE](../LICENSE)
 
 - **Repository**: <https://github.com/veggerby/container-superposition>
 - **Issues**: <https://github.com/veggerby/container-superposition/issues>
-- **npm Package**: <https://www.npmjs.com/package/container-superposition> (once published)
+- **npm Package**: <https://www.npmjs.com/package/container-superposition>
 
 ## 🆘 Support
 

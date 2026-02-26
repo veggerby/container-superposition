@@ -261,7 +261,7 @@ Presets are tracked in `superposition.json`:
 
 ```json
 {
-    "version": "0.1.0",
+    "version": "X.Y.Z",
     "baseTemplate": "compose",
     "preset": "web-api",
     "presetChoices": {

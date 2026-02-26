@@ -481,7 +481,7 @@ The manifest stores and restores:
 
 ```json
 {
-    "version": "0.1.0",
+    "version": "X.Y.Z",
     "generated": "2026-02-08T10:00:00Z",
     "baseTemplate": "compose",
     "baseImage": "bookworm",
