@@ -38,27 +38,27 @@ npx container-superposition plan --stack compose --overlays nodejs,postgres,graf
 
 Start here:
 
-- Docs index: https://github.com/veggerby/container-superposition/blob/main/docs/README.md
-- Quick reference: https://github.com/veggerby/container-superposition/blob/main/docs/quick-reference.md
-- Examples: https://github.com/veggerby/container-superposition/blob/main/docs/examples.md
-- Presets: https://github.com/veggerby/container-superposition/blob/main/docs/presets.md
-- Architecture: https://github.com/veggerby/container-superposition/blob/main/docs/architecture.md
-- Overlays: https://github.com/veggerby/container-superposition/blob/main/docs/overlays.md
-- Custom patches: https://github.com/veggerby/container-superposition/blob/main/docs/custom-patches.md
-- Workflows and regen: https://github.com/veggerby/container-superposition/blob/main/docs/workflows.md
-- Filesystem contract: https://github.com/veggerby/container-superposition/blob/main/docs/filesystem-contract.md
-- Security: https://github.com/veggerby/container-superposition/blob/main/docs/security.md
-- Publishing: https://github.com/veggerby/container-superposition/blob/main/docs/publishing.md
+- [Docs index](https://github.com/veggerby/container-superposition/blob/main/docs/README.md)
+- [Quick reference](https://github.com/veggerby/container-superposition/blob/main/docs/quick-reference.md)
+- [Examples](https://github.com/veggerby/container-superposition/blob/main/docs/examples.md)
+- [Presets](https://github.com/veggerby/container-superposition/blob/main/docs/presets.md)
+- [Architecture](https://github.com/veggerby/container-superposition/blob/main/docs/architecture.md)
+- [Overlays](https://github.com/veggerby/container-superposition/blob/main/docs/overlays.md)
+- [Custom patches](https://github.com/veggerby/container-superposition/blob/main/docs/custom-patches.md)
+- [Workflows and regen](https://github.com/veggerby/container-superposition/blob/main/docs/workflows.md)
+- [Filesystem contract](https://github.com/veggerby/container-superposition/blob/main/docs/filesystem-contract.md)
+- [Security](https://github.com/veggerby/container-superposition/blob/main/docs/security.md)
+- [Publishing](https://github.com/veggerby/container-superposition/blob/main/docs/publishing.md)
 
 ## Examples
 
-- https://github.com/veggerby/container-superposition/tree/main/examples
-- https://github.com/veggerby/container-superposition/blob/main/docs/examples.md
+- [Example projects](https://github.com/veggerby/container-superposition/tree/main/examples)
+- [Examples guide](https://github.com/veggerby/container-superposition/blob/main/docs/examples.md)
 
 ## Contributing
 
-See https://github.com/veggerby/container-superposition/blob/main/CONTRIBUTING.md
+See [CONTRIBUTING.md](https://github.com/veggerby/container-superposition/blob/main/CONTRIBUTING.md)
 
 ## License
 
-MIT. See https://github.com/veggerby/container-superposition/blob/main/LICENSE
+MIT. See [LICENSE](https://github.com/veggerby/container-superposition/blob/main/LICENSE)
