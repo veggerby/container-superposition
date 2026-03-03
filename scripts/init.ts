@@ -1313,6 +1313,7 @@ async function parseCliArgs(): Promise<{
             '--backup',
             'Force backup creation even when inside a git repo (default: backup only outside git repos)'
         )
+        .option('--no-backup', 'Disable backup creation even when it would normally be performed')
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {

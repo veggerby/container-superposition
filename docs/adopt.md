@@ -4,8 +4,8 @@ The `adopt` command helps you **migrate an existing `.devcontainer/` configurati
 
 It scans your current `devcontainer.json` and any linked `docker-compose.yml` files, matches their contents against all available overlays, and produces:
 
-1. **`superposition.json`** — the manifest you commit and share with your team
-2. **`.devcontainer/custom/devcontainer.patch.json`** — any config that has no overlay equivalent (custom features, extensions, mounts, etc.)
+1. **`superposition.json`** — the manifest written to the **project root** (next to your `src/`, `package.json`, etc.), ready to commit and share with your team
+2. **`.devcontainer/custom/devcontainer.patch.json`** — any config that has no overlay equivalent (custom features, extensions, mounts, remoteEnv, etc.)
 3. **`.devcontainer/custom/docker-compose.patch.yml`** — any compose services that have no overlay equivalent
 
 The custom patches in `custom/` are automatically merged on every `regen`, so your project-specific configuration is never lost.
@@ -99,6 +99,7 @@ automatically added to `.gitignore`.
 | `--dry-run`           | Print the analysis without writing any files                                 |
 | `--force`             | Overwrite existing `superposition.json` / `custom/` files                    |
 | `--backup`            | Force a backup even when inside a git repo                                   |
+| `--no-backup`         | Disable backup creation even when it would normally be performed             |
 | `--backup-dir <path>` | Custom backup directory location                                             |
 | `--json`              | Output analysis as JSON (useful for scripting)                               |
 

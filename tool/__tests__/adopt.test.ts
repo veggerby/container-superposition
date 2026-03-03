@@ -12,6 +12,11 @@ import {
 } from '../commands/adopt.js';
 import { createBackup } from '../utils/backup.js';
 
+// Mock @inquirer/prompts so individual tests can control confirm() behaviour.
+// Default: resolve false (user declines) — tests that need confirmation must override with
+// vi.mocked(confirm).mockResolvedValueOnce(true).
+vi.mock('@inquirer/prompts', () => ({ confirm: vi.fn().mockResolvedValue(false) }));
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.join(__dirname, '..', '..');
@@ -407,6 +412,57 @@ describe('adoptCommand', () => {
             const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
             expect(parsed.customComposePatch).toBeNull();
         });
+
+        it('preserves unmatched remoteEnv keys in customDevcontainerPatch', async () => {
+            writeDevcontainerJson(tmpDir, {
+                features: { 'ghcr.io/devcontainers/features/node:1': {} },
+                remoteEnv: {
+                    MY_CUSTOM_VAR: 'hello',
+                    ANOTHER_VAR: 'world',
+                },
+            });
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, json: true });
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(parsed.customDevcontainerPatch?.remoteEnv).toMatchObject({
+                MY_CUSTOM_VAR: 'hello',
+                ANOTHER_VAR: 'world',
+            });
+        });
+
+        it('does not put overlay-matched remoteEnv keys into customDevcontainerPatch', async () => {
+            // POSTGRES_* keys are matched to the postgres overlay — they should not
+            // appear in the custom patch (they will be managed by the overlay).
+            writeDevcontainerJson(tmpDir, {
+                remoteEnv: {
+                    POSTGRES_HOST: 'postgres',
+                    MY_CUSTOM_VAR: 'value',
+                },
+            });
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, json: true });
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            // Only the unmatched key goes into the patch
+            expect(parsed.customDevcontainerPatch?.remoteEnv?.MY_CUSTOM_VAR).toBe('value');
+            expect(parsed.customDevcontainerPatch?.remoteEnv?.POSTGRES_HOST).toBeUndefined();
+        });
+
+        it('preserves vscode.settings from original customizations in custom patch', async () => {
+            writeDevcontainerJson(tmpDir, {
+                customizations: {
+                    vscode: {
+                        extensions: ['my-org.unknown-ext'],
+                        settings: { 'editor.fontSize': 14 },
+                    },
+                },
+            });
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, json: true });
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(parsed.customDevcontainerPatch?.customizations?.vscode?.settings).toMatchObject({
+                'editor.fontSize': 14,
+            });
+        });
     });
 
     // ── no detections ──────────────────────────────────────────────────────
@@ -431,24 +487,53 @@ describe('adoptCommand', () => {
 
     describe('--force flag', () => {
         it('warns when superposition.json exists without --force', async () => {
-            writeDevcontainerJson(tmpDir, {
+            // superposition.json is written to the project root (parent of .devcontainer/).
+            // Create a proper project root / .devcontainer/ structure for this test.
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
                 features: { 'ghcr.io/devcontainers/features/node:1': {} },
             });
+            // Place existing superposition.json at the project root
             fs.writeFileSync(
                 path.join(tmpDir, 'superposition.json'),
                 JSON.stringify({ existing: true })
             );
 
-            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir });
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: devcontainerDir });
 
             const output = consoleLogSpy.mock.calls.join('\n');
             expect(output).toContain('already exist');
             expect(output).toContain('--force');
 
+            // Existing file must NOT have been overwritten
             const content = JSON.parse(
                 fs.readFileSync(path.join(tmpDir, 'superposition.json'), 'utf8')
             );
             expect(content.existing).toBe(true);
+        });
+
+        it('writes superposition.json to the project root (parent of .devcontainer)', async () => {
+            // This test verifies the manifest ends up next to application code, not inside
+            // .devcontainer/, so it can be committed following the team workflow pattern.
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
+                features: { 'ghcr.io/devcontainers/features/node:1': {} },
+            });
+
+            // Mock confirm to auto-accept so the manifest is actually written
+            const { confirm } = await import('@inquirer/prompts');
+            vi.mocked(confirm).mockResolvedValueOnce(true);
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
+                dir: devcontainerDir,
+                force: true,
+            });
+
+            // Should be at project root, not inside .devcontainer/
+            expect(fs.existsSync(path.join(tmpDir, 'superposition.json'))).toBe(true);
+            expect(fs.existsSync(path.join(devcontainerDir, 'superposition.json'))).toBe(false);
         });
     });
 
@@ -651,5 +736,17 @@ describe('resolveComposePaths', () => {
         fs.writeFileSync(f, '');
         const result = resolveComposePaths({ dockerComposeFile: 'docker-compose.yml' }, tmpDir);
         expect(result.filter((p) => p === f).length).toBe(1);
+    });
+
+    it('does NOT add conventional docker-compose.yml when dockerComposeFile is explicitly set', () => {
+        // Create both the explicitly-named file and the conventional file.
+        // Only the explicit one should be returned (no implicit fallback).
+        const explicit = path.join(tmpDir, 'my-compose.yml');
+        const conventional = path.join(tmpDir, 'docker-compose.yml');
+        fs.writeFileSync(explicit, '');
+        fs.writeFileSync(conventional, '');
+        const result = resolveComposePaths({ dockerComposeFile: 'my-compose.yml' }, tmpDir);
+        expect(result).toContain(explicit);
+        expect(result).not.toContain(conventional);
     });
 });

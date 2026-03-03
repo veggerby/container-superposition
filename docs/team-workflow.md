@@ -49,8 +49,12 @@ npx container-superposition adopt
 `adopt` reads every feature URI, VS Code extension, and Docker Compose service
 image in your existing configuration and maps them to overlays. Anything with
 no overlay equivalent (custom features, project-specific services, custom
-mounts, …) is written to `.devcontainer/custom/` so it survives every
-subsequent `regen`.
+mounts, unmatched environment variables, …) is written to
+`.devcontainer/custom/` so it survives every subsequent `regen`.
+
+`superposition.json` is written to the **project root** (not inside
+`.devcontainer/`), so it can be committed alongside your application code and
+shared with the rest of the team — matching the standard team workflow.
 
 See the [Adopt Command guide](adopt.md) for full details.
 

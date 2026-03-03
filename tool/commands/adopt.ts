@@ -258,22 +258,19 @@ export interface AnalysisResult {
  */
 export function resolveComposePaths(devcontainer: any, devcontainerDir: string): string[] {
     const field = devcontainer.dockerComposeFile;
-    const candidates: string[] = [];
 
     if (field) {
+        // dockerComposeFile is explicitly set — use exactly those paths (no fallback).
+        // Deduplicate in case the array contains the same path more than once.
         const rawPaths: string[] = Array.isArray(field) ? field : [field];
-        for (const raw of rawPaths) {
-            candidates.push(path.resolve(devcontainerDir, raw));
-        }
+        return [...new Set(rawPaths.map((raw) => path.resolve(devcontainerDir, raw)))].filter((p) =>
+            fs.existsSync(p)
+        );
     }
 
-    // Always include the conventional location
+    // No dockerComposeFile field — fall back to the conventional location only
     const conventional = path.join(devcontainerDir, 'docker-compose.yml');
-    if (!candidates.includes(conventional)) {
-        candidates.push(conventional);
-    }
-
-    return candidates.filter((p) => fs.existsSync(p));
+    return fs.existsSync(conventional) ? [conventional] : [];
 }
 
 // ---------------------------------------------------------------------------
@@ -369,8 +366,12 @@ function analyseDockerCompose(
     return { detections, unmatchedServices };
 }
 
-function analyseRemoteEnv(devcontainer: any, tables: DetectionTables): DetectionResult[] {
-    const results: DetectionResult[] = [];
+function analyseRemoteEnv(
+    devcontainer: any,
+    tables: DetectionTables
+): { detections: DetectionResult[]; unmatchedRemoteEnv: Record<string, string> } {
+    const detections: DetectionResult[] = [];
+    const unmatchedRemoteEnv: Record<string, string> = {};
     const env: Record<string, string> = devcontainer.remoteEnv ?? {};
 
     // Build env-var prefix patterns from overlay IDs that exist in the registry
@@ -387,21 +388,26 @@ function analyseRemoteEnv(devcontainer: any, tables: DetectionTables): Detection
         { pattern: /^GOOGLE_CLOUD_/, overlayId: 'gcloud' },
     ];
 
-    for (const key of Object.keys(env)) {
+    for (const [key, value] of Object.entries(env)) {
+        let matched = false;
         for (const { pattern, overlayId } of ENV_PATTERNS) {
             if (pattern.test(key)) {
-                results.push({
+                detections.push({
                     source: `remoteEnv: ${key}`,
                     overlayId,
                     confidence: 'heuristic',
                     sourceType: 'remoteenv',
                 });
+                matched = true;
                 break;
             }
         }
+        if (!matched) {
+            unmatchedRemoteEnv[key] = value;
+        }
     }
 
-    return results;
+    return { detections, unmatchedRemoteEnv };
 }
 
 /**
@@ -473,16 +479,51 @@ function buildSuggestedCommand(
 function buildCustomDevcontainerPatch(
     devcontainer: any,
     unmatchedFeatures: Record<string, any>,
-    unmatchedExtensions: string[]
+    unmatchedExtensions: string[],
+    unmatchedRemoteEnv: Record<string, string>
 ): Record<string, any> | null {
     const patch: Record<string, any> = {};
 
     if (Object.keys(unmatchedFeatures).length > 0) {
         patch.features = unmatchedFeatures;
     }
-    if (unmatchedExtensions.length > 0) {
-        patch.customizations = { vscode: { extensions: unmatchedExtensions } };
+
+    // Preserve all customizations, merging unmatched extensions into vscode.extensions.
+    // Other customizations fields (e.g. vscode.settings, jetbrains, ...) are carried through
+    // verbatim so the migration is lossless.
+    const originalCustomizations =
+        devcontainer.customizations && typeof devcontainer.customizations === 'object'
+            ? devcontainer.customizations
+            : null;
+
+    if (unmatchedExtensions.length > 0 || originalCustomizations) {
+        const customizationsPatch: Record<string, any> = originalCustomizations
+            ? { ...originalCustomizations }
+            : {};
+
+        if (unmatchedExtensions.length > 0) {
+            const originalVscode =
+                originalCustomizations?.vscode && typeof originalCustomizations.vscode === 'object'
+                    ? { ...originalCustomizations.vscode }
+                    : {};
+            const originalExtensions: string[] = Array.isArray(originalVscode.extensions)
+                ? originalVscode.extensions
+                : [];
+            // Order: existing extensions first so load order is preserved, then new unmatched ones
+            const mergedExtensions = Array.from(
+                new Set([...originalExtensions, ...unmatchedExtensions])
+            );
+            customizationsPatch.vscode = {
+                ...originalVscode,
+                extensions: mergedExtensions,
+            };
+        }
+
+        if (Object.keys(customizationsPatch).length > 0) {
+            patch.customizations = customizationsPatch;
+        }
     }
+
     if (Array.isArray(devcontainer.mounts) && devcontainer.mounts.length > 0) {
         patch.mounts = devcontainer.mounts;
     }
@@ -496,6 +537,10 @@ function buildCustomDevcontainerPatch(
     }
     if (devcontainer.postStartCommand) {
         patch.postStartCommand = devcontainer.postStartCommand;
+    }
+    // Preserve remoteEnv keys not matched to any overlay so the migration is lossless.
+    if (Object.keys(unmatchedRemoteEnv).length > 0) {
+        patch.remoteEnv = unmatchedRemoteEnv;
     }
 
     return Object.keys(patch).length > 0 ? patch : null;
@@ -533,13 +578,13 @@ export function analyseDevcontainer(
     const featureResult = analyseFeatures(devcontainer, tables);
     const composeResult = analyseDockerCompose(composePaths, tables);
     const extensionResult = analyseExtensions(devcontainer, tables);
-    const remoteEnvResults = analyseRemoteEnv(devcontainer, tables);
+    const remoteEnvResult = analyseRemoteEnv(devcontainer, tables);
 
     const detections = deduplicateDetections([
         ...featureResult.detections,
         ...composeResult.detections,
         ...extensionResult.detections,
-        ...remoteEnvResults,
+        ...remoteEnvResult.detections,
     ]);
 
     const hasDockerCompose = composePaths.length > 0;
@@ -595,7 +640,8 @@ export function analyseDevcontainer(
     const customDevcontainerPatch = buildCustomDevcontainerPatch(
         devcontainer,
         featureResult.unmatchedFeatures,
-        extensionResult.unmatchedExtensions
+        extensionResult.unmatchedExtensions,
+        remoteEnvResult.unmatchedRemoteEnv
     );
     const customComposePatch = buildCustomComposePatch(composeResult.unmatchedServices);
 
@@ -721,7 +767,22 @@ export async function adoptCommand(
     );
 
     console.log(chalk.dim(`\nAnalysing ${path.relative(process.cwd(), devcontainerJsonPath)}...`));
-    const devcontainer = JSON.parse(fs.readFileSync(devcontainerJsonPath, 'utf8'));
+    let devcontainer: unknown;
+    try {
+        devcontainer = JSON.parse(fs.readFileSync(devcontainerJsonPath, 'utf8'));
+    } catch (error) {
+        console.error(
+            chalk.red(
+                `\n✗ Failed to parse ${path.relative(process.cwd(), devcontainerJsonPath)}.` +
+                    ' Please ensure it contains valid JSON.'
+            )
+        );
+        if (error instanceof Error && error.message) {
+            console.error(chalk.red(`  ${error.message}`));
+        }
+        process.exitCode = 1;
+        return;
+    }
     for (const cp of resolveComposePaths(devcontainer, absoluteDir)) {
         console.log(chalk.dim(`Analysing ${path.relative(process.cwd(), cp)}...`));
     }
@@ -776,7 +837,10 @@ export async function adoptCommand(
     }
 
     // ── Guard: existing files ──────────────────────────────────────────────
-    const manifestPath = path.join(absoluteDir, 'superposition.json');
+    // superposition.json goes to the project root (parent of .devcontainer/) so it
+    // can be committed alongside application code, matching the team workflow pattern.
+    const projectRoot = path.dirname(absoluteDir);
+    const manifestPath = path.join(projectRoot, 'superposition.json');
     const customDir = path.join(absoluteDir, 'custom');
     const customPatchPath = path.join(customDir, 'devcontainer.patch.json');
     const customComposePath = path.join(customDir, 'docker-compose.patch.yml');
