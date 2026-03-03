@@ -33,6 +33,27 @@ my-project/
 
 ## Step-by-Step Setup
 
+### 0. Migrating an Existing Devcontainer (Optional)
+
+If you already have a hand-crafted `.devcontainer/`, use `adopt` to create the
+initial manifest automatically instead of writing it by hand:
+
+```bash
+# See what would be detected and generated (nothing is written)
+npx container-superposition adopt --dry-run
+
+# Run the adoption (writes superposition.json and custom/ patches)
+npx container-superposition adopt
+```
+
+`adopt` reads every feature URI, VS Code extension, and Docker Compose service
+image in your existing configuration and maps them to overlays. Anything with
+no overlay equivalent (custom features, project-specific services, custom
+mounts, …) is written to `.devcontainer/custom/` so it survives every
+subsequent `regen`.
+
+See the [Adopt Command guide](adopt.md) for full details.
+
 ### 1. Create the Team Manifest
 
 The team lead or maintainer creates the initial manifest:
@@ -535,6 +556,7 @@ code .
 
 ## See Also
 
+- [Adopt Command](adopt.md) - Migrate an existing devcontainer to the overlay-based workflow
 - [Quick Reference](quick-reference.md) - Common commands and flags
 - [Overlay Documentation](overlays.md) - Available overlays
 - [Custom Patches](../tool/README.md#custom-patches) - Custom patch format

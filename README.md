@@ -29,6 +29,7 @@ npx container-superposition plan --stack compose --overlays nodejs,postgres,graf
 
 - `init` — generate a devcontainer
 - `regen` — regenerate from a manifest
+- `adopt` — migrate an existing `.devcontainer/` to the overlay-based workflow
 - `list` — browse overlays
 - `explain` — overlay details
 - `plan` — preview output
@@ -40,6 +41,7 @@ Start here:
 
 - [Docs index](https://github.com/veggerby/container-superposition/blob/main/docs/README.md)
 - [Quick reference](https://github.com/veggerby/container-superposition/blob/main/docs/quick-reference.md)
+- [Adopt command](https://github.com/veggerby/container-superposition/blob/main/docs/adopt.md)
 - [Examples](https://github.com/veggerby/container-superposition/blob/main/docs/examples.md)
 - [Presets](https://github.com/veggerby/container-superposition/blob/main/docs/presets.md)
 - [Architecture](https://github.com/veggerby/container-superposition/blob/main/docs/architecture.md)

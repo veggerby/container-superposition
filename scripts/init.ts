@@ -3,7 +3,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
@@ -34,7 +33,7 @@ import { listCommand } from '../tool/commands/list.js';
 import { explainCommand } from '../tool/commands/explain.js';
 import { planCommand } from '../tool/commands/plan.js';
 import { doctorCommand } from '../tool/commands/doctor.js';
-import { upgradeCommand } from '../tool/commands/upgrade.js';
+import { adoptCommand } from '../tool/commands/adopt.js';
 import { getIncompatibleOverlays, DEPLOYMENT_TARGETS } from '../tool/schema/deployment-targets.js';
 import {
     migrateManifest,
@@ -47,6 +46,12 @@ import {
 import { getToolVersion } from '../tool/utils/version.js';
 import { printSummary } from '../tool/utils/summary.js';
 import { appendGitignoreSection } from '../tool/utils/gitignore.js';
+import {
+    isInsideGitRepo,
+    copyDirectory,
+    createBackup,
+    ensureBackupPatternsInGitignore,
+} from '../tool/utils/backup.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -323,144 +328,6 @@ function loadManifest(manifestPath: string): SuperpositionManifest | null {
             )
         );
         return null;
-    }
-}
-
-/**
- * Detect whether a directory (or any of its parents) is inside a git repository.
- * First tries `git rev-parse --git-dir`; if git is unavailable, falls back to
- * walking up the directory tree looking for a `.git` entry.
- */
-function isInsideGitRepo(dirPath: string): boolean {
-    try {
-        execSync('git rev-parse --git-dir', { cwd: dirPath, stdio: 'ignore' });
-        return true;
-    } catch {
-        // git command failed (not a repo) or git is not installed — walk up looking for .git
-        let current = path.resolve(dirPath);
-        while (true) {
-            if (fs.existsSync(path.join(current, '.git'))) {
-                return true;
-            }
-            const parent = path.dirname(current);
-            if (parent === current) {
-                break; // reached filesystem root
-            }
-            current = parent;
-        }
-        return false;
-    }
-}
-
-/**
- * Create timestamped backup of existing devcontainer and manifest
- */
-async function createBackup(outputPath: string, backupDir?: string): Promise<string | null> {
-    // Check for devcontainer files to backup
-    const devcontainerJsonPath = path.join(outputPath, 'devcontainer.json');
-    const dockerComposePath = path.join(outputPath, 'docker-compose.yml');
-    const devcontainerSubdir = path.join(outputPath, '.devcontainer');
-    const manifestPath = path.join(outputPath, 'superposition.json');
-
-    // Determine what exists
-    const hasDevcontainerJson = fs.existsSync(devcontainerJsonPath);
-    const hasDockerCompose = fs.existsSync(dockerComposePath);
-    const hasDevcontainerSubdir =
-        fs.existsSync(devcontainerSubdir) && fs.statSync(devcontainerSubdir).isDirectory();
-    const hasManifest = fs.existsSync(manifestPath);
-
-    if (!hasDevcontainerJson && !hasDockerCompose && !hasDevcontainerSubdir && !hasManifest) {
-        return null; // Nothing to backup
-    }
-
-    // Create timestamp
-    const timestamp = new Date()
-        .toISOString()
-        .replace(/:/g, '-')
-        .replace(/\..+/, '')
-        .replace('T', '-');
-
-    // Determine backup location - create next to outputPath, not inside it
-    const resolvedOutputPath = path.resolve(outputPath);
-    const outputParentDir = path.dirname(resolvedOutputPath);
-    const outputBaseName = path.basename(resolvedOutputPath);
-    const backupBaseName = outputBaseName === '.devcontainer' ? '.devcontainer' : outputBaseName;
-    const backupPath = backupDir
-        ? path.resolve(backupDir)
-        : path.join(outputParentDir, `${backupBaseName}.backup-${timestamp}`);
-
-    // Create backup directory
-    fs.mkdirSync(backupPath, { recursive: true });
-
-    // Backup files and directories
-    if (hasDevcontainerJson) {
-        fs.copyFileSync(devcontainerJsonPath, path.join(backupPath, 'devcontainer.json'));
-    }
-
-    if (hasDockerCompose) {
-        fs.copyFileSync(dockerComposePath, path.join(backupPath, 'docker-compose.yml'));
-    }
-
-    if (hasDevcontainerSubdir) {
-        const destDir = path.join(backupPath, '.devcontainer');
-        await copyDirectory(devcontainerSubdir, destDir);
-    }
-
-    if (hasManifest) {
-        fs.copyFileSync(manifestPath, path.join(backupPath, 'superposition.json'));
-    }
-
-    // Also backup other common devcontainer files
-    const otherFiles = ['.env', '.env.example', '.gitignore', 'features', 'scripts'];
-    for (const file of otherFiles) {
-        const srcPath = path.join(outputPath, file);
-        if (fs.existsSync(srcPath)) {
-            const destPath = path.join(backupPath, file);
-            if (fs.statSync(srcPath).isDirectory()) {
-                await copyDirectory(srcPath, destPath);
-            } else {
-                fs.copyFileSync(srcPath, destPath);
-            }
-        }
-    }
-
-    return backupPath;
-}
-
-/**
- * Recursively copy directory
- */
-async function copyDirectory(src: string, dest: string): Promise<void> {
-    fs.mkdirSync(dest, { recursive: true });
-    const entries = fs.readdirSync(src, { withFileTypes: true });
-
-    for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
-
-        if (entry.isDirectory()) {
-            await copyDirectory(srcPath, destPath);
-        } else {
-            fs.copyFileSync(srcPath, destPath);
-        }
-    }
-}
-
-/**
- * Ensure backup patterns are in .gitignore
- */
-function ensureBackupPatternsInGitignore(outputPath: string): void {
-    const projectRoot = path.dirname(path.resolve(outputPath));
-    const gitignorePath = path.join(projectRoot, '.gitignore');
-
-    const written = appendGitignoreSection(gitignorePath, 'container-superposition backups', [
-        '.devcontainer.backup-*/',
-        '*.backup-*',
-        'superposition.json.backup-*',
-    ]);
-
-    if (written) {
-        console.log(chalk.dim('   📝 Updated .gitignore with backup patterns'));
     }
 }
 
@@ -1430,9 +1297,9 @@ async function parseCliArgs(): Promise<{
             await doctorCommand(overlaysConfig, OVERLAYS_DIR, options);
         });
 
-    // Upgrade command
+    // Adopt command
     program
-        .command('upgrade')
+        .command('adopt')
         .description(
             'Analyse an existing .devcontainer/ and suggest an equivalent overlay-based configuration'
         )
@@ -1442,10 +1309,15 @@ async function parseCliArgs(): Promise<{
         )
         .option('--dry-run', 'Print analysis and suggested command only; no files written')
         .option('--force', 'Overwrite existing superposition.json if present')
+        .option(
+            '--backup',
+            'Force backup creation even when inside a git repo (default: backup only outside git repos)'
+        )
+        .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
-            await upgradeCommand(overlaysConfig, options);
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, options);
             process.exit(0);
         });
 
