@@ -34,6 +34,7 @@ import { listCommand } from '../tool/commands/list.js';
 import { explainCommand } from '../tool/commands/explain.js';
 import { planCommand } from '../tool/commands/plan.js';
 import { doctorCommand } from '../tool/commands/doctor.js';
+import { upgradeCommand } from '../tool/commands/upgrade.js';
 import { getIncompatibleOverlays, DEPLOYMENT_TARGETS } from '../tool/schema/deployment-targets.js';
 import {
     migrateManifest,
@@ -1427,6 +1428,25 @@ async function parseCliArgs(): Promise<{
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
             await doctorCommand(overlaysConfig, OVERLAYS_DIR, options);
+        });
+
+    // Upgrade command
+    program
+        .command('upgrade')
+        .description(
+            'Analyse an existing .devcontainer/ and suggest an equivalent overlay-based configuration'
+        )
+        .option(
+            '-d, --dir <path>',
+            'Path to the existing .devcontainer directory (default: ./.devcontainer)'
+        )
+        .option('--dry-run', 'Print analysis and suggested command only; no files written')
+        .option('--force', 'Overwrite existing superposition.json if present')
+        .option('--json', 'Output as JSON for scripting')
+        .action(async (options) => {
+            const overlaysConfig = loadOverlaysConfigWrapper();
+            await upgradeCommand(overlaysConfig, options);
+            process.exit(0);
         });
 
     await program.parseAsync(process.argv);

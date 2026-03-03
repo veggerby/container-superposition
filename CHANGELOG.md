@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`upgrade` command** — Adopt an existing `.devcontainer/` into the overlay-based model
+    - Reads `devcontainer.json` and optionally `docker-compose.yml` and analyses their contents
+    - Maps detected devcontainer features, Docker Compose service images, VS Code extensions, and `remoteEnv` variables to equivalent overlay IDs
+    - Displays a table showing each detected signal → suggested overlay with a confidence level (`exact` or `heuristic`)
+    - Prints the equivalent `container-superposition init` command to reproduce the configuration
+    - `--dry-run` flag prints the analysis without writing any files
+    - Prompts to generate `superposition.json` from the suggestions (skipped in dry-run mode)
+    - `--force` flag allows overwriting an existing `superposition.json`
+    - `--json` flag for machine-readable output (suitable for scripting)
+    - Gracefully handles configs with no recognisable overlay patterns
+
 ## [0.1.4] - 2026-02-26
 
 ### Added
