@@ -101,16 +101,14 @@ export function computeHash(
     base: string,
     toolVersion: string
 ): { hash: string; hashFull: string } {
-    // Major+minor only (e.g. "0.1" from "0.1.4")
-    const toolMajorMinor = toolVersion.split('.').slice(0, 2).join('.');
-
     // Canonical object – keys alphabetically sorted, overlays sorted
+    // toolVersion must already be truncated to major.minor by the caller
     const canonical = {
         base,
         overlays: [...overlays].sort(),
         preset: preset ?? null,
         stack,
-        tool: toolMajorMinor,
+        tool: toolVersion,
     };
 
     const json = JSON.stringify(canonical);
@@ -124,7 +122,7 @@ export function computeHash(
  */
 export async function hashCommand(
     overlaysConfig: OverlaysConfig,
-    overlaysDir: string,
+    _overlaysDir: string,
     options: HashOptions
 ): Promise<void> {
     try {
@@ -170,14 +168,30 @@ export async function hashCommand(
                 process.exit(1);
             }
 
+            const validStacksForManifest: Stack[] = ['plain', 'compose'];
+            if (!validStacksForManifest.includes(manifest.baseTemplate as Stack)) {
+                console.error(
+                    chalk.red(
+                        `✗ Invalid manifest: "baseTemplate" must be one of: ${validStacksForManifest.join(', ')}`
+                    )
+                );
+                process.exit(1);
+            }
+
             if (!Array.isArray(manifest.overlays)) {
                 console.error(chalk.red('✗ Invalid manifest: "overlays" must be an array'));
                 process.exit(1);
             }
 
+            if (!manifest.overlays.every((o: unknown) => typeof o === 'string')) {
+                console.error(
+                    chalk.red('✗ Invalid manifest: "overlays" must be an array of strings')
+                );
+                process.exit(1);
+            }
+
             stack = manifest.baseTemplate;
-            selectedOverlays = (manifest.overlays as unknown[])
-                .filter((o): o is string => typeof o === 'string');
+            selectedOverlays = manifest.overlays as string[];
             preset = typeof manifest.preset === 'string' ? manifest.preset : null;
             base = options.base ?? (typeof manifest.baseImage === 'string' ? manifest.baseImage : 'bookworm');
         } else {
@@ -233,18 +247,42 @@ export async function hashCommand(
         // Resolve dependencies
         const { resolved, autoAdded } = resolveDependencies(selectedOverlays, overlaysConfig);
 
-        // Sort resolved overlays alphabetically for canonical representation
-        const sortedOverlays = [...resolved].sort();
+        // Apply stack-compatibility filtering (mirrors plan/init behavior)
+        const incompatible: string[] = [];
+        const compatibleResolved = resolved.filter((id) => {
+            const overlay = overlayMap.get(id);
+            if (!overlay) return false;
+            if (overlay.supports && overlay.supports.length > 0) {
+                const ok = overlay.supports.includes(stack as Stack);
+                if (!ok) incompatible.push(id);
+                return ok;
+            }
+            return true;
+        });
 
-        const toolVersion = getToolVersion();
-        const { hash, hashFull } = computeHash(stack, sortedOverlays, preset, base, toolVersion);
+        for (const id of incompatible) {
+            console.warn(
+                chalk.yellow(
+                    `⚠ Overlay "${id}" does not support stack "${stack}" and will be excluded from the hash.`
+                )
+            );
+        }
+
+        // Sort resolved overlays alphabetically for canonical representation
+        const sortedOverlays = [...compatibleResolved].sort();
+
+        // Truncate tool version to major.minor for hash stability across patches
+        const fullToolVersion = getToolVersion();
+        const toolMajorMinor = fullToolVersion.split('.').slice(0, 2).join('.');
+
+        const { hash, hashFull } = computeHash(stack, sortedOverlays, preset, base, toolMajorMinor);
 
         const result: HashResult = {
             stack,
             overlays: sortedOverlays,
             preset,
             base,
-            tool: toolVersion,
+            tool: toolMajorMinor,
             hash,
             hashFull,
         };
@@ -262,7 +300,7 @@ export async function hashCommand(
                 `overlays     ${chalk.cyan(overlayDisplay || '(none)')}`,
                 `preset       ${chalk.cyan(preset ?? '(none)')}`,
                 `base         ${chalk.cyan(base)}`,
-                `tool         ${chalk.cyan(toolVersion)}`,
+                `tool         ${chalk.cyan(toolMajorMinor)}`,
                 '',
                 `hash         ${chalk.green.bold(hash)}`,
             ];

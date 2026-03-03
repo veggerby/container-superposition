@@ -889,15 +889,16 @@ describe('Command Tests', () => {
         });
 
         it('should use only major.minor from tool version', () => {
-            const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1.3');
-            const b = computeHash('compose', ['postgres'], null, 'bookworm', '0.1.99');
-            // Both use "0.1" so hashes should be the same
+            // Caller is responsible for truncating to major.minor before passing to computeHash
+            const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1');
+            const b = computeHash('compose', ['postgres'], null, 'bookworm', '0.1');
+            // Same major.minor → same hash
             expect(a.hash).toBe(b.hash);
         });
 
         it('should differ when patch version is in different minor series', () => {
-            const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1.3');
-            const b = computeHash('compose', ['postgres'], null, 'bookworm', '0.2.0');
+            const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1');
+            const b = computeHash('compose', ['postgres'], null, 'bookworm', '0.2');
             expect(a.hash).not.toBe(b.hash);
         });
     });

@@ -30,7 +30,7 @@ The fingerprint is a SHA-256 digest of a canonical JSON object with the followin
 | `overlays` | Resolved overlay list (alphabetically sorted) | Includes auto-resolved dependencies |
 | `preset` | `--preset` flag or manifest `preset` | `null` when no preset |
 | `base` | `--base` flag or manifest `baseImage` | e.g. `bookworm`, `alpine` |
-| `tool` | Tool version (major.minor only) | Stable across patch releases |
+| `tool` | Tool version (major.minor only) | Stable across patch releases; truncated before hashing |
 
 Keys in the canonical object are sorted alphabetically and the overlay list is sorted before hashing,
 so the result is identical regardless of the order overlays are provided.
