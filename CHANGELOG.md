@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`adopt` command** — Adopt an existing `.devcontainer/` into the overlay-based model
+    - Reads `devcontainer.json` and any linked `docker-compose.yml` files and analyses their contents
+    - Resolves the `dockerComposeFile` field (string or array, relative paths) to support Docker Compose-based devcontainers where the compose file lives outside the `.devcontainer/` directory
+    - Maps detected devcontainer features, Docker Compose service images, VS Code extensions, and `remoteEnv` variables to equivalent overlay IDs
+    - Detection tables are **built dynamically from the overlay registry** — no hardcoded overlay names, every overlay is automatically supported
+    - Best-match scoring ensures a feature used by multiple overlays (e.g. the Node.js feature shared by `nodejs` and `bun`) is assigned to the most appropriate one
+    - Displays a table showing each detected signal → suggested overlay with a confidence level (`exact` or `heuristic`)
+    - Prints the equivalent `container-superposition init` command to reproduce the configuration, using correct CLI flags per overlay category (`--language`, `--database`, `--observability`, `--cloud-tools`, `--dev-tools`)
+    - **Unmatched items** (features, services, extensions not covered by any overlay) are surfaced separately; a `custom/devcontainer.patch.json` / `custom/docker-compose.patch.yml` is written to preserve them across regenerations
+    - Backup support using the same auto-detect logic as `regen` — skipped in git repos by default; use `--backup` / `--no-backup` / `--backup-dir` to override
+    - `--dry-run` flag prints the analysis without writing any files
+    - Prompts to generate `superposition.json` (and optionally `custom/` patch files) from the suggestions
+    - `--force` flag allows overwriting existing generated files
+    - `--json` flag for machine-readable output (suitable for scripting)
+    - Gracefully handles configs with no recognisable overlay patterns
+    - Full documentation at [`docs/adopt.md`](docs/adopt.md)
+
 ## [0.1.4] - 2026-02-26
 
 ### Added
