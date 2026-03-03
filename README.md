@@ -33,6 +33,7 @@ npx container-superposition plan --stack compose --overlays nodejs,postgres,graf
 - `list` — browse overlays
 - `explain` — overlay details
 - `plan` — preview output
+- `hash` — deterministic environment fingerprint
 - `doctor` — validate environment
 
 ## Documentation
@@ -42,6 +43,7 @@ Start here:
 - [Docs index](https://github.com/veggerby/container-superposition/blob/main/docs/README.md)
 - [Quick reference](https://github.com/veggerby/container-superposition/blob/main/docs/quick-reference.md)
 - [Adopt command](https://github.com/veggerby/container-superposition/blob/main/docs/adopt.md)
+- [Hash command](https://github.com/veggerby/container-superposition/blob/main/docs/hash.md)
 - [Examples](https://github.com/veggerby/container-superposition/blob/main/docs/examples.md)
 - [Presets](https://github.com/veggerby/container-superposition/blob/main/docs/presets.md)
 - [Architecture](https://github.com/veggerby/container-superposition/blob/main/docs/architecture.md)

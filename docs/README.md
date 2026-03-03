@@ -20,6 +20,7 @@ Complete documentation for the container-superposition devcontainer scaffolding 
 ### User Guides
 
 - **[Adopt Command](adopt.md)** - Migrate an existing `.devcontainer/` to the overlay-based workflow
+- **[Hash Command](hash.md)** - Deterministic environment fingerprint for drift detection and reproducibility
 - **[Presets Guide](presets.md)** - Using stack presets for common development scenarios
 - **[Messaging Comparison](messaging-comparison.md)** - Choosing between RabbitMQ, Redpanda, and NATS
 - **[Messaging Quick Start](messaging-quick-start.md)** - Getting started with messaging overlays

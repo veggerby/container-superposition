@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`hash` command** — Deterministic environment fingerprint for drift detection and reproducibility
+    - Produces a stable SHA-256 fingerprint from stack, resolved overlays, preset, base image, and tool version
+    - Auto-resolves overlay dependencies (same logic as `plan`) so the hash includes transitively required overlays
+    - Works standalone (`--stack`/`--overlays` flags) or reads directly from an existing `superposition.json` manifest
+    - `--json` flag emits machine-readable JSON with both a short 8-character `hash` (for display/badges) and the full 64-character `hashFull` (for CI comparison)
+    - `--write` flag writes the full hash to `.devcontainer/superposition.hash` alongside the manifest
+    - Hash is version-stable across patch releases (uses `major.minor` of the tool version only)
+    - Full documentation at [`docs/hash.md`](docs/hash.md)
+
+### Added
+
 - **`adopt` command** — Adopt an existing `.devcontainer/` into the overlay-based model
     - Reads `devcontainer.json` and any linked `docker-compose.yml` files and analyses their contents
     - Resolves the `dockerComposeFile` field (string or array, relative paths) to support Docker Compose-based devcontainers where the compose file lives outside the `.devcontainer/` directory
