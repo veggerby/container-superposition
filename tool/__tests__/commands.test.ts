@@ -8,6 +8,7 @@ import { listCommand } from '../commands/list.js';
 import { explainCommand } from '../commands/explain.js';
 import { planCommand, generatePlanDiff } from '../commands/plan.js';
 import { doctorCommand } from '../commands/doctor.js';
+import { hashCommand, computeHash } from '../commands/hash.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -675,6 +676,236 @@ describe('Command Tests', () => {
 
             expect(consoleLogSpy).toHaveBeenCalled();
             // Fix functionality would be in output if there are fixable issues
+        });
+    });
+
+    describe('hashCommand', () => {
+        let tmpDir: string;
+
+        beforeEach(() => {
+            tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hash-test-'));
+        });
+
+        afterEach(() => {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        });
+
+        it('should output fingerprint for given stack and overlays', async () => {
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres,redis',
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Environment Fingerprint');
+            expect(output).toContain('compose');
+            expect(output).toContain('postgres');
+            expect(output).toContain('redis');
+        });
+
+        it('should output JSON when --json flag is used', async () => {
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres,redis',
+                json: true,
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls[0][0];
+            expect(() => JSON.parse(output)).not.toThrow();
+            const parsed = JSON.parse(output);
+            expect(parsed.stack).toBe('compose');
+            expect(Array.isArray(parsed.overlays)).toBe(true);
+            expect(parsed.overlays).toContain('postgres');
+            expect(parsed.overlays).toContain('redis');
+            expect(typeof parsed.hash).toBe('string');
+            expect(parsed.hash).toHaveLength(8);
+            expect(typeof parsed.hashFull).toBe('string');
+            expect(parsed.hashFull).toHaveLength(64);
+            expect(parsed.preset).toBeNull();
+            expect(typeof parsed.base).toBe('string');
+            expect(typeof parsed.tool).toBe('string');
+        });
+
+        it('should auto-add required dependencies', async () => {
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'grafana',
+                json: true,
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls[0][0];
+            const parsed = JSON.parse(output);
+            expect(parsed.overlays).toContain('grafana');
+            expect(parsed.overlays).toContain('prometheus');
+        });
+
+        it('should produce same hash for same inputs', async () => {
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres,redis',
+                json: true,
+            });
+            const firstOutput = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+
+            consoleLogSpy.mockClear();
+
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'redis,postgres', // reversed order
+                json: true,
+            });
+            const secondOutput = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+
+            expect(firstOutput.hash).toBe(secondOutput.hash);
+            expect(firstOutput.hashFull).toBe(secondOutput.hashFull);
+        });
+
+        it('should produce different hash when inputs differ', async () => {
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres',
+                json: true,
+            });
+            const firstOutput = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+
+            consoleLogSpy.mockClear();
+
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'redis',
+                json: true,
+            });
+            const secondOutput = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+
+            expect(firstOutput.hash).not.toBe(secondOutput.hash);
+        });
+
+        it('should write hash file when --write flag is used', async () => {
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres',
+                write: true,
+                output: tmpDir,
+            });
+
+            const hashFilePath = path.join(tmpDir, 'superposition.hash');
+            expect(fs.existsSync(hashFilePath)).toBe(true);
+            const content = fs.readFileSync(hashFilePath, 'utf-8').trim();
+            expect(content).toHaveLength(64); // full SHA-256 hex
+        });
+
+        it('should exit with error when stack is missing without manifest', async () => {
+            try {
+                await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                    overlays: 'postgres',
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            }
+
+            expect(consoleErrorSpy).toHaveBeenCalled();
+        });
+
+        it('should exit with error for unknown overlay', async () => {
+            try {
+                await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                    stack: 'compose',
+                    overlays: 'nonexistent-overlay',
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            }
+
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            const errorOutput = consoleErrorSpy.mock.calls.join('\n');
+            expect(errorOutput).toContain('Unknown overlay');
+        });
+
+        it('should read from superposition.json manifest when no args given', async () => {
+            const manifestPath = path.join(tmpDir, 'superposition.json');
+            fs.writeFileSync(
+                manifestPath,
+                JSON.stringify({
+                    baseTemplate: 'compose',
+                    baseImage: 'bookworm',
+                    overlays: ['postgres', 'redis'],
+                })
+            );
+
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                manifest: manifestPath,
+                json: true,
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(parsed.stack).toBe('compose');
+            expect(parsed.overlays).toContain('postgres');
+            expect(parsed.overlays).toContain('redis');
+            expect(typeof parsed.hash).toBe('string');
+        });
+
+        it('should include (auto) label for auto-added overlays in text output', async () => {
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'grafana',
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('(auto)');
+            expect(output).toContain('prometheus');
+        });
+    });
+
+    describe('computeHash', () => {
+        it('should return 8-char hash and 64-char full hash', () => {
+            const { hash, hashFull } = computeHash(
+                'compose',
+                ['postgres'],
+                null,
+                'bookworm',
+                '0.1.3'
+            );
+            expect(hash).toHaveLength(8);
+            expect(hashFull).toHaveLength(64);
+        });
+
+        it('should be deterministic', () => {
+            const a = computeHash('compose', ['postgres', 'redis'], null, 'bookworm', '0.1.3');
+            const b = computeHash('compose', ['redis', 'postgres'], null, 'bookworm', '0.1.3');
+            // Overlays are sorted inside computeHash
+            expect(a.hash).toBe(b.hash);
+            expect(a.hashFull).toBe(b.hashFull);
+        });
+
+        it('should differ when stack changes', () => {
+            const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1.3');
+            const b = computeHash('plain', ['postgres'], null, 'bookworm', '0.1.3');
+            expect(a.hash).not.toBe(b.hash);
+        });
+
+        it('should differ when base changes', () => {
+            const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1.3');
+            const b = computeHash('compose', ['postgres'], null, 'alpine', '0.1.3');
+            expect(a.hash).not.toBe(b.hash);
+        });
+
+        it('should use only major.minor from tool version', () => {
+            // Caller is responsible for truncating to major.minor before passing to computeHash
+            const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1');
+            const b = computeHash('compose', ['postgres'], null, 'bookworm', '0.1');
+            // Same major.minor → same hash
+            expect(a.hash).toBe(b.hash);
+        });
+
+        it('should differ when patch version is in different minor series', () => {
+            const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1');
+            const b = computeHash('compose', ['postgres'], null, 'bookworm', '0.2');
+            expect(a.hash).not.toBe(b.hash);
         });
     });
 });

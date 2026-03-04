@@ -34,6 +34,7 @@ import { explainCommand } from '../tool/commands/explain.js';
 import { planCommand } from '../tool/commands/plan.js';
 import { doctorCommand } from '../tool/commands/doctor.js';
 import { adoptCommand } from '../tool/commands/adopt.js';
+import { hashCommand } from '../tool/commands/hash.js';
 import { getIncompatibleOverlays, DEPLOYMENT_TARGETS } from '../tool/schema/deployment-targets.js';
 import {
     migrateManifest,
@@ -1319,6 +1320,24 @@ async function parseCliArgs(): Promise<{
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, options);
+            process.exit(0);
+        });
+
+    // Hash command
+    program
+        .command('hash')
+        .description('Compute a deterministic fingerprint for a given configuration')
+        .option('--stack <type>', 'Base template: plain, compose')
+        .option('--overlays <list>', 'Comma-separated list of overlay IDs')
+        .option('--preset <id>', 'Preset ID (optional)')
+        .option('--base <image>', 'Base image / distro variant (e.g. bookworm, alpine)')
+        .option('--manifest <path>', 'Path to superposition.json manifest')
+        .option('-o, --output <path>', 'Directory to write hash file (used with --write)')
+        .option('--write', 'Write hash to .devcontainer/superposition.hash')
+        .option('--json', 'Output as JSON for scripting')
+        .action(async (options) => {
+            const overlaysConfig = loadOverlaysConfigWrapper();
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, options);
             process.exit(0);
         });
 
