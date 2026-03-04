@@ -193,7 +193,9 @@ export async function hashCommand(
             stack = manifest.baseTemplate;
             selectedOverlays = manifest.overlays as string[];
             preset = typeof manifest.preset === 'string' ? manifest.preset : null;
-            base = options.base ?? (typeof manifest.baseImage === 'string' ? manifest.baseImage : 'bookworm');
+            base =
+                options.base ??
+                (typeof manifest.baseImage === 'string' ? manifest.baseImage : 'bookworm');
         } else {
             // Explicit CLI options
             if (!options.stack) {

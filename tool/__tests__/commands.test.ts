@@ -863,7 +863,13 @@ describe('Command Tests', () => {
 
     describe('computeHash', () => {
         it('should return 8-char hash and 64-char full hash', () => {
-            const { hash, hashFull } = computeHash('compose', ['postgres'], null, 'bookworm', '0.1.3');
+            const { hash, hashFull } = computeHash(
+                'compose',
+                ['postgres'],
+                null,
+                'bookworm',
+                '0.1.3'
+            );
             expect(hash).toHaveLength(8);
             expect(hashFull).toHaveLength(64);
         });

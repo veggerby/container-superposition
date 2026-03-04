@@ -24,13 +24,13 @@ npx container-superposition hash --write
 
 The fingerprint is a SHA-256 digest of a canonical JSON object with the following fields:
 
-| Field | Source | Notes |
-|-------|--------|-------|
-| `stack` | `--stack` flag or manifest `baseTemplate` | `plain` or `compose` |
-| `overlays` | Resolved overlay list (alphabetically sorted) | Includes auto-resolved dependencies |
-| `preset` | `--preset` flag or manifest `preset` | `null` when no preset |
-| `base` | `--base` flag or manifest `baseImage` | e.g. `bookworm`, `alpine` |
-| `tool` | Tool version (major.minor only) | Stable across patch releases; truncated before hashing |
+| Field      | Source                                        | Notes                                                  |
+| ---------- | --------------------------------------------- | ------------------------------------------------------ |
+| `stack`    | `--stack` flag or manifest `baseTemplate`     | `plain` or `compose`                                   |
+| `overlays` | Resolved overlay list (alphabetically sorted) | Includes auto-resolved dependencies                    |
+| `preset`   | `--preset` flag or manifest `preset`          | `null` when no preset                                  |
+| `base`     | `--base` flag or manifest `baseImage`         | e.g. `bookworm`, `alpine`                              |
+| `tool`     | Tool version (major.minor only)               | Stable across patch releases; truncated before hashing |
 
 Keys in the canonical object are sorted alphabetically and the overlay list is sorted before hashing,
 so the result is identical regardless of the order overlays are provided.
@@ -63,13 +63,13 @@ overlays     grafana, prometheus (auto)
 
 ```json
 {
-  "stack": "compose",
-  "overlays": ["dotnet", "postgres", "redis"],
-  "preset": null,
-  "base": "bookworm",
-  "tool": "0.1.3",
-  "hash": "53ed972d",
-  "hashFull": "53ed972da2ba0712ae15b4003aa46234e7eeba2e977e7a397453740202ebbea4"
+    "stack": "compose",
+    "overlays": ["dotnet", "postgres", "redis"],
+    "preset": null,
+    "base": "bookworm",
+    "tool": "0.1.3",
+    "hash": "53ed972d",
+    "hashFull": "53ed972da2ba0712ae15b4003aa46234e7eeba2e977e7a397453740202ebbea4"
 }
 ```
 
@@ -78,16 +78,16 @@ overlays     grafana, prometheus (auto)
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--stack <type>` | Base template: `plain` or `compose` |
-| `--overlays <list>` | Comma-separated overlay IDs |
-| `--preset <id>` | Preset ID (optional, reflected in hash) |
-| `--base <image>` | Base image/distro (e.g. `bookworm`, `alpine`) |
-| `--manifest <path>` | Path to a specific `superposition.json` |
+| Option                | Description                                        |
+| --------------------- | -------------------------------------------------- |
+| `--stack <type>`      | Base template: `plain` or `compose`                |
+| `--overlays <list>`   | Comma-separated overlay IDs                        |
+| `--preset <id>`       | Preset ID (optional, reflected in hash)            |
+| `--base <image>`      | Base image/distro (e.g. `bookworm`, `alpine`)      |
+| `--manifest <path>`   | Path to a specific `superposition.json`            |
 | `-o, --output <path>` | Directory to write hash file (used with `--write`) |
-| `--write` | Write hash to `.devcontainer/superposition.hash` |
-| `--json` | Output as JSON for scripting |
+| `--write`             | Write hash to `.devcontainer/superposition.hash`   |
+| `--json`              | Output as JSON for scripting                       |
 
 When `--stack`/`--overlays` are omitted the command searches for `superposition.json` in:
 
@@ -124,9 +124,9 @@ Detect when the environment has changed since the last commit:
 ```yaml
 - name: Verify environment fingerprint
   run: |
-    EXPECTED=$(cat .devcontainer/superposition.hash)
-    ACTUAL=$(npx container-superposition hash --json | jq -r .hashFull)
-    [ "$EXPECTED" = "$ACTUAL" ] || (echo "Environment drift detected" && exit 1)
+      EXPECTED=$(cat .devcontainer/superposition.hash)
+      ACTUAL=$(npx container-superposition hash --json | jq -r .hashFull)
+      [ "$EXPECTED" = "$ACTUAL" ] || (echo "Environment drift detected" && exit 1)
 ```
 
 Or using the short hash stored in a badge/README:
@@ -134,9 +134,9 @@ Or using the short hash stored in a badge/README:
 ```yaml
 - name: Verify short fingerprint
   run: |
-    EXPECTED="53ed972d"
-    ACTUAL=$(npx container-superposition hash --json | jq -r .hash)
-    [ "$EXPECTED" = "$ACTUAL" ] || (echo "Environment drift detected" && exit 1)
+      EXPECTED="53ed972d"
+      ACTUAL=$(npx container-superposition hash --json | jq -r .hash)
+      [ "$EXPECTED" = "$ACTUAL" ] || (echo "Environment drift detected" && exit 1)
 ```
 
 ## Stability Guarantees
