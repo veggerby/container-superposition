@@ -53,7 +53,7 @@ windsurf auth
 ## Verification
 
 ```bash
-bash .devcontainer/verify-windsurf-cli.sh
+bash .devcontainer/scripts/verify-windsurf-cli.sh
 ```
 
 ## References

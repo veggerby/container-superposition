@@ -61,7 +61,7 @@ export GEMINI_API_KEY=your-api-key
 ## Verification
 
 ```bash
-bash .devcontainer/verify-gemini-cli.sh
+bash .devcontainer/scripts/verify-gemini-cli.sh
 ```
 
 ## References

@@ -54,7 +54,7 @@ amp auth
 ## Verification
 
 ```bash
-bash .devcontainer/verify-amp.sh
+bash .devcontainer/scripts/verify-amp.sh
 ```
 
 ## References

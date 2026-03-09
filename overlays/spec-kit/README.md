@@ -121,7 +121,7 @@ export SPECIFY_AI_AGENT=codex
 After setup, run the verification script to ensure proper installation:
 
 ```bash
-bash .devcontainer/verify-spec-kit.sh
+bash .devcontainer/scripts/verify-spec-kit.sh
 ```
 
 This checks:

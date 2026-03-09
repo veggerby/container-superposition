@@ -24,6 +24,7 @@ describe('Preset Definitions', () => {
             'frontend.yml',
             'data-engineering.yml',
             'k8s-operator-dev.yml',
+            'sdd.yml',
         ];
 
         for (const file of presetFiles) {
@@ -263,6 +264,76 @@ describe('Preset Definitions', () => {
         expect(preset.glueConfig.environment.KUBECONFIG).toBeDefined();
     });
 
+    it('sdd preset should have correct structure with agent parameter', () => {
+        const filePath = path.join(presetsDir, 'sdd.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('sdd');
+        expect(preset.selects.required).toContain('spec-kit');
+        expect(preset.supports).toEqual([]); // Works with both plain and compose
+
+        // Must have the agent parameter
+        expect(preset.parameters).toBeDefined();
+        expect(preset.parameters.agent).toBeDefined();
+        expect(preset.parameters.agent.default).toBe('codex');
+
+        const agentOptionIds = preset.parameters.agent.options.map((o: any) => o.id);
+        // Option IDs must be the --ai flag values, not overlay IDs
+        expect(agentOptionIds).toContain('codex');
+        expect(agentOptionIds).toContain('claude');
+        expect(agentOptionIds).toContain('gemini');
+        expect(agentOptionIds).toContain('amp');
+        expect(agentOptionIds).toContain('windsurf');
+        expect(agentOptionIds).toContain('opencode');
+        expect(agentOptionIds).toContain('copilot');
+
+        // Overlay references must use overlay IDs (not the --ai flag values)
+        const claudeOption = preset.parameters.agent.options.find((o: any) => o.id === 'claude');
+        expect(claudeOption).toBeDefined();
+        expect(claudeOption.overlays).toContain('claude-code');
+
+        const geminiOption = preset.parameters.agent.options.find((o: any) => o.id === 'gemini');
+        expect(geminiOption).toBeDefined();
+        expect(geminiOption.overlays).toContain('gemini-cli');
+
+        const windsurfOption = preset.parameters.agent.options.find(
+            (o: any) => o.id === 'windsurf'
+        );
+        expect(windsurfOption).toBeDefined();
+        expect(windsurfOption.overlays).toContain('windsurf-cli');
+
+        // copilot is IDE-integrated so has no overlay
+        const copilotOption = preset.parameters.agent.options.find((o: any) => o.id === 'copilot');
+        expect(copilotOption).toBeDefined();
+        expect(copilotOption.overlays).toHaveLength(0);
+
+        // glueConfig must set SPECIFY_AI_AGENT via template substitution
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment).toBeDefined();
+        expect(preset.glueConfig.environment.SPECIFY_AI_AGENT).toBe('{{parameters.agent.id}}');
+    });
+
+    it('sdd preset agent parameter options should reference valid overlay IDs', () => {
+        const filePath = path.join(presetsDir, 'sdd.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
+        const validOverlayIds = new Set(
+            overlaysConfig.overlays.filter((o) => o.category !== 'preset').map((o) => o.id)
+        );
+
+        for (const opt of preset.parameters.agent.options) {
+            for (const overlayId of opt.overlays as string[]) {
+                expect(
+                    validOverlayIds.has(overlayId),
+                    `sdd agent option '${opt.id}': overlay '${overlayId}' must exist in the registry`
+                ).toBe(true);
+            }
+        }
+    });
+
     describe('Parameter resolution logic', () => {
         it('web-api parameter options should resolve to overlay arrays', () => {
             const filePath = path.join(presetsDir, 'web-api.yml');
@@ -300,7 +371,7 @@ describe('Preset Definitions', () => {
         });
 
         it('preset parameter defaults should be valid option ids', () => {
-            const presetFiles = ['web-api.yml', 'microservice.yml'];
+            const presetFiles = ['web-api.yml', 'microservice.yml', 'sdd.yml'];
             for (const file of presetFiles) {
                 const filePath = path.join(presetsDir, file);
                 const content = fs.readFileSync(filePath, 'utf-8');

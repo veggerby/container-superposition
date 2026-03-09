@@ -67,7 +67,7 @@ claude auth
 ## Verification
 
 ```bash
-bash .devcontainer/verify-claude-code.sh
+bash .devcontainer/scripts/verify-claude-code.sh
 ```
 
 ## References

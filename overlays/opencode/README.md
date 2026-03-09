@@ -60,7 +60,7 @@ export GEMINI_API_KEY=your-key
 ## Verification
 
 ```bash
-bash .devcontainer/verify-opencode.sh
+bash .devcontainer/scripts/verify-opencode.sh
 ```
 
 ## References

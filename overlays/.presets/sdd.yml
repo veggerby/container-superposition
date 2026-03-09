@@ -15,6 +15,8 @@ selects:
         - spec-kit
 
 # Parameterized agent selection
+# Option 'id' is the value passed to `specify init --ai <id>`.
+# 'overlays' is the list of container-superposition overlay IDs to include.
 parameters:
     agent:
         description: AI coding agent to use with Spec Kit
@@ -23,16 +25,16 @@ parameters:
             - id: codex
               overlays: [codex]
               description: OpenAI Codex CLI (--ai codex)
-            - id: claude-code
+            - id: claude
               overlays: [claude-code]
               description: Anthropic Claude Code (--ai claude)
-            - id: gemini-cli
+            - id: gemini
               overlays: [gemini-cli]
               description: Google Gemini CLI (--ai gemini)
             - id: amp
               overlays: [amp]
               description: Sourcegraph Amp (--ai amp)
-            - id: windsurf-cli
+            - id: windsurf
               overlays: [windsurf-cli]
               description: Codeium Windsurf (--ai windsurf)
             - id: opencode
