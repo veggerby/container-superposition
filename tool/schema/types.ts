@@ -50,7 +50,13 @@ export type DevTool =
     | 'just'
     | 'direnv'
     | 'modern-cli-tools'
-    | 'ngrok';
+    | 'ngrok'
+    | 'spec-kit'
+    | 'claude-code'
+    | 'gemini-cli'
+    | 'amp'
+    | 'windsurf-cli'
+    | 'opencode';
 export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'prometheus' | 'grafana' | 'loki';
 
 // Legacy type for backwards compatibility

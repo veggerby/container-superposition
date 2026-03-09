@@ -55,7 +55,13 @@ Each overlay directory contains:
 - **docker-in-docker** - Docker daemon inside container (conflicts with docker-sock)
 - **docker-sock** - Docker socket mounting (conflicts with docker-in-docker)
 - **playwright** - Browser automation with Chromium installed
-- **codex** - AI-powered code assistant
+- **codex** - OpenAI Codex CLI for AI-powered code generation and assistance
+- **spec-kit** - Specify CLI for Spec-Driven Development with any AI coding agent
+- **claude-code** - Anthropic Claude Code CLI for AI-powered development assistance
+- **gemini-cli** - Google Gemini CLI for AI-powered development assistance
+- **amp** - Sourcegraph Amp CLI for AI-powered code generation and assistance
+- **windsurf-cli** - Codeium Windsurf CLI for AI-powered development assistance
+- **opencode** - opencode AI coding agent for terminal-based development assistance
 
 ## Environment Variables
 

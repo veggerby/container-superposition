@@ -1,0 +1,19 @@
+id: spec-kit
+name: Spec Kit (SDD)
+description: Specify CLI for Spec-Driven Development with any AI coding agent
+category: dev
+supports: []
+requires: []
+suggests:
+    - python
+    - codex
+conflicts: []
+tags:
+    - dev
+    - ai
+    - sdd
+    - spec-driven
+    - specify
+    - spec-kit
+ports: []
+order: 20

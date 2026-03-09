@@ -1,0 +1,15 @@
+id: amp
+name: Amp
+description: Sourcegraph Amp CLI for AI-powered code generation and assistance
+category: dev
+supports: []
+requires:
+    - nodejs
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - ai
+    - amp
+    - sourcegraph
+ports: []

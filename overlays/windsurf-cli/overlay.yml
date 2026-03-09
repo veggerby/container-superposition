@@ -1,0 +1,15 @@
+id: windsurf-cli
+name: Windsurf CLI
+description: Codeium Windsurf CLI for AI-powered development assistance
+category: dev
+supports: []
+requires:
+    - nodejs
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - ai
+    - windsurf
+    - codeium
+ports: []

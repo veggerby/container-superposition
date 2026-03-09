@@ -442,6 +442,36 @@ Infrastructure as Code with HCL (includes tflint)
 
 ## Dev Tool Overlays
 
+### Spec Kit (SDD) (`spec-kit`)
+
+Specify CLI for Spec-Driven Development with any AI coding agent
+
+| Property     | Value                                                    |
+| ------------ | -------------------------------------------------------- |
+| **Category** | dev                                                      |
+| **Suggests** | `python`, `codex`                                        |
+| **Tags**     | `dev`, `ai`, `sdd`, `spec-driven`, `specify`, `spec-kit` |
+
+### Amp (`amp`)
+
+Sourcegraph Amp CLI for AI-powered code generation and assistance
+
+| Property     | Value                             |
+| ------------ | --------------------------------- |
+| **Category** | dev                               |
+| **Requires** | `nodejs`                          |
+| **Tags**     | `dev`, `ai`, `amp`, `sourcegraph` |
+
+### Claude Code (`claude-code`)
+
+Anthropic Claude Code CLI for AI-powered development assistance
+
+| Property     | Value                              |
+| ------------ | ---------------------------------- |
+| **Category** | dev                                |
+| **Requires** | `nodejs`                           |
+| **Tags**     | `dev`, `ai`, `claude`, `anthropic` |
+
 ### Cloudflared (`cloudflared`)
 
 Cloudflare Tunnel for securely exposing local services to the internet
@@ -501,6 +531,16 @@ Isolated Docker daemon inside container (portable, works in Codespaces)
 | **Category**  | dev             |
 | **Conflicts** | `docker-sock`   |
 | **Tags**      | `dev`, `docker` |
+
+### Gemini CLI (`gemini-cli`)
+
+Google Gemini CLI for AI-powered development assistance
+
+| Property     | Value                           |
+| ------------ | ------------------------------- |
+| **Category** | dev                             |
+| **Requires** | `nodejs`                        |
+| **Tags**     | `dev`, `ai`, `gemini`, `google` |
 
 ### Git Helpers (`git-helpers`)
 
@@ -582,6 +622,16 @@ OpenAPI/Swagger tooling for API development and documentation
 | **Suggests** | `nodejs`                                            |
 | **Tags**     | `dev`, `openapi`, `swagger`, `api`, `documentation` |
 
+### opencode (`opencode`)
+
+opencode AI coding agent for terminal-based development assistance
+
+| Property     | Value                   |
+| ------------ | ----------------------- |
+| **Category** | dev                     |
+| **Requires** | `nodejs`                |
+| **Tags**     | `dev`, `ai`, `opencode` |
+
 ### Playwright (`playwright`)
 
 Browser automation and testing framework
@@ -613,6 +663,16 @@ Live update and orchestration for Kubernetes development
 | **Conflicts** | `skaffold`                                               |
 | **Tags**      | `dev`, `kubernetes`, `k8s`, `development`, `live-reload` |
 | **Ports**     | 10350                                                    |
+
+### Windsurf CLI (`windsurf-cli`)
+
+Codeium Windsurf CLI for AI-powered development assistance
+
+| Property     | Value                              |
+| ------------ | ---------------------------------- |
+| **Category** | dev                                |
+| **Requires** | `nodejs`                           |
+| **Tags**     | `dev`, `ai`, `windsurf`, `codeium` |
 
 ## Dependency Model
 
