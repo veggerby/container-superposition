@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`spec-kit` overlay** — Spec-Driven Development with the `specify` CLI and any supported AI coding agent
+    - Installs `uv` (Astral's fast Python package manager) and `specify-cli` from [github/spec-kit](https://github.com/github/spec-kit)
+    - Supports 20+ AI agents: Codex, Claude Code, Gemini CLI, GitHub Copilot, Cursor, Windsurf, Amp, opencode, and more
+    - Usage: `specify init . --here --ai <agent>` after overlay setup
+- **`claude-code` overlay** — Anthropic Claude Code CLI (`@anthropic-ai/claude-code`) for AI-powered terminal development
+- **`gemini-cli` overlay** — Google Gemini CLI (`@google/gemini-cli`) for AI-powered terminal development
+- **`amp` overlay** — Sourcegraph Amp CLI (`@sourcegraph/amp`) for AI-powered terminal development
+- **`windsurf-cli` overlay** — Codeium Windsurf CLI for AI-powered terminal development
+- **`opencode` overlay** — opencode AI coding agent (`opencode-ai`) for multi-provider terminal development
+- **`sdd` preset** — Spec-Driven Development meta-preset bundling `spec-kit` with a user-selectable AI agent CLI
+    - Prompts users to choose from: Codex, Claude Code, Gemini CLI, Amp, Windsurf, opencode, or GitHub Copilot (IDE-integrated)
+    - Sets `SPECIFY_AI_AGENT` environment variable automatically to match the chosen agent
+
 - **`hash` command** — Deterministic environment fingerprint for drift detection and reproducibility
     - Produces a stable SHA-256 fingerprint from stack, resolved overlays, preset, base image, and tool version
     - Auto-resolves overlay dependencies (same logic as `plan`) so the hash includes transitively required overlays

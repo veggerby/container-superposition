@@ -1,0 +1,14 @@
+id: opencode
+name: opencode
+description: opencode AI coding agent for terminal-based development assistance
+category: dev
+supports: []
+requires:
+    - nodejs
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - ai
+    - opencode
+ports: []

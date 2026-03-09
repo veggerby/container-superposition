@@ -1,0 +1,15 @@
+id: claude-code
+name: Claude Code
+description: Anthropic Claude Code CLI for AI-powered development assistance
+category: dev
+supports: []
+requires:
+    - nodejs
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - ai
+    - claude
+    - anthropic
+ports: []

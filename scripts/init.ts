@@ -231,7 +231,21 @@ async function expandPreset(
     const uniqueOverlays = [...new Set(overlays)];
     console.log(chalk.dim(`✓ Preset will include: ${uniqueOverlays.join(', ')}\n`));
 
-    return { overlays: uniqueOverlays, choices, glueConfig: preset.glueConfig };
+    // Apply template substitution to glueConfig.environment values.
+    // Replaces {{parameters.<key>.id}} with the selected choice for <key>.
+    let resolvedGlueConfig = preset.glueConfig;
+    if (resolvedGlueConfig?.environment) {
+        const resolvedEnv: Record<string, string> = {};
+        for (const [envKey, envValue] of Object.entries(resolvedGlueConfig.environment)) {
+            resolvedEnv[envKey] = envValue.replace(
+                /\{\{parameters\.(\w+)\.id\}\}/g,
+                (_match: string, paramKey: string) => choices[paramKey] ?? _match
+            );
+        }
+        resolvedGlueConfig = { ...resolvedGlueConfig, environment: resolvedEnv };
+    }
+
+    return { overlays: uniqueOverlays, choices, glueConfig: resolvedGlueConfig };
 }
 
 /**

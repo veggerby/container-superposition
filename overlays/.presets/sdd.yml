@@ -1,0 +1,84 @@
+# Spec-Driven Development Preset
+# Complete environment for SDD with specify-cli and your choice of AI coding agent
+
+id: sdd
+name: Spec-Driven Development
+description: Complete Spec-Driven Development environment with specify-cli and your choice of AI coding agent
+type: meta
+category: preset
+supports: []
+tags: [preset, sdd, spec-driven, ai, specify, spec-kit]
+
+# Overlays to always include
+selects:
+    required:
+        - spec-kit
+
+# Parameterized agent selection
+# Option 'id' is the value passed to `specify init --ai <id>`.
+# 'overlays' is the list of container-superposition overlay IDs to include.
+parameters:
+    agent:
+        description: AI coding agent to use with Spec Kit
+        default: codex
+        options:
+            - id: codex
+              overlays: [codex]
+              description: OpenAI Codex CLI (--ai codex)
+            - id: claude
+              overlays: [claude-code]
+              description: Anthropic Claude Code (--ai claude)
+            - id: gemini
+              overlays: [gemini-cli]
+              description: Google Gemini CLI (--ai gemini)
+            - id: amp
+              overlays: [amp]
+              description: Sourcegraph Amp (--ai amp)
+            - id: windsurf
+              overlays: [windsurf-cli]
+              description: Codeium Windsurf (--ai windsurf)
+            - id: opencode
+              overlays: [opencode]
+              description: opencode (--ai opencode)
+            - id: copilot
+              overlays: []
+              description: GitHub Copilot (IDE-integrated, no extra CLI needed) (--ai copilot)
+
+# Glue configuration
+glueConfig:
+    # environment values support {{parameters.<key>.id}} template substitution —
+    # the preset expander replaces it with the selected option's id at generation time.
+    environment:
+        SPECIFY_AI_AGENT: '{{parameters.agent.id}}'
+
+    readme: |
+        ## Spec-Driven Development (SDD)
+
+        This devcontainer is configured for Spec-Driven Development using [Spec Kit](https://github.com/github/spec-kit).
+
+        ### Getting Started
+
+        Initialize SDD in your project:
+
+        ```bash
+        specify init . --here --ai ${SPECIFY_AI_AGENT:-codex}
+        ```
+
+        ### SDD Workflow
+
+        Use these slash commands in your AI agent:
+
+        | Step | Command | Description |
+        |------|---------|-------------|
+        | 1 | `/speckit.constitution` | Create project governing principles |
+        | 2 | `/speckit.specify` | Define requirements |
+        | 3 | `/speckit.clarify` | Clarify ambiguities |
+        | 4 | `/speckit.plan` | Create implementation plan |
+        | 5 | `/speckit.analyze` | Cross-artifact consistency check |
+        | 6 | `/speckit.tasks` | Break plan into tasks |
+        | 7 | `/speckit.implement` | Execute tasks with AI |
+
+        ### References
+
+        - [Spec Kit GitHub](https://github.com/github/spec-kit)
+        - [SDD Methodology](https://github.com/github/spec-kit/blob/main/spec-driven.md)
