@@ -18,8 +18,15 @@ if ! command -v uv &>/dev/null; then
 fi
 
 echo "📦 Installing specify-cli..."
-# Install from the spec-kit repository; update the @ref to pin a specific release tag
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+# Pin to a uv-managed Python (avoids broken system Python 3.13 on Debian trixie
+# where stdlib modules like shutil/os can be missing due to Debian's split packages)
+UV_PYTHON_VERSION="3.12"
+echo "  Ensuring uv-managed Python ${UV_PYTHON_VERSION} is available..."
+uv python install "${UV_PYTHON_VERSION}"
+
+# Install specify-cli using the uv-managed Python, not the system interpreter
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git \
+    --python "${UV_PYTHON_VERSION}"
 
 # Verify — use the full path as a fallback in case the shim dir is not yet in PATH
 SPECIFY_BIN="$(uv tool dir 2>/dev/null)/specify-cli/bin/specify"
