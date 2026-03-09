@@ -3,6 +3,9 @@
 
 set -e
 
+# uv installs shims to ~/.local/bin; ensure it is on PATH
+export PATH="$HOME/.local/bin:$PATH"
+
 echo "🔍 Verifying spec-kit overlay setup..."
 
 # Check uv is available

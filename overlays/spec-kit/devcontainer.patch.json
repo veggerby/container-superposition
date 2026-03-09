@@ -1,8 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-    "customizations": {
-        "vscode": {
-            "extensions": []
-        }
+    "remoteEnv": {
+        "PATH": "${containerEnv:PATH}:${containerEnv:HOME}/.local/bin"
     }
 }
