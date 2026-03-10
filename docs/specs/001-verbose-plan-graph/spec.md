@@ -2,14 +2,14 @@
 
 **Feature Branch**: `001-verbose-plan-graph`  
 **Created**: 2026-03-10  
-**Status**: Approved  
+**Status**: Final  
 **Input**: User description: "Extend the plan command with a --verbose flag that narrates the dependency resolution graph — explaining why each overlay was included, not just what was included. The principle: nothing here is magic."
 
 ## Review & Approval _(mandatory before implementation)_
 
 - **Spec Path**: `docs/specs/001-verbose-plan-graph/spec.md`
-- **Commit Status**: Not Yet Committed
-- **Review Status**: Pending Review
+- **Commit Status**: Committed
+- **Review Status**: Approved`
 - **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
 ## User Scenarios & Testing _(mandatory)_
