@@ -9,7 +9,7 @@
 
 - **Spec Path**: `docs/specs/001-verbose-plan-graph/spec.md`
 - **Commit Status**: Committed
-- **Review Status**: Approved`
+- **Review Status**: Approved
 - **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
 ## User Scenarios & Testing _(mandatory)_

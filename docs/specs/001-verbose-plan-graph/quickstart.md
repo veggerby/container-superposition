@@ -63,6 +63,7 @@ Expected result:
 ## Manual Edge Checks
 
 - Multi-parent dependency case: choose overlays that share a required dependency and confirm the dependency appears once with multiple reasons.
+- Stack-incompatible case: run a compose-only overlay against `--stack plain` with `--verbose` and confirm the skip reason and dependency path are shown.
 - Conflict case: run a known conflicting pair with `--verbose` and confirm the failure context explains why the command cannot proceed.
 
 ## Validation Log
@@ -77,6 +78,8 @@ Validated on 2026-03-10:
     - Confirmed JSON output remains valid and adds a `verbose` object with inclusion reasons and summary counts
 - `npm run init -- plan --stack compose --overlays docker-in-docker,docker-sock --verbose`
     - Confirmed verbose output adds `Resolution Notes` for the conflict boundary before the command exits with the existing conflict failure
+- `npm run init -- plan --stack plain --overlays grafana --verbose`
+    - Confirmed verbose output reports stack-incompatible skip reasons for both `grafana` and its required dependency `prometheus`
 - `npm test -- tool/__tests__/commands.test.ts`
     - Passed after adding verbose coverage for direct, transitive, multi-parent, conflict, and invalid-selection behavior
 - `npm run lint`

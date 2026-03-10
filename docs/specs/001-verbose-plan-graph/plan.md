@@ -24,8 +24,7 @@ Extend the `plan` command with an opt-in verbose mode that narrates dependency r
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design and before implementation._
 
 - [x] Spec exists at `docs/specs/001-verbose-plan-graph/spec.md`.
-- [ ] Spec is committed and reviewed before implementation tasks or code begin.
-      Planning may proceed because this phase only produces design documentation. Implementation remains blocked until the spec is committed and reviewed.
+- [x] Spec is committed and reviewed before implementation tasks or code begin.
 - [x] Plan scope, compatibility impact, and complexity notes match the approved spec.
 - [x] Verification scope covers tests, smoke checks, and documentation updates needed for the change.
 - [x] User-visible changes include documentation updates and an `[Unreleased]` `CHANGELOG.md` entry.
@@ -126,4 +125,4 @@ CHANGELOG.md
 
 ## Complexity Tracking
 
-No constitution violations require a design exception. The only open governance gate is spec commit/review, which blocks implementation rather than planning.
+No constitution violations require a design exception.

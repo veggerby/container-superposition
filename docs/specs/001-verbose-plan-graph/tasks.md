@@ -91,7 +91,7 @@
 ### Verification for User Story 3
 
 - [x] T020 [US3] Add regression coverage confirming non-verbose text and JSON output remain unchanged in `tool/__tests__/commands.test.ts`
-- [x] T021 [US3] Add regression coverage for verbose conflict or invalid-selection context in `tool/__tests__/commands.test.ts`
+- [x] T021 [US3] Add regression coverage for verbose conflict, invalid-selection, and stack-incompatible skip context in `tool/__tests__/commands.test.ts`
 
 ### Implementation for User Story 3
 
@@ -111,7 +111,7 @@
 - [x] T026 [P] Document verbose dependency narration behavior and examples in `docs/discovery-commands.md`
 - [x] T027 Update the user-visible change summary in `CHANGELOG.md`
 - [x] T028 Run manual quickstart validation and record any command adjustments in `docs/specs/001-verbose-plan-graph/quickstart.md`
-- [x] T029 Run automated verification with `npm test` and `npm run lint`, then record verification results in `docs/specs/001-verbose-plan-graph/quickstart.md`
+- [ ] T029 Run automated verification with `npm test` and `npm run lint`, then record verification results in `docs/specs/001-verbose-plan-graph/quickstart.md`
 
 ---
 
@@ -122,14 +122,14 @@
 - **Setup (Phase 1)**: Starts immediately
 - **Foundational (Phase 2)**: Depends on Setup completion and blocks all story work
 - **User Story 1 (Phase 3)**: Depends on Foundational completion
-- **User Story 2 (Phase 4)**: Depends on Foundational completion and can build after US1 or in parallel if the shared resolver contract is stable
+- **User Story 2 (Phase 4)**: Depends on Foundational completion and should follow User Story 1 because both stories update the shared resolver and command tests
 - **User Story 3 (Phase 5)**: Depends on Foundational completion and should land after US1 because it verifies backward compatibility against the new verbose path
 - **Polish (Phase 6)**: Depends on the desired user stories being complete
 
 ### User Story Dependencies
 
 - **User Story 1 (P1)**: No dependency on other stories after Phase 2
-- **User Story 2 (P2)**: Depends on the shared explanation data from Phase 2; can follow US1 once basic verbose records exist
+- **User Story 2 (P2)**: Depends on the shared explanation data from Phase 2 and should follow US1 once the base verbose records are stable
 - **User Story 3 (P3)**: Depends on the verbose output path from US1 and conflict/context behavior from the shared resolver
 
 ### Within Each User Story
@@ -196,5 +196,5 @@ Task: "Document verbose dependency narration behavior and examples in docs/disco
 ## Notes
 
 - All tasks use the required checklist format with IDs, optional `[P]` markers, story labels for story phases, and exact file paths
-- The implementation gate from the spec still applies: no code changes should start until the spec is committed and reviewed
+- The spec approval gate is closed; remaining merge readiness depends on verification passing cleanly
 - Favor command-level regression tests in `tool/__tests__/commands.test.ts` because the risk is user-visible CLI behavior
