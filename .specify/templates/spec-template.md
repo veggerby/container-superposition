@@ -5,6 +5,14 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+## Review & Approval *(mandatory before implementation)*
+
+- **Spec Path**: `docs/specs/[###-feature-name]/spec.md`
+- **Commit Status**: [Committed / Not Yet Committed]
+- **Review Status**: [Pending Review / Reviewed / Approved]
+- **Implementation Gate**: No implementation code may begin until this spec is
+  committed and reviewed.
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -99,6 +107,13 @@
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
+
+## Dependencies & Impact *(mandatory)*
+
+- **Affected Areas**: [CLI commands, overlays, templates, docs, workflows, or N/A]
+- **Compatibility Impact**: [None / Backward compatible / Breaking change]
+- **Required Documentation Updates**: [README, docs pages, CHANGELOG.md, or N/A]
+- **Verification Plan**: [Unit tests, integration tests, smoke tests, manual validation]
 
 ## Success Criteria *(mandatory)*
 

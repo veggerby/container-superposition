@@ -28,7 +28,7 @@ get_current_branch() {
 
     # For non-git repos, try to find the latest feature directory
     local repo_root=$(get_repo_root)
-    local specs_dir="$repo_root/specs"
+    local specs_dir="$repo_root/docs/specs"
 
     if [[ -d "$specs_dir" ]]; then
         local latest_feature=""
@@ -81,14 +81,14 @@ check_feature_branch() {
     return 0
 }
 
-get_feature_dir() { echo "$1/specs/$2"; }
+get_feature_dir() { echo "$1/docs/specs/$2"; }
 
 # Find feature directory by numeric prefix instead of exact branch match
 # This allows multiple branches to work on the same spec (e.g., 004-fix-bug, 004-add-feature)
 find_feature_dir_by_prefix() {
     local repo_root="$1"
     local branch_name="$2"
-    local specs_dir="$repo_root/specs"
+    local specs_dir="$repo_root/docs/specs"
 
     # Extract numeric prefix from branch (e.g., "004" from "004-whatever")
     if [[ ! "$branch_name" =~ ^([0-9]{3})- ]]; then
@@ -99,7 +99,7 @@ find_feature_dir_by_prefix() {
 
     local prefix="${BASH_REMATCH[1]}"
 
-    # Search for directories in specs/ that start with this prefix
+    # Search for directories in docs/specs/ that start with this prefix
     local matches=()
     if [[ -d "$specs_dir" ]]; then
         for dir in "$specs_dir"/"$prefix"-*; do
@@ -153,4 +153,3 @@ EOF
 
 check_file() { [[ -f "$1" ]] && echo "  ✓ $2" || echo "  ✗ $2"; }
 check_dir() { [[ -d "$1" && -n $(ls -A "$1" 2>/dev/null) ]] && echo "  ✓ $2" || echo "  ✗ $2"; }
-

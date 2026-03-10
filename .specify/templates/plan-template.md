@@ -1,7 +1,7 @@
 # Implementation Plan: [FEATURE]
 
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Input**: Feature specification from `/docs/specs/[###-feature-name]/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
 
@@ -29,16 +29,22 @@
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design and before implementation.*
 
-[Gates determined based on constitution file]
+- Spec exists at `docs/specs/[###-feature-name]/spec.md`.
+- Spec is committed and reviewed before implementation tasks or code begin.
+- Plan scope, compatibility impact, and complexity notes match the approved spec.
+- Verification scope covers tests, smoke checks, and documentation updates needed
+  for the change.
+- User-visible changes include documentation updates and an `[Unreleased]`
+  `CHANGELOG.md` entry.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
+docs/specs/[###-feature]/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)

@@ -2,6 +2,11 @@
 
 Complete documentation for the container-superposition devcontainer scaffolding system.
 
+## Spec-First Development
+
+Feature work is governed by specs committed under `docs/specs/`. Implementation
+must not begin until the relevant spec is committed and reviewed.
+
 ## 📚 Documentation Index
 
 ### Getting Started
