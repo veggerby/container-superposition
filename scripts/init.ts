@@ -1293,6 +1293,7 @@ async function parseCliArgs(): Promise<{
             (val) => parseInt(val, 10),
             3
         )
+        .option('--verbose', 'Explain why each overlay was included in the resolved plan')
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();

@@ -32,6 +32,7 @@ interface PlanOptions {
     overlays?: string;
     portOffset?: number;
     json?: boolean;
+    verbose?: boolean;
     diff?: boolean;
     output?: string;
     diffFormat?: string;
@@ -74,6 +75,57 @@ export interface PlanDiffResult {
         added: PortChange[];
         removed: PortChange[];
     };
+}
+
+type ResolutionReasonKind = 'selected' | 'required' | 'transitive';
+type ResolutionIssueKind = 'skipped' | 'conflict';
+
+interface ResolutionReason {
+    kind: ResolutionReasonKind;
+    message: string;
+    rootOverlayId: string;
+    sourceOverlayId?: string;
+    path: string[];
+    depth: number;
+}
+
+interface ResolvedOverlayExplanation {
+    id: string;
+    selectionKind: 'direct' | 'dependency';
+    reasons: ResolutionReason[];
+}
+
+interface ResolutionIssue {
+    kind: ResolutionIssueKind;
+    overlayId: string;
+    message: string;
+    relatedOverlayIds?: string[];
+    path?: string[];
+}
+
+interface ResolutionSummary {
+    directSelections: number;
+    autoAdded: number;
+    includedOverlays: number;
+    skippedOverlays: number;
+    conflicts: number;
+}
+
+interface VerbosePlanData {
+    includedOverlays: ResolvedOverlayExplanation[];
+    summary: ResolutionSummary;
+    issues: ResolutionIssue[];
+}
+
+interface PlanResult {
+    stack: Stack;
+    selectedOverlays: string[];
+    autoAddedOverlays: string[];
+    conflicts: Array<{ overlay: string; conflictsWith: string[] }>;
+    portMappings: Array<{ overlay: string; ports: number[]; offsetPorts: number[] }>;
+    files: string[];
+    portOffset: number;
+    verbose?: VerbosePlanData;
 }
 
 // ─── Unified diff helpers ───────────────────────────────────────────────────
@@ -675,31 +727,94 @@ function resolveDependencies(
 ): {
     resolved: string[];
     autoAdded: string[];
+    explanations: Map<string, ResolvedOverlayExplanation>;
 } {
     const overlayMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
     const resolved = new Set<string>(selectedIds);
     const autoAdded: string[] = [];
+    const explanations = new Map<string, ResolvedOverlayExplanation>();
 
-    const processDeps = (id: string) => {
-        const overlay = overlayMap.get(id);
-        if (!overlay || !overlay.requires) return;
+    const getExplanation = (id: string): ResolvedOverlayExplanation => {
+        let explanation = explanations.get(id);
+        if (!explanation) {
+            explanation = {
+                id,
+                selectionKind: selectedIds.includes(id) ? 'direct' : 'dependency',
+                reasons: [],
+            };
+            explanations.set(id, explanation);
+        }
+        return explanation;
+    };
 
-        for (const reqId of overlay.requires) {
-            if (!resolved.has(reqId)) {
-                resolved.add(reqId);
-                autoAdded.push(reqId);
-                processDeps(reqId); // Recursive
-            }
+    const addReason = (id: string, reason: ResolutionReason) => {
+        const explanation = getExplanation(id);
+        if (selectedIds.includes(id)) {
+            explanation.selectionKind = 'direct';
+        }
+
+        const key = `${reason.kind}|${reason.rootOverlayId}|${reason.sourceOverlayId ?? ''}|${reason.path.join('>')}`;
+        const existing = explanation.reasons.some(
+            (entry) =>
+                `${entry.kind}|${entry.rootOverlayId}|${entry.sourceOverlayId ?? ''}|${entry.path.join('>')}` ===
+                key
+        );
+
+        if (!existing) {
+            explanation.reasons.push(reason);
         }
     };
 
     for (const id of selectedIds) {
-        processDeps(id);
+        addReason(id, {
+            kind: 'selected',
+            message: 'selected directly by the user',
+            rootOverlayId: id,
+            path: [id],
+            depth: 0,
+        });
+    }
+
+    const processDeps = (id: string, rootOverlayId: string, currentPath: string[]) => {
+        const overlay = overlayMap.get(id);
+        if (!overlay || !overlay.requires) return;
+
+        for (const reqId of overlay.requires) {
+            if (currentPath.includes(reqId)) {
+                continue;
+            }
+
+            const nextPath = [...currentPath, reqId];
+            const depth = nextPath.length - 1;
+            addReason(reqId, {
+                kind: depth === 1 ? 'required' : 'transitive',
+                message:
+                    depth === 1
+                        ? `required by ${id}`
+                        : `required transitively via ${currentPath.join(' -> ')}`,
+                rootOverlayId,
+                sourceOverlayId: id,
+                path: nextPath,
+                depth,
+            });
+
+            if (!resolved.has(reqId)) {
+                resolved.add(reqId);
+                autoAdded.push(reqId);
+            }
+
+            processDeps(reqId, rootOverlayId, nextPath);
+        }
+    };
+
+    for (const id of selectedIds) {
+        processDeps(id, id, [id]);
     }
 
     return {
         resolved: Array.from(resolved),
         autoAdded,
+        explanations,
     };
 }
 
@@ -836,18 +951,7 @@ function getPortMappings(
 /**
  * Format plan as text
  */
-function formatAsText(
-    plan: {
-        stack: Stack;
-        selectedOverlays: string[];
-        autoAddedOverlays: string[];
-        conflicts: Array<{ overlay: string; conflictsWith: string[] }>;
-        portMappings: Array<{ overlay: string; ports: number[]; offsetPorts: number[] }>;
-        files: string[];
-        portOffset: number;
-    },
-    overlaysConfig: OverlaysConfig
-): string {
+function formatAsText(plan: PlanResult, overlaysConfig: OverlaysConfig): string {
     const lines: string[] = [];
     const overlayMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
 
@@ -880,6 +984,34 @@ function formatAsText(
             const overlay = overlayMap.get(id);
             const name = overlay ? ` (${overlay.name})` : '';
             lines.push(`  ${chalk.yellow('+')} ${chalk.cyan(id)}${chalk.gray(name)}`);
+        }
+    }
+
+    if (plan.verbose) {
+        lines.push('');
+        lines.push(chalk.bold('Dependency Resolution:'));
+        for (const explanation of plan.verbose.includedOverlays) {
+            const overlay = overlayMap.get(explanation.id);
+            const name = overlay ? ` (${overlay.name})` : '';
+            lines.push(`  ${chalk.cyan(explanation.id)}${chalk.gray(name)}`);
+
+            for (const reason of explanation.reasons) {
+                lines.push(`    - ${reason.message}`);
+                if (reason.path.length > 1) {
+                    lines.push(`    - path: ${reason.path.join(' -> ')}`);
+                }
+            }
+        }
+
+        if (plan.verbose.issues.length > 0) {
+            lines.push('');
+            lines.push(chalk.bold('Resolution Notes:'));
+            for (const issue of plan.verbose.issues) {
+                lines.push(`  - ${issue.message}`);
+                if (issue.path && issue.path.length > 0) {
+                    lines.push(`    path: ${issue.path.join(' -> ')}`);
+                }
+            }
         }
     }
 
@@ -1000,6 +1132,13 @@ export async function planCommand(
         for (const id of selectedOverlays) {
             if (!overlayMap.has(id)) {
                 console.error(chalk.red(`✗ Unknown overlay: ${id}`));
+                if (options.verbose) {
+                    console.log(
+                        chalk.dim(
+                            `  Dependency resolution did not start because "${id}" is not a known overlay.`
+                        )
+                    );
+                }
                 console.log(
                     chalk.dim('\n💡 Use "container-superposition list" to see available overlays\n')
                 );
@@ -1008,7 +1147,10 @@ export async function planCommand(
         }
 
         // Resolve dependencies
-        const { resolved, autoAdded } = resolveDependencies(selectedOverlays, overlaysConfig);
+        const { resolved, autoAdded, explanations } = resolveDependencies(
+            selectedOverlays,
+            overlaysConfig
+        );
 
         // Apply stack compatibility filtering (match composeDevContainer behavior)
         let compatibleResolved = resolved;
@@ -1032,6 +1174,8 @@ export async function planCommand(
             return true;
         });
 
+        const issues: ResolutionIssue[] = [];
+
         // Warn about incompatible overlays
         for (const id of incompatible) {
             console.warn(
@@ -1039,10 +1183,27 @@ export async function planCommand(
                     `⚠ Overlay "${id}" does not support stack "${options.stack}" and will be skipped.`
                 )
             );
+            const explanation = explanations.get(id);
+            issues.push({
+                kind: 'skipped',
+                overlayId: id,
+                message: `Overlay "${id}" was skipped because it does not support stack "${options.stack}".`,
+                path: explanation?.reasons[0]?.path,
+            });
         }
 
         // Detect conflicts
         const conflicts = detectConflicts(compatibleResolved, overlaysConfig);
+        for (const conflict of conflicts) {
+            const explanation = explanations.get(conflict.overlay);
+            issues.push({
+                kind: 'conflict',
+                overlayId: conflict.overlay,
+                relatedOverlayIds: conflict.conflictsWith,
+                message: `Overlay "${conflict.overlay}" conflicts with ${conflict.conflictsWith.join(', ')}.`,
+                path: explanation?.reasons[0]?.path,
+            });
+        }
 
         // Get port mappings
         const portMappings = getPortMappings(compatibleResolved, overlaysConfig, portOffset);
@@ -1053,14 +1214,44 @@ export async function planCommand(
         // Get files to create
         const files = getFilesToCreate(compatibleResolved, overlaysDir, outputPath);
 
-        const plan = {
+        const includedOverlays = compatibleResolved.map((id) => {
+            const explanation = explanations.get(id);
+            if (explanation) {
+                return explanation;
+            }
+
+            return {
+                id,
+                selectionKind: selectedOverlays.includes(id)
+                    ? ('direct' as const)
+                    : ('dependency' as const),
+                reasons: [],
+            };
+        });
+
+        const compatibleAutoAdded = autoAdded.filter((id) => compatibleResolved.includes(id));
+
+        const plan: PlanResult = {
             stack: options.stack,
             selectedOverlays,
-            autoAddedOverlays: autoAdded,
+            autoAddedOverlays: compatibleAutoAdded,
             conflicts,
             portMappings,
             files,
             portOffset,
+            verbose: options.verbose
+                ? {
+                      includedOverlays,
+                      summary: {
+                          directSelections: selectedOverlays.length,
+                          autoAdded: compatibleAutoAdded.length,
+                          includedOverlays: compatibleResolved.length,
+                          skippedOverlays: incompatible.length,
+                          conflicts: conflicts.length,
+                      },
+                      issues,
+                  }
+                : undefined,
         };
 
         // ── Diff mode ─────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@
 **Rationale**: `tool/commands/plan.ts` already resolves dependencies and feeds both text and JSON views. Reusing that path avoids divergence where verbose mode could explain a different result than the standard plan.
 
 **Alternatives considered**:
+
 - Build a separate explanation pass after resolution: rejected because it duplicates traversal logic and risks drifting from the actual resolver.
 - Infer reasons only from `autoAddedOverlays`: rejected because it cannot represent transitive chains or multi-parent dependencies clearly enough.
 
@@ -17,6 +18,7 @@
 **Rationale**: The spec requires no duplicate final inclusion entries, even when a dependency is reached by multiple parents. A single overlay record with multiple reasons meets that requirement and keeps both text and JSON outputs easy to consume.
 
 **Alternatives considered**:
+
 - Emit one explanation row per path: rejected because the same overlay would appear multiple times and make the final resolved set harder to read.
 - Keep only the first discovered reason: rejected because it hides valid parent relationships when multiple overlays require the same dependency.
 
@@ -27,6 +29,7 @@
 **Rationale**: The existing `plan` command is a concise preview tool, and the spec explicitly requires backward-compatible default behavior. Opt-in narration preserves scanability for current users.
 
 **Alternatives considered**:
+
 - Always show inclusion reasons: rejected because it would alter the established command output and add noise to the common case.
 - Replace the existing auto-added summary with verbose narration: rejected because it would collapse the quick summary and the detailed explanation into one harder-to-scan format.
 
@@ -37,6 +40,7 @@
 **Rationale**: Scripted consumers need access to the same reasoning as human readers, but existing JSON users should not be forced to adapt to new fields unless they explicitly request verbose mode.
 
 **Alternatives considered**:
+
 - Always add explanation fields to JSON: rejected because it changes the default contract for existing automation.
 - Omit explanation data from JSON entirely: rejected because the spec requires structured verbose output for scripted consumers.
 
@@ -47,6 +51,7 @@
 **Rationale**: The feature principle is that nothing should feel magical. Users need to know where resolution stopped and why, especially when the command refuses to proceed.
 
 **Alternatives considered**:
+
 - Fall back to the existing failure messages without verbose context: rejected because it leaves the explanation incomplete in the scenarios where users most need it.
 - Produce partial verbose output without marking the failure boundary: rejected because it could imply that the plan completed successfully.
 
@@ -57,5 +62,6 @@
 **Rationale**: The user-visible risk is in the final text/JSON behavior and backward compatibility of the command surface. Command-level tests exercise option handling, output shaping, and failure behavior together.
 
 **Alternatives considered**:
+
 - Test only low-level resolver helpers: rejected because it would miss regressions in the rendered CLI and JSON contracts.
 - Rely on manual validation alone: rejected because the change is user-visible and should be guarded by repeatable regression tests.

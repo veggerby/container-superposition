@@ -271,6 +271,7 @@ Files to Create/Modify:
 ### Optional Options
 
 - `--port-offset <number>` - Add offset to all exposed ports
+- `--verbose` - Explain why each overlay was included in the resolved plan
 - `--json` - Output as JSON
 
 ### Port Offset Example
@@ -308,6 +309,27 @@ Auto-Added Dependencies:
   + prometheus (Prometheus)
 ```
 
+### Verbose Dependency Narration
+
+Add `--verbose` when you want the plan to explain why each overlay appears in the final result:
+
+```bash
+npx container-superposition plan --stack compose --overlays grafana --verbose
+```
+
+**Additional output:**
+
+```text
+Dependency Resolution:
+  grafana (Grafana)
+    - selected directly by the user
+  prometheus (Prometheus)
+    - required by grafana
+    - path: grafana -> prometheus
+```
+
+This keeps the standard summary intact and adds the reasoning behind direct selections, auto-added dependencies, and failure notes when resolution cannot complete cleanly.
+
 ### Conflict Detection
 
 The `plan` command detects conflicts before generation:
@@ -334,6 +356,9 @@ npx container-superposition plan --stack compose --overlays docker-in-docker,doc
 ```bash
 # Get plan as JSON
 npx container-superposition plan --stack compose --overlays postgres --json
+
+# Include structured dependency explanations
+npx container-superposition plan --stack compose --overlays grafana --json --verbose
 ```
 
 **Example output:**
@@ -357,10 +382,21 @@ npx container-superposition plan --stack compose --overlays postgres --json
         ".devcontainer/docker-compose.yml",
         ".devcontainer/.env.example",
         ".devcontainer/README.md"
-    ],
-    "portOffset": 0
+    ]
 }
 ```
+
+When `--verbose` is also present, the JSON output includes a `verbose` object with:
+
+- one entry per included overlay
+- direct-vs-dependency selection type
+- parent reasons for inclusion
+- ordered dependency paths for transitive inclusions
+- resolution notes for skipped overlays or conflicts
+  "portOffset": 0
+  }
+
+````
 
 ## Scripting Examples
 
@@ -372,7 +408,7 @@ npx container-superposition list --json > overlays.json
 
 # Filter and process with jq
 npx container-superposition list --category database --json | jq '.[].id'
-```
+````
 
 ### Validate Overlay Configuration
 

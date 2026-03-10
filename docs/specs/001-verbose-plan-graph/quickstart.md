@@ -18,6 +18,7 @@ npm run init -- plan --stack compose --overlays grafana
 ```
 
 Expected result:
+
 - Standard plan summary appears
 - `Auto-Added Dependencies` includes `prometheus`
 - No dependency narration section is shown
@@ -29,10 +30,11 @@ npm run init -- plan --stack compose --overlays grafana --verbose
 ```
 
 Expected result:
+
 - Standard summary still appears
 - A dependency narration section explains:
-  - `grafana` was selected directly
-  - `prometheus` was included because `grafana` requires it
+    - `grafana` was selected directly
+    - `prometheus` was included because `grafana` requires it
 
 3. Run the verbose JSON plan and inspect explanation data:
 
@@ -41,6 +43,7 @@ npm run init -- plan --stack compose --overlays grafana --json --verbose
 ```
 
 Expected result:
+
 - JSON remains valid
 - Standard plan fields are still present
 - Structured explanation data identifies direct vs dependency-driven inclusions
@@ -53,6 +56,7 @@ npm run lint
 ```
 
 Expected result:
+
 - Updated command tests pass
 - TypeScript and formatting checks pass
 
@@ -60,3 +64,20 @@ Expected result:
 
 - Multi-parent dependency case: choose overlays that share a required dependency and confirm the dependency appears once with multiple reasons.
 - Conflict case: run a known conflicting pair with `--verbose` and confirm the failure context explains why the command cannot proceed.
+
+## Validation Log
+
+Validated on 2026-03-10:
+
+- `npm run init -- plan --stack compose --overlays grafana`
+    - Confirmed the concise plan output remains unchanged and still auto-adds `prometheus`
+- `npm run init -- plan --stack compose --overlays grafana --verbose`
+    - Confirmed verbose output adds a `Dependency Resolution` section with direct-selection and required-dependency reasons
+- `npm run init -- plan --stack compose --overlays grafana --json --verbose`
+    - Confirmed JSON output remains valid and adds a `verbose` object with inclusion reasons and summary counts
+- `npm run init -- plan --stack compose --overlays docker-in-docker,docker-sock --verbose`
+    - Confirmed verbose output adds `Resolution Notes` for the conflict boundary before the command exits with the existing conflict failure
+- `npm test -- tool/__tests__/commands.test.ts`
+    - Passed after adding verbose coverage for direct, transitive, multi-parent, conflict, and invalid-selection behavior
+- `npm run lint`
+    - `tsc --noEmit` completed, but `prettier --check` still reports unrelated pre-existing formatting issues elsewhere in the repository

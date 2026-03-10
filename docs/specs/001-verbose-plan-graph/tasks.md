@@ -17,9 +17,9 @@
 
 **Purpose**: Record the governance gate and prepare the command surface for implementation.
 
-- [ ] T001 Confirm spec commit status and review gate in `docs/specs/001-verbose-plan-graph/spec.md`
-- [ ] T002 Align implementation notes and execution order in `docs/specs/001-verbose-plan-graph/plan.md` before coding begins
-- [ ] T003 Add the `--verbose` command option registration in `scripts/init.ts`
+- [x] T001 Confirm spec commit status and review gate in `docs/specs/001-verbose-plan-graph/spec.md`
+- [x] T002 Align implementation notes and execution order in `docs/specs/001-verbose-plan-graph/plan.md` before coding begins
+- [x] T003 Add the `--verbose` command option registration in `scripts/init.ts`
 
 ---
 
@@ -29,10 +29,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Refactor dependency resolution outputs in `tool/commands/plan.ts` to carry overlay inclusion reason data alongside resolved overlays
-- [ ] T005 Define shared verbose explanation formatting helpers in `tool/commands/plan.ts`
-- [ ] T006 Define shared verbose JSON payload shaping in `tool/commands/plan.ts`
-- [ ] T007 Add baseline regression coverage for option parsing and shared plan payload behavior in `tool/__tests__/commands.test.ts`
+- [x] T004 Refactor dependency resolution outputs in `tool/commands/plan.ts` to carry overlay inclusion reason data alongside resolved overlays
+- [x] T005 Define shared verbose explanation formatting helpers in `tool/commands/plan.ts`
+- [x] T006 Define shared verbose JSON payload shaping in `tool/commands/plan.ts`
+- [x] T007 Add baseline regression coverage for option parsing and shared plan payload behavior in `tool/__tests__/commands.test.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -46,15 +46,15 @@
 
 ### Verification for User Story 1
 
-- [ ] T008 [US1] Add verbose text-output regression coverage for direct selections and required dependencies in `tool/__tests__/commands.test.ts`
-- [ ] T009 [US1] Add verbose JSON regression coverage for direct selections and required dependencies in `tool/__tests__/commands.test.ts`
+- [x] T008 [US1] Add verbose text-output regression coverage for direct selections and required dependencies in `tool/__tests__/commands.test.ts`
+- [x] T009 [US1] Add verbose JSON regression coverage for direct selections and required dependencies in `tool/__tests__/commands.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement direct-selection explanation records in `tool/commands/plan.ts`
-- [ ] T011 [US1] Implement required-dependency explanation records in `tool/commands/plan.ts`
-- [ ] T012 [US1] Render the verbose dependency narration section for normal text output in `tool/commands/plan.ts`
-- [ ] T013 [US1] Attach verbose inclusion-reason data to JSON plan output when `--verbose` is requested in `tool/commands/plan.ts`
+- [x] T010 [US1] Implement direct-selection explanation records in `tool/commands/plan.ts`
+- [x] T011 [US1] Implement required-dependency explanation records in `tool/commands/plan.ts`
+- [x] T012 [US1] Render the verbose dependency narration section for normal text output in `tool/commands/plan.ts`
+- [x] T013 [US1] Attach verbose inclusion-reason data to JSON plan output when `--verbose` is requested in `tool/commands/plan.ts`
 
 **Checkpoint**: User Story 1 should now be fully functional and testable on its own
 
@@ -68,15 +68,15 @@
 
 ### Verification for User Story 2
 
-- [ ] T014 [US2] Add regression coverage for transitive dependency path narration in `tool/__tests__/commands.test.ts`
-- [ ] T015 [US2] Add regression coverage for shared-parent dependency explanations without duplicate overlay entries in `tool/__tests__/commands.test.ts`
+- [x] T014 [US2] Add regression coverage for transitive dependency path narration in `tool/__tests__/commands.test.ts`
+- [x] T015 [US2] Add regression coverage for shared-parent dependency explanations without duplicate overlay entries in `tool/__tests__/commands.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Extend inclusion-reason tracking for transitive dependency paths in `tool/commands/plan.ts`
-- [ ] T017 [US2] Preserve multiple parent reasons while de-duplicating final overlay entries in `tool/commands/plan.ts`
-- [ ] T018 [US2] Render ordered dependency paths in verbose text output in `tool/commands/plan.ts`
-- [ ] T019 [US2] Serialize transitive paths and multi-parent reasons in verbose JSON output in `tool/commands/plan.ts`
+- [x] T016 [US2] Extend inclusion-reason tracking for transitive dependency paths in `tool/commands/plan.ts`
+- [x] T017 [US2] Preserve multiple parent reasons while de-duplicating final overlay entries in `tool/commands/plan.ts`
+- [x] T018 [US2] Render ordered dependency paths in verbose text output in `tool/commands/plan.ts`
+- [x] T019 [US2] Serialize transitive paths and multi-parent reasons in verbose JSON output in `tool/commands/plan.ts`
 
 **Checkpoint**: User Stories 1 and 2 should both work independently
 
@@ -90,14 +90,14 @@
 
 ### Verification for User Story 3
 
-- [ ] T020 [US3] Add regression coverage confirming non-verbose text and JSON output remain unchanged in `tool/__tests__/commands.test.ts`
-- [ ] T021 [US3] Add regression coverage for verbose conflict or invalid-selection context in `tool/__tests__/commands.test.ts`
+- [x] T020 [US3] Add regression coverage confirming non-verbose text and JSON output remain unchanged in `tool/__tests__/commands.test.ts`
+- [x] T021 [US3] Add regression coverage for verbose conflict or invalid-selection context in `tool/__tests__/commands.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Gate verbose narration so it only renders when `--verbose` is present in `tool/commands/plan.ts`
-- [ ] T023 [US3] Add verbose failure-boundary explanations for conflicts and invalid overlay handling in `tool/commands/plan.ts`
-- [ ] T024 [US3] Ensure concise summary and verbose explanation reuse the same resolved overlay set in `tool/commands/plan.ts`
+- [x] T022 [US3] Gate verbose narration so it only renders when `--verbose` is present in `tool/commands/plan.ts`
+- [x] T023 [US3] Add verbose failure-boundary explanations for conflicts and invalid overlay handling in `tool/commands/plan.ts`
+- [x] T024 [US3] Ensure concise summary and verbose explanation reuse the same resolved overlay set in `tool/commands/plan.ts`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -107,11 +107,11 @@
 
 **Purpose**: Finish documentation, changelog, and end-to-end verification.
 
-- [ ] T025 [P] Document `--verbose` usage and examples in `README.md`
-- [ ] T026 [P] Document verbose dependency narration behavior and examples in `docs/discovery-commands.md`
-- [ ] T027 Update the user-visible change summary in `CHANGELOG.md`
-- [ ] T028 Run manual quickstart validation and record any command adjustments in `docs/specs/001-verbose-plan-graph/quickstart.md`
-- [ ] T029 Run automated verification with `npm test` and `npm run lint`, then record verification results in `docs/specs/001-verbose-plan-graph/quickstart.md`
+- [x] T025 [P] Document `--verbose` usage and examples in `README.md`
+- [x] T026 [P] Document verbose dependency narration behavior and examples in `docs/discovery-commands.md`
+- [x] T027 Update the user-visible change summary in `CHANGELOG.md`
+- [x] T028 Run manual quickstart validation and record any command adjustments in `docs/specs/001-verbose-plan-graph/quickstart.md`
+- [x] T029 Run automated verification with `npm test` and `npm run lint`, then record verification results in `docs/specs/001-verbose-plan-graph/quickstart.md`
 
 ---
 

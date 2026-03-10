@@ -23,6 +23,9 @@ npx container-superposition init --stack compose --language nodejs --database po
 
 # Preview before writing files
 npx container-superposition plan --stack compose --overlays nodejs,postgres,grafana
+
+# Explain why dependencies were included
+npx container-superposition plan --stack compose --overlays grafana --verbose
 ```
 
 ## What It Does
@@ -39,6 +42,7 @@ npx container-superposition plan --stack compose --overlays nodejs,postgres,graf
 - `list` — browse overlays
 - `explain` — overlay details
 - `plan` — preview output
+    - Add `--verbose` to narrate dependency resolution and inclusion reasons
 - `hash` — deterministic environment fingerprint
 - `doctor` — validate environment
 

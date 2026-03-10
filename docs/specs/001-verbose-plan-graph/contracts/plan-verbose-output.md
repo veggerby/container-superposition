@@ -21,19 +21,19 @@ This contract defines the user-visible behavior of the `plan` command when `--ve
 When `--verbose` is present and the command completes normal planning:
 
 1. The standard summary remains visible:
-   - stack
-   - overlays selected
-   - auto-added dependencies
-   - conflicts, if any
-   - port mappings
-   - files to create/modify
+    - stack
+    - overlays selected
+    - auto-added dependencies
+    - conflicts, if any
+    - port mappings
+    - files to create/modify
 2. A dedicated explanation section appears after the overlay summary.
 3. The explanation section must:
-   - identify each included overlay exactly once
-   - state whether it was selected directly or added automatically
-   - name the parent overlay or overlays that required it
-   - show transitive chains in request-to-dependency order
-   - call out failure boundaries when conflicts or invalid selections prevent successful completion
+    - identify each included overlay exactly once
+    - state whether it was selected directly or added automatically
+    - name the parent overlay or overlays that required it
+    - show transitive chains in request-to-dependency order
+    - call out failure boundaries when conflicts or invalid selections prevent successful completion
 
 ### Example Shape
 
@@ -56,11 +56,11 @@ When `--json --verbose` is present, the result must include:
 
 - the existing standard plan fields
 - an additional explanation payload that:
-  - lists each included overlay once
-  - distinguishes direct selections from dependency-driven inclusions
-  - records one or more parent reasons for dependencies with shared ancestry
-  - includes ordered dependency paths for transitive inclusions
-  - optionally records failure context when planning cannot complete normally
+    - lists each included overlay once
+    - distinguishes direct selections from dependency-driven inclusions
+    - records one or more parent reasons for dependencies with shared ancestry
+    - includes ordered dependency paths for transitive inclusions
+    - optionally records failure context when planning cannot complete normally
 
 ### Minimum Field Expectations
 
