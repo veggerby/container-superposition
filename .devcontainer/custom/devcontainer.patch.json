@@ -1,0 +1,6 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "remoteEnv": {
+        "SPECIFY_AI_AGENT": "codex"
+    }
+}
