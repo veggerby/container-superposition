@@ -2,17 +2,17 @@
 
 **Feature Branch**: `001-verbose-plan-graph`  
 **Created**: 2026-03-10  
-**Status**: Draft  
+**Status**: Approved  
 **Input**: User description: "Extend the plan command with a --verbose flag that narrates the dependency resolution graph — explaining why each overlay was included, not just what was included. The principle: nothing here is magic."
 
-## Review & Approval *(mandatory before implementation)*
+## Review & Approval _(mandatory before implementation)_
 
 - **Spec Path**: `docs/specs/001-verbose-plan-graph/spec.md`
 - **Commit Status**: Not Yet Committed
 - **Review Status**: Pending Review
 - **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Explain auto-included overlays (Priority: P1)
 
@@ -64,7 +64,7 @@ A user who only wants a quick summary should still be able to run the plan comma
 - Dependency resolution stops because of a conflict or unsupported combination and the verbose output must clearly identify the last successful inclusion and the reason resolution could not continue.
 - The user requests an invalid or unknown overlay and the plan must fail with a clear message instead of producing partial explanation data.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -78,7 +78,7 @@ A user who only wants a quick summary should still be able to run the plan comma
 - **FR-008**: When the plan is requested in structured output mode together with `--verbose`, the inclusion reasons MUST be available in the structured result in a form that distinguishes direct selections from dependency-driven selections.
 - **FR-009**: The explanation produced by `--verbose` MUST use the same resolved overlay set as the standard plan summary so users never see contradictory inclusion results between concise and verbose views.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Plan Request**: A user's preview request, including the chosen stack, selected overlays, and optional output flags that affect how the plan is presented.
 - **Overlay Inclusion Reason**: A user-visible explanation describing why one overlay appears in the final plan, including whether it was directly requested, required by another overlay, or reached transitively through earlier inclusions.
@@ -90,14 +90,14 @@ A user who only wants a quick summary should still be able to run the plan comma
 - The same explainability data should be available to both human readers and scripted consumers when they explicitly request verbose output.
 - Existing conflict and validation behavior remains in scope; this feature only expands how the reasoning is presented.
 
-## Dependencies & Impact *(mandatory)*
+## Dependencies & Impact _(mandatory)_
 
 - **Affected Areas**: CLI command behavior, plan output, discovery documentation, CHANGELOG.md, automated tests
 - **Compatibility Impact**: Backward compatible
 - **Required Documentation Updates**: README.md, discovery command documentation, CHANGELOG.md
 - **Verification Plan**: Unit tests for inclusion-reason reporting, command-level tests for verbose and non-verbose output, manual validation with direct, transitive, duplicate-path, and failure scenarios
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
