@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Verbose plan narration** — `plan --verbose` now explains why each overlay was included
     - Shows direct selections, required dependencies, and dependency paths in the terminal output
+    - Supports `plan --from-manifest <path> --verbose` so existing manifests get the same explanation model as explicit overlay lists
     - Adds structured inclusion reasons to `plan --json --verbose` without changing the default JSON shape
     - Calls out skipped overlays and conflict boundaries so dependency resolution is easier to audit
 - **`spec-kit` overlay** — Spec-Driven Development with the `specify` CLI and any supported AI coding agent

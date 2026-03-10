@@ -16,6 +16,16 @@ const REPO_ROOT = path.join(__dirname, '..', '..');
 const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 const INDEX_YML_PATH = path.join(OVERLAYS_DIR, 'index.yml');
 
+function writeManifest(
+    manifestDir: string,
+    manifest: { baseTemplate: string; overlays: string[]; [key: string]: unknown }
+): string {
+    const manifestPath = path.join(manifestDir, 'superposition.json');
+    fs.mkdirSync(manifestDir, { recursive: true });
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    return manifestPath;
+}
+
 describe('Command Tests', () => {
     let overlaysConfig: any;
     let consoleLogSpy: any;
@@ -301,6 +311,62 @@ describe('Command Tests', () => {
             ).toBe(true);
         });
 
+        it('should narrate manifest-defined overlays and dependencies in verbose text output', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-text-'));
+            const manifestPath = writeManifest(manifestDir, {
+                baseTemplate: 'compose',
+                overlays: ['grafana'],
+            });
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    verbose: true,
+                });
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Overlays Loaded from Manifest:');
+            expect(output).toContain('selected from manifest');
+            expect(output).toContain('required by grafana');
+        });
+
+        it('should include manifest metadata in structured verbose JSON output', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-json-'));
+            const manifestPath = writeManifest(manifestDir, {
+                baseTemplate: 'compose',
+                overlays: ['grafana'],
+            });
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    json: true,
+                    verbose: true,
+                });
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(parsed.inputMode).toBe('manifest');
+            expect(parsed.verbose.inputMode).toBe('manifest');
+
+            const grafanaEntry = parsed.verbose.includedOverlays.find(
+                (entry: any) => entry.id === 'grafana'
+            );
+            const prometheusEntry = parsed.verbose.includedOverlays.find(
+                (entry: any) => entry.id === 'prometheus'
+            );
+
+            expect(grafanaEntry.selectionKind).toBe('direct');
+            expect(grafanaEntry.selectionSource).toBe('manifest');
+            expect(grafanaEntry.reasons[0].origin).toBe('manifest');
+            expect(prometheusEntry.selectionSource).toBe('dependency');
+        });
+
         it('should preserve multiple parent reasons without duplicating the final overlay entry', async () => {
             const customConfig = {
                 overlays: [
@@ -411,6 +477,92 @@ describe('Command Tests', () => {
 
             const output = consoleLogSpy.mock.calls.join('\n');
             expect(output).toContain('Dependency resolution did not start');
+        });
+
+        it('should fail cleanly when the manifest file is missing', async () => {
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: path.join(os.tmpdir(), 'does-not-exist', 'superposition.json'),
+                    verbose: true,
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            }
+
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            const errorOutput = consoleErrorSpy.mock.calls.join('\n');
+            expect(errorOutput).toContain('Could not find manifest file');
+            expect(consoleLogSpy).not.toHaveBeenCalledWith(
+                expect.stringContaining('Generation Plan')
+            );
+        });
+
+        it('should fail cleanly when the manifest format is invalid', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-invalid-'));
+            const manifestPath = path.join(manifestDir, 'superposition.json');
+            fs.writeFileSync(manifestPath, JSON.stringify({ overlays: ['grafana'] }));
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    verbose: true,
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            const errorOutput = consoleErrorSpy.mock.calls.join('\n');
+            expect(errorOutput).toContain('Invalid manifest');
+            expect(consoleLogSpy).not.toHaveBeenCalledWith(
+                expect.stringContaining('Dependency Resolution:')
+            );
+        });
+
+        it('should fail cleanly when a manifest references an unknown overlay', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-unknown-'));
+            const manifestPath = writeManifest(manifestDir, {
+                baseTemplate: 'compose',
+                overlays: ['unknown-overlay'],
+            });
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    verbose: true,
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            const errorOutput = consoleErrorSpy.mock.calls.join('\n');
+            expect(errorOutput).toContain('Manifest-driven planning cannot continue');
+        });
+
+        it('should keep non-verbose manifest planning concise', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-concise-'));
+            const manifestPath = writeManifest(manifestDir, {
+                baseTemplate: 'compose',
+                overlays: ['grafana'],
+            });
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    json: true,
+                });
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(parsed.inputMode).toBe('manifest');
+            expect(parsed.verbose).toBeUndefined();
         });
 
         it('should exit with error when stack is missing', async () => {

@@ -10,10 +10,15 @@ This contract defines the user-visible behavior of the `plan` command when `--ve
 
 - `--verbose`: Include dependency-resolution narration that explains why each overlay appears in the final plan.
 
+### Existing Manifest Input
+
+- Manifest-driven planning must support the existing manifest workflow and apply `--verbose` when overlays are loaded from `superposition.json`.
+
 ### Compatibility Rules
 
 - `plan` without `--verbose` keeps the existing concise output contract.
 - `plan --json --verbose` returns the standard plan data plus structured explanation data.
+- `plan` run from an existing manifest with `--verbose` uses the same explanation structure as overlay-list-driven planning.
 - `plan --diff` remains a separate mode; verbose planning must not silently change diff semantics.
 
 ## Text Output Contract
@@ -31,6 +36,7 @@ When `--verbose` is present and the command completes normal planning:
 3. The explanation section must:
     - identify each included overlay exactly once
     - state whether it was selected directly or added automatically
+    - treat manifest-defined overlays as the explicit root configuration when planning is loaded from a manifest
     - name the parent overlay or overlays that required it
     - show transitive chains in request-to-dependency order
     - call out failure boundaries when conflicts or invalid selections prevent successful completion
@@ -56,6 +62,7 @@ When `--json --verbose` is present, the result must include:
 
 - the existing standard plan fields
 - an additional explanation payload that:
+    - records whether the plan input came from explicit overlays or a manifest
     - lists each included overlay once
     - distinguishes direct selections from dependency-driven inclusions
     - records one or more parent reasons for dependencies with shared ancestry
@@ -74,6 +81,7 @@ The verbose payload must support these questions without requiring text parsing:
 ## Error and Failure Contract
 
 - Unknown overlay IDs remain hard failures.
+- Missing or invalid manifests remain hard failures for manifest-driven planning.
 - Conflicts remain visible in both concise and verbose modes.
 - Verbose mode adds context about the dependency path and failure boundary; it does not suppress or soften existing error behavior.
 
@@ -82,6 +90,7 @@ The verbose payload must support these questions without requiring text parsing:
 The command reference and examples must show:
 
 - one direct-selection example
+- one manifest-driven verbose example
 - one auto-added dependency example
 - one transitive or multi-parent explanation example
 - one note confirming that default `plan` output stays concise without `--verbose`

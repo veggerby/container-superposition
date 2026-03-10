@@ -26,6 +26,9 @@ npx container-superposition plan --stack compose --overlays nodejs,postgres,graf
 
 # Explain why dependencies were included
 npx container-superposition plan --stack compose --overlays grafana --verbose
+
+# Explain an existing manifest without re-entering overlays
+npx container-superposition plan --from-manifest .devcontainer/superposition.json --verbose
 ```
 
 ## What It Does
@@ -43,6 +46,7 @@ npx container-superposition plan --stack compose --overlays grafana --verbose
 - `explain` — overlay details
 - `plan` — preview output
     - Add `--verbose` to narrate dependency resolution and inclusion reasons
+    - Add `--from-manifest <path>` to preview an existing manifest with the same explanation model
 - `hash` — deterministic environment fingerprint
 - `doctor` — validate environment
 

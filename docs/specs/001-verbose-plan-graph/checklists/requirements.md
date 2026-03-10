@@ -31,6 +31,6 @@
 
 ## Notes
 
-- Validation completed on 2026-03-10.
-- No checklist failures found during the first validation pass.
-- Spec is ready for `/speckit.plan`.
+- Validation completed on 2026-03-10 after the manifest-driven scope update.
+- No checklist failures found during the validation pass for the revised scope.
+- Spec is ready for `/speckit.plan` after review of the updated scope.

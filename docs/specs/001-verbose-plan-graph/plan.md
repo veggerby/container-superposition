@@ -5,19 +5,19 @@
 
 ## Summary
 
-Extend the `plan` command with an opt-in verbose mode that narrates dependency resolution without changing the resolved overlay set, default text output, or conflict behavior. The design attaches inclusion-reason data to the existing dependency resolver so the same reasoning can be rendered in both human-readable and JSON outputs.
+Extend the `plan` command so `--verbose` explains dependency resolution for both direct overlay selection and manifest-driven planning from an existing `superposition.json`. The design must keep one shared resolution and explanation model so text output, JSON output, and manifest-based workflows stay consistent.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.3.3 on Node.js 20+  
 **Primary Dependencies**: Commander, chalk, boxen, js-yaml, ora, Inquirer  
-**Storage**: Filesystem-based overlay manifests, templates, and generated devcontainer artifacts  
-**Testing**: Vitest unit/command tests, shell-based smoke tests, TypeScript compile checks  
-**Target Platform**: Node.js CLI on Linux/macOS/Windows developer environments  
+**Storage**: Filesystem-based overlay manifests, project `superposition.json` manifests, templates, and generated devcontainer artifacts  
+**Testing**: Vitest unit and command tests, shell-based smoke tests, TypeScript compile checks  
+**Target Platform**: Node.js CLI on Linux, macOS, and Windows developer environments  
 **Project Type**: CLI scaffolding tool  
 **Performance Goals**: Preserve the current fast interactive feel of the `plan` command for typical overlay selections and avoid introducing noticeable delay when verbose explanation is enabled  
-**Constraints**: Preserve current concise output unless `--verbose` is requested; preserve source/dist path compatibility patterns; keep JSON and text views consistent with one dependency-resolution result  
-**Scale/Scope**: Single command enhancement affecting `scripts/init.ts`, `tool/commands/plan.ts`, command tests, and user-facing docs
+**Constraints**: Preserve current concise output unless `--verbose` is requested; preserve source/dist path compatibility patterns; keep manifest-driven and overlay-list-driven planning aligned to one resolved overlay set; keep JSON and text views consistent  
+**Scale/Scope**: Single command enhancement affecting `scripts/init.ts`, `tool/commands/plan.ts`, command tests, user-facing docs, and manifest-driven planning behavior
 
 ## Constitution Check
 
@@ -55,7 +55,6 @@ tool/
 │   └── plan.ts
 ├── __tests__/
 │   └── commands.test.ts
-├── questionnaire/
 ├── schema/
 └── utils/
 
@@ -67,15 +66,15 @@ README.md
 CHANGELOG.md
 ```
 
-**Structure Decision**: Use the existing CLI command structure centered on `scripts/init.ts` for option registration and `tool/commands/plan.ts` for planning logic, with regression coverage in `tool/__tests__/commands.test.ts` and user guidance in `README.md` plus `docs/discovery-commands.md`.
+**Structure Decision**: Keep the existing CLI structure centered on `scripts/init.ts` for command options and manifest-loading hooks, and `tool/commands/plan.ts` for shared planning logic. Keep verification concentrated in `tool/__tests__/commands.test.ts`, with documentation updates in `README.md` and `docs/discovery-commands.md`.
 
 ## Phase 0: Research
 
 ### Research Goals
 
-- Confirm the least-complex way to expose inclusion reasons without creating a second dependency-resolution algorithm.
-- Decide how verbose text and JSON output should represent direct selections, required dependencies, transitive chains, and multi-parent dependencies.
-- Confirm documentation and verification expectations for a user-visible CLI option.
+- Confirm the simplest way to reuse the verbose explanation model for manifest-driven planning.
+- Decide how manifest-loaded overlays should appear in explanation data relative to directly requested overlays.
+- Confirm failure behavior for missing or invalid manifests in verbose mode.
 
 ### Research Outputs
 
@@ -97,31 +96,31 @@ CHANGELOG.md
 
 ## Implementation Approach
 
-1. Extend CLI option registration for `plan` to accept `--verbose` without altering existing defaults.
-2. Refactor dependency resolution in `tool/commands/plan.ts` so it emits explanation metadata alongside `resolved` and `autoAdded`.
-3. Render verbose explanation sections only when requested in text output.
-4. Include structured inclusion-reason data in JSON output when `--verbose` is requested.
-5. Add regression tests for direct selections, required dependencies, transitive dependencies, duplicate-parent dependencies, and non-verbose backward compatibility.
-6. Update README, discovery docs, and `CHANGELOG.md` to document the new mode and its intent.
+1. Extend `plan` input handling so it can build the same verbose explanation model whether overlays come from explicit flags or an existing manifest.
+2. Reuse one dependency-resolution and explanation path inside `tool/commands/plan.ts` for concise, verbose, JSON, and manifest-driven planning.
+3. Define manifest-aware explanation semantics so manifest-defined overlays remain distinguishable from auto-added dependencies without inventing a separate output format.
+4. Add regression tests for manifest-driven verbose text output, verbose JSON output, and manifest failure paths.
+5. Update README, discovery docs, quickstart guidance, and changelog entries to document manifest-driven verbose planning.
 
 ## Verification Strategy
 
 - Add or update command tests in `tool/__tests__/commands.test.ts` for:
-    - verbose text output showing direct and dependency-driven reasons
-    - verbose JSON output containing structured inclusion reasons
-    - multi-parent dependency explanation without duplicate final overlay entries
+    - verbose text output from direct overlay selection
+    - verbose text output from an existing manifest
+    - verbose JSON output from an existing manifest
+    - manifest failure behavior when the manifest is missing, invalid, or contains invalid overlays
     - non-verbose output remaining unchanged
 - Run `npm test` for automated coverage.
 - Run `npm run lint` to verify TypeScript and formatting constraints.
-- Perform targeted manual validation with representative commands from `quickstart.md`.
+- Perform targeted manual validation using the commands documented in `quickstart.md`, including manifest-driven scenarios.
 
 ## Post-Design Constitution Check
 
-- [x] Design still preserves spec-first workflow; no implementation work is authorized until the spec is committed and reviewed.
-- [x] The planned change preserves overlay contract integrity by reusing the existing dependency-resolution path for concise and verbose outputs.
+- [x] Design still preserves spec-first workflow and traces directly to the approved spec.
+- [x] The planned change preserves overlay contract integrity by extending the existing planning model rather than creating a parallel manifest-only explanation path.
 - [x] Verification remains proportional to risk: command tests plus documentation updates are planned before merge.
-- [x] Documentation synchronization is explicitly included: `README.md`, `docs/discovery-commands.md`, and `CHANGELOG.md`.
-- [x] Simplicity and compatibility remain intact: verbose mode is opt-in and does not change default behavior or path-resolution patterns.
+- [x] Documentation synchronization is explicitly included: `README.md`, `docs/discovery-commands.md`, `quickstart.md`, and `CHANGELOG.md`.
+- [x] Simplicity and compatibility remain intact: verbose mode stays opt-in and manifest-driven planning uses the same reasoning model as direct selection.
 
 ## Complexity Tracking
 

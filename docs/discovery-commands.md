@@ -223,6 +223,9 @@ The `plan` command shows a dry-run preview of what will be generated, including 
 ```bash
 # Preview generation for postgres and grafana
 npx container-superposition plan --stack compose --overlays postgres,grafana
+
+# Preview generation from an existing manifest
+npx container-superposition plan --from-manifest .devcontainer/superposition.json
 ```
 
 **Output:**
@@ -265,8 +268,13 @@ Files to Create/Modify:
 
 ### Required Options
 
-- `--stack <type>` - Base template: `plain` or `compose`
+- `--stack <type>` - Base template: `plain` or `compose` when planning from explicit overlays
 - `--overlays <list>` - Comma-separated list of overlay IDs
+
+### Manifest Input
+
+- `--from-manifest <path>` - Load stack and overlay roots from an existing `superposition.json`
+- Use either `--overlays` or `--from-manifest` for a given `plan` invocation
 
 ### Optional Options
 
@@ -330,6 +338,14 @@ Dependency Resolution:
 
 This keeps the standard summary intact and adds the reasoning behind direct selections, auto-added dependencies, and failure notes when resolution cannot complete cleanly.
 
+The same verbose explanation works for existing manifests:
+
+```bash
+npx container-superposition plan --from-manifest .devcontainer/superposition.json --verbose
+```
+
+In manifest mode, overlays loaded from `superposition.json` are treated as the explicit root set and auto-added dependencies are still explained separately.
+
 ### Conflict Detection
 
 The `plan` command detects conflicts before generation:
@@ -359,6 +375,9 @@ npx container-superposition plan --stack compose --overlays postgres --json
 
 # Include structured dependency explanations
 npx container-superposition plan --stack compose --overlays grafana --json --verbose
+
+# Include structured dependency explanations from a manifest
+npx container-superposition plan --from-manifest .devcontainer/superposition.json --json --verbose
 ```
 
 **Example output:**
@@ -390,6 +409,7 @@ When `--verbose` is also present, the JSON output includes a `verbose` object wi
 
 - one entry per included overlay
 - direct-vs-dependency selection type
+- input mode metadata for overlay-list vs manifest planning
 - parent reasons for inclusion
 - ordered dependency paths for transitive inclusions
 - resolution notes for skipped overlays or conflicts

@@ -3,13 +3,13 @@
 **Feature Branch**: `001-verbose-plan-graph`  
 **Created**: 2026-03-10  
 **Status**: Final  
-**Input**: User description: "Extend the plan command with a --verbose flag that narrates the dependency resolution graph — explaining why each overlay was included, not just what was included. The principle: nothing here is magic."
+**Input**: User description: "Extend the plan command with a --verbose flag that narrates the dependency resolution graph — explaining why each overlay was included, not just what was included. The principle: nothing here is magic. Scope update: it should also be possible to run plan including --verbose on an existing manifest."
 
 ## Review & Approval _(mandatory before implementation)_
 
 - **Spec Path**: `docs/specs/001-verbose-plan-graph/spec.md`
 - **Commit Status**: Committed
-- **Review Status**: Approved
+- **Review Status**: APPROVED
 - **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
 ## User Scenarios & Testing _(mandatory)_
@@ -29,7 +29,22 @@ A user previews a stack and wants to understand why extra overlays appear in the
 
 ---
 
-### User Story 2 - Trace the full dependency path (Priority: P2)
+### User Story 2 - Explain plans loaded from a manifest (Priority: P2)
+
+A user reviews an existing `superposition.json` manifest and wants the same verbose dependency narration without re-entering overlay selections manually.
+
+**Why this priority**: Manifest-driven workflows are already part of the product. Verbose explanation should work there too, or users will get different levels of transparency depending on how they invoke the plan.
+
+**Independent Test**: Can be fully tested by running `plan` from an existing manifest with `--verbose` and confirming the explanation covers the manifest-defined overlays and any resolved dependencies.
+
+**Acceptance Scenarios**:
+
+1. **Given** a user runs the plan from an existing manifest, **When** the user adds `--verbose`, **Then** the plan explains why each overlay in the manifest-driven result was included using the same reasoning model as direct overlay selection.
+2. **Given** the manifest includes overlays that produce required dependencies, **When** the user adds `--verbose`, **Then** the plan explains both the manifest-defined overlays and the auto-included dependencies without requiring duplicate manual input.
+
+---
+
+### User Story 3 - Trace the full dependency path (Priority: P3)
 
 A user wants to follow the dependency chain from requested overlays to transitive dependencies so they can review complex plans without guessing how the final set was derived.
 
@@ -44,7 +59,7 @@ A user wants to follow the dependency chain from requested overlays to transitiv
 
 ---
 
-### User Story 3 - Preserve concise output when not needed (Priority: P3)
+### User Story 4 - Preserve concise output when not needed (Priority: P4)
 
 A user who only wants a quick summary should still be able to run the plan command without additional explanation noise.
 
@@ -63,6 +78,7 @@ A user who only wants a quick summary should still be able to run the plan comma
 - A dependency is required by multiple requested overlays and the explanation must show all contributing reasons without repeating the dependency as separate final selections.
 - Dependency resolution stops because of a conflict or unsupported combination and the verbose output must clearly identify the last successful inclusion and the reason resolution could not continue.
 - The user requests an invalid or unknown overlay and the plan must fail with a clear message instead of producing partial explanation data.
+- A user attempts to plan from a missing or invalid manifest and the command must fail with a clear message instead of producing incomplete verbose explanation output.
 
 ## Requirements _(mandatory)_
 
@@ -74,13 +90,16 @@ A user who only wants a quick summary should still be able to run the plan comma
 - **FR-004**: When dependency resolution includes transitive dependencies, the plan MUST present the explanation as a traceable chain from the user-requested overlays to each transitive inclusion.
 - **FR-005**: The plan MUST avoid duplicate final inclusion entries when the same dependency is reached through multiple paths while still preserving all relevant reasons for its inclusion.
 - **FR-006**: When dependency resolution cannot complete because of conflicts, unsupported combinations, or invalid overlay selections, the verbose output MUST explain the point of failure and the reason the plan cannot proceed.
-- **FR-007**: When `--verbose` is not present, the plan command MUST preserve the existing concise behavior and must not require users to read dependency narration.
-- **FR-008**: When the plan is requested in structured output mode together with `--verbose`, the inclusion reasons MUST be available in the structured result in a form that distinguishes direct selections from dependency-driven selections.
-- **FR-009**: The explanation produced by `--verbose` MUST use the same resolved overlay set as the standard plan summary so users never see contradictory inclusion results between concise and verbose views.
+- **FR-007**: When the plan command is run from an existing `superposition.json` manifest, `--verbose` MUST provide the same dependency explanation coverage as overlay-list-driven planning.
+- **FR-008**: When manifest-driven planning fails because the manifest is missing, invalid, or references invalid overlays, the command MUST produce a clear failure message and MUST NOT produce misleading partial verbose results.
+- **FR-009**: When `--verbose` is not present, the plan command MUST preserve the existing concise behavior and must not require users to read dependency narration.
+- **FR-010**: When the plan is requested in structured output mode together with `--verbose`, the inclusion reasons MUST be available in the structured result in a form that distinguishes direct selections from dependency-driven selections.
+- **FR-011**: The explanation produced by `--verbose` MUST use the same resolved overlay set as the standard plan summary so users never see contradictory inclusion results between concise and verbose views.
 
 ### Key Entities _(include if feature involves data)_
 
 - **Plan Request**: A user's preview request, including the chosen stack, selected overlays, and optional output flags that affect how the plan is presented.
+- **Manifest-Based Plan Request**: A preview request loaded from an existing `superposition.json` manifest instead of explicit overlay flags, while preserving the same user-visible planning semantics.
 - **Overlay Inclusion Reason**: A user-visible explanation describing why one overlay appears in the final plan, including whether it was directly requested, required by another overlay, or reached transitively through earlier inclusions.
 - **Dependency Path**: The ordered relationship from one or more user-requested overlays through intermediate requirements to a final included overlay.
 
@@ -89,19 +108,21 @@ A user who only wants a quick summary should still be able to run the plan comma
 - Users expect `--verbose` to add explanation only, not to change dependency resolution rules or the final set of included overlays.
 - The same explainability data should be available to both human readers and scripted consumers when they explicitly request verbose output.
 - Existing conflict and validation behavior remains in scope; this feature only expands how the reasoning is presented.
+- Existing manifest-driven workflows should use the same explanation model as direct overlay selection rather than introducing a separate reasoning format.
 
 ## Dependencies & Impact _(mandatory)_
 
-- **Affected Areas**: CLI command behavior, plan output, discovery documentation, CHANGELOG.md, automated tests
+- **Affected Areas**: CLI command behavior, manifest-driven planning workflows, plan output, discovery documentation, CHANGELOG.md, automated tests
 - **Compatibility Impact**: Backward compatible
 - **Required Documentation Updates**: README.md, discovery command documentation, CHANGELOG.md
-- **Verification Plan**: Unit tests for inclusion-reason reporting, command-level tests for verbose and non-verbose output, manual validation with direct, transitive, duplicate-path, and failure scenarios
+- **Verification Plan**: Unit tests for inclusion-reason reporting, command-level tests for verbose and non-verbose output, manifest-driven planning validation, and manual validation with direct, transitive, duplicate-path, manifest, and failure scenarios
 
 ## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
 - **SC-001**: In review testing, 100% of overlays shown in a verbose plan include an explicit human-readable reason for inclusion.
-- **SC-002**: For plans with transitive dependencies, reviewers can identify the full inclusion chain for each dependency in under 30 seconds without consulting source code or overlay manifests.
-- **SC-003**: In acceptance testing across representative plan scenarios, at least 90% of users correctly distinguish direct selections from auto-included dependencies after reading a single verbose plan output.
-- **SC-004**: Running the plan command without `--verbose` continues to present the concise summary with no additional explanation sections in 100% of regression test cases.
+- **SC-002**: Users can run a verbose plan from an existing manifest and receive the same class of inclusion explanations as they do from direct overlay selection in 100% of acceptance scenarios.
+- **SC-003**: For plans with transitive dependencies, reviewers can identify the full inclusion chain for each dependency in under 30 seconds without consulting source code or overlay manifests.
+- **SC-004**: In acceptance testing across representative plan scenarios, at least 90% of users correctly distinguish direct selections from auto-included dependencies after reading a single verbose plan output.
+- **SC-005**: Running the plan command without `--verbose` continues to present the concise summary with no additional explanation sections in 100% of regression test cases.

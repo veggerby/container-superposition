@@ -65,3 +65,36 @@
 
 - Test only low-level resolver helpers: rejected because it would miss regressions in the rendered CLI and JSON contracts.
 - Rely on manual validation alone: rejected because the change is user-visible and should be guarded by repeatable regression tests.
+
+## Decision 7: Manifest-driven planning should reuse the same explanation model
+
+**Decision**: When `plan` is run from an existing `superposition.json` manifest, verbose output should use the same inclusion-reason model and rendering rules as overlay-list-driven planning.
+
+**Rationale**: Users should not receive different explanations depending on whether overlays were provided as flags or loaded from a manifest. One model keeps the output easier to reason about and reduces the risk of semantic drift.
+
+**Alternatives considered**:
+
+- Create a manifest-specific explanation mode: rejected because it would duplicate logic and force users to learn two explanation formats.
+- Treat manifest-defined overlays as opaque input with no per-overlay reasoning: rejected because it violates the “nothing here is magic” principle.
+
+## Decision 8: Manifest-defined overlays should be explained as the explicit starting set
+
+**Decision**: In manifest-driven verbose planning, overlays loaded from the manifest should be treated as the explicit root selection set for explanation purposes, while still distinguishing auto-added dependencies from those roots.
+
+**Rationale**: The user did not type the overlays on the current command line, but they are still part of an explicit saved configuration. Treating them as the root set preserves explainability without forcing users to re-enter them.
+
+**Alternatives considered**:
+
+- Label manifest overlays as dependencies: rejected because it misstates user intent and blurs the line between saved configuration and auto-resolved requirements.
+- Add a third top-level selection mode with separate rendering rules: rejected because it adds conceptual weight without improving user value.
+
+## Decision 9: Manifest failure should stop explanation before partial output is emitted
+
+**Decision**: Missing, invalid, or semantically broken manifests should fail before verbose explanation output is produced, with a clear message explaining why planning cannot continue.
+
+**Rationale**: A broken manifest means the plan has no trustworthy starting configuration. Producing partial verbose output in that state would make the command feel unreliable.
+
+**Alternatives considered**:
+
+- Emit partial verbose output for valid fragments of the manifest: rejected because partial planning from invalid input is misleading.
+- Reconstruct overlays heuristically when the manifest is malformed: rejected because it adds hidden behavior and weakens trust.
