@@ -1194,22 +1194,18 @@ export async function planCommand(
             selectionOrigin = 'manifest';
 
             const seenOverlayIds = new Set<string>();
-            selectedOverlays = manifest.overlays.filter((id) => {
-                if (!id || seenOverlayIds.has(id)) {
-                    return false;
-                }
-                seenOverlayIds.add(id);
-                return true;
-            });
+            selectedOverlays = manifest.overlays
+                .map((id) => id.trim())
+                .filter((id) => {
+                    if (!id || seenOverlayIds.has(id)) {
+                        return false;
+                    }
+                    seenOverlayIds.add(id);
+                    return true;
+                });
         } else {
             if (!options.stack) {
-                console.error(chalk.red('✗ --stack is required for plan command'));
-                console.log(
-                    chalk.dim(
-                        '  Example: container-superposition plan --stack compose --overlays postgres,grafana'
-                    )
-                );
-                process.exit(1);
+                options.stack = 'compose';
             }
 
             if (!validStacks.includes(options.stack)) {
