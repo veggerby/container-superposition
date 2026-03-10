@@ -34,7 +34,7 @@
 - [x] T006 Define shared verbose JSON payload shaping in `tool/commands/plan.ts`
 - [x] T007 Add baseline regression coverage for option parsing and shared plan payload behavior in `tool/__tests__/commands.test.ts`
 
-**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
+**Checkpoint**: Foundation ready - user story implementation can now begin following the documented story dependencies
 
 ---
 

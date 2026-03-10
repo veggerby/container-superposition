@@ -15,7 +15,7 @@ Extend the `plan` command with an opt-in verbose mode that narrates dependency r
 **Testing**: Vitest unit/command tests, shell-based smoke tests, TypeScript compile checks  
 **Target Platform**: Node.js CLI on Linux/macOS/Windows developer environments  
 **Project Type**: CLI scaffolding tool  
-**Performance Goals**: Keep `plan` output generation effectively instantaneous for typical overlay sets and add explanation data without materially changing perceived CLI responsiveness  
+**Performance Goals**: Preserve the current fast interactive feel of the `plan` command for typical overlay selections and avoid introducing noticeable delay when verbose explanation is enabled  
 **Constraints**: Preserve current concise output unless `--verbose` is requested; preserve source/dist path compatibility patterns; keep JSON and text views consistent with one dependency-resolution result  
 **Scale/Scope**: Single command enhancement affecting `scripts/init.ts`, `tool/commands/plan.ts`, command tests, and user-facing docs
 
