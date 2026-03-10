@@ -1,7 +1,7 @@
 # Tasks: Verbose Plan Graph
 
-**Input**: Design documents from `/docs/specs/001-verbose-plan-graph/`
-**Prerequisites**: [plan.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/plan.md), [spec.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/spec.md), [research.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/research.md), [data-model.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/data-model.md), [plan-verbose-output.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/contracts/plan-verbose-output.md)
+**Input**: Design documents from `docs/specs/001-verbose-plan-graph/`
+**Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [plan-verbose-output.md](./contracts/plan-verbose-output.md)
 
 **Tests**: Add automated command-level coverage in `tool/__tests__/commands.test.ts`, then run manual quickstart validation plus `npm test` and `npm run lint`.
 
@@ -148,22 +148,16 @@
 
 ## Parallel Example: User Story 1
 
-```bash
 No safe [P] tasks inside User Story 1 because both implementation and verification concentrate in `tool/commands/plan.ts` and `tool/__tests__/commands.test.ts`.
-```
 
 ## Parallel Example: User Story 2
 
-```bash
 No safe [P] tasks inside User Story 2 because transitive-path logic and its regression coverage both update shared files.
-```
 
 ## Parallel Example: Polish
 
-```bash
-Task: "Document --verbose usage and examples in README.md"
-Task: "Document verbose dependency narration behavior and examples in docs/discovery-commands.md"
-```
+- Task: "Document --verbose usage and examples in README.md"
+- Task: "Document verbose dependency narration behavior and examples in docs/discovery-commands.md"
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-03-10
-**Feature**: [spec.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
