@@ -82,5 +82,7 @@ Validated on 2026-03-10:
     - Confirmed verbose output reports stack-incompatible skip reasons for both `grafana` and its required dependency `prometheus`
 - `npm test -- tool/__tests__/commands.test.ts`
     - Passed after adding verbose coverage for direct, transitive, multi-parent, conflict, and invalid-selection behavior
+- `npm test`
+    - Passed across the full Vitest suite after the verbose plan changes and documentation updates
 - `npm run lint`
-    - `tsc --noEmit` completed, but `prettier --check` still reports unrelated pre-existing formatting issues elsewhere in the repository
+    - Passed after formatting the remaining repository files that were part of the active verification surface

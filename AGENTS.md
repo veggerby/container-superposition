@@ -791,8 +791,10 @@ Update connection strings in application code accordingly.
 8. **Vitest Warnings**: Test file TypeScript errors don't affect build
 
 ## Active Technologies
+
 - TypeScript 5.3.3 on Node.js 20+ + Commander, chalk, boxen, js-yaml, ora, Inquirer (001-verbose-plan-graph)
 - Filesystem-based overlay manifests, templates, and generated devcontainer artifacts (001-verbose-plan-graph)
 
 ## Recent Changes
+
 - 001-verbose-plan-graph: Added TypeScript 5.3.3 on Node.js 20+ + Commander, chalk, boxen, js-yaml, ora, Inquirer

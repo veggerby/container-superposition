@@ -26,11 +26,13 @@ Sync Impact Report
 - Follow-up TODOs:
   - TODO(RATIFICATION_DATE): Original ratification date is not recorded in the repository history available to this update.
 -->
+
 # Container Superposition Constitution
 
 ## Core Principles
 
 ### I. Spec-First Delivery
+
 Every feature MUST begin with a specification committed under
 `docs/specs/<feature-branch>/spec.md`. Implementation code, implementation tasks,
 and merge approval MUST wait until that spec is committed and reviewed. Plans,
@@ -40,6 +42,7 @@ follows spec-first development and depends on durable design records for safe
 CLI, overlay, and template evolution.
 
 ### II. Overlay Contract Integrity
+
 Changes to overlays, templates, manifests, or composition logic MUST preserve
 editable output, declared dependencies, conflict rules, and documented stack
 support. Any behavior change that affects generated files, CLI output, path
@@ -48,6 +51,7 @@ and user-facing documentation in the same change. Rationale: the product is a
 composition system, so undocumented contract drift is a functional defect.
 
 ### III. Verification Before Merge
+
 Every change MUST define and execute verification proportional to risk before
 merge. Code changes MUST include automated test coverage or an explicit written
 rationale when automation is not practical; changes to composition, generation,
@@ -56,6 +60,7 @@ Failing checks MUST block merge. Rationale: generated devcontainer output is onl
 trustworthy when the repository proves the behavior it claims.
 
 ### IV. Documentation Synchronization
+
 User-visible behavior changes MUST update affected documentation, examples, and
 the changelog in the same change set. Feature specs, plans, tasks, README-level
 guidance, and contributor instructions MUST agree on file paths, workflow gates,
@@ -64,6 +69,7 @@ reference material; stale docs create incorrect environments and bad contributor
 decisions.
 
 ### V. Simplicity and Compatibility
+
 Implementations MUST prefer the simplest design that preserves existing
 workflows, generated output editability, and dual-mode execution from source and
 compiled `dist/` artifacts. New file resolution logic MUST use candidate-path
@@ -104,12 +110,14 @@ include any required template or workflow updates, and be reviewed before
 adoption.
 
 Versioning policy:
+
 - MAJOR: removes or redefines a principle or governance rule in a backward
   incompatible way.
 - MINOR: adds a new principle, section, or materially stronger mandatory policy.
 - PATCH: clarifies wording, fixes inconsistencies, or makes non-semantic edits.
 
 Compliance review expectations:
+
 - Every plan MUST pass the constitution check before design or implementation
   work proceeds.
 - Every review of implementation changes MUST confirm the spec path, review gate,

@@ -111,7 +111,7 @@
 - [x] T026 [P] Document verbose dependency narration behavior and examples in `docs/discovery-commands.md`
 - [x] T027 Update the user-visible change summary in `CHANGELOG.md`
 - [x] T028 Run manual quickstart validation and record any command adjustments in `docs/specs/001-verbose-plan-graph/quickstart.md`
-- [ ] T029 Run automated verification with `npm test` and `npm run lint`, then record verification results in `docs/specs/001-verbose-plan-graph/quickstart.md`
+- [x] T029 Run automated verification with `npm test` and `npm run lint`, then record verification results in `docs/specs/001-verbose-plan-graph/quickstart.md`
 
 ---
 

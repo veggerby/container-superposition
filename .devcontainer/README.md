@@ -22,7 +22,7 @@ This development environment uses a single container image.
 
 Node.js LTS with TypeScript and tooling
 
-*For complete documentation, see [Node.js overlay](../overlays/nodejs/README.md)*
+_For complete documentation, see [Node.js overlay](../overlays/nodejs/README.md)_
 
 ### Development Tools
 
@@ -34,7 +34,7 @@ OpenAI Codex CLI for AI-powered code generation and assistance
 
 Configurable via environment variables and configuration files.
 
-*For complete documentation, see [Codex overlay](../overlays/codex/README.md)*
+_For complete documentation, see [Codex overlay](../overlays/codex/README.md)_
 
 #### Spec Kit (SDD)
 
@@ -54,9 +54,7 @@ Configurable via environment variables and configuration files.
 
 **Use Cases**
 
-
-
-*For complete documentation, see [Spec Kit (SDD) overlay](../overlays/spec-kit/README.md)*
+_For complete documentation, see [Spec Kit (SDD) overlay](../overlays/spec-kit/README.md)_
 
 #### Docker (host socket)
 
@@ -74,9 +72,7 @@ Key command categories:
 
 **Use Cases**
 
-
-
-*For complete documentation, see [Docker (host socket) overlay](../overlays/docker-sock/README.md)*
+_For complete documentation, see [Docker (host socket) overlay](../overlays/docker-sock/README.md)_
 
 #### Git Helpers
 
@@ -87,11 +83,12 @@ Git LFS, GitHub CLI, GPG/SSH support for secure Git operations
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - SSH Keys (Optional Mount)
 - GPG Keys (Optional Mount)
 - GPG Commit Signing
 
-*For complete documentation, see [Git Helpers overlay](../overlays/git-helpers/README.md)*
+_For complete documentation, see [Git Helpers overlay](../overlays/git-helpers/README.md)_
 
 #### Modern CLI Tools
 
@@ -102,17 +99,19 @@ jq, yq, ripgrep, fd, bat - Essential modern command-line tools
 Configurable via environment variables and configuration files.
 
 Available settings:
+
 - bat Config
 - ripgrep Config
 - Shell Aliases
 
-*For complete documentation, see [Modern CLI Tools overlay](../overlays/modern-cli-tools/README.md)*
+_For complete documentation, see [Modern CLI Tools overlay](../overlays/modern-cli-tools/README.md)_
 
 ## Troubleshooting
 
 ### Node.js
 
 Common issues:
+
 - **Package not found after adding to global-packages.txt**
 - **pnpm vs npm conflict**
 - **Node version mismatch**
@@ -121,11 +120,13 @@ Common issues:
 ### Codex
 
 Common issues:
+
 - **codex command not found**
 
 ### Spec Kit (SDD)
 
 Common issues:
+
 - **`specify` command not found**
 - **`uv` not found**
 - **`specify` fails to install**
@@ -133,6 +134,7 @@ Common issues:
 ### Docker (host socket)
 
 Common issues:
+
 - **Permission denied on Docker socket**
 - **Docker daemon not accessible**
 - **Network conflicts**
@@ -141,6 +143,7 @@ Common issues:
 ### Git Helpers
 
 Common issues:
+
 - **SSH Permissions**
 - **GPG Agent Issues**
 - **Git LFS Not Tracking Files**
@@ -148,6 +151,7 @@ Common issues:
 ### Modern CLI Tools
 
 Common issues:
+
 - **Aliases Not Working**
 - **bat Theme Not Applied**
 - **ripgrep Too Slow**
