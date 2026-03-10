@@ -70,7 +70,8 @@
     "mounts": [],
     "remoteEnv": {
         "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
-        "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"
+        "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:HOME}/.local/bin:${containerEnv:PATH}",
+        "SPECIFY_AI_AGENT": "codex"
     },
     "remoteUser": "vscode",
     "forwardPorts": [3000, 8080],
@@ -87,11 +88,13 @@
     "postStartCommand": {
         "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}",
         "verify-nodejs": "bash .devcontainer/scripts/verify-nodejs.sh",
-        "verify-codex": "bash .devcontainer/scripts/verify-codex.sh"
+        "verify-codex": "bash .devcontainer/scripts/verify-codex.sh",
+        "verify-spec-kit": "bash .devcontainer/scripts/verify-spec-kit.sh"
     },
     "postCreateCommand": {
         "setup-nodejs": "bash .devcontainer/scripts/setup-nodejs.sh",
         "setup-codex": "bash .devcontainer/scripts/setup-codex.sh",
+        "setup-spec-kit": "bash .devcontainer/scripts/setup-spec-kit.sh",
         "setup-git-helpers": "bash .devcontainer/scripts/setup-git-helpers.sh",
         "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh"
     }

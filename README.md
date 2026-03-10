@@ -6,6 +6,12 @@
 
 Composable devcontainer scaffolds that collapse into normal, editable configs.
 
+## Development Policy
+
+This project follows spec-first development. Every feature MUST start with a
+reviewed spec committed under `docs/specs/` before implementation code is
+written.
+
 ## Quickstart
 
 ```bash

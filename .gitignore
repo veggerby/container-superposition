@@ -46,3 +46,6 @@ examples/.devcontainer/
 .devcontainer.backup-*/
 *.backup-*
 superposition.json.backup-*
+
+# Codex
+.codex/

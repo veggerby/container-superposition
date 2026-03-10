@@ -69,6 +69,12 @@ The generated configuration includes:
 
 ## Development Workflow
 
+### Spec-First Requirement
+
+All features MUST begin with a spec committed under `docs/specs/` and reviewed
+before implementation code is written. When changing behavior, update the spec,
+plan, tasks, tests, and documentation so they remain aligned.
+
 ### Interactive Development
 
 ```bash
