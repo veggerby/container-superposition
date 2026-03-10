@@ -413,10 +413,6 @@ When `--verbose` is also present, the JSON output includes a `verbose` object wi
 - parent reasons for inclusion
 - ordered dependency paths for transitive inclusions
 - resolution notes for skipped overlays or conflicts
-  "portOffset": 0
-  }
-
-````
 
 ## Scripting Examples
 
@@ -428,7 +424,7 @@ npx container-superposition list --json > overlays.json
 
 # Filter and process with jq
 npx container-superposition list --category database --json | jq '.[].id'
-````
+```
 
 ### Validate Overlay Configuration
 

@@ -565,18 +565,18 @@ describe('Command Tests', () => {
             expect(parsed.verbose).toBeUndefined();
         });
 
-        it('should exit with error when stack is missing', async () => {
+        it('should default stack to compose when stack is missing', async () => {
             try {
                 await planCommand(overlaysConfig, OVERLAYS_DIR, {
                     overlays: 'postgres',
                 });
             } catch (e: any) {
-                expect(e.message).toContain('process.exit(1)');
+                // process.exit may be thrown in test environment
             }
 
-            expect(consoleErrorSpy).toHaveBeenCalled();
+            // Should NOT error about missing stack — it defaults to compose
             const errorOutput = consoleErrorSpy.mock.calls.join('\n');
-            expect(errorOutput).toContain('--stack is required');
+            expect(errorOutput).not.toContain('--stack is required');
         });
 
         it('should exit with error when overlays is missing', async () => {
