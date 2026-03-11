@@ -18,6 +18,25 @@ written.
 # Guided questionnaire
 npx container-superposition init
 
+# Declarative project config committed in the repo
+cat > .superposition.yml <<'YAML'
+stack: compose
+language:
+  - nodejs
+database:
+  - postgres
+customizations:
+  environment:
+    APP_ENV: development
+YAML
+npx container-superposition init --no-interactive
+
+# Regenerate from the repository project file
+npx container-superposition regen
+
+# Or select the project file explicitly
+npx container-superposition regen --from-project
+
 # Non-interactive example
 npx container-superposition init --stack compose --language nodejs --database postgres
 
@@ -36,11 +55,16 @@ npx container-superposition plan --from-manifest .devcontainer/superposition.jso
 - Base templates: `plain` (single image) and `compose` (multi-service).
 - Overlays: add languages, databases, observability, cloud tools, dev tools.
 - Composition: merges overlays into a standard `.devcontainer/` you can edit freely.
+- Project config: commit `.superposition.yml` or `superposition.yml` to make team and CI generation declarative.
+    - `regen` uses that project file by default when present
+    - `--from-project` selects it explicitly
+    - conflicting source combinations fail early
+    - `init` stays the editable flow; `regen` is the deterministic replay flow
 
 ## Core Commands
 
-- `init` — generate a devcontainer
-- `regen` — regenerate from a manifest
+- `init` — generate or modify a devcontainer, optionally starting from a project file or manifest
+- `regen` — deterministically replay the repository project file or a manifest
 - `adopt` — migrate an existing `.devcontainer/` to the overlay-based workflow
 - `list` — browse overlays
 - `explain` — overlay details

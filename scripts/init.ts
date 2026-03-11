@@ -48,6 +48,11 @@ import { getToolVersion } from '../tool/utils/version.js';
 import { printSummary } from '../tool/utils/summary.js';
 import { appendGitignoreSection } from '../tool/utils/gitignore.js';
 import {
+    buildAnswersFromProjectConfig,
+    loadProjectConfig,
+    writeProjectConfigCustomizations,
+} from '../tool/schema/project-config.js';
+import {
     isInsideGitRepo,
     copyDirectory,
     createBackup,
@@ -133,6 +138,135 @@ function loadPresetDefinition(presetId: string): PresetDefinition | null {
     }
     const content = fs.readFileSync(presetPath, 'utf8');
     return yaml.load(content) as PresetDefinition;
+}
+
+function categorizeOverlayIds(overlayIds: string[], config: OverlaysConfig) {
+    const language: LanguageOverlay[] = [];
+    const database: DatabaseOverlay[] = [];
+    const observability: ObservabilityTool[] = [];
+    const cloudTools: CloudTool[] = [];
+    const devTools: DevTool[] = [];
+
+    const overlayMap = new Map(config.overlays.map((o) => [o.id, o]));
+
+    for (const id of overlayIds) {
+        const overlay = overlayMap.get(id);
+        if (!overlay) continue;
+
+        switch (overlay.category) {
+            case 'language':
+                language.push(id as LanguageOverlay);
+                break;
+            case 'database':
+                database.push(id as DatabaseOverlay);
+                break;
+            case 'observability':
+                observability.push(id as ObservabilityTool);
+                break;
+            case 'cloud':
+                cloudTools.push(id as CloudTool);
+                break;
+            case 'dev':
+                devTools.push(id as DevTool);
+                break;
+        }
+    }
+
+    return { language, database, observability, cloudTools, devTools };
+}
+
+function mergeUnique<T>(left?: T[], right?: T[]): T[] | undefined {
+    const merged = [...(left ?? []), ...(right ?? [])];
+    return merged.length > 0 ? [...new Set(merged)] : undefined;
+}
+
+function expandPresetWithDefaults(
+    presetId: string,
+    stack: Stack,
+    providedChoices: Record<string, string> = {}
+): {
+    overlays: string[];
+    choices: Record<string, string>;
+    glueConfig?: PresetDefinition['glueConfig'];
+} {
+    const preset = loadPresetDefinition(presetId);
+    if (!preset) {
+        throw new Error(`Preset definition not found for ${presetId}`);
+    }
+
+    const overlays: string[] = [...preset.selects.required];
+    const choices: Record<string, string> = {};
+
+    if (preset.selects.userChoice) {
+        for (const [key, choice] of Object.entries(preset.selects.userChoice)) {
+            const selectedOption = providedChoices[key] ?? choice.defaultOption;
+            if (!selectedOption || !choice.options.includes(selectedOption)) {
+                const valid = choice.options.join(', ');
+                throw new Error(`Preset choice '${key}' must be one of: ${valid}`);
+            }
+
+            overlays.push(selectedOption);
+            choices[key] = selectedOption;
+        }
+    }
+
+    if (preset.parameters) {
+        for (const [key, param] of Object.entries(preset.parameters)) {
+            const selectedId = providedChoices[key] ?? param.default;
+            const selectedOption = param.options.find((option) => option.id === selectedId);
+
+            if (!selectedOption) {
+                const valid = param.options.map((option) => option.id).join(', ');
+                throw new Error(`Preset parameter '${key}' must be one of: ${valid}`);
+            }
+
+            overlays.push(...selectedOption.overlays);
+            choices[key] = selectedId;
+        }
+    }
+
+    const uniqueOverlays = [...new Set(overlays)];
+
+    let resolvedGlueConfig = preset.glueConfig;
+    if (resolvedGlueConfig?.environment) {
+        const resolvedEnv: Record<string, string> = {};
+        for (const [envKey, envValue] of Object.entries(resolvedGlueConfig.environment)) {
+            resolvedEnv[envKey] = envValue.replace(
+                /\{\{parameters\.(\w+)\.id\}\}/g,
+                (_match: string, paramKey: string) => choices[paramKey] ?? _match
+            );
+        }
+        resolvedGlueConfig = { ...resolvedGlueConfig, environment: resolvedEnv };
+    }
+
+    return { overlays: uniqueOverlays, choices, glueConfig: resolvedGlueConfig };
+}
+
+function applyPresetSelections(
+    answers: Partial<QuestionnaireAnswers>
+): Partial<QuestionnaireAnswers> {
+    if (!answers.preset) {
+        return answers;
+    }
+
+    const expansion = expandPresetWithDefaults(
+        answers.preset,
+        answers.stack ?? 'plain',
+        answers.presetChoices ?? {}
+    );
+    const categories = categorizeOverlayIds(expansion.overlays, loadOverlaysConfigWrapper());
+
+    return {
+        ...answers,
+        language: mergeUnique(categories.language, answers.language),
+        database: mergeUnique(categories.database, answers.database),
+        observability: mergeUnique(categories.observability, answers.observability),
+        cloudTools: mergeUnique(categories.cloudTools, answers.cloudTools),
+        devTools: mergeUnique(categories.devTools, answers.devTools),
+        playwright: answers.playwright ?? expansion.overlays.includes('playwright'),
+        presetChoices: Object.keys(expansion.choices).length > 0 ? expansion.choices : undefined,
+        presetGlueConfig: expansion.glueConfig,
+    };
 }
 
 /**
@@ -278,6 +412,19 @@ function findManifestFile(manifestPath?: string): string | null {
     return null;
 }
 
+function findDefaultRegenManifest(outputPath: string = './.devcontainer'): string | null {
+    const manifestSearchPaths = ['superposition.json', path.join(outputPath, 'superposition.json')];
+
+    for (const searchPath of manifestSearchPaths) {
+        const resolvedPath = path.resolve(searchPath);
+        if (fs.existsSync(resolvedPath)) {
+            return resolvedPath;
+        }
+    }
+
+    return null;
+}
+
 /**
  * Load and validate manifest file
  */
@@ -391,7 +538,8 @@ async function runQuestionnaire(
     manifest?: SuperpositionManifest,
     manifestDir?: string,
     cliPresetId?: string,
-    cliPresetChoices?: Record<string, string>
+    cliPresetChoices?: Record<string, string>,
+    defaultAnswers?: Partial<QuestionnaireAnswers>
 ): Promise<QuestionnaireAnswers> {
     const config = loadOverlaysConfigWrapper();
 
@@ -493,7 +641,7 @@ async function runQuestionnaire(
                 value: t.id,
                 description: t.description,
             })),
-            default: manifest?.baseTemplate,
+            default: manifest?.baseTemplate || defaultAnswers?.stack,
         })) as Stack;
 
         // If using preset, expand it now (pass pre-provided choices to skip those prompts)
@@ -525,7 +673,16 @@ async function runQuestionnaire(
         const knownBaseImageIds = config.base_images.map((img) => img.id);
         const manifestBaseImageIsKnown =
             manifest?.baseImage && knownBaseImageIds.includes(manifest.baseImage);
-        const manifestDefaultBaseImage = manifestBaseImageIsKnown ? manifest.baseImage : 'custom';
+        const manifestDefaultBaseImage = manifestBaseImageIsKnown
+            ? manifest.baseImage
+            : manifest?.baseImage
+              ? 'custom'
+              : undefined;
+        const defaultBaseImage =
+            manifestDefaultBaseImage ||
+            (defaultAnswers?.baseImage === 'custom' && defaultAnswers.customImage
+                ? 'custom'
+                : defaultAnswers?.baseImage);
 
         const baseImage = (await select({
             message: 'Select base image:',
@@ -534,7 +691,7 @@ async function runQuestionnaire(
                 value: img.id,
                 description: img.description,
             })),
-            default: manifestDefaultBaseImage,
+            default: defaultBaseImage,
         })) as BaseImage;
 
         // Question 2a: If custom, ask for image name
@@ -543,10 +700,11 @@ async function runQuestionnaire(
             // If manifest has a custom image, use it as default
             const manifestCustomImage =
                 !manifestBaseImageIsKnown && manifest?.baseImage ? manifest.baseImage : undefined;
+            const defaultCustomImage = manifestCustomImage || defaultAnswers?.customImage;
 
             customImage = await input({
                 message: 'Enter custom Docker image (e.g., ubuntu:22.04):',
-                default: manifestCustomImage,
+                default: defaultCustomImage,
                 validate: (value) => {
                     if (!value || value.trim() === '') {
                         return 'Image name is required';
@@ -702,7 +860,15 @@ async function runQuestionnaire(
                 )
             );
 
-            const choices = buildOverlayChoices(config, stack, categoryList, []);
+            const preselectedDefaults = [
+                ...(defaultAnswers?.language ?? []),
+                ...(defaultAnswers?.database ?? []),
+                ...(defaultAnswers?.observability ?? []),
+                ...(defaultAnswers?.cloudTools ?? []),
+                ...(defaultAnswers?.devTools ?? []),
+                ...(defaultAnswers?.playwright ? ['playwright'] : []),
+            ];
+            const choices = buildOverlayChoices(config, stack, categoryList, preselectedDefaults);
 
             userSelection = await checkbox({
                 message: 'Select overlays to include:',
@@ -794,12 +960,12 @@ async function runQuestionnaire(
         // Question 4: Container name
         const containerName = await input({
             message: 'Container/project name (optional):',
-            default: manifest?.containerName || '',
+            default: manifest?.containerName || defaultAnswers?.containerName || '',
         });
 
         // Question 5: Output path
         // If manifest provided, default to its location; otherwise use ./.devcontainer
-        const defaultOutput = manifestDir || './.devcontainer';
+        const defaultOutput = manifestDir || defaultAnswers?.outputPath || './.devcontainer';
 
         const outputPath = await input({
             message: 'Output path:',
@@ -809,7 +975,12 @@ async function runQuestionnaire(
         // Question 6: Port offset (optional, for running multiple instances)
         const portOffsetInput = await input({
             message: 'Port offset (leave empty for default ports, e.g., 100 to avoid conflicts):',
-            default: manifest?.portOffset ? String(manifest.portOffset) : '',
+            default:
+                manifest?.portOffset !== undefined
+                    ? String(manifest.portOffset)
+                    : defaultAnswers?.portOffset !== undefined
+                      ? String(defaultAnswers.portOffset)
+                      : '',
         });
         const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
 
@@ -937,7 +1108,10 @@ async function runQuestionnaire(
             observability,
             outputPath,
             portOffset,
-            target,
+            target: target ?? defaultAnswers?.target,
+            minimal: defaultAnswers?.minimal,
+            editor: defaultAnswers?.editor,
+            customizations: defaultAnswers?.customizations,
         };
     } catch (error) {
         if ((error as any).name === 'ExitPromptError') {
@@ -1101,8 +1275,10 @@ function mergeAnswers(
  * Parse CLI arguments
  */
 async function parseCliArgs(): Promise<{
+    commandName?: 'init' | 'regen';
     config: Partial<QuestionnaireAnswers>;
     manifestPath?: string;
+    fromProject?: boolean;
     backupOverride?: boolean;
     backupDir?: string;
     yes?: boolean;
@@ -1123,14 +1299,12 @@ async function parseCliArgs(): Promise<{
     program
         .command('init', { isDefault: true })
         .description('Initialize a new devcontainer configuration')
+        .option('--from-project', 'Load configuration from the repository project file')
         .option(
             '--from-manifest <path>',
             'Load configuration from existing superposition.json manifest'
         )
-        .option(
-            '--no-interactive',
-            'Use manifest values directly without questionnaire (requires --from-manifest)'
-        )
+        .option('--no-interactive', 'Use persisted input values directly without questionnaire')
         .option(
             '--backup',
             'Force or suppress backup; default is --no-backup inside a git repo, --backup outside'
@@ -1181,15 +1355,27 @@ async function parseCliArgs(): Promise<{
             (value: string, previous: string[]) => previous.concat([value]),
             [] as string[]
         )
-        .action((options) => {
+        .action((options, command) => {
             // Store options for main() to process
-            initOptions = options;
+            initOptions = {
+                ...options,
+                commandName: 'init',
+                _targetSource: command.getOptionValueSource('target'),
+                _editorSource: command.getOptionValueSource('editor'),
+            };
         });
 
     // Regen command
     program
         .command('regen')
-        .description('Regenerate devcontainer from existing superposition.json manifest')
+        .description(
+            'Regenerate devcontainer from a project file or existing superposition.json manifest'
+        )
+        .option('--from-project', 'Load configuration from the repository project file')
+        .option(
+            '--from-manifest <path>',
+            'Load configuration from existing superposition.json manifest'
+        )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .option(
             '--backup',
@@ -1198,46 +1384,12 @@ async function parseCliArgs(): Promise<{
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
-        .action((options) => {
-            const outputPath = options.output || './.devcontainer';
-
-            // Look for manifest in multiple locations for team workflow:
-            // 1. Current directory (./superposition.json) - team workflow
-            // 2. Output directory (e.g., ./.devcontainer/superposition.json) - legacy
-            const manifestSearchPaths = [
-                'superposition.json',
-                path.join(outputPath, 'superposition.json'),
-            ];
-
-            let manifestPath: string | null = null;
-            for (const searchPath of manifestSearchPaths) {
-                if (fs.existsSync(searchPath)) {
-                    manifestPath = searchPath;
-                    break;
-                }
-            }
-
-            if (!manifestPath) {
-                console.error(chalk.red(`✗ Error: No manifest found`));
-                console.error(
-                    chalk.gray(
-                        '  Searched for: ./superposition.json, ' +
-                            path.join(outputPath, 'superposition.json')
-                    )
-                );
-                console.error(
-                    chalk.gray(
-                        '  Run "container-superposition init --write-manifest-only" to create a manifest'
-                    )
-                );
-                process.exit(1);
-            }
-
-            // Store options for main() to process
+        .action((options, command) => {
             initOptions = {
                 ...options,
-                fromManifest: manifestPath,
+                commandName: 'regen',
                 interactive: false,
+                _editorSource: command.getOptionValueSource('editor'),
             };
         });
 
@@ -1373,6 +1525,52 @@ async function parseCliArgs(): Promise<{
         return null;
     }
 
+    const hasSourceFlags =
+        Number(Boolean(initOptions.fromProject)) + Number(Boolean(initOptions.fromManifest));
+    if (hasSourceFlags > 1) {
+        console.error(
+            chalk.red('✗ Error: --from-project and --from-manifest cannot be used together')
+        );
+        process.exit(1);
+    }
+
+    const sourceSelectionConflicts = [
+        'stack',
+        'language',
+        'database',
+        'observability',
+        'playwright',
+        'cloudTools',
+        'devTools',
+        'portOffset',
+        'preset',
+    ];
+    const hasPresetParams =
+        Array.isArray(initOptions.presetParam) && (initOptions.presetParam as string[]).length > 0;
+    const conflictingSelectionFlags = sourceSelectionConflicts.filter(
+        (key) => initOptions[key] !== undefined && initOptions[key] !== false
+    );
+    if (
+        (initOptions.fromProject || initOptions.fromManifest) &&
+        (conflictingSelectionFlags.length > 0 || hasPresetParams)
+    ) {
+        const conflicts = [...conflictingSelectionFlags.map((key) => `--${key}`)];
+        if (hasPresetParams) {
+            conflicts.push('--preset-param');
+        }
+        console.error(
+            chalk.red(
+                `✗ Error: Persisted input sources cannot be combined with clean-generation selection flags: ${conflicts.join(', ')}`
+            )
+        );
+        console.error(
+            chalk.dim(
+                '  Choose either a persisted input source (--from-project or --from-manifest) or direct selection flags for that run.'
+            )
+        );
+        process.exit(1);
+    }
+
     const config: Partial<QuestionnaireAnswers> = {};
 
     if (initOptions.stack) config.stack = initOptions.stack as Stack;
@@ -1403,13 +1601,13 @@ async function parseCliArgs(): Promise<{
     if (initOptions.portOffset) {
         config.portOffset = parseInt(initOptions.portOffset, 10);
     }
-    if (initOptions.target) {
+    if (initOptions.target && initOptions._targetSource !== 'default') {
         config.target = initOptions.target as DeploymentTarget;
     }
     if (initOptions.minimal) {
         config.minimal = true;
     }
-    if (initOptions.editor) {
+    if (initOptions.editor && initOptions._editorSource !== 'default') {
         const editorLower = initOptions.editor.toLowerCase();
         if (['vscode', 'jetbrains', 'none'].includes(editorLower)) {
             config.editor = editorLower as 'vscode' | 'jetbrains' | 'none';
@@ -1463,8 +1661,10 @@ async function parseCliArgs(): Promise<{
     }
 
     return {
+        commandName: initOptions.commandName,
         config,
         manifestPath: initOptions.fromManifest,
+        fromProject: initOptions.fromProject === true,
         backupOverride: initOptions.backup, // undefined = auto-detect; true = --backup; false = --no-backup
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
@@ -1475,20 +1675,44 @@ async function parseCliArgs(): Promise<{
 async function main() {
     try {
         const cliArgs = await parseCliArgs();
+        let projectConfig = undefined;
+        let projectConfigAnswers: Partial<QuestionnaireAnswers> | undefined;
 
-        // Validate --no-interactive requires --from-manifest
-        if (cliArgs?.noInteractive && !cliArgs?.manifestPath) {
-            console.error(chalk.red('✗ Error: --no-interactive requires --from-manifest'));
-            console.error(
-                chalk.dim('  Use both flags together: --from-manifest <path> --no-interactive')
-            );
-            process.exit(1);
+        if (!cliArgs?.manifestPath) {
+            projectConfig =
+                loadProjectConfig(loadOverlaysConfigWrapper(), process.cwd()) ?? undefined;
+            if (projectConfig) {
+                projectConfigAnswers = applyPresetSelections(
+                    buildAnswersFromProjectConfig(projectConfig.selection)
+                );
+            }
         }
 
         let manifest: SuperpositionManifest | undefined;
         let manifestDir: string | undefined;
         let backupDir: string | undefined;
         let useManifestOnly = false;
+        let useProjectOnly = false;
+
+        if (cliArgs?.commandName === 'regen' && !cliArgs.manifestPath && !cliArgs.fromProject) {
+            if (projectConfigAnswers) {
+                useProjectOnly = true;
+            } else {
+                const discoveredManifestPath = findDefaultRegenManifest(
+                    cliArgs?.config?.outputPath || './.devcontainer'
+                );
+                if (!discoveredManifestPath) {
+                    console.error(chalk.red('✗ Error: No project file or manifest found'));
+                    console.error(
+                        chalk.gray(
+                            '  Looked for .superposition.yml or superposition.yml in the repository root, and superposition.json in common manifest locations.'
+                        )
+                    );
+                    process.exit(1);
+                }
+                cliArgs.manifestPath = discoveredManifestPath;
+            }
+        }
 
         // Handle manifest loading
         if (cliArgs?.manifestPath) {
@@ -1516,14 +1740,37 @@ async function main() {
             }
         }
 
+        if (cliArgs?.fromProject) {
+            if (!projectConfigAnswers || !projectConfig) {
+                console.error(chalk.red('✗ Could not find project file'));
+                console.error(chalk.red('  Searched for: .superposition.yml, superposition.yml'));
+                process.exit(1);
+            }
+            useProjectOnly = cliArgs.noInteractive || cliArgs.commandName === 'regen';
+        }
+
+        // Validate --no-interactive requires a persisted input source
+        if (cliArgs?.noInteractive && !cliArgs?.manifestPath && !projectConfigAnswers) {
+            console.error(chalk.red('✗ Error: --no-interactive requires persisted input'));
+            console.error(
+                chalk.dim(
+                    '  Use --from-project, --from-manifest <path>, or run from a repository with .superposition.yml or superposition.yml'
+                )
+            );
+            process.exit(1);
+        }
+
         // Determine whether to create a backup:
         //   --backup      → always backup
         //   --no-backup   → never backup
         //   (neither)     → backup only when NOT inside a git repository
         //                   (git already tracks history, so backups are redundant)
-        const backupCheckPath = path.resolve(
-            cliArgs?.config?.outputPath || manifestDir || './.devcontainer'
-        );
+        const resolvedOutputPath =
+            cliArgs?.config?.outputPath ||
+            projectConfigAnswers?.outputPath ||
+            manifestDir ||
+            './.devcontainer';
+        const backupCheckPath = path.resolve(resolvedOutputPath);
         const inGitRepo = isInsideGitRepo(backupCheckPath);
         let shouldBackup: boolean;
         if (cliArgs?.backupOverride === true) {
@@ -1542,11 +1789,12 @@ async function main() {
             }
         }
 
+        const isReplayMode = cliArgs?.commandName === 'regen' || useManifestOnly || useProjectOnly;
+
         // Create backup if needed
         let actualBackupPath: string | undefined;
-        if (shouldBackup && manifest) {
-            // Output path is the directory containing the manifest
-            const outputPath = manifestDir || './.devcontainer';
+        if (shouldBackup && isReplayMode) {
+            const outputPath = resolvedOutputPath;
 
             const backupPath = await createBackup(outputPath, backupDir);
             if (backupPath) {
@@ -1558,7 +1806,6 @@ async function main() {
 
         // Build answers based on mode
         let answers: QuestionnaireAnswers;
-        const isRegen = !!manifest;
 
         // Check if there are CLI overrides beyond just output path and preset flags
         // Preset/presetChoices alone don't constitute "CLI overrides" that bypass interactive mode
@@ -1569,7 +1816,17 @@ async function main() {
                     key !== 'outputPath' &&
                     key !== 'preset' &&
                     key !== 'presetChoices' &&
+                    !(key === 'target' && cliArgs.config.target === 'local') &&
+                    !(key === 'editor' && cliArgs.config.editor === 'vscode') &&
                     cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
+            );
+        const hasAnyCliConfig =
+            cliArgs &&
+            Object.entries(cliArgs.config).some(
+                ([key, value]) =>
+                    value !== undefined &&
+                    !(key === 'target' && value === 'local') &&
+                    !(key === 'editor' && value === 'vscode')
             );
 
         if (useManifestOnly && manifest && !hasCliOverrides) {
@@ -1596,21 +1853,55 @@ async function main() {
                         { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
                     )
             );
-        } else if (cliArgs && (cliArgs.config.stack || hasCliOverrides)) {
+        } else if (useProjectOnly && projectConfigAnswers && !hasCliOverrides) {
+            const projectFileName = projectConfig?.file.fileName ?? '.superposition.yml';
+            answers = mergeAnswers(projectConfigAnswers, {
+                outputPath:
+                    cliArgs?.config?.outputPath ||
+                    projectConfigAnswers.outputPath ||
+                    './.devcontainer',
+                minimal: cliArgs?.config?.minimal,
+                editor: cliArgs?.config?.editor,
+            });
+
+            console.log(
+                '\n' +
+                    boxen(
+                        chalk.bold.cyan('Regenerating from Project File (No Interactive)\n\n') +
+                            chalk.white('Configuration:\n') +
+                            chalk.gray(`  Project file: ${projectFileName}\n`) +
+                            chalk.gray(`  Output: ${answers.outputPath}`),
+                        {
+                            padding: 1,
+                            borderColor: 'cyan',
+                            borderStyle: 'round',
+                            margin: 1,
+                        }
+                    )
+            );
+        } else if (
+            (cliArgs && (cliArgs.config.stack || hasCliOverrides)) ||
+            (projectConfigAnswers && (cliArgs?.noInteractive || hasAnyCliConfig))
+        ) {
             // Mode 2: CLI-based (with optional manifest defaults)
             // This includes regen with --minimal or --editor flags
             const cliAnswers = buildAnswersFromCliArgs(cliArgs.config);
             const manifestAnswers = manifest
                 ? buildAnswersFromManifest(manifest, manifestDir)
                 : undefined;
-            answers = mergeAnswers(manifestAnswers, cliAnswers, {
-                outputPath: cliAnswers.outputPath || './.devcontainer',
+            answers = mergeAnswers(projectConfigAnswers, manifestAnswers, cliAnswers, {
+                outputPath:
+                    cliAnswers.outputPath || projectConfigAnswers?.outputPath || './.devcontainer',
             });
 
             const modeLabel =
                 useManifestOnly && hasCliOverrides
                     ? 'Regenerating from Manifest with Overrides'
-                    : 'Running in CLI mode';
+                    : useProjectOnly && projectConfigAnswers
+                      ? 'Regenerating from Project File with Overrides'
+                      : projectConfigAnswers && !manifest
+                        ? 'Running from Project Config'
+                        : 'Running in CLI mode';
 
             console.log(
                 '\n' +
@@ -1622,7 +1913,7 @@ async function main() {
             );
 
             // Show what's being overridden
-            if (useManifestOnly && hasCliOverrides) {
+            if ((useManifestOnly || useProjectOnly) && hasCliOverrides) {
                 const overrides: string[] = [];
                 if (cliAnswers.minimal) overrides.push('minimal mode');
                 if (cliAnswers.editor) overrides.push(`editor: ${cliAnswers.editor}`);
@@ -1635,10 +1926,22 @@ async function main() {
             const interactiveAnswers = await runQuestionnaire(
                 manifest,
                 manifestDir,
-                cliArgs?.config.preset,
-                cliArgs?.config.presetChoices
+                cliArgs?.config.preset || projectConfigAnswers?.preset,
+                cliArgs?.config.presetChoices || projectConfigAnswers?.presetChoices,
+                projectConfigAnswers
             );
-            answers = mergeAnswers(interactiveAnswers);
+            answers = mergeAnswers(projectConfigAnswers, interactiveAnswers);
+        }
+
+        if (!manifest && projectConfig?.selection.customizations) {
+            const materializedOutputPath = path.resolve(answers.outputPath);
+            if (!fs.existsSync(materializedOutputPath)) {
+                fs.mkdirSync(materializedOutputPath, { recursive: true });
+            }
+            writeProjectConfigCustomizations(
+                materializedOutputPath,
+                projectConfig.selection.customizations
+            );
         }
 
         // Show configuration summary
@@ -1675,6 +1978,12 @@ async function main() {
             );
         }
 
+        if (projectConfig?.file && !manifest) {
+            summaryLines.push(
+                chalk.cyan('Project config:  ') + chalk.white(projectConfig.file.fileName)
+            );
+        }
+
         summaryLines.push(chalk.cyan('Output:          ') + chalk.white(answers.outputPath));
 
         console.log(
@@ -1701,10 +2010,12 @@ async function main() {
         try {
             let summary;
             if (isManifestOnly) {
-                summary = await generateManifestOnly(answers, undefined, { isRegen });
+                summary = await generateManifestOnly(answers, undefined, {
+                    isRegen: isReplayMode,
+                });
                 spinner.succeed(chalk.green('Manifest created successfully!'));
             } else {
-                summary = await composeDevContainer(answers, undefined, { isRegen });
+                summary = await composeDevContainer(answers, undefined, { isRegen: isReplayMode });
                 spinner.succeed(chalk.green('DevContainer created successfully!'));
             }
 

@@ -10,6 +10,37 @@ npm run init
 
 Follow the prompts to select your stack, database, tools, and output location.
 
+## Declarative Project Config
+
+```yaml
+stack: compose
+language:
+    - nodejs
+database:
+    - postgres
+outputPath: ./.devcontainer
+customizations:
+    environment:
+        APP_ENV: development
+    devcontainerPatch:
+        features:
+            ghcr.io/devcontainers-extra/features/apt-get-packages:1:
+                packages: jq
+```
+
+```bash
+npm run init -- --no-interactive
+```
+
+Creates the same generated output you would get from equivalent clean-generation
+input, while keeping the setup intent in version control.
+
+```bash
+npm run init -- regen
+```
+
+Regenerates from the repository project file by default when one exists.
+
 ## Non-Interactive Examples
 
 ### .NET with PostgreSQL
@@ -411,11 +442,14 @@ npm run init -- --from-manifest ./superposition.json
 
 ### Non-Interactive Regeneration
 
-Regenerate exact same setup (useful for updating to latest overlay versions):
+Use `regen` when you want deterministic replay of a persisted source:
 
 ```bash
-# Regenerate with exact same selections, skip confirmation, no backup
-npm run init -- --from-manifest ./superposition.json --yes --no-backup
+# Regenerate with exact same selections from a manifest, no backup
+npm run init -- regen --from-manifest ./superposition.json --no-backup
+
+# Or let regen use the repository project file when present
+npm run init -- regen
 ```
 
 **Use cases:**
@@ -463,7 +497,7 @@ git push
 # Developer 2: Clone and regenerate from manifest
 git clone <repo>
 npm install
-npm run init -- --from-manifest ./superposition.json --yes
+npm run init -- regen --from-manifest ./superposition.json
 # Gets exact same devcontainer setup
 ```
 
@@ -572,5 +606,5 @@ mv prod/superposition.json prod-superposition.json
 
 # Now you have three manifests for different environments
 # Regenerate any environment from its manifest
-npm run init -- --from-manifest ./dev-superposition.json --yes --output ./dev
+npm run init -- regen --from-manifest ./dev-superposition.json --output ./dev
 ```

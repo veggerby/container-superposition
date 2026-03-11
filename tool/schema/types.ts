@@ -127,6 +127,7 @@ export interface QuestionnaireAnswers {
     target?: DeploymentTarget; // Deployment target for environment-specific optimizations
     minimal?: boolean; // Whether to use minimal mode (exclude optional/nice-to-have features)
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
+    customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
 }
 
 /**
@@ -349,4 +350,44 @@ export interface CustomizationConfig {
         source: string;
         destination: string;
     }>;
+}
+
+export interface ProjectConfigFileEntry {
+    path: string;
+    fileName: '.superposition.yml' | 'superposition.yml';
+}
+
+export interface ProjectConfigCustomizationsInput {
+    devcontainerPatch?: DevContainer;
+    dockerComposePatch?: Record<string, any>;
+    environment?: Record<string, string>;
+    scripts?: {
+        postCreate?: string[];
+        postStart?: string[];
+    };
+    files?: Array<{
+        path: string;
+        content: string;
+    }>;
+}
+
+export interface ProjectConfigSelection {
+    stack?: Stack;
+    baseImage?: BaseImage;
+    customImage?: string;
+    containerName?: string;
+    preset?: string;
+    presetChoices?: Record<string, string>;
+    language?: LanguageOverlay[];
+    database?: DatabaseOverlay[];
+    observability?: ObservabilityTool[];
+    cloudTools?: CloudTool[];
+    devTools?: DevTool[];
+    playwright?: boolean;
+    outputPath?: string;
+    portOffset?: number;
+    target?: DeploymentTarget;
+    minimal?: boolean;
+    editor?: EditorProfile;
+    customizations?: ProjectConfigCustomizationsInput;
 }

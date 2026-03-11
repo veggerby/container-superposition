@@ -1,13 +1,30 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { fileURLToPath } from 'url';
+import * as yaml from 'js-yaml';
 import { generateManifestOnly } from '../questionnaire/composer.js';
 import type { QuestionnaireAnswers } from '../schema/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.join(__dirname, '..', '..');
+const TSX_CLI = path.join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+
+function runInitCli(args: string[], cwd: string): string {
+    return execFileSync(
+        process.execPath,
+        [TSX_CLI, path.join(REPO_ROOT, 'scripts', 'init.ts'), ...args],
+        {
+            cwd,
+            env: { ...process.env, FORCE_COLOR: '0' },
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+        }
+    );
+}
 
 describe('Manifest-Only Generation', () => {
     let tempDir: string;
@@ -195,5 +212,57 @@ describe('Manifest-Only Generation', () => {
 
         expect(manifest.preset).toBe('web-api');
         expect(manifest.presetChoices).toEqual({ database: 'postgres' });
+    });
+
+    it('should keep explicit manifest regeneration isolated from project-config defaults', () => {
+        const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-manifest-'));
+
+        try {
+            fs.writeFileSync(
+                path.join(repoDir, '.superposition.yml'),
+                yaml.dump({
+                    stack: 'plain',
+                    language: ['nodejs'],
+                    outputPath: './generated-from-config',
+                })
+            );
+
+            const manifestDir = path.join(repoDir, 'manifest-source');
+            fs.mkdirSync(manifestDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(manifestDir, 'superposition.json'),
+                JSON.stringify(
+                    {
+                        manifestVersion: '1',
+                        generatedBy: 'test',
+                        generated: new Date().toISOString(),
+                        baseTemplate: 'plain',
+                        baseImage: 'bookworm',
+                        overlays: ['python'],
+                    },
+                    null,
+                    2
+                )
+            );
+
+            runInitCli(
+                [
+                    'init',
+                    '--from-manifest',
+                    path.join(manifestDir, 'superposition.json'),
+                    '--no-interactive',
+                ],
+                repoDir
+            );
+
+            const generatedManifest = JSON.parse(
+                fs.readFileSync(path.join(manifestDir, 'superposition.json'), 'utf8')
+            );
+            expect(generatedManifest.overlays).toContain('python');
+            expect(generatedManifest.overlays).not.toContain('nodejs');
+            expect(fs.existsSync(path.join(repoDir, 'generated-from-config'))).toBe(false);
+        } finally {
+            fs.rmSync(repoDir, { recursive: true, force: true });
+        }
     });
 });

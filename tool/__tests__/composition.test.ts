@@ -4,6 +4,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as yaml from 'js-yaml';
 import { composeDevContainer } from '../questionnaire/composer.js';
+import { writeProjectConfigCustomizations } from '../schema/project-config.js';
 import type { QuestionnaireAnswers } from '../schema/types.js';
 
 // Get __dirname equivalent in ESM
@@ -235,6 +236,50 @@ describe('Golden Tests - Composition', () => {
         expect(envContent).toContain('POSTGRES');
 
         // Clean up
+        fs.rmSync(outputPath, { recursive: true });
+    });
+
+    it('should preserve custom image and container name parity when project-config customizations are present', async () => {
+        const outputPath = path.join(TEST_OUTPUT_DIR, 'test-project-config-custom-image');
+
+        if (fs.existsSync(outputPath)) {
+            fs.rmSync(outputPath, { recursive: true });
+        }
+
+        writeProjectConfigCustomizations(outputPath, {
+            devcontainerPatch: {
+                features: {
+                    'ghcr.io/devcontainers/features/common-utils:2': {},
+                },
+            },
+        });
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'custom',
+            customImage: 'ubuntu:24.04',
+            containerName: 'project-config-dev',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+        };
+
+        await composeDevContainer(answers);
+
+        const devcontainer = JSON.parse(
+            fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf-8')
+        );
+        expect(devcontainer.name).toBe('project-config-dev');
+        expect(devcontainer.image).toBe('ubuntu:24.04');
+        expect(devcontainer.features).toHaveProperty(
+            'ghcr.io/devcontainers/features/common-utils:2'
+        );
+
         fs.rmSync(outputPath, { recursive: true });
     });
 
