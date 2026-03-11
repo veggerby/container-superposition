@@ -106,7 +106,6 @@ A contributor receives clear guidance when the project config file is invalid, i
 
 ## Dependencies & Impact _(mandatory)_
 
-- **Affected Areas**: Standard initialization workflow, clean-generation parity, supported customization handling, manifest-based regeneration boundaries, CLI usage patterns, onboarding workflow, CI/CD workflow, user documentation
 - **Affected Areas**: Standard initialization workflow, clean-generation parity, supported customization handling, manifest-based regeneration boundaries, project-file based regeneration boundaries, CLI usage patterns, onboarding workflow, CI/CD workflow, user documentation
 - **Compatibility Impact**: Backward compatible
 - **Required Documentation Updates**: README.md, workflow and examples documentation, quickstart guidance, CHANGELOG.md

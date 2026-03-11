@@ -36,7 +36,25 @@ selection ambiguous and weaken predictability.
 - Replace manifest workflows entirely: rejected because it would break existing
   regeneration behavior and expand scope.
 
-## Decision 3: Define parity in terms of supported clean-generation inputs
+## Decision 3: Support project-file based regeneration as a first-class persisted input mode
+
+**Decision**: `regen` supports the repository project file as a persisted input
+source, and it may use that source implicitly when no conflicting source or
+clean-generation selection flags are present.
+
+**Rationale**: The project file is now a version-controlled source of truth, so
+regeneration should not force teams back to a generated manifest when the
+project file already expresses the supported intent.
+
+**Alternatives considered**:
+
+- Keep `regen` manifest-only: rejected because it would create an arbitrary
+  split between initialization and regeneration for the same declared intent.
+- Require `--from-project` for every project-file based regen: rejected because
+  the default regen path should be able to use the repository source of truth
+  directly when no ambiguity exists.
+
+## Decision 4: Define parity in terms of supported clean-generation inputs
 
 **Decision**: “Full parity” means every currently supported clean-generation
 input that materially affects generated output can be declared in the project
@@ -57,7 +75,7 @@ important customizations.
   it would blur the boundary between supported generation inputs and unmanaged
   custom output.
 
-## Decision 4: Restrict discovery to the repository root and fail on dual-file ambiguity
+## Decision 5: Restrict discovery to the repository root and fail on dual-file ambiguity
 
 **Decision**: Discover project config only in the current repository root and
 fail if both supported filenames exist.
@@ -73,7 +91,7 @@ single visible source of truth.
 - Prefer one filename silently: rejected because ambiguity should be surfaced,
   not hidden.
 
-## Decision 5: Validation must happen before generation and name the offending config entry
+## Decision 6: Validation must happen before generation and name the offending config entry
 
 **Decision**: Project-config validation fails before generation begins and
 reports syntax errors, unsupported keys, unsupported values, conflicts, missing
@@ -91,7 +109,24 @@ behavior.
 - Ignore unknown keys: rejected because it would make committed config content
   misleading.
 
-## Decision 6: Verification must include parity cases, not only happy-path loading
+## Decision 7: Persisted-input source conflicts must fail before generation
+
+**Decision**: `--from-project` and `--from-manifest` are mutually exclusive,
+and persisted-input source modes fail fast when combined with clean-generation
+selection flags such as stack, overlays, or preset selection.
+
+**Rationale**: Source selection must stay explicit and predictable. Allowing
+multiple persisted-input sources or mixing source modes with structural
+generation selection flags would make the effective source of truth ambiguous.
+
+**Alternatives considered**:
+
+- Merge persisted-input sources in precedence order: rejected because it hides
+  which source actually defines the run.
+- Allow source modes plus structural overrides: rejected because it weakens the
+  contract of deliberate source selection.
+
+## Decision 8: Verification must include parity cases, not only happy-path loading
 
 **Decision**: Verification covers clean-generation parity for supported
 customization inputs in addition to discovery, precedence, and validation

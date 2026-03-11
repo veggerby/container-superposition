@@ -412,6 +412,19 @@ function findManifestFile(manifestPath?: string): string | null {
     return null;
 }
 
+function findDefaultRegenManifest(outputPath: string = './.devcontainer'): string | null {
+    const manifestSearchPaths = ['superposition.json', path.join(outputPath, 'superposition.json')];
+
+    for (const searchPath of manifestSearchPaths) {
+        const resolvedPath = path.resolve(searchPath);
+        if (fs.existsSync(resolvedPath)) {
+            return resolvedPath;
+        }
+    }
+
+    return null;
+}
+
 /**
  * Load and validate manifest file
  */
@@ -1262,8 +1275,10 @@ function mergeAnswers(
  * Parse CLI arguments
  */
 async function parseCliArgs(): Promise<{
+    commandName?: 'init' | 'regen';
     config: Partial<QuestionnaireAnswers>;
     manifestPath?: string;
+    fromProject?: boolean;
     backupOverride?: boolean;
     backupDir?: string;
     yes?: boolean;
@@ -1284,14 +1299,12 @@ async function parseCliArgs(): Promise<{
     program
         .command('init', { isDefault: true })
         .description('Initialize a new devcontainer configuration')
+        .option('--from-project', 'Load configuration from the repository project file')
         .option(
             '--from-manifest <path>',
             'Load configuration from existing superposition.json manifest'
         )
-        .option(
-            '--no-interactive',
-            'Use manifest values directly without questionnaire (requires --from-manifest)'
-        )
+        .option('--no-interactive', 'Use persisted input values directly without questionnaire')
         .option(
             '--backup',
             'Force or suppress backup; default is --no-backup inside a git repo, --backup outside'
@@ -1344,13 +1357,20 @@ async function parseCliArgs(): Promise<{
         )
         .action((options) => {
             // Store options for main() to process
-            initOptions = options;
+            initOptions = { ...options, commandName: 'init' };
         });
 
     // Regen command
     program
         .command('regen')
-        .description('Regenerate devcontainer from existing superposition.json manifest')
+        .description(
+            'Regenerate devcontainer from a project file or existing superposition.json manifest'
+        )
+        .option('--from-project', 'Load configuration from the repository project file')
+        .option(
+            '--from-manifest <path>',
+            'Load configuration from existing superposition.json manifest'
+        )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .option(
             '--backup',
@@ -1360,44 +1380,9 @@ async function parseCliArgs(): Promise<{
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
         .action((options) => {
-            const outputPath = options.output || './.devcontainer';
-
-            // Look for manifest in multiple locations for team workflow:
-            // 1. Current directory (./superposition.json) - team workflow
-            // 2. Output directory (e.g., ./.devcontainer/superposition.json) - legacy
-            const manifestSearchPaths = [
-                'superposition.json',
-                path.join(outputPath, 'superposition.json'),
-            ];
-
-            let manifestPath: string | null = null;
-            for (const searchPath of manifestSearchPaths) {
-                if (fs.existsSync(searchPath)) {
-                    manifestPath = searchPath;
-                    break;
-                }
-            }
-
-            if (!manifestPath) {
-                console.error(chalk.red(`✗ Error: No manifest found`));
-                console.error(
-                    chalk.gray(
-                        '  Searched for: ./superposition.json, ' +
-                            path.join(outputPath, 'superposition.json')
-                    )
-                );
-                console.error(
-                    chalk.gray(
-                        '  Run "container-superposition init --write-manifest-only" to create a manifest'
-                    )
-                );
-                process.exit(1);
-            }
-
-            // Store options for main() to process
             initOptions = {
                 ...options,
-                fromManifest: manifestPath,
+                commandName: 'regen',
                 interactive: false,
             };
         });
@@ -1534,6 +1519,52 @@ async function parseCliArgs(): Promise<{
         return null;
     }
 
+    const hasSourceFlags =
+        Number(Boolean(initOptions.fromProject)) + Number(Boolean(initOptions.fromManifest));
+    if (hasSourceFlags > 1) {
+        console.error(
+            chalk.red('✗ Error: --from-project and --from-manifest cannot be used together')
+        );
+        process.exit(1);
+    }
+
+    const sourceSelectionConflicts = [
+        'stack',
+        'language',
+        'database',
+        'observability',
+        'playwright',
+        'cloudTools',
+        'devTools',
+        'portOffset',
+        'preset',
+    ];
+    const hasPresetParams =
+        Array.isArray(initOptions.presetParam) && (initOptions.presetParam as string[]).length > 0;
+    const conflictingSelectionFlags = sourceSelectionConflicts.filter(
+        (key) => initOptions[key] !== undefined && initOptions[key] !== false
+    );
+    if (
+        (initOptions.fromProject || initOptions.fromManifest) &&
+        (conflictingSelectionFlags.length > 0 || hasPresetParams)
+    ) {
+        const conflicts = [...conflictingSelectionFlags.map((key) => `--${key}`)];
+        if (hasPresetParams) {
+            conflicts.push('--preset-param');
+        }
+        console.error(
+            chalk.red(
+                `✗ Error: Persisted input sources cannot be combined with clean-generation selection flags: ${conflicts.join(', ')}`
+            )
+        );
+        console.error(
+            chalk.dim(
+                '  Choose either a persisted input source (--from-project or --from-manifest) or direct selection flags for that run.'
+            )
+        );
+        process.exit(1);
+    }
+
     const config: Partial<QuestionnaireAnswers> = {};
 
     if (initOptions.stack) config.stack = initOptions.stack as Stack;
@@ -1624,8 +1655,10 @@ async function parseCliArgs(): Promise<{
     }
 
     return {
+        commandName: initOptions.commandName,
         config,
         manifestPath: initOptions.fromManifest,
+        fromProject: initOptions.fromProject === true,
         backupOverride: initOptions.backup, // undefined = auto-detect; true = --backup; false = --no-backup
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
@@ -1638,6 +1671,7 @@ async function main() {
         const cliArgs = await parseCliArgs();
         let projectConfig = undefined;
         let projectConfigAnswers: Partial<QuestionnaireAnswers> | undefined;
+        let projectConfigWasRequested = cliArgs?.fromProject === true;
 
         if (!cliArgs?.manifestPath) {
             projectConfig =
@@ -1649,21 +1683,32 @@ async function main() {
             }
         }
 
-        // Validate --no-interactive requires an explicit persisted input source
-        if (cliArgs?.noInteractive && !cliArgs?.manifestPath && !projectConfigAnswers) {
-            console.error(chalk.red('✗ Error: --no-interactive requires --from-manifest'));
-            console.error(
-                chalk.dim(
-                    '  Use --from-manifest <path> --no-interactive, or run from a repository with .superposition.yml'
-                )
-            );
-            process.exit(1);
-        }
-
         let manifest: SuperpositionManifest | undefined;
         let manifestDir: string | undefined;
         let backupDir: string | undefined;
         let useManifestOnly = false;
+        let useProjectOnly = false;
+
+        if (cliArgs?.commandName === 'regen' && !cliArgs.manifestPath && !cliArgs.fromProject) {
+            if (projectConfigAnswers) {
+                projectConfigWasRequested = true;
+                useProjectOnly = true;
+            } else {
+                const discoveredManifestPath = findDefaultRegenManifest(
+                    cliArgs?.config?.outputPath || './.devcontainer'
+                );
+                if (!discoveredManifestPath) {
+                    console.error(chalk.red('✗ Error: No project file or manifest found'));
+                    console.error(
+                        chalk.gray(
+                            '  Looked for .superposition.yml or superposition.yml in the repository root, and superposition.json in common manifest locations.'
+                        )
+                    );
+                    process.exit(1);
+                }
+                cliArgs.manifestPath = discoveredManifestPath;
+            }
+        }
 
         // Handle manifest loading
         if (cliArgs?.manifestPath) {
@@ -1689,6 +1734,26 @@ async function main() {
             if (cliArgs.noInteractive) {
                 useManifestOnly = true;
             }
+        }
+
+        if (cliArgs?.fromProject) {
+            if (!projectConfigAnswers || !projectConfig) {
+                console.error(chalk.red('✗ Could not find project file'));
+                console.error(chalk.red('  Searched for: .superposition.yml, superposition.yml'));
+                process.exit(1);
+            }
+            useProjectOnly = cliArgs.noInteractive || cliArgs.commandName === 'regen';
+        }
+
+        // Validate --no-interactive requires a persisted input source
+        if (cliArgs?.noInteractive && !cliArgs?.manifestPath && !projectConfigAnswers) {
+            console.error(chalk.red('✗ Error: --no-interactive requires persisted input'));
+            console.error(
+                chalk.dim(
+                    '  Use --from-project, --from-manifest <path>, or run from a repository with .superposition.yml or superposition.yml'
+                )
+            );
+            process.exit(1);
         }
 
         // Determine whether to create a backup:
@@ -1719,9 +1784,13 @@ async function main() {
 
         // Create backup if needed
         let actualBackupPath: string | undefined;
-        if (shouldBackup && manifest) {
-            // Output path is the directory containing the manifest
-            const outputPath = manifestDir || './.devcontainer';
+        const isRegen = cliArgs?.commandName === 'regen';
+        if (shouldBackup && isRegen) {
+            const outputPath =
+                cliArgs?.config?.outputPath ||
+                projectConfigAnswers?.outputPath ||
+                manifestDir ||
+                './.devcontainer';
 
             const backupPath = await createBackup(outputPath, backupDir);
             if (backupPath) {
@@ -1733,7 +1802,6 @@ async function main() {
 
         // Build answers based on mode
         let answers: QuestionnaireAnswers;
-        const isRegen = !!manifest;
 
         // Check if there are CLI overrides beyond just output path and preset flags
         // Preset/presetChoices alone don't constitute "CLI overrides" that bypass interactive mode
@@ -1744,10 +1812,18 @@ async function main() {
                     key !== 'outputPath' &&
                     key !== 'preset' &&
                     key !== 'presetChoices' &&
+                    !(key === 'target' && cliArgs.config.target === 'local') &&
+                    !(key === 'editor' && cliArgs.config.editor === 'vscode') &&
                     cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
             );
         const hasAnyCliConfig =
-            cliArgs && Object.values(cliArgs.config).some((value) => value !== undefined);
+            cliArgs &&
+            Object.entries(cliArgs.config).some(
+                ([key, value]) =>
+                    value !== undefined &&
+                    !(key === 'target' && value === 'local') &&
+                    !(key === 'editor' && value === 'vscode')
+            );
 
         if (useManifestOnly && manifest && !hasCliOverrides) {
             // Mode 1: Manifest-only (--from-manifest --no-interactive, no CLI overrides)
@@ -1773,6 +1849,32 @@ async function main() {
                         { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
                     )
             );
+        } else if (useProjectOnly && projectConfigAnswers && !hasCliOverrides) {
+            const projectFileName = projectConfig?.file.fileName ?? '.superposition.yml';
+            answers = mergeAnswers(projectConfigAnswers, {
+                outputPath:
+                    cliArgs?.config?.outputPath ||
+                    projectConfigAnswers.outputPath ||
+                    './.devcontainer',
+                minimal: cliArgs?.config?.minimal,
+                editor: cliArgs?.config?.editor,
+            });
+
+            console.log(
+                '\n' +
+                    boxen(
+                        chalk.bold.cyan('Regenerating from Project File (No Interactive)\n\n') +
+                            chalk.white('Configuration:\n') +
+                            chalk.gray(`  Project file: ${projectFileName}\n`) +
+                            chalk.gray(`  Output: ${answers.outputPath}`),
+                        {
+                            padding: 1,
+                            borderColor: 'cyan',
+                            borderStyle: 'round',
+                            margin: 1,
+                        }
+                    )
+            );
         } else if (
             (cliArgs && (cliArgs.config.stack || hasCliOverrides)) ||
             (projectConfigAnswers && (cliArgs?.noInteractive || hasAnyCliConfig))
@@ -1791,9 +1893,11 @@ async function main() {
             const modeLabel =
                 useManifestOnly && hasCliOverrides
                     ? 'Regenerating from Manifest with Overrides'
-                    : projectConfigAnswers && !manifest
-                      ? 'Running from Project Config'
-                      : 'Running in CLI mode';
+                    : useProjectOnly && projectConfigAnswers
+                      ? 'Regenerating from Project File with Overrides'
+                      : projectConfigAnswers && !manifest
+                        ? 'Running from Project Config'
+                        : 'Running in CLI mode';
 
             console.log(
                 '\n' +
@@ -1805,7 +1909,7 @@ async function main() {
             );
 
             // Show what's being overridden
-            if (useManifestOnly && hasCliOverrides) {
+            if ((useManifestOnly || useProjectOnly) && hasCliOverrides) {
                 const overrides: string[] = [];
                 if (cliAnswers.minimal) overrides.push('minimal mode');
                 if (cliAnswers.editor) overrides.push(`editor: ${cliAnswers.editor}`);

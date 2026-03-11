@@ -35,6 +35,12 @@ npm run init -- --no-interactive
 Creates the same generated output you would get from equivalent clean-generation
 input, while keeping the setup intent in version control.
 
+```bash
+npm run init -- regen
+```
+
+Regenerates from the repository project file by default when one exists.
+
 ## Non-Interactive Examples
 
 ### .NET with PostgreSQL

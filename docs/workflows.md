@@ -57,7 +57,13 @@ Use manual edits when you:
 ## Quick Regeneration
 
 ```bash
-# Finds manifest automatically
+# Uses the repository project file when one exists
+npx container-superposition regen
+
+# Or select the project file explicitly
+npx container-superposition regen --from-project
+
+# Falls back to manifest discovery when no project file exists
 npx container-superposition regen
 ```
 
@@ -66,6 +72,19 @@ npx container-superposition regen
 ```bash
 # Uses manifest as defaults, then prompts for changes
 npx container-superposition init --from-manifest ./.devcontainer/superposition.json
+```
+
+## Source-Selection Conflicts
+
+Persisted-input source flags are mutually exclusive and do not mix with
+clean-generation selection flags:
+
+```bash
+# Invalid: two persisted sources
+npx container-superposition regen --from-project --from-manifest ./.devcontainer/superposition.json
+
+# Invalid: persisted source plus structural selection flags
+npx container-superposition init --from-project --stack compose
 ```
 
 ## Non-Interactive (CI/CD)
@@ -92,10 +111,13 @@ npx container-superposition init \
 # 1. Initial setup
 npx container-superposition init --stack compose --language nodejs --database postgres
 
-# 2. Later: add Redis and observability
+# 2. Later: reapply the committed project file
+npx container-superposition regen
+
+# 3. Or regenerate explicitly from a manifest when that is the intended source
 npx container-superposition init --from-manifest ./.devcontainer/superposition.json
 
-# 3. Update to latest overlays
+# 4. Update to latest overlays
 npx container-superposition@latest regen
 ```
 

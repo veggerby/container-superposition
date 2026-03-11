@@ -61,7 +61,19 @@ Expected result:
   declared values
 - repeated runs resolve the same configuration
 
-## 6. Preserve explicit manifest regeneration
+## 6. Regenerate from the project file
+
+```bash
+npm run init -- regen
+```
+
+Expected result:
+
+- `regen` uses the repository project file when one exists
+- the command does not require `--from-project` in that default case
+- the generated output matches the project file's declared intent
+
+## 7. Preserve explicit manifest regeneration
 
 ```bash
 npm run init -- --from-manifest ./.devcontainer/superposition.json --no-interactive
@@ -72,7 +84,19 @@ Expected result:
 - the manifest remains the persisted input source for that run
 - repository project config does not silently override it
 
-## 7. Validate parity for supported customization inputs
+## 8. Reject conflicting source modes early
+
+```bash
+npm run init -- init --from-project --stack compose
+```
+
+Expected result:
+
+- the command fails before generation
+- the error explains that persisted-input source flags cannot be mixed with
+  clean-generation selection flags
+
+## 9. Validate parity for supported customization inputs
 
 For any supported customization input that can be expressed through the existing
 clean-generation path:
@@ -89,18 +113,20 @@ Examples of parity checks:
 - preset glue values
 - additional generated features
 
-## 8. Maintainer workflow review
+## 10. Maintainer workflow review
 
 Review result for `SC-003`:
 
 - a maintainer can create or update `.superposition.yml`, run `npm run init -- --no-interactive`, and inspect the generated output without reconstructing a long command
 - the documented workflow keeps the committed project config as the source of truth while still allowing one-run CLI overrides
 
-## 9. Verification record
+## 11. Verification record
 
 Validated during implementation:
 
 - targeted regression tests for project-config discovery, precedence, manifest isolation, no-config fallback, and customization parity
+- targeted regression tests for explicit `--from-project`, implicit project-file
+  `regen`, and source-conflict validation
 - `npm test`
 - `npm run lint`
 - `npm run test:smoke`
@@ -108,5 +134,7 @@ Validated during implementation:
 Observed outcomes:
 
 - valid project-config driven runs generated the expected manifest and devcontainer output
+- `regen` used the repository project file by default when present and still
+  allowed explicit manifest-based regeneration
 - `--no-interactive` now works with a repository-root project config and still fails without any persisted input source
 - explicit `--from-manifest` runs ignored repository project-config defaults as required

@@ -43,6 +43,7 @@ project config file.
 - `minimal`
 - `editor`
 - `customizationInputs`
+- `sourceMode`
 
 **Validation rules**:
 
@@ -86,8 +87,8 @@ the final generated output beyond simple stack or overlay selection.
 
 **Fields**:
 
-- `sourceMode`: standard init, explicit manifest init, or standard init with
-  direct overrides
+- `sourceMode`: standard init, explicit project-file init, implicit project-file
+  regen, explicit manifest init, or standard init with direct overrides
 - `resolvedValues`: final merged `QuestionnaireAnswers`-equivalent values
 - `overrideSources`: per-field record of which source won precedence
 
@@ -121,3 +122,5 @@ config file.
 - One `ProjectConfigSelection` may contain many `CustomizationInput` values.
 - One `EffectiveGenerationRequest` merges values from supported sources and
   feeds generation plus manifest output.
+- One `EffectiveGenerationRequest` must resolve exactly one persisted-input
+  source mode before generation starts.

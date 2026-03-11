@@ -2,16 +2,16 @@ stack: plain
 baseImage: trixie
 containerName: Container Superposition
 language:
-  - nodejs
+    - nodejs
 devTools:
-  - codex
-  - spec-kit
-  - docker-sock
-  - git-helpers
-  - modern-cli-tools
+    - codex
+    - spec-kit
+    - docker-sock
+    - git-helpers
+    - modern-cli-tools
 outputPath: ./.devcontainer
 customizations:
-  devcontainerPatch:
-    remoteEnv:
-      SPECIFY_AI_AGENT: codex
-      CODEX_HOME: /workspaces/container-superposition/.codex
+    devcontainerPatch:
+        remoteEnv:
+            SPECIFY_AI_AGENT: codex
+            CODEX_HOME: /workspaces/container-superposition/.codex

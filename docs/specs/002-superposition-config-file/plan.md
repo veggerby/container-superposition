@@ -8,14 +8,16 @@ active feature branch.
 
 ## Summary
 
-Add repository-root project config support so `init` can load a committed
-`.superposition.yml` or `superposition.yml` as the default source of truth for
-clean generation, with full parity to supported generation inputs, including
-customization surfaces such as custom container definitions, environment-related
-settings, preset glue, and additional generated features. The design extends the
-existing answer-merging flow instead of creating a second generation pipeline,
-and keeps explicit manifest-based regeneration as a separate persisted-input
-mode.
+Add repository-root project config support so `init` and `regen` can load a
+committed `.superposition.yml` or `superposition.yml` as a persisted source of
+truth for supported generation flows, with full parity to supported generation
+inputs, including customization surfaces such as custom container definitions,
+environment-related settings, preset glue, and additional generated features.
+The design extends the existing answer-merging flow instead of creating a second
+generation pipeline, introduces an explicit `--from-project` mode, allows
+implicit project-file use for `init --no-interactive` and default `regen` when
+no conflicting source or selection flags are supplied, and keeps explicit
+manifest-based regeneration as a separate persisted-input mode.
 
 ## Technical Context
 
@@ -32,10 +34,11 @@ environments
 ms in representative repositories so initialization remains dominated by the
 existing generation work rather than config loading  
 **Constraints**: Preserve backward compatibility for interactive, flag-driven,
-and explicit manifest-based flows; preserve source/dist path compatibility with
-candidate-path resolution; maintain full parity between supported clean
-generation inputs and project-config declarations; keep ambiguity and validation
-failures user-facing and deterministic  
+explicit project-file, and explicit manifest-based flows; preserve source/dist
+path compatibility with candidate-path resolution; maintain full parity between
+supported clean generation inputs and project-config declarations; reject
+conflicting persisted-input source combinations before generation; keep
+ambiguity and validation failures user-facing and deterministic  
 **Scale/Scope**: Single feature spanning `scripts/init.ts`, shared schema/types,
 config-loading helpers, command and composition tests, documentation, and
 generation parity for supported customization inputs
@@ -114,7 +117,8 @@ composition test suites.
 ### Research Goals
 
 - Confirm the correct precedence between project config, direct command input,
-  interactive completion, and explicit manifest mode.
+  interactive completion, explicit `--from-project`, implicit project-file
+  source selection, and explicit manifest mode.
 - Define what “full parity to clean generation” means for supported
   customization inputs without introducing a second generation model.
 - Confirm discovery, ambiguity handling, and validation boundaries for a
@@ -141,19 +145,24 @@ composition test suites.
 ## Implementation Approach
 
 1. Add repository-root project-config discovery and validation to the standard
-   `init` flow without changing explicit manifest-based regeneration behavior.
+   `init` flow and to `regen`, while keeping explicit manifest-based
+   regeneration behavior available as a separate mode.
 2. Model project config as another partial-answer source that feeds the existing
    `QuestionnaireAnswers` merge path.
 3. Extend the supported config shape so it can declare every supported
    clean-generation input, including customization surfaces already represented
    in the current answer and generation flow.
-4. Preserve parity by ensuring project-config declarations yield the same final
+4. Add explicit source-selection validation so `--from-project` and
+   `--from-manifest` remain mutually exclusive and cannot be combined with
+   clean-generation selection flags such as stack, overlays, or preset choices.
+5. Preserve parity by ensuring project-config declarations yield the same final
    generated output as equivalent direct user selections.
-5. Add regression coverage for no-config fallback, override precedence,
-   manifest-isolation behavior, invalid config handling, ambiguity detection,
-   and customization parity.
-6. Update docs and changelog entries so the declarative workflow and its parity
-   scope are user-visible and auditable.
+6. Add regression coverage for no-config fallback, override precedence,
+   project-file based regen, explicit `--from-project`, manifest isolation,
+   source-conflict validation, invalid config handling, ambiguity detection, and
+   customization parity.
+7. Update docs and changelog entries so the declarative workflow, source
+   selection modes, and conflict rules are user-visible and auditable.
 
 ## Verification Strategy
 
@@ -161,7 +170,12 @@ composition test suites.
     - repository-root project-config discovery
     - no-config fallback behavior
     - CLI-over-project-config precedence
+    - explicit `--from-project` behavior for `init` and `regen`
+    - implicit project-file selection for `init --no-interactive` and default
+      `regen`
     - explicit manifest isolation from project-config defaults
+    - persisted-input source conflict validation (`--from-project`,
+      `--from-manifest`, and clean-generation selection flags)
     - partial config completion through the existing questionnaire flow
     - invalid YAML, unsupported keys or values, conflicts, and dual-file
       ambiguity
@@ -186,8 +200,8 @@ composition test suites.
 - [x] Documentation synchronization is explicit: `README.md`,
       `docs/workflows.md`, `docs/examples.md`, `quickstart.md`, and `CHANGELOG.md`.
 - [x] Simplicity and compatibility remain intact: project config is a default
-      persisted input source, explicit manifest mode remains separate, and
-      candidate-path compatibility stays required.
+      persisted input source, explicit `--from-project` and explicit manifest
+      modes remain separate, and candidate-path compatibility stays required.
 
 ## Complexity Tracking
 

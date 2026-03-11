@@ -3,7 +3,7 @@
 **Input**: Design documents from `docs/specs/002-superposition-config-file/`
 **Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [init-project-config.md](contracts/init-project-config.md), [quickstart.md](quickstart.md)
 
-**Tests**: Add automated coverage for config discovery, precedence, no-config fallback, manifest isolation, validation failures, and customization parity in `tool/__tests__/commands.test.ts`, `tool/__tests__/composition.test.ts`, `tool/__tests__/manifest-only.test.ts`, and `tool/__tests__/minimal-and-editor.test.ts`, then run `npm test`, `npm run lint`, and `npm run test:smoke`.
+**Tests**: Add automated coverage for config discovery, precedence, no-config fallback, explicit `--from-project`, implicit project-file regen, manifest isolation, source-conflict validation, validation failures, and customization parity in `tool/__tests__/commands.test.ts`, `tool/__tests__/composition.test.ts`, `tool/__tests__/manifest-only.test.ts`, and `tool/__tests__/minimal-and-editor.test.ts`, then run `npm test`, `npm run lint`, and `npm run test:smoke`.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -122,6 +122,10 @@
 - [x] T037 Run the maintainer workflow review for SC-003 and record the outcome in `docs/specs/002-superposition-config-file/quickstart.md`
 - [x] T038 Record final verification steps and observed outcomes in `docs/specs/002-superposition-config-file/quickstart.md`
 - [x] T039 Run `npm test`, `npm run lint`, and `npm run test:smoke`, then record the results in `docs/specs/002-superposition-config-file/quickstart.md`
+- [x] T040 Add explicit `--from-project` and implicit `regen` project-file regression coverage in `tool/__tests__/commands.test.ts`
+- [x] T041 Implement `--from-project`, implicit project-file `regen`, and source-conflict validation in `scripts/init.ts`
+- [x] T042 Update project-file regeneration and conflict-resolution documentation in `README.md`, `docs/workflows.md`, and `docs/examples.md`
+- [x] T043 Update the user-visible changelog entry to include `regen --from-project`, implicit project-file `regen`, and source-conflict validation in `CHANGELOG.md`
 
 ---
 
@@ -134,7 +138,7 @@
 - **User Story 1 (Phase 3)**: Depends on Foundational completion
 - **User Story 2 (Phase 4)**: Depends on Foundational completion and should follow US1 because it extends the same answer-resolution path into unattended and manifest-sensitive flows
 - **User Story 3 (Phase 5)**: Depends on Foundational completion and should follow US1 and US2 because validation rules depend on the final supported project-config surface and precedence behavior
-- **Polish (Phase 6)**: Depends on the desired user stories being complete
+- **Polish (Phase 6)**: Depends on the desired user stories being complete and now also covers explicit source-selection and regeneration workflow updates
 
 ### User Story Dependencies
 
@@ -154,6 +158,7 @@
 - `T009` and `T010` can run in parallel after the foundational schema shape is settled
 - `T012` and `T013` can run in parallel once project-config mapping is defined
 - `T033`, `T034`, and `T035` can run in parallel after behavior is stable
+- `T040`, `T042`, and `T043` can run in parallel after the source-selection behavior is stable
 
 ---
 
@@ -191,6 +196,7 @@ Task: "Document project-config parity examples and customization cases in docs/e
 3. Add User Story 2 for automation, CLI overrides, no-config fallback, and manifest isolation
 4. Add User Story 3 for validation, ambiguity handling, and corrective guidance
 5. Finish docs, changelog, and full verification
+6. Add explicit source-selection and project-file regeneration follow-through so spec, plan, tasks, and CLI behavior stay aligned
 
 ### Parallel Team Strategy
 

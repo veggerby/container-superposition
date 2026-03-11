@@ -1360,7 +1360,10 @@ describe('Command Tests', () => {
                 expect(envExample).toContain('PROJECT_CONFIG_FLAG=enabled');
 
                 const devcontainer = JSON.parse(
-                    fs.readFileSync(path.join(repoDir, '.devcontainer', 'devcontainer.json'), 'utf8')
+                    fs.readFileSync(
+                        path.join(repoDir, '.devcontainer', 'devcontainer.json'),
+                        'utf8'
+                    )
                 );
                 expect(devcontainer.features).toHaveProperty(
                     'ghcr.io/devcontainers-extra/features/apt-get-packages:1'
@@ -1375,6 +1378,58 @@ describe('Command Tests', () => {
                 expect(customPatch.$schema).toBe(
                     'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json'
                 );
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should support explicit --from-project in init mode', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-from-project-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                        outputPath: './generated-from-project',
+                    })
+                );
+
+                runInitCli(['init', '--from-project', '--no-interactive'], repoDir);
+
+                expect(
+                    fs.existsSync(
+                        path.join(repoDir, 'generated-from-project', 'superposition.json')
+                    )
+                ).toBe(true);
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should let regen use the project file implicitly when present', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-regen-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                        outputPath: './regen-from-project',
+                    })
+                );
+
+                runInitCli(['regen'], repoDir);
+
+                const manifest = JSON.parse(
+                    fs.readFileSync(
+                        path.join(repoDir, 'regen-from-project', 'superposition.json'),
+                        'utf8'
+                    )
+                );
+                expect(manifest.overlays).toContain('nodejs');
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }
@@ -1406,12 +1461,74 @@ describe('Command Tests', () => {
             }
         });
 
+        it('should reject conflicting persisted input source flags', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-conflict-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                    })
+                );
+                fs.writeFileSync(
+                    path.join(repoDir, 'superposition.json'),
+                    JSON.stringify(
+                        {
+                            manifestVersion: '1',
+                            generatedBy: 'test',
+                            generated: new Date().toISOString(),
+                            baseTemplate: 'plain',
+                            baseImage: 'bookworm',
+                            overlays: ['python'],
+                        },
+                        null,
+                        2
+                    )
+                );
+
+                expect(() =>
+                    runInitCli(
+                        ['regen', '--from-project', '--from-manifest', './superposition.json'],
+                        repoDir
+                    )
+                ).toThrow(/--from-project and --from-manifest cannot be used together/);
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should reject selection flags when --from-project is used', () => {
+            const repoDir = fs.mkdtempSync(
+                path.join(os.tmpdir(), 'project-config-selection-conflict-')
+            );
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                    })
+                );
+
+                expect(() =>
+                    runInitCli(['init', '--from-project', '--stack', 'compose'], repoDir)
+                ).toThrow(
+                    /Persisted input sources cannot be combined with clean-generation selection flags/
+                );
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
         it('should preserve the current no-config failure for --no-interactive without persisted input', () => {
             const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-none-'));
 
             try {
                 expect(() => runInitCli(['init', '--no-interactive'], repoDir)).toThrow(
-                    /--no-interactive requires --from-manifest/
+                    /--no-interactive requires persisted input/
                 );
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
