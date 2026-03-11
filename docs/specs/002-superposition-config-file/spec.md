@@ -3,7 +3,7 @@
 **Feature Branch**: `002-superposition-config-file`  
 **Created**: 2026-03-11  
 **Status**: Draft  
-**Input**: User description: "This is your only open issue and the highest-leverage change. It replaces intent lives in shell history with a version-controlled, declarative source of truth. The infrastructure is mostly there (YAML parsing, CLI flag merging into `QuestionnaireAnswers`), so the gap is manageable. This also unlocks better CI/CD stories and team onboarding. FULL ISSUE FROM GITHUB Summary Support a .superposition.yml (or superposition.yml) project-level config file as an alternative to long CLI flags. This makes the tool declarative and stable for teams — CI scripts and shared repos no longer depend on command history or README copy-paste. Motivation Right now, intent lives in:"
+**Input**: Add a repository-root project config file so teams and automation can generate the same environment from committed declarative setup instead of reconstructing long CLI commands.
 
 > Use repo-relative Markdown links for repository files. The root `README.md`
 > is the only exception and may use package-friendly hosted URLs.
@@ -19,52 +19,53 @@
 
 ### User Story 1 - Generate from committed project config (Priority: P1)
 
-A project maintainer defines the desired development environment in a config file stored with the repository so any teammate can generate the same setup without reconstructing a long command.
+A project maintainer defines the desired development environment in a single repository-root config file so any teammate can generate the same stack, overlay set, and output target without reconstructing a long command.
 
 **Why this priority**: This is the core user value. It turns setup intent into a durable, reviewable project artifact instead of a one-off shell command.
 
-**Independent Test**: Place a valid project config file in a repository, run the generation flow without supplying the equivalent long-form options, and confirm the expected development environment is produced.
+**Independent Test**: Place a valid `.superposition.yml` or `superposition.yml` in the repository root, run the generation flow without supplying the equivalent long-form options, and confirm the generated output matches the declared stack, overlay selection, and output location.
 
 **Acceptance Scenarios**:
 
-1. **Given** a repository with a valid project config file that defines stack and overlay selections, **When** a maintainer runs the generation flow, **Then** the tool uses the config file values to generate the requested development environment.
-2. **Given** a repository with a valid project config file committed to source control, **When** a teammate clones the repository and runs the same generation flow, **Then** they receive the same effective project setup without needing the original author’s shell history.
+1. **Given** a repository with a valid project config file in its root that defines stack, overlay selections, and output location, **When** a maintainer runs the generation flow from that repository root, **Then** the tool uses those values as the starting configuration for generation.
+2. **Given** a repository with a committed project config file, **When** a teammate clones the repository and runs the same generation flow from a fresh checkout, **Then** they receive the same effective project setup without needing the original author’s shell history or copied command examples.
 
 ---
 
 ### User Story 2 - Use config-driven setup in automation (Priority: P2)
 
-A team uses the same committed project config file in CI or scripted workflows so environment generation is repeatable and does not rely on copied command examples.
+A team uses the same committed project config file in CI or scripted workflows so environment generation is repeatable, unattended, and insulated from copied command examples.
 
 **Why this priority**: Declarative setup is most valuable when it works in unattended workflows and shared operational contexts.
 
-**Independent Test**: Run the generation flow in a non-interactive context from a repository that contains a valid project config file and confirm it completes with no prompt for values already defined in the file.
+**Independent Test**: Run the generation flow in a non-interactive context from a repository that contains a valid project config file and confirm it completes with no prompt for values already defined in the file, while still allowing explicit per-run overrides.
 
 **Acceptance Scenarios**:
 
 1. **Given** a non-interactive workflow and a valid project config file, **When** the generation flow starts, **Then** it completes using the file-defined values without requiring interactive answers for those settings.
-2. **Given** a repository where the committed config file is unchanged, **When** the automation workflow runs repeatedly, **Then** each run resolves the same requested configuration.
+2. **Given** a repository where the committed project config file is unchanged, **When** the automation workflow runs repeatedly, **Then** each run resolves the same requested configuration and any direct command overrides affect only that run.
 
 ---
 
 ### User Story 3 - Correct invalid or ambiguous config quickly (Priority: P3)
 
-A contributor receives clear guidance when the project config file is invalid, incomplete, or ambiguous so they can fix the source of truth instead of debugging generated output.
+A contributor receives clear guidance when the project config file is invalid, incomplete, or ambiguous so they can fix the committed source of truth instead of debugging generated output or hidden fallback behavior.
 
 **Why this priority**: Declarative workflows only improve team reliability if configuration problems are surfaced clearly and early.
 
-**Independent Test**: Introduce invalid entries, missing required selections, or ambiguous file conditions and verify the tool stops before generation with actionable guidance.
+**Independent Test**: Introduce invalid entries, unsupported values, missing required selections for non-interactive use, or ambiguous file conditions and verify the tool stops before generation with actionable guidance tied to the file content or repository state.
 
 **Acceptance Scenarios**:
 
-1. **Given** a project config file with unsupported or conflicting values, **When** the generation flow validates the file, **Then** it stops before generating files and reports each issue in terms the contributor can correct.
-2. **Given** both supported project config filenames are present in the same repository, **When** the generation flow starts, **Then** it stops and instructs the user to keep only one project config file.
+1. **Given** a project config file with unsupported keys, unsupported values, or conflicting selections, **When** the generation flow validates the file, **Then** it stops before generating files and reports each issue in terms the contributor can correct.
+2. **Given** both supported project config filenames are present in the same repository, **When** the generation flow starts, **Then** it stops and instructs the user to keep only one project config file so the source of truth is unambiguous.
 
 ### Edge Cases
 
 - What happens when no project config file exists? The current interactive and flag-driven flows remain available without behavior changes.
 - What happens when a project config file defines only part of the setup? The tool uses the provided values and continues to collect any still-required missing choices through the existing flow.
 - How does the system handle explicit command input that conflicts with the project config file? Explicit command input takes precedence for that run, and the user can still keep the file as the shared default.
+- How does the system handle an explicit manifest-based run? The explicit manifest remains the persisted input source for that run, and the project config file does not silently override it.
 - How does the system handle unsupported overlay IDs, invalid categories, or conflicting selections in the project config file? It fails validation before generation and explains the invalid entries.
 - How does the system handle both `.superposition.yml` and `superposition.yml` in one repository? It treats this as an error to avoid ambiguity.
 
@@ -72,42 +73,44 @@ A contributor receives clear guidance when the project config file is invalid, i
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST support a project-level configuration file named `.superposition.yml` or `superposition.yml` as an input source for environment generation.
-- **FR-002**: The system MUST read project configuration values from the repository root and apply them to the same setup decisions currently available through interactive answers and command input.
-- **FR-003**: Users MUST be able to generate a project environment from a valid project config file without re-entering values already defined in that file.
-- **FR-004**: The system MUST allow explicit command input supplied for a run to override conflicting values from the project config file for that run only.
-- **FR-005**: The system MUST preserve the current behavior for users who do not provide a project config file.
-- **FR-006**: The system MUST validate the project config file before generating output and MUST report invalid, unsupported, missing, or conflicting entries with actionable correction guidance.
-- **FR-007**: The system MUST stop and report an ambiguity error when both supported project config filenames are present in the same repository.
-- **FR-008**: The system MUST produce the same effective project setup from a project config file as it would from an equivalent set of direct user selections.
-- **FR-009**: The system MUST support storing overlay selections, stack choice, output location, and other generation options that materially affect the resulting project setup.
-- **FR-010**: The system MUST allow a partially defined project config file to act as shared defaults while still collecting any remaining required choices through the existing user flow.
-- **FR-011**: The system MUST document how teams create, commit, and use the project config file in local development and automation workflows.
+- **FR-001**: The system MUST support exactly two project-level configuration filenames for this feature: `.superposition.yml` and `superposition.yml`.
+- **FR-002**: The system MUST look for the project config file only in the repository root from which the generation flow is run.
+- **FR-003**: The system MUST treat the project config file as the default persisted input source for standard initialization when an explicit manifest input is not provided.
+- **FR-004**: The system MUST read project config values into the same setup decisions already available through interactive answers and direct command input, including stack choice, overlay selections, preset selections, output location, and other generation options that materially affect the resulting setup.
+- **FR-005**: Users MUST be able to generate a project environment from a valid project config file without re-entering values already defined in that file.
+- **FR-006**: The system MUST allow explicit command input supplied for a run to override conflicting values from the project config file for that run only.
+- **FR-007**: The system MUST preserve the current interactive and flag-driven behavior for users who do not provide a project config file.
+- **FR-008**: The system MUST validate the project config file before generating output and MUST report invalid YAML, unsupported keys, unsupported values, missing required values, or conflicting selections with actionable correction guidance.
+- **FR-009**: The system MUST stop and report an ambiguity error when both supported project config filenames are present in the same repository.
+- **FR-010**: The system MUST produce the same effective project setup from a project config file as it would from an equivalent set of direct user selections.
+- **FR-011**: The system MUST allow a partially defined project config file to act as shared defaults while still collecting any remaining required choices through the existing user flow.
+- **FR-012**: The system MUST keep explicit manifest-based runs as a separate persisted-input mode and MUST NOT silently merge project config values into a run that was explicitly started from a manifest.
+- **FR-013**: The system MUST document how teams create, commit, validate, and use the project config file in local development and automation workflows.
 
 ### Key Entities _(include if feature involves data)_
 
-- **Project Configuration File**: The committed project-level definition of desired setup choices, including stack, overlay selections, output preferences, and other generation inputs.
-- **Generation Request**: The effective set of choices used for one generation run after combining defaults, project config values, and any explicit command input.
-- **Validation Result**: The user-facing outcome of checking the project config file, including detected errors, ambiguous conditions, and corrective guidance.
+- **Project Configuration File**: The committed repository-root definition of desired setup choices, including filename, declared setup values, and whether it is the only supported config file present.
+- **Generation Request**: The effective set of choices used for one generation run after combining defaults, project config values, any explicit command input, and, when explicitly requested, manifest-based input.
+- **Validation Result**: The user-facing outcome of checking the project config file, including syntax problems, unsupported entries, conflict findings, ambiguity conditions, and corrective guidance.
 
 ## Dependencies & Impact _(mandatory)_
 
-- **Affected Areas**: Project generation workflow, CLI usage patterns, onboarding workflow, CI/CD workflow, user documentation
+- **Affected Areas**: Standard initialization workflow, manifest-based regeneration boundaries, CLI usage patterns, onboarding workflow, CI/CD workflow, user documentation
 - **Compatibility Impact**: Backward compatible
-- **Required Documentation Updates**: README.md, docs pages covering workflows and examples, CHANGELOG.md
+- **Required Documentation Updates**: README.md, workflow and examples documentation, quickstart guidance, CHANGELOG.md
 - **Verification Plan**: Unit tests for config resolution and validation, integration tests for config-driven generation, smoke tests for representative stacks, manual validation for onboarding and automation flows
 
 ## Assumptions
 
-- The project config file becomes the team-readable source of truth for setup intent, but it does not remove support for the current interactive or flag-driven flows.
+- The project config file becomes the team-readable source of truth for default setup intent, but it does not remove support for current interactive, flag-driven, or explicit manifest-based flows.
 - Explicit command input remains the highest-precedence input for a single run so users can make temporary overrides without editing the shared config file.
-- A single repository should contain at most one supported project config file to keep behavior deterministic and easy to explain.
+- A single repository should contain at most one supported project config file so the source of truth stays deterministic and easy to explain.
 
 ## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
 - **SC-001**: In validation testing, 95% of fresh repository checkouts that contain a valid project config file can generate the intended environment without requiring users to reconstruct setup options from prior command history.
-- **SC-002**: In representative automation tests, 100% of successful non-interactive generation runs complete without prompting for any value already defined in the project config file.
+- **SC-002**: In representative automation tests, 100% of successful non-interactive generation runs complete without prompting for any value already defined in the project config file and without changing the committed project config file.
 - **SC-003**: In usability review, at least 90% of maintainers can define or update a project’s shared setup intent within 10 minutes using the documented config file workflow.
-- **SC-004**: In invalid-configuration tests, 90% of failures identify the problematic setting and the required correction in the first error output seen by the user.
+- **SC-004**: In invalid-configuration tests, 90% of failures identify the problematic file condition or config entry and the required correction in the first error output seen by the user.
