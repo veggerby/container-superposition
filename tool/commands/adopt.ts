@@ -245,6 +245,11 @@ export interface AnalysisResult {
     hasDockerCompose: boolean;
 }
 
+function withSchemaFirst(document: Record<string, any>): Record<string, any> {
+    const { $schema, ...rest } = document;
+    return typeof $schema === 'string' && $schema.trim() !== '' ? { $schema, ...rest } : rest;
+}
+
 // ---------------------------------------------------------------------------
 // Docker Compose path resolution
 // ---------------------------------------------------------------------------
@@ -946,7 +951,7 @@ export async function adoptCommand(
         try {
             fs.writeFileSync(
                 customPatchPath,
-                JSON.stringify(analysis.customDevcontainerPatch, null, 4) + '\n',
+                JSON.stringify(withSchemaFirst(analysis.customDevcontainerPatch), null, 4) + '\n',
                 'utf8'
             );
             console.log(chalk.green(`✓ Written ${path.relative(process.cwd(), customPatchPath)}`));

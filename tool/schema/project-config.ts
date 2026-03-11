@@ -441,6 +441,20 @@ function ensureDirectory(targetPath: string): void {
     fs.mkdirSync(targetPath, { recursive: true });
 }
 
+function withSchemaFirst(
+    document: Record<string, any>,
+    fallbackSchema?: string
+): Record<string, any> {
+    const { $schema, ...rest } = document;
+    if (typeof $schema === 'string' && $schema.trim() !== '') {
+        return { $schema, ...rest };
+    }
+    if (fallbackSchema) {
+        return { $schema: fallbackSchema, ...rest };
+    }
+    return rest;
+}
+
 export function writeProjectConfigCustomizations(
     outputPath: string,
     customizations?: ProjectConfigCustomizationsInput
@@ -453,10 +467,10 @@ export function writeProjectConfigCustomizations(
     ensureDirectory(customDir);
 
     if (customizations.devcontainerPatch) {
-        const devcontainerPatch = {
-            ...customizations.devcontainerPatch,
-            $schema: DEVCONTAINER_SCHEMA_URL,
-        };
+        const devcontainerPatch = withSchemaFirst(
+            customizations.devcontainerPatch,
+            DEVCONTAINER_SCHEMA_URL
+        );
         fs.writeFileSync(
             path.join(customDir, 'devcontainer.patch.json'),
             JSON.stringify(devcontainerPatch, null, 2) + '\n'

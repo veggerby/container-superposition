@@ -1375,9 +1375,14 @@ describe('Command Tests', () => {
                         'utf8'
                     )
                 );
+                const customPatchContent = fs.readFileSync(
+                    path.join(repoDir, '.devcontainer', 'custom', 'devcontainer.patch.json'),
+                    'utf8'
+                );
                 expect(customPatch.$schema).toBe(
                     'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json'
                 );
+                expect(customPatchContent).toMatch(/^\{\n  "\$schema":/);
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }
