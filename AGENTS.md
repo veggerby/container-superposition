@@ -791,6 +791,7 @@ Update connection strings in application code accordingly.
 8. **Vitest Warnings**: Test file TypeScript errors don't affect build
 
 ## Active Technologies
+- Filesystem-based project YAML config, `superposition.json` (002-superposition-config-file)
 
 - Filesystem-based overlay manifests, project `superposition.json` manifests, templates, and generated devcontainer artifacts (001-verbose-plan-graph)
 - TypeScript 5.3.3 on Node.js 20+ + Commander, chalk, boxen, js-yaml, ora, Inquirer (001-verbose-plan-graph)
