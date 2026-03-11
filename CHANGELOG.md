@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-03-11
+
 ### Added
 
 - **Project config generation** — Standard `init` can now read a repository-root `.superposition.yml` or `superposition.yml`
@@ -33,7 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`sdd` preset** — Spec-Driven Development meta-preset bundling `spec-kit` with a user-selectable AI agent CLI
     - Prompts users to choose from: Codex, Claude Code, Gemini CLI, Amp, Windsurf, opencode, or GitHub Copilot (IDE-integrated)
     - Sets `SPECIFY_AI_AGENT` environment variable automatically to match the chosen agent
-
 - **`hash` command** — Deterministic environment fingerprint for drift detection and reproducibility
     - Produces a stable SHA-256 fingerprint from stack, resolved overlays, preset, base image, and tool version
     - Auto-resolves overlay dependencies (same logic as `plan`) so the hash includes transitively required overlays
@@ -42,7 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `--write` flag writes the full hash to `.devcontainer/superposition.hash` alongside the manifest
     - Hash is version-stable across patch releases (uses `major.minor` of the tool version only)
     - Full documentation at [`docs/hash.md`](docs/hash.md)
-
 - **`adopt` command** — Adopt an existing `.devcontainer/` into the overlay-based model
     - Reads `devcontainer.json` and any linked `docker-compose.yml` files and analyses their contents
     - Resolves the `dockerComposeFile` field (string or array, relative paths) to support Docker Compose-based devcontainers where the compose file lives outside the `.devcontainer/` directory
@@ -330,7 +330,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/veggerby/container-superposition/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/veggerby/container-superposition/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/veggerby/container-superposition/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/veggerby/container-superposition/compare/v0.1.1...v0.1.2
