@@ -1,6 +1,6 @@
 # Implementation Plan: Verbose Plan Graph
 
-**Branch**: `001-verbose-plan-graph` | **Date**: 2026-03-10 | **Spec**: [spec.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/spec.md)
+**Branch**: `001-verbose-plan-graph` | **Date**: 2026-03-10 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/docs/specs/001-verbose-plan-graph/spec.md`
 
 ## Summary
@@ -78,21 +78,21 @@ CHANGELOG.md
 
 ### Research Outputs
 
-- [research.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/research.md)
+- [research.md](research.md)
 
 ## Phase 1: Design
 
 ### Data Model
 
-- [data-model.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/data-model.md)
+- [data-model.md](data-model.md)
 
 ### Contracts
 
-- [plan-verbose-output.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/contracts/plan-verbose-output.md)
+- [plan-verbose-output.md](contracts/plan-verbose-output.md)
 
 ### Quickstart
 
-- [quickstart.md](/workspaces/container-superposition/docs/specs/001-verbose-plan-graph/quickstart.md)
+- [quickstart.md](quickstart.md)
 
 ## Implementation Approach
 

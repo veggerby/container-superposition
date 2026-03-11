@@ -1,28 +1,19 @@
 <!--
 Sync Impact Report
-- Version change: template -> 1.0.0
+- Version change: 1.0.0 -> 1.0.1
 - Modified principles:
-  - Template Principle 1 -> I. Spec-First Delivery
-  - Template Principle 2 -> II. Overlay Contract Integrity
-  - Template Principle 3 -> III. Verification Before Merge
-  - Template Principle 4 -> IV. Documentation Synchronization
-  - Template Principle 5 -> V. Simplicity and Compatibility
+  - IV. Documentation Synchronization -> IV. Documentation Synchronization
 - Added sections:
-  - Implementation Constraints
-  - Delivery Workflow
+  - None
 - Removed sections:
   - None
 - Templates requiring updates:
-  - ✅ updated /workspaces/container-superposition/.specify/templates/plan-template.md
-  - ✅ updated /workspaces/container-superposition/.specify/templates/spec-template.md
-  - ✅ updated /workspaces/container-superposition/.specify/templates/tasks-template.md
-  - ✅ updated /workspaces/container-superposition/.specify/templates/checklist-template.md
-  - ✅ updated /workspaces/container-superposition/README.md
-  - ✅ updated /workspaces/container-superposition/CONTRIBUTING.md
-  - ✅ updated /workspaces/container-superposition/AGENTS.md
-  - ✅ updated /workspaces/container-superposition/docs/README.md
-  - ✅ updated /workspaces/container-superposition/.specify/scripts/bash/common.sh
-  - ✅ updated /workspaces/container-superposition/.specify/scripts/bash/create-new-feature.sh
+  - ✅ updated .specify/templates/plan-template.md
+  - ✅ updated .specify/templates/spec-template.md
+  - ✅ updated .specify/templates/tasks-template.md
+  - ✅ updated docs/specs/001-verbose-plan-graph/plan.md
+  - ✅ updated docs/specs/001-verbose-plan-graph/tasks.md
+  - ✅ updated docs/specs/001-verbose-plan-graph/checklists/requirements.md
 - Follow-up TODOs:
   - TODO(RATIFICATION_DATE): Original ratification date is not recorded in the repository history available to this update.
 -->
@@ -64,9 +55,13 @@ trustworthy when the repository proves the behavior it claims.
 User-visible behavior changes MUST update affected documentation, examples, and
 the changelog in the same change set. Feature specs, plans, tasks, README-level
 guidance, and contributor instructions MUST agree on file paths, workflow gates,
-and required quality checks. Rationale: this repository is both tooling and
-reference material; stale docs create incorrect environments and bad contributor
-decisions.
+and required quality checks. Markdown links to repository files MUST use
+repo-relative paths in all repository-authored Markdown except the root
+`README.md`, which MAY use package-friendly hosted URLs. Absolute filesystem
+paths such as `/workspaces/container-superposition/...` MUST NOT appear in
+repository-authored Markdown links. Rationale: this repository is both tooling
+and reference material; stale docs create incorrect environments and bad
+contributor decisions.
 
 ### V. Simplicity and Compatibility
 
@@ -90,6 +85,9 @@ from hidden complexity.
   documentation, and changelog work so reviewers can audit compliance.
 - User-visible behavior changes MUST add an `[Unreleased]` entry to
   `CHANGELOG.md` in the same change.
+- Repository-authored Markdown other than the root `README.md` MUST link to
+  repository files with relative paths, never with machine-specific absolute
+  paths.
 
 ## Delivery Workflow
 
@@ -125,4 +123,4 @@ Compliance review expectations:
 - Exceptions MUST be documented in the relevant spec and plan with a concrete
   rationale and approval from reviewers.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date is not recorded in the repository. | **Last Amended**: 2026-03-10
+**Version**: 1.0.1 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date is not recorded in the repository. | **Last Amended**: 2026-03-11

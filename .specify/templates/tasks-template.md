@@ -4,7 +4,7 @@ description: 'Task list template for feature implementation'
 
 # Tasks: [FEATURE NAME]
 
-**Input**: Design documents from `/docs/specs/[###-feature-name]/`
+**Input**: Design documents from `docs/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
 **Tests**: Include the verification tasks required by the approved spec and
@@ -17,7 +17,7 @@ why automation is not practical plus the manual validation steps.
 
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
-- Include exact file paths in descriptions
+- Include exact repo-relative file paths in descriptions
 
 ## Path Conventions
 

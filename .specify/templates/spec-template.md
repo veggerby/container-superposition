@@ -5,6 +5,9 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+> Use repo-relative Markdown links for repository files. The root `README.md`
+> is the only exception and may use package-friendly hosted URLs.
+
 ## Review & Approval _(mandatory before implementation)_
 
 - **Spec Path**: `docs/specs/[###-feature-name]/spec.md`
