@@ -11,7 +11,7 @@
 ## Review & Approval _(mandatory before implementation)_
 
 - **Spec Path**: `docs/specs/002-superposition-config-file/spec.md`
-- **Commit Status**: Not Yet Committed
+- **Commit Status**: Committed
 - **Review Status**: Pending Review
 - **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
