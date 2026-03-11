@@ -59,11 +59,12 @@ npx container-superposition plan --from-manifest .devcontainer/superposition.jso
     - `regen` uses that project file by default when present
     - `--from-project` selects it explicitly
     - conflicting source combinations fail early
+    - `init` stays the editable flow; `regen` is the deterministic replay flow
 
 ## Core Commands
 
-- `init` — generate a devcontainer
-- `regen` — regenerate from the repository project file or a manifest
+- `init` — generate or modify a devcontainer, optionally starting from a project file or manifest
+- `regen` — deterministically replay the repository project file or a manifest
 - `adopt` — migrate an existing `.devcontainer/` to the overlay-based workflow
 - `list` — browse overlays
 - `explain` — overlay details

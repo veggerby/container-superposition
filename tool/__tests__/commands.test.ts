@@ -1408,6 +1408,38 @@ describe('Command Tests', () => {
             }
         });
 
+        it('should treat non-interactive init from project file as replay mode', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-replay-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                        outputPath: './generated-from-project',
+                    })
+                );
+                fs.mkdirSync(path.join(repoDir, 'generated-from-project'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(repoDir, 'generated-from-project', 'devcontainer.json'),
+                    JSON.stringify({ name: 'existing' }, null, 2)
+                );
+
+                const output = runInitCli(['init', '--from-project', '--no-interactive'], repoDir);
+
+                const backupEntries = fs
+                    .readdirSync(repoDir)
+                    .filter((entry) => entry.startsWith('generated-from-project.backup-'));
+
+                expect(backupEntries.length).toBe(1);
+                expect(output).toContain('Backup created:');
+                expect(output).toContain('Rebuild container:');
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
         it('should let regen use the project file implicitly when present', () => {
             const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-regen-'));
 

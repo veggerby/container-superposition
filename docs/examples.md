@@ -442,11 +442,14 @@ npm run init -- --from-manifest ./superposition.json
 
 ### Non-Interactive Regeneration
 
-Regenerate exact same setup (useful for updating to latest overlay versions):
+Use `regen` when you want deterministic replay of a persisted source:
 
 ```bash
-# Regenerate with exact same selections, skip confirmation, no backup
-npm run init -- --from-manifest ./superposition.json --yes --no-backup
+# Regenerate with exact same selections from a manifest, no backup
+npm run init -- regen --from-manifest ./superposition.json --no-backup
+
+# Or let regen use the repository project file when present
+npm run init -- regen
 ```
 
 **Use cases:**
@@ -494,7 +497,7 @@ git push
 # Developer 2: Clone and regenerate from manifest
 git clone <repo>
 npm install
-npm run init -- --from-manifest ./superposition.json --yes
+npm run init -- regen --from-manifest ./superposition.json
 # Gets exact same devcontainer setup
 ```
 
@@ -603,5 +606,5 @@ mv prod/superposition.json prod-superposition.json
 
 # Now you have three manifests for different environments
 # Regenerate any environment from its manifest
-npm run init -- --from-manifest ./dev-superposition.json --yes --output ./dev
+npm run init -- regen --from-manifest ./dev-superposition.json --output ./dev
 ```

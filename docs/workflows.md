@@ -41,12 +41,17 @@ Every generation writes a `superposition.json` manifest that records your choice
 
 ## When to Regenerate
 
-Use `regen` or `init --from-manifest` when you:
+Use `regen` when you:
 
 - Add or remove overlays
 - Update to newer overlay versions
 - Change port offsets
 - Switch base templates
+
+Use `init --from-project` or `init --from-manifest` when you:
+
+- Want to start from a persisted source and then adjust choices interactively
+- Want a persisted source to provide defaults before making a targeted change
 
 Use manual edits when you:
 
@@ -72,6 +77,9 @@ npx container-superposition regen
 ```bash
 # Uses manifest as defaults, then prompts for changes
 npx container-superposition init --from-manifest ./.devcontainer/superposition.json
+
+# Uses the repository project file as defaults, then prompts for changes
+npx container-superposition init --from-project
 ```
 
 ## Source-Selection Conflicts

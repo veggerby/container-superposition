@@ -1782,10 +1782,11 @@ async function main() {
             }
         }
 
+        const isReplayMode = cliArgs?.commandName === 'regen' || useManifestOnly || useProjectOnly;
+
         // Create backup if needed
         let actualBackupPath: string | undefined;
-        const isRegen = cliArgs?.commandName === 'regen';
-        if (shouldBackup && isRegen) {
+        if (shouldBackup && isReplayMode) {
             const outputPath =
                 cliArgs?.config?.outputPath ||
                 projectConfigAnswers?.outputPath ||
@@ -2006,10 +2007,12 @@ async function main() {
         try {
             let summary;
             if (isManifestOnly) {
-                summary = await generateManifestOnly(answers, undefined, { isRegen });
+                summary = await generateManifestOnly(answers, undefined, {
+                    isRegen: isReplayMode,
+                });
                 spinner.succeed(chalk.green('Manifest created successfully!'));
             } else {
-                summary = await composeDevContainer(answers, undefined, { isRegen });
+                summary = await composeDevContainer(answers, undefined, { isRegen: isReplayMode });
                 spinner.succeed(chalk.green('DevContainer created successfully!'));
             }
 
