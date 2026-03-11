@@ -28,9 +28,9 @@ compile checks
 **Target Platform**: Node.js CLI on Linux, macOS, and Windows developer
 environments  
 **Project Type**: CLI scaffolding tool  
-**Performance Goals**: Preserve the current fast initialization experience and
-keep project-config discovery plus validation effectively negligible relative to
-overall generation time for typical repositories  
+**Performance Goals**: Keep project-config discovery plus validation under 200
+ms in representative repositories so initialization remains dominated by the
+existing generation work rather than config loading  
 **Constraints**: Preserve backward compatibility for interactive, flag-driven,
 and explicit manifest-based flows; preserve source/dist path compatibility with
 candidate-path resolution; maintain full parity between supported clean
