@@ -95,6 +95,19 @@ function expectOptionalNumber(value: unknown, fieldName: string): number | undef
     return value;
 }
 
+function expectOptionalNonNegativeInteger(value: unknown, fieldName: string): number | undefined {
+    const num = expectOptionalNumber(value, fieldName);
+    if (num === undefined) {
+        return undefined;
+    }
+
+    if (!Number.isInteger(num) || num < 0) {
+        throw new ProjectConfigError(`${fieldName} must be a non-negative integer`);
+    }
+
+    return num;
+}
+
 function expectEnum<T extends string>(value: unknown, fieldName: string, allowed: readonly T[]): T {
     if (typeof value !== 'string' || !allowed.includes(value as T)) {
         throw new ProjectConfigError(`${fieldName} must be one of: ${allowed.join(', ')}`);
@@ -186,9 +199,19 @@ function parseScripts(value: unknown): ProjectConfigCustomizationsInput['scripts
         return entry.map((line, index) => expectString(line, `${fieldName}[${index}]`));
     };
 
+    const postCreate = parseArray(record.postCreate, 'customizations.scripts.postCreate');
+    const postStart = parseArray(record.postStart, 'customizations.scripts.postStart');
+
+    const hasPostCreate = Array.isArray(postCreate) && postCreate.length > 0;
+    const hasPostStart = Array.isArray(postStart) && postStart.length > 0;
+
+    if (!hasPostCreate && !hasPostStart) {
+        return undefined;
+    }
+
     return {
-        postCreate: parseArray(record.postCreate, 'customizations.scripts.postCreate'),
-        postStart: parseArray(record.postStart, 'customizations.scripts.postStart'),
+        postCreate: hasPostCreate ? postCreate : undefined,
+        postStart: hasPostStart ? postStart : undefined,
     };
 }
 
@@ -348,7 +371,7 @@ export function loadProjectConfig(
         devTools: expectOverlayArray<DevTool>(document.devTools, 'devTools', lookup.devTools),
         playwright: expectOptionalBoolean(document.playwright, 'playwright'),
         outputPath: expectOptionalString(document.outputPath, 'outputPath'),
-        portOffset: expectOptionalNumber(document.portOffset, 'portOffset'),
+        portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
         target: expectOptionalEnum(document.target, 'target', TARGET_VALUES),
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
@@ -431,8 +454,8 @@ export function writeProjectConfigCustomizations(
 
     if (customizations.devcontainerPatch) {
         const devcontainerPatch = {
-            $schema: DEVCONTAINER_SCHEMA_URL,
             ...customizations.devcontainerPatch,
+            $schema: DEVCONTAINER_SCHEMA_URL,
         };
         fs.writeFileSync(
             path.join(customDir, 'devcontainer.patch.json'),
@@ -481,9 +504,15 @@ export function writeProjectConfigCustomizations(
         ensureDirectory(filesDir);
 
         for (const entry of customizations.files) {
-            const filePath = path.join(filesDir, entry.path);
-            ensureDirectory(path.dirname(filePath));
-            fs.writeFileSync(filePath, entry.content);
+            const resolvedPath = path.resolve(filesDir, entry.path);
+            const relative = path.relative(filesDir, resolvedPath);
+            if (relative.startsWith('..') || path.isAbsolute(relative)) {
+                throw new ProjectConfigError(
+                    `Invalid custom file path "${entry.path}". Paths must be within the "custom/files" directory.`
+                );
+            }
+            ensureDirectory(path.dirname(resolvedPath));
+            fs.writeFileSync(resolvedPath, entry.content);
         }
     }
 }

@@ -13,7 +13,7 @@
             "type": "string",
             "enum": ["bookworm", "trixie", "alpine", "ubuntu", "custom"],
             "default": "bookworm",
-            "description": "Base Debian image version"
+            "description": "Base image / Linux distro variant (or 'custom' for a user-defined image)"
         },
         "customImage": {
             "type": "string",
