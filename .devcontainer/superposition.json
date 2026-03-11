@@ -2,7 +2,7 @@
     "manifestVersion": "1",
     "generatedBy": "0.1.3",
     "version": "0.1.0",
-    "generated": "2026-03-10T06:47:53.062Z",
+    "generated": "2026-03-11T07:37:40.832Z",
     "baseTemplate": "plain",
     "baseImage": "trixie",
     "overlays": ["nodejs", "codex", "spec-kit", "docker-sock", "git-helpers", "modern-cli-tools"],

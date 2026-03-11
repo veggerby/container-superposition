@@ -71,7 +71,8 @@
     "remoteEnv": {
         "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
         "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:HOME}/.local/bin:${containerEnv:PATH}",
-        "SPECIFY_AI_AGENT": "codex"
+        "SPECIFY_AI_AGENT": "codex",
+        "CODEX_HOME": "/workspaces/container-superposition/.codex"
     },
     "remoteUser": "vscode",
     "forwardPorts": [3000, 8080],
