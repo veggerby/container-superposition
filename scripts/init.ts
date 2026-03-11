@@ -1355,9 +1355,14 @@ async function parseCliArgs(): Promise<{
             (value: string, previous: string[]) => previous.concat([value]),
             [] as string[]
         )
-        .action((options) => {
+        .action((options, command) => {
             // Store options for main() to process
-            initOptions = { ...options, commandName: 'init' };
+            initOptions = {
+                ...options,
+                commandName: 'init',
+                _targetSource: command.getOptionValueSource('target'),
+                _editorSource: command.getOptionValueSource('editor'),
+            };
         });
 
     // Regen command
@@ -1379,11 +1384,12 @@ async function parseCliArgs(): Promise<{
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
-        .action((options) => {
+        .action((options, command) => {
             initOptions = {
                 ...options,
                 commandName: 'regen',
                 interactive: false,
+                _editorSource: command.getOptionValueSource('editor'),
             };
         });
 
@@ -1595,13 +1601,13 @@ async function parseCliArgs(): Promise<{
     if (initOptions.portOffset) {
         config.portOffset = parseInt(initOptions.portOffset, 10);
     }
-    if (initOptions.target) {
+    if (initOptions.target && initOptions._targetSource !== 'default') {
         config.target = initOptions.target as DeploymentTarget;
     }
     if (initOptions.minimal) {
         config.minimal = true;
     }
-    if (initOptions.editor) {
+    if (initOptions.editor && initOptions._editorSource !== 'default') {
         const editorLower = initOptions.editor.toLowerCase();
         if (['vscode', 'jetbrains', 'none'].includes(editorLower)) {
             config.editor = editorLower as 'vscode' | 'jetbrains' | 'none';
@@ -1671,7 +1677,6 @@ async function main() {
         const cliArgs = await parseCliArgs();
         let projectConfig = undefined;
         let projectConfigAnswers: Partial<QuestionnaireAnswers> | undefined;
-        let projectConfigWasRequested = cliArgs?.fromProject === true;
 
         if (!cliArgs?.manifestPath) {
             projectConfig =
@@ -1691,7 +1696,6 @@ async function main() {
 
         if (cliArgs?.commandName === 'regen' && !cliArgs.manifestPath && !cliArgs.fromProject) {
             if (projectConfigAnswers) {
-                projectConfigWasRequested = true;
                 useProjectOnly = true;
             } else {
                 const discoveredManifestPath = findDefaultRegenManifest(
@@ -1761,9 +1765,12 @@ async function main() {
         //   --no-backup   → never backup
         //   (neither)     → backup only when NOT inside a git repository
         //                   (git already tracks history, so backups are redundant)
-        const backupCheckPath = path.resolve(
-            cliArgs?.config?.outputPath || manifestDir || './.devcontainer'
-        );
+        const resolvedOutputPath =
+            cliArgs?.config?.outputPath ||
+            projectConfigAnswers?.outputPath ||
+            manifestDir ||
+            './.devcontainer';
+        const backupCheckPath = path.resolve(resolvedOutputPath);
         const inGitRepo = isInsideGitRepo(backupCheckPath);
         let shouldBackup: boolean;
         if (cliArgs?.backupOverride === true) {
@@ -1787,11 +1794,7 @@ async function main() {
         // Create backup if needed
         let actualBackupPath: string | undefined;
         if (shouldBackup && isReplayMode) {
-            const outputPath =
-                cliArgs?.config?.outputPath ||
-                projectConfigAnswers?.outputPath ||
-                manifestDir ||
-                './.devcontainer';
+            const outputPath = resolvedOutputPath;
 
             const backupPath = await createBackup(outputPath, backupDir);
             if (backupPath) {
