@@ -16,6 +16,16 @@ const REPO_ROOT = path.join(__dirname, '..', '..');
 const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 const INDEX_YML_PATH = path.join(OVERLAYS_DIR, 'index.yml');
 
+function writeManifest(
+    manifestDir: string,
+    manifest: { baseTemplate: string; overlays: string[]; [key: string]: unknown }
+): string {
+    const manifestPath = path.join(manifestDir, 'superposition.json');
+    fs.mkdirSync(manifestDir, { recursive: true });
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    return manifestPath;
+}
+
 describe('Command Tests', () => {
     let overlaysConfig: any;
     let consoleLogSpy: any;
@@ -254,12 +264,226 @@ describe('Command Tests', () => {
             expect(parsed.stack).toBe('compose');
             expect(parsed.selectedOverlays).toContain('postgres');
             expect(Array.isArray(parsed.files)).toBe(true);
+            expect(parsed.verbose).toBeUndefined();
         });
 
-        it('should exit with error when stack is missing', async () => {
+        it('should narrate selected overlays and required dependencies in verbose text output', async () => {
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'grafana',
+                verbose: true,
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Dependency Resolution:');
+            expect(output).toContain('selected directly by the user');
+            expect(output).toContain('required by grafana');
+            expect(output).toContain('path: grafana -> prometheus');
+        });
+
+        it('should include structured verbose explanations in JSON output', async () => {
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'grafana',
+                json: true,
+                verbose: true,
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const output = consoleLogSpy.mock.calls[0][0];
+            const parsed = JSON.parse(output);
+            expect(parsed.verbose).toBeDefined();
+            expect(parsed.verbose.summary.directSelections).toBe(1);
+            expect(parsed.verbose.summary.autoAdded).toBe(1);
+
+            const grafanaEntry = parsed.verbose.includedOverlays.find(
+                (entry: any) => entry.id === 'grafana'
+            );
+            const prometheusEntry = parsed.verbose.includedOverlays.find(
+                (entry: any) => entry.id === 'prometheus'
+            );
+
+            expect(grafanaEntry.selectionKind).toBe('direct');
+            expect(prometheusEntry.selectionKind).toBe('dependency');
+            expect(
+                prometheusEntry.reasons.some((reason: any) => reason.sourceOverlayId === 'grafana')
+            ).toBe(true);
+        });
+
+        it('should narrate manifest-defined overlays and dependencies in verbose text output', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-text-'));
+            const manifestPath = writeManifest(manifestDir, {
+                baseTemplate: 'compose',
+                overlays: ['grafana'],
+            });
+
             try {
                 await planCommand(overlaysConfig, OVERLAYS_DIR, {
-                    overlays: 'postgres',
+                    fromManifest: manifestPath,
+                    verbose: true,
+                });
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Overlays Loaded from Manifest:');
+            expect(output).toContain('selected from manifest');
+            expect(output).toContain('required by grafana');
+        });
+
+        it('should include manifest metadata in structured verbose JSON output', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-json-'));
+            const manifestPath = writeManifest(manifestDir, {
+                baseTemplate: 'compose',
+                overlays: ['grafana'],
+            });
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    json: true,
+                    verbose: true,
+                });
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(parsed.inputMode).toBe('manifest');
+            expect(parsed.verbose.inputMode).toBe('manifest');
+
+            const grafanaEntry = parsed.verbose.includedOverlays.find(
+                (entry: any) => entry.id === 'grafana'
+            );
+            const prometheusEntry = parsed.verbose.includedOverlays.find(
+                (entry: any) => entry.id === 'prometheus'
+            );
+
+            expect(grafanaEntry.selectionKind).toBe('direct');
+            expect(grafanaEntry.selectionSource).toBe('manifest');
+            expect(grafanaEntry.reasons[0].origin).toBe('manifest');
+            expect(prometheusEntry.selectionSource).toBe('dependency');
+        });
+
+        it('should preserve multiple parent reasons without duplicating the final overlay entry', async () => {
+            const customConfig = {
+                overlays: [
+                    { id: 'codex', name: 'Codex', supports: ['compose'], requires: ['nodejs'] },
+                    {
+                        id: 'opencode',
+                        name: 'OpenCode',
+                        supports: ['compose'],
+                        requires: ['nodejs'],
+                    },
+                    { id: 'nodejs', name: 'Node.js', supports: ['compose'], requires: [] },
+                ],
+            };
+
+            await planCommand(customConfig as any, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'codex,opencode',
+                json: true,
+                verbose: true,
+            });
+
+            expect(consoleLogSpy).toHaveBeenCalled();
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            const nodeEntry = parsed.verbose.includedOverlays.filter(
+                (entry: any) => entry.id === 'nodejs'
+            );
+
+            expect(nodeEntry).toHaveLength(1);
+            expect(nodeEntry[0].reasons).toHaveLength(2);
+            expect(nodeEntry[0].reasons.map((reason: any) => reason.rootOverlayId).sort()).toEqual([
+                'codex',
+                'opencode',
+            ]);
+        });
+
+        it('should trace transitive dependency paths in verbose JSON output', async () => {
+            const customConfig = {
+                overlays: [
+                    {
+                        id: 'grafana',
+                        name: 'Grafana',
+                        supports: ['compose'],
+                        requires: ['prometheus'],
+                    },
+                    {
+                        id: 'prometheus',
+                        name: 'Prometheus',
+                        supports: ['compose'],
+                        requires: ['alertmanager'],
+                    },
+                    {
+                        id: 'alertmanager',
+                        name: 'Alertmanager',
+                        supports: ['compose'],
+                        requires: [],
+                    },
+                ],
+            };
+
+            await planCommand(customConfig as any, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'grafana',
+                json: true,
+                verbose: true,
+            });
+
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            const alertmanagerEntry = parsed.verbose.includedOverlays.find(
+                (entry: any) => entry.id === 'alertmanager'
+            );
+
+            expect(
+                alertmanagerEntry.reasons.some((reason: any) => reason.kind === 'transitive')
+            ).toBe(true);
+            expect(
+                alertmanagerEntry.reasons.some(
+                    (reason: any) => reason.path.join('>') === 'grafana>prometheus>alertmanager'
+                )
+            ).toBe(true);
+        });
+
+        it('should add verbose conflict context without changing conflict failures', async () => {
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    stack: 'compose',
+                    overlays: 'docker-in-docker,docker-sock',
+                    verbose: true,
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            }
+
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Resolution Notes:');
+            expect(output).toContain('conflicts with docker-sock');
+        });
+
+        it('should explain unknown overlay failures when verbose mode is requested', async () => {
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    stack: 'compose',
+                    overlays: 'unknown-overlay',
+                    verbose: true,
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            }
+
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Dependency resolution did not start');
+        });
+
+        it('should fail cleanly when the manifest file is missing', async () => {
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: path.join(os.tmpdir(), 'does-not-exist', 'superposition.json'),
+                    verbose: true,
                 });
             } catch (e: any) {
                 expect(e.message).toContain('process.exit(1)');
@@ -267,7 +491,92 @@ describe('Command Tests', () => {
 
             expect(consoleErrorSpy).toHaveBeenCalled();
             const errorOutput = consoleErrorSpy.mock.calls.join('\n');
-            expect(errorOutput).toContain('--stack is required');
+            expect(errorOutput).toContain('Could not find manifest file');
+            expect(consoleLogSpy).not.toHaveBeenCalledWith(
+                expect.stringContaining('Generation Plan')
+            );
+        });
+
+        it('should fail cleanly when the manifest format is invalid', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-invalid-'));
+            const manifestPath = path.join(manifestDir, 'superposition.json');
+            fs.writeFileSync(manifestPath, JSON.stringify({ overlays: ['grafana'] }));
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    verbose: true,
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            const errorOutput = consoleErrorSpy.mock.calls.join('\n');
+            expect(errorOutput).toContain('Invalid manifest');
+            expect(consoleLogSpy).not.toHaveBeenCalledWith(
+                expect.stringContaining('Dependency Resolution:')
+            );
+        });
+
+        it('should fail cleanly when a manifest references an unknown overlay', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-unknown-'));
+            const manifestPath = writeManifest(manifestDir, {
+                baseTemplate: 'compose',
+                overlays: ['unknown-overlay'],
+            });
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    verbose: true,
+                });
+            } catch (e: any) {
+                expect(e.message).toContain('process.exit(1)');
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            const errorOutput = consoleErrorSpy.mock.calls.join('\n');
+            expect(errorOutput).toContain('Manifest-driven planning cannot continue');
+        });
+
+        it('should keep non-verbose manifest planning concise', async () => {
+            const manifestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-manifest-concise-'));
+            const manifestPath = writeManifest(manifestDir, {
+                baseTemplate: 'compose',
+                overlays: ['grafana'],
+            });
+
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    fromManifest: manifestPath,
+                    json: true,
+                });
+            } finally {
+                fs.rmSync(manifestDir, { recursive: true, force: true });
+            }
+
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(parsed.inputMode).toBe('manifest');
+            expect(parsed.verbose).toBeUndefined();
+        });
+
+        it('should default stack to compose when stack is missing', async () => {
+            try {
+                await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                    overlays: 'postgres',
+                });
+            } catch (e: any) {
+                // process.exit may be thrown in test environment
+            }
+
+            // Should NOT error about missing stack — it defaults to compose
+            const errorOutput = consoleErrorSpy.mock.calls.join('\n');
+            expect(errorOutput).not.toContain('--stack is required');
         });
 
         it('should exit with error when overlays is missing', async () => {

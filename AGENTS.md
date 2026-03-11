@@ -789,3 +789,12 @@ Update connection strings in application code accordingly.
 6. **YAML Parsing**: Uses `js-yaml` - ensure valid YAML syntax
 7. **Type Safety**: Update types, schema, and runtime code together
 8. **Vitest Warnings**: Test file TypeScript errors don't affect build
+
+## Active Technologies
+
+- Filesystem-based overlay manifests, project `superposition.json` manifests, templates, and generated devcontainer artifacts (001-verbose-plan-graph)
+- TypeScript 5.3.3 on Node.js 20+ + Commander, chalk, boxen, js-yaml, ora, Inquirer (001-verbose-plan-graph)
+
+## Recent Changes
+
+- 001-verbose-plan-graph: Added TypeScript 5.3.3 on Node.js 20+ + Commander, chalk, boxen, js-yaml, ora, Inquirer

@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 dist/
+build/
 *.js
 *.js.map
 *.d.ts
@@ -18,6 +19,7 @@ Thumbs.db
 
 # IDE
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
@@ -29,6 +31,8 @@ tmp/
 # Environment
 .env
 .env.local
+.env.*
+!.env.example
 
 # Tool-generated examples (keep these out of repo)
 examples/.devcontainer/

@@ -1273,8 +1273,12 @@ async function parseCliArgs(): Promise<{
     program
         .command('plan')
         .description('Preview what will be generated before creating devcontainer')
-        .option('--stack <type>', 'Base template: plain, compose', 'compose')
+        .option('--stack <type>', 'Base template: plain, compose')
         .option('--overlays <list>', 'Comma-separated list of overlay IDs')
+        .option(
+            '--from-manifest <path>',
+            'Load stack and overlays from an existing superposition.json manifest'
+        )
         .option(
             '--port-offset <number>',
             'Add offset to all exposed ports',
@@ -1293,6 +1297,7 @@ async function parseCliArgs(): Promise<{
             (val) => parseInt(val, 10),
             3
         )
+        .option('--verbose', 'Explain why each overlay was included in the resolved plan')
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
