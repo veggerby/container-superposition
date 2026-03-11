@@ -18,6 +18,19 @@ written.
 # Guided questionnaire
 npx container-superposition init
 
+# Declarative project config committed in the repo
+cat > .superposition.yml <<'YAML'
+stack: compose
+language:
+  - nodejs
+database:
+  - postgres
+customizations:
+  environment:
+    APP_ENV: development
+YAML
+npx container-superposition init --no-interactive
+
 # Non-interactive example
 npx container-superposition init --stack compose --language nodejs --database postgres
 
@@ -36,6 +49,7 @@ npx container-superposition plan --from-manifest .devcontainer/superposition.jso
 - Base templates: `plain` (single image) and `compose` (multi-service).
 - Overlays: add languages, databases, observability, cloud tools, dev tools.
 - Composition: merges overlays into a standard `.devcontainer/` you can edit freely.
+- Project config: commit `.superposition.yml` or `superposition.yml` to make team and CI generation declarative.
 
 ## Core Commands
 

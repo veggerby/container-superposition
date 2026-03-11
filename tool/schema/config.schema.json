@@ -11,7 +11,7 @@
         },
         "baseImage": {
             "type": "string",
-            "enum": ["bookworm", "trixie", "custom"],
+            "enum": ["bookworm", "trixie", "alpine", "ubuntu", "custom"],
             "default": "bookworm",
             "description": "Base Debian image version"
         },
@@ -19,20 +19,59 @@
             "type": "string",
             "description": "Custom base image (only when baseImage is 'custom')"
         },
+        "containerName": {
+            "type": "string",
+            "description": "Container/project name to write into devcontainer.json"
+        },
+        "preset": {
+            "type": "string",
+            "description": "Preset ID to expand during generation"
+        },
+        "presetChoices": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            },
+            "description": "Preset parameter choices keyed by parameter name"
+        },
         "language": {
             "type": "array",
             "items": {
                 "type": "string",
-                "enum": ["dotnet", "nodejs", "python", "mkdocs"]
+                "enum": [
+                    "dotnet",
+                    "nodejs",
+                    "python",
+                    "mkdocs",
+                    "java",
+                    "go",
+                    "rust",
+                    "bun",
+                    "powershell"
+                ]
             },
             "default": [],
             "description": "Language/framework overlays"
         },
         "database": {
-            "type": "string",
-            "enum": ["none", "postgres", "redis", "postgres+redis"],
-            "default": "none",
-            "description": "Database requirements"
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "postgres",
+                    "redis",
+                    "mongodb",
+                    "mysql",
+                    "sqlserver",
+                    "sqlite",
+                    "minio",
+                    "rabbitmq",
+                    "redpanda",
+                    "nats"
+                ]
+            },
+            "default": [],
+            "description": "Database overlays"
         },
         "playwright": {
             "type": "boolean",
@@ -43,10 +82,37 @@
             "type": "array",
             "items": {
                 "type": "string",
-                "enum": ["azure-cli", "aws-cli", "kubectl-helm", "docker-in-docker", "docker-sock"]
+                "enum": ["azure-cli", "aws-cli", "gcloud", "kubectl-helm", "terraform", "pulumi"]
             },
             "default": [],
             "description": "Cloud/orchestration tools to include"
+        },
+        "devTools": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "docker-in-docker",
+                    "docker-sock",
+                    "codex",
+                    "playwright",
+                    "git-helpers",
+                    "pre-commit",
+                    "commitlint",
+                    "just",
+                    "direnv",
+                    "modern-cli-tools",
+                    "ngrok",
+                    "spec-kit",
+                    "claude-code",
+                    "gemini-cli",
+                    "amp",
+                    "windsurf-cli",
+                    "opencode"
+                ]
+            },
+            "default": [],
+            "description": "Developer tooling overlays"
         },
         "observability": {
             "type": "array",
@@ -59,13 +125,76 @@
         },
         "portOffset": {
             "type": "number",
+            "minimum": 0,
             "description": "Port offset for running multiple instances"
         },
         "outputPath": {
             "type": "string",
             "default": "./.devcontainer",
             "description": "Where to write the devcontainer configuration"
+        },
+        "target": {
+            "type": "string",
+            "enum": ["local", "codespaces", "gitpod", "devpod"],
+            "description": "Target environment for compatibility checks"
+        },
+        "minimal": {
+            "type": "boolean",
+            "description": "Exclude optional overlays marked as minimal"
+        },
+        "editor": {
+            "type": "string",
+            "enum": ["vscode", "jetbrains", "none"],
+            "description": "Editor customization profile"
+        },
+        "customizations": {
+            "type": "object",
+            "properties": {
+                "devcontainerPatch": {
+                    "type": "object",
+                    "description": "Additional devcontainer.json content merged during generation"
+                },
+                "dockerComposePatch": {
+                    "type": "object",
+                    "description": "Additional docker-compose content merged during generation"
+                },
+                "environment": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Environment variables written to custom/environment.env"
+                },
+                "scripts": {
+                    "type": "object",
+                    "properties": {
+                        "postCreate": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                        },
+                        "postStart": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" },
+                            "content": { "type": "string" }
+                        },
+                        "required": ["path", "content"],
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "additionalProperties": false
         }
     },
-    "required": ["stack"]
+    "required": [],
+    "additionalProperties": false
 }

@@ -10,6 +10,31 @@ npm run init
 
 Follow the prompts to select your stack, database, tools, and output location.
 
+## Declarative Project Config
+
+```yaml
+stack: compose
+language:
+    - nodejs
+database:
+    - postgres
+outputPath: ./.devcontainer
+customizations:
+    environment:
+        APP_ENV: development
+    devcontainerPatch:
+        features:
+            ghcr.io/devcontainers-extra/features/apt-get-packages:1:
+                packages: jq
+```
+
+```bash
+npm run init -- --no-interactive
+```
+
+Creates the same generated output you would get from equivalent clean-generation
+input, while keeping the setup intent in version control.
+
 ## Non-Interactive Examples
 
 ### .NET with PostgreSQL

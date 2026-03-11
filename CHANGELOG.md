@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Project config generation** — Standard `init` can now read a repository-root `.superposition.yml` or `superposition.yml`
+    - Lets teams and CI run generation from committed declarative defaults instead of reconstructing long CLI commands
+    - Direct CLI flags still override the project config for one run, while explicit `--from-manifest` regeneration remains isolated
+    - Supports parity for the existing clean-generation surface, including custom images, container naming, minimal/editor settings, environment variables, and additional generated features declared through custom patches
 - **Verbose plan narration** — `plan --verbose` now explains why each overlay was included
     - Shows direct selections, required dependencies, and dependency paths in the terminal output
     - Supports `plan --from-manifest <path> --verbose` so existing manifests get the same explanation model as explicit overlay lists

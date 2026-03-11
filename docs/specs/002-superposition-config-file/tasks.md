@@ -17,10 +17,10 @@
 
 **Purpose**: Record the approved spec gate and align the feature docs with the implementation baseline before code changes.
 
-- [ ] T001 Confirm approved spec status and implementation gate in `docs/specs/002-superposition-config-file/spec.md`
-- [ ] T002 Align implementation sequencing and verification scope in `docs/specs/002-superposition-config-file/plan.md`
-- [ ] T003 Align parity examples and validation steps in `docs/specs/002-superposition-config-file/quickstart.md`
-- [ ] T004 [P] Record supported project-config surface and customization parity expectations in `docs/specs/002-superposition-config-file/contracts/init-project-config.md`
+- [x] T001 Confirm approved spec status and implementation gate in `docs/specs/002-superposition-config-file/spec.md`
+- [x] T002 Align implementation sequencing and verification scope in `docs/specs/002-superposition-config-file/plan.md`
+- [x] T003 Align parity examples and validation steps in `docs/specs/002-superposition-config-file/quickstart.md`
+- [x] T004 [P] Record supported project-config surface and customization parity expectations in `docs/specs/002-superposition-config-file/contracts/init-project-config.md`
 
 ---
 
@@ -30,12 +30,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Define project-config file discovery, parsed shape, and validation helpers in `tool/schema/project-config.ts`
-- [ ] T006 Extend shared config types and `QuestionnaireAnswers` parity fields in `tool/schema/types.ts`
-- [ ] T007 Update supported config schema entries for project-config parity in `tool/schema/config.schema.json`
-- [ ] T008 Refactor answer-source merging to accept project-config defaults alongside manifest and CLI inputs in `scripts/init.ts`
-- [ ] T009 Add foundational regression coverage for project-config discovery, merge precedence, and dual-file ambiguity in `tool/__tests__/commands.test.ts`
-- [ ] T010 Add fixture coverage for supported customization parity inputs in `tool/__tests__/composition.test.ts`
+- [x] T005 Define project-config file discovery, parsed shape, and validation helpers in `tool/schema/project-config.ts`
+- [x] T006 Extend shared config types and `QuestionnaireAnswers` parity fields in `tool/schema/types.ts`
+- [x] T007 Update supported config schema entries for project-config parity in `tool/schema/config.schema.json`
+- [x] T008 Refactor answer-source merging to accept project-config defaults alongside manifest and CLI inputs in `scripts/init.ts`
+- [x] T009 Add foundational regression coverage for project-config discovery, merge precedence, and dual-file ambiguity in `tool/__tests__/commands.test.ts`
+- [x] T010 Add fixture coverage for supported customization parity inputs in `tool/__tests__/composition.test.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in priority order
 
@@ -49,17 +49,17 @@
 
 ### Verification for User Story 1
 
-- [ ] T011 [US1] Add command regression coverage for valid project-config driven generation in `tool/__tests__/commands.test.ts`
-- [ ] T012 [US1] Add composition parity coverage for project-config custom image and container definition inputs in `tool/__tests__/composition.test.ts`
-- [ ] T013 [US1] Add parity coverage for environment-related settings and additional generated features in `tool/__tests__/minimal-and-editor.test.ts`
+- [x] T011 [US1] Add command regression coverage for valid project-config driven generation in `tool/__tests__/commands.test.ts`
+- [x] T012 [US1] Add composition parity coverage for project-config custom image and container definition inputs in `tool/__tests__/composition.test.ts`
+- [x] T013 [US1] Add parity coverage for environment-related settings and additional generated features in `tool/__tests__/minimal-and-editor.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Load repository-root `.superposition.yml` and `superposition.yml` defaults into the standard init flow in `scripts/init.ts`
-- [ ] T015 [US1] Map project-config selections into the clean-generation answer model in `tool/schema/project-config.ts`
-- [ ] T016 [US1] Preserve supported customization inputs through generation and summary rendering in `scripts/init.ts`
-- [ ] T017 [US1] Ensure project-config driven answers produce the same composed output as equivalent clean-generation input in `tool/questionnaire/composer.ts`
-- [ ] T018 [US1] Keep generated run summaries accurate for project-config sourced generation in `tool/utils/summary.ts`
+- [x] T014 [US1] Load repository-root `.superposition.yml` and `superposition.yml` defaults into the standard init flow in `scripts/init.ts`
+- [x] T015 [US1] Map project-config selections into the clean-generation answer model in `tool/schema/project-config.ts`
+- [x] T016 [US1] Preserve supported customization inputs through generation and summary rendering in `scripts/init.ts`
+- [x] T017 [US1] Ensure project-config driven answers produce the same composed output as equivalent clean-generation input in `tool/questionnaire/composer.ts`
+- [x] T018 [US1] Keep generated run summaries accurate for project-config sourced generation in `tool/utils/summary.ts`
 
 **Checkpoint**: User Story 1 should now be fully functional and testable on its own
 
@@ -73,17 +73,17 @@
 
 ### Verification for User Story 2
 
-- [ ] T019 [US2] Add non-interactive command regression coverage for project-config defaults and CLI override precedence in `tool/__tests__/commands.test.ts`
-- [ ] T020 [US2] Add manifest-isolation regression coverage for project-config and `--from-manifest` interactions in `tool/__tests__/manifest-only.test.ts`
-- [ ] T021 [US2] Add regression coverage for no-config fallback to current interactive and flag-driven behavior in `tool/__tests__/commands.test.ts`
-- [ ] T022 [US2] Add regression coverage for partial project-config defaults that still require remaining answers in `tool/__tests__/commands.test.ts`
+- [x] T019 [US2] Add non-interactive command regression coverage for project-config defaults and CLI override precedence in `tool/__tests__/commands.test.ts`
+- [x] T020 [US2] Add manifest-isolation regression coverage for project-config and `--from-manifest` interactions in `tool/__tests__/manifest-only.test.ts`
+- [x] T021 [US2] Add regression coverage for no-config fallback to current interactive and flag-driven behavior in `tool/__tests__/commands.test.ts`
+- [x] T022 [US2] Add regression coverage for partial project-config defaults that still require remaining answers in `tool/__tests__/commands.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Apply project-config values as default persisted input for standard init without prompting for already-declared values in `scripts/init.ts`
-- [ ] T024 [US2] Preserve partial project-config values as shared defaults while collecting only unresolved required answers in `scripts/init.ts`
-- [ ] T025 [US2] Preserve run-scoped CLI override precedence over project-config defaults in `scripts/init.ts`
-- [ ] T026 [US2] Keep explicit manifest mode isolated from repository project-config defaults in `scripts/init.ts`
+- [x] T023 [US2] Apply project-config values as default persisted input for standard init without prompting for already-declared values in `scripts/init.ts`
+- [x] T024 [US2] Preserve partial project-config values as shared defaults while collecting only unresolved required answers in `scripts/init.ts`
+- [x] T025 [US2] Preserve run-scoped CLI override precedence over project-config defaults in `scripts/init.ts`
+- [x] T026 [US2] Keep explicit manifest mode isolated from repository project-config defaults in `scripts/init.ts`
 
 **Checkpoint**: User Stories 1 and 2 should both work independently
 
@@ -97,15 +97,15 @@
 
 ### Verification for User Story 3
 
-- [ ] T027 [US3] Add command regression coverage for invalid YAML, unsupported keys, and unsupported values in `tool/__tests__/commands.test.ts`
-- [ ] T028 [US3] Add regression coverage for conflicting selections, missing required non-interactive values, and dual-file ambiguity in `tool/__tests__/commands.test.ts`
-- [ ] T029 [US3] Add regression coverage for unsupported customization declarations outside the clean-generation surface in `tool/__tests__/commands.test.ts`
+- [x] T027 [US3] Add command regression coverage for invalid YAML, unsupported keys, and unsupported values in `tool/__tests__/commands.test.ts`
+- [x] T028 [US3] Add regression coverage for conflicting selections, missing required non-interactive values, and dual-file ambiguity in `tool/__tests__/commands.test.ts`
+- [x] T029 [US3] Add regression coverage for unsupported customization declarations outside the clean-generation surface in `tool/__tests__/commands.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Validate project-config syntax, supported keys, supported values, and conflicting selections before generation in `tool/schema/project-config.ts`
-- [ ] T031 [US3] Report repository-root ambiguity and non-interactive missing-value failures with actionable guidance in `scripts/init.ts`
-- [ ] T032 [US3] Reject unsupported customization declarations that fall outside the supported clean-generation surface in `tool/schema/project-config.ts`
+- [x] T030 [US3] Validate project-config syntax, supported keys, supported values, and conflicting selections before generation in `tool/schema/project-config.ts`
+- [x] T031 [US3] Report repository-root ambiguity and non-interactive missing-value failures with actionable guidance in `scripts/init.ts`
+- [x] T032 [US3] Reject unsupported customization declarations that fall outside the supported clean-generation surface in `tool/schema/project-config.ts`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -115,13 +115,13 @@
 
 **Purpose**: Finish documentation, changelog, and end-to-end verification for the declarative workflow.
 
-- [ ] T033 [P] Document project-config usage, parity scope, and supported customization examples in `README.md`
-- [ ] T034 [P] Document local and CI workflow examples for project config in `docs/workflows.md`
-- [ ] T035 [P] Document project-config parity examples and customization cases in `docs/examples.md`
-- [ ] T036 Update the user-visible project-config change summary in `CHANGELOG.md`
-- [ ] T037 Run the maintainer workflow review for SC-003 and record the outcome in `docs/specs/002-superposition-config-file/quickstart.md`
-- [ ] T038 Record final verification steps and observed outcomes in `docs/specs/002-superposition-config-file/quickstart.md`
-- [ ] T039 Run `npm test`, `npm run lint`, and `npm run test:smoke`, then record the results in `docs/specs/002-superposition-config-file/quickstart.md`
+- [x] T033 [P] Document project-config usage, parity scope, and supported customization examples in `README.md`
+- [x] T034 [P] Document local and CI workflow examples for project config in `docs/workflows.md`
+- [x] T035 [P] Document project-config parity examples and customization cases in `docs/examples.md`
+- [x] T036 Update the user-visible project-config change summary in `CHANGELOG.md`
+- [x] T037 Run the maintainer workflow review for SC-003 and record the outcome in `docs/specs/002-superposition-config-file/quickstart.md`
+- [x] T038 Record final verification steps and observed outcomes in `docs/specs/002-superposition-config-file/quickstart.md`
+- [x] T039 Run `npm test`, `npm run lint`, and `npm run test:smoke`, then record the results in `docs/specs/002-superposition-config-file/quickstart.md`
 
 ---
 

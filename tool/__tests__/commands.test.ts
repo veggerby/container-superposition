@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import * as yaml from 'js-yaml';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
+import { buildAnswersFromProjectConfig, loadProjectConfig } from '../schema/project-config.js';
 import { listCommand } from '../commands/list.js';
 import { explainCommand } from '../commands/explain.js';
 import { planCommand, generatePlanDiff } from '../commands/plan.js';
@@ -15,6 +18,7 @@ const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 const INDEX_YML_PATH = path.join(OVERLAYS_DIR, 'index.yml');
+const TSX_CLI = path.join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 
 function writeManifest(
     manifestDir: string,
@@ -24,6 +28,19 @@ function writeManifest(
     fs.mkdirSync(manifestDir, { recursive: true });
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
     return manifestPath;
+}
+
+function runInitCli(args: string[], cwd: string): string {
+    return execFileSync(
+        process.execPath,
+        [TSX_CLI, path.join(REPO_ROOT, 'scripts', 'init.ts'), ...args],
+        {
+            cwd,
+            env: { ...process.env, FORCE_COLOR: '0' },
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+        }
+    );
 }
 
 describe('Command Tests', () => {
@@ -1215,6 +1232,190 @@ describe('Command Tests', () => {
             const a = computeHash('compose', ['postgres'], null, 'bookworm', '0.1');
             const b = computeHash('compose', ['postgres'], null, 'bookworm', '0.2');
             expect(a.hash).not.toBe(b.hash);
+        });
+    });
+
+    describe('project config', () => {
+        it('should load a valid repository-root project config', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'compose',
+                        language: ['nodejs'],
+                        database: ['postgres'],
+                        outputPath: './.devcontainer',
+                    })
+                );
+
+                const loaded = loadProjectConfig(overlaysConfig, repoDir);
+                expect(loaded?.file.fileName).toBe('.superposition.yml');
+                expect(loaded?.selection.stack).toBe('compose');
+                expect(loaded?.selection.language).toEqual(['nodejs']);
+                expect(loaded?.selection.database).toEqual(['postgres']);
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should build questionnaire answers from project config', () => {
+            const answers = buildAnswersFromProjectConfig({
+                stack: 'compose',
+                baseImage: 'custom',
+                customImage: 'mcr.microsoft.com/devcontainers/base:ubuntu',
+                language: ['nodejs'],
+                devTools: ['docker-sock'],
+                minimal: true,
+                editor: 'none',
+            });
+
+            expect(answers.stack).toBe('compose');
+            expect(answers.baseImage).toBe('custom');
+            expect(answers.customImage).toBe('mcr.microsoft.com/devcontainers/base:ubuntu');
+            expect(answers.language).toEqual(['nodejs']);
+            expect(answers.devTools).toEqual(['docker-sock']);
+            expect(answers.minimal).toBe(true);
+            expect(answers.editor).toBe('none');
+        });
+
+        it('should fail on dual project config files', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-dual-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'plain' })
+                );
+                fs.writeFileSync(
+                    path.join(repoDir, 'superposition.yml'),
+                    yaml.dump({ stack: 'compose' })
+                );
+
+                expect(() => loadProjectConfig(overlaysConfig, repoDir)).toThrow(
+                    /Keep only one project config file/
+                );
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should fail on unsupported project config keys', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-invalid-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'plain', unsupportedField: true })
+                );
+
+                expect(() => loadProjectConfig(overlaysConfig, repoDir)).toThrow(
+                    /Unsupported project config keys/
+                );
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should generate from project config without interactive prompts when --no-interactive is used', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-cli-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                        outputPath: './.devcontainer',
+                        customizations: {
+                            environment: {
+                                PROJECT_CONFIG_FLAG: 'enabled',
+                            },
+                            devcontainerPatch: {
+                                features: {
+                                    'ghcr.io/devcontainers-extra/features/apt-get-packages:1': {
+                                        packages: 'jq',
+                                    },
+                                },
+                            },
+                        },
+                    })
+                );
+
+                runInitCli(['init', '--no-interactive'], repoDir);
+
+                const manifest = JSON.parse(
+                    fs.readFileSync(
+                        path.join(repoDir, '.devcontainer', 'superposition.json'),
+                        'utf8'
+                    )
+                );
+                expect(manifest.overlays).toContain('nodejs');
+
+                const envExample = fs.readFileSync(
+                    path.join(repoDir, '.devcontainer', '.env.example'),
+                    'utf8'
+                );
+                expect(envExample).toContain('PROJECT_CONFIG_FLAG=enabled');
+
+                const devcontainer = JSON.parse(
+                    fs.readFileSync(path.join(repoDir, '.devcontainer', 'devcontainer.json'), 'utf8')
+                );
+                expect(devcontainer.features).toHaveProperty(
+                    'ghcr.io/devcontainers-extra/features/apt-get-packages:1'
+                );
+
+                const customPatch = JSON.parse(
+                    fs.readFileSync(
+                        path.join(repoDir, '.devcontainer', 'custom', 'devcontainer.patch.json'),
+                        'utf8'
+                    )
+                );
+                expect(customPatch.$schema).toBe(
+                    'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json'
+                );
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should keep explicit CLI output overrides scoped to one run', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-override-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                        outputPath: './.devcontainer',
+                    })
+                );
+
+                runInitCli(['init', '--no-interactive', '--output', './tmp-devcontainer'], repoDir);
+
+                expect(
+                    fs.existsSync(path.join(repoDir, 'tmp-devcontainer', 'superposition.json'))
+                ).toBe(true);
+                expect(
+                    fs.existsSync(path.join(repoDir, '.devcontainer', 'superposition.json'))
+                ).toBe(false);
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should preserve the current no-config failure for --no-interactive without persisted input', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-none-'));
+
+            try {
+                expect(() => runInitCli(['init', '--no-interactive'], repoDir)).toThrow(
+                    /--no-interactive requires --from-manifest/
+                );
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
         });
     });
 });

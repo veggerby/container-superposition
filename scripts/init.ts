@@ -48,6 +48,11 @@ import { getToolVersion } from '../tool/utils/version.js';
 import { printSummary } from '../tool/utils/summary.js';
 import { appendGitignoreSection } from '../tool/utils/gitignore.js';
 import {
+    buildAnswersFromProjectConfig,
+    loadProjectConfig,
+    writeProjectConfigCustomizations,
+} from '../tool/schema/project-config.js';
+import {
     isInsideGitRepo,
     copyDirectory,
     createBackup,
@@ -133,6 +138,135 @@ function loadPresetDefinition(presetId: string): PresetDefinition | null {
     }
     const content = fs.readFileSync(presetPath, 'utf8');
     return yaml.load(content) as PresetDefinition;
+}
+
+function categorizeOverlayIds(overlayIds: string[], config: OverlaysConfig) {
+    const language: LanguageOverlay[] = [];
+    const database: DatabaseOverlay[] = [];
+    const observability: ObservabilityTool[] = [];
+    const cloudTools: CloudTool[] = [];
+    const devTools: DevTool[] = [];
+
+    const overlayMap = new Map(config.overlays.map((o) => [o.id, o]));
+
+    for (const id of overlayIds) {
+        const overlay = overlayMap.get(id);
+        if (!overlay) continue;
+
+        switch (overlay.category) {
+            case 'language':
+                language.push(id as LanguageOverlay);
+                break;
+            case 'database':
+                database.push(id as DatabaseOverlay);
+                break;
+            case 'observability':
+                observability.push(id as ObservabilityTool);
+                break;
+            case 'cloud':
+                cloudTools.push(id as CloudTool);
+                break;
+            case 'dev':
+                devTools.push(id as DevTool);
+                break;
+        }
+    }
+
+    return { language, database, observability, cloudTools, devTools };
+}
+
+function mergeUnique<T>(left?: T[], right?: T[]): T[] | undefined {
+    const merged = [...(left ?? []), ...(right ?? [])];
+    return merged.length > 0 ? [...new Set(merged)] : undefined;
+}
+
+function expandPresetWithDefaults(
+    presetId: string,
+    stack: Stack,
+    providedChoices: Record<string, string> = {}
+): {
+    overlays: string[];
+    choices: Record<string, string>;
+    glueConfig?: PresetDefinition['glueConfig'];
+} {
+    const preset = loadPresetDefinition(presetId);
+    if (!preset) {
+        throw new Error(`Preset definition not found for ${presetId}`);
+    }
+
+    const overlays: string[] = [...preset.selects.required];
+    const choices: Record<string, string> = {};
+
+    if (preset.selects.userChoice) {
+        for (const [key, choice] of Object.entries(preset.selects.userChoice)) {
+            const selectedOption = providedChoices[key] ?? choice.defaultOption;
+            if (!selectedOption || !choice.options.includes(selectedOption)) {
+                const valid = choice.options.join(', ');
+                throw new Error(`Preset choice '${key}' must be one of: ${valid}`);
+            }
+
+            overlays.push(selectedOption);
+            choices[key] = selectedOption;
+        }
+    }
+
+    if (preset.parameters) {
+        for (const [key, param] of Object.entries(preset.parameters)) {
+            const selectedId = providedChoices[key] ?? param.default;
+            const selectedOption = param.options.find((option) => option.id === selectedId);
+
+            if (!selectedOption) {
+                const valid = param.options.map((option) => option.id).join(', ');
+                throw new Error(`Preset parameter '${key}' must be one of: ${valid}`);
+            }
+
+            overlays.push(...selectedOption.overlays);
+            choices[key] = selectedId;
+        }
+    }
+
+    const uniqueOverlays = [...new Set(overlays)];
+
+    let resolvedGlueConfig = preset.glueConfig;
+    if (resolvedGlueConfig?.environment) {
+        const resolvedEnv: Record<string, string> = {};
+        for (const [envKey, envValue] of Object.entries(resolvedGlueConfig.environment)) {
+            resolvedEnv[envKey] = envValue.replace(
+                /\{\{parameters\.(\w+)\.id\}\}/g,
+                (_match: string, paramKey: string) => choices[paramKey] ?? _match
+            );
+        }
+        resolvedGlueConfig = { ...resolvedGlueConfig, environment: resolvedEnv };
+    }
+
+    return { overlays: uniqueOverlays, choices, glueConfig: resolvedGlueConfig };
+}
+
+function applyPresetSelections(
+    answers: Partial<QuestionnaireAnswers>
+): Partial<QuestionnaireAnswers> {
+    if (!answers.preset) {
+        return answers;
+    }
+
+    const expansion = expandPresetWithDefaults(
+        answers.preset,
+        answers.stack ?? 'plain',
+        answers.presetChoices ?? {}
+    );
+    const categories = categorizeOverlayIds(expansion.overlays, loadOverlaysConfigWrapper());
+
+    return {
+        ...answers,
+        language: mergeUnique(categories.language, answers.language),
+        database: mergeUnique(categories.database, answers.database),
+        observability: mergeUnique(categories.observability, answers.observability),
+        cloudTools: mergeUnique(categories.cloudTools, answers.cloudTools),
+        devTools: mergeUnique(categories.devTools, answers.devTools),
+        playwright: answers.playwright ?? expansion.overlays.includes('playwright'),
+        presetChoices: Object.keys(expansion.choices).length > 0 ? expansion.choices : undefined,
+        presetGlueConfig: expansion.glueConfig,
+    };
 }
 
 /**
@@ -391,7 +525,8 @@ async function runQuestionnaire(
     manifest?: SuperpositionManifest,
     manifestDir?: string,
     cliPresetId?: string,
-    cliPresetChoices?: Record<string, string>
+    cliPresetChoices?: Record<string, string>,
+    defaultAnswers?: Partial<QuestionnaireAnswers>
 ): Promise<QuestionnaireAnswers> {
     const config = loadOverlaysConfigWrapper();
 
@@ -493,7 +628,7 @@ async function runQuestionnaire(
                 value: t.id,
                 description: t.description,
             })),
-            default: manifest?.baseTemplate,
+            default: manifest?.baseTemplate || defaultAnswers?.stack,
         })) as Stack;
 
         // If using preset, expand it now (pass pre-provided choices to skip those prompts)
@@ -525,7 +660,16 @@ async function runQuestionnaire(
         const knownBaseImageIds = config.base_images.map((img) => img.id);
         const manifestBaseImageIsKnown =
             manifest?.baseImage && knownBaseImageIds.includes(manifest.baseImage);
-        const manifestDefaultBaseImage = manifestBaseImageIsKnown ? manifest.baseImage : 'custom';
+        const manifestDefaultBaseImage = manifestBaseImageIsKnown
+            ? manifest.baseImage
+            : manifest?.baseImage
+              ? 'custom'
+              : undefined;
+        const defaultBaseImage =
+            manifestDefaultBaseImage ||
+            (defaultAnswers?.baseImage === 'custom' && defaultAnswers.customImage
+                ? 'custom'
+                : defaultAnswers?.baseImage);
 
         const baseImage = (await select({
             message: 'Select base image:',
@@ -534,7 +678,7 @@ async function runQuestionnaire(
                 value: img.id,
                 description: img.description,
             })),
-            default: manifestDefaultBaseImage,
+            default: defaultBaseImage,
         })) as BaseImage;
 
         // Question 2a: If custom, ask for image name
@@ -543,10 +687,11 @@ async function runQuestionnaire(
             // If manifest has a custom image, use it as default
             const manifestCustomImage =
                 !manifestBaseImageIsKnown && manifest?.baseImage ? manifest.baseImage : undefined;
+            const defaultCustomImage = manifestCustomImage || defaultAnswers?.customImage;
 
             customImage = await input({
                 message: 'Enter custom Docker image (e.g., ubuntu:22.04):',
-                default: manifestCustomImage,
+                default: defaultCustomImage,
                 validate: (value) => {
                     if (!value || value.trim() === '') {
                         return 'Image name is required';
@@ -702,7 +847,15 @@ async function runQuestionnaire(
                 )
             );
 
-            const choices = buildOverlayChoices(config, stack, categoryList, []);
+            const preselectedDefaults = [
+                ...(defaultAnswers?.language ?? []),
+                ...(defaultAnswers?.database ?? []),
+                ...(defaultAnswers?.observability ?? []),
+                ...(defaultAnswers?.cloudTools ?? []),
+                ...(defaultAnswers?.devTools ?? []),
+                ...(defaultAnswers?.playwright ? ['playwright'] : []),
+            ];
+            const choices = buildOverlayChoices(config, stack, categoryList, preselectedDefaults);
 
             userSelection = await checkbox({
                 message: 'Select overlays to include:',
@@ -794,12 +947,12 @@ async function runQuestionnaire(
         // Question 4: Container name
         const containerName = await input({
             message: 'Container/project name (optional):',
-            default: manifest?.containerName || '',
+            default: manifest?.containerName || defaultAnswers?.containerName || '',
         });
 
         // Question 5: Output path
         // If manifest provided, default to its location; otherwise use ./.devcontainer
-        const defaultOutput = manifestDir || './.devcontainer';
+        const defaultOutput = manifestDir || defaultAnswers?.outputPath || './.devcontainer';
 
         const outputPath = await input({
             message: 'Output path:',
@@ -809,7 +962,12 @@ async function runQuestionnaire(
         // Question 6: Port offset (optional, for running multiple instances)
         const portOffsetInput = await input({
             message: 'Port offset (leave empty for default ports, e.g., 100 to avoid conflicts):',
-            default: manifest?.portOffset ? String(manifest.portOffset) : '',
+            default:
+                manifest?.portOffset !== undefined
+                    ? String(manifest.portOffset)
+                    : defaultAnswers?.portOffset !== undefined
+                      ? String(defaultAnswers.portOffset)
+                      : '',
         });
         const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
 
@@ -937,7 +1095,10 @@ async function runQuestionnaire(
             observability,
             outputPath,
             portOffset,
-            target,
+            target: target ?? defaultAnswers?.target,
+            minimal: defaultAnswers?.minimal,
+            editor: defaultAnswers?.editor,
+            customizations: defaultAnswers?.customizations,
         };
     } catch (error) {
         if ((error as any).name === 'ExitPromptError') {
@@ -1475,12 +1636,26 @@ async function parseCliArgs(): Promise<{
 async function main() {
     try {
         const cliArgs = await parseCliArgs();
+        let projectConfig = undefined;
+        let projectConfigAnswers: Partial<QuestionnaireAnswers> | undefined;
 
-        // Validate --no-interactive requires --from-manifest
-        if (cliArgs?.noInteractive && !cliArgs?.manifestPath) {
+        if (!cliArgs?.manifestPath) {
+            projectConfig =
+                loadProjectConfig(loadOverlaysConfigWrapper(), process.cwd()) ?? undefined;
+            if (projectConfig) {
+                projectConfigAnswers = applyPresetSelections(
+                    buildAnswersFromProjectConfig(projectConfig.selection)
+                );
+            }
+        }
+
+        // Validate --no-interactive requires an explicit persisted input source
+        if (cliArgs?.noInteractive && !cliArgs?.manifestPath && !projectConfigAnswers) {
             console.error(chalk.red('✗ Error: --no-interactive requires --from-manifest'));
             console.error(
-                chalk.dim('  Use both flags together: --from-manifest <path> --no-interactive')
+                chalk.dim(
+                    '  Use --from-manifest <path> --no-interactive, or run from a repository with .superposition.yml'
+                )
             );
             process.exit(1);
         }
@@ -1571,6 +1746,8 @@ async function main() {
                     key !== 'presetChoices' &&
                     cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
             );
+        const hasAnyCliConfig =
+            cliArgs && Object.values(cliArgs.config).some((value) => value !== undefined);
 
         if (useManifestOnly && manifest && !hasCliOverrides) {
             // Mode 1: Manifest-only (--from-manifest --no-interactive, no CLI overrides)
@@ -1596,21 +1773,27 @@ async function main() {
                         { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
                     )
             );
-        } else if (cliArgs && (cliArgs.config.stack || hasCliOverrides)) {
+        } else if (
+            (cliArgs && (cliArgs.config.stack || hasCliOverrides)) ||
+            (projectConfigAnswers && (cliArgs?.noInteractive || hasAnyCliConfig))
+        ) {
             // Mode 2: CLI-based (with optional manifest defaults)
             // This includes regen with --minimal or --editor flags
             const cliAnswers = buildAnswersFromCliArgs(cliArgs.config);
             const manifestAnswers = manifest
                 ? buildAnswersFromManifest(manifest, manifestDir)
                 : undefined;
-            answers = mergeAnswers(manifestAnswers, cliAnswers, {
-                outputPath: cliAnswers.outputPath || './.devcontainer',
+            answers = mergeAnswers(projectConfigAnswers, manifestAnswers, cliAnswers, {
+                outputPath:
+                    cliAnswers.outputPath || projectConfigAnswers?.outputPath || './.devcontainer',
             });
 
             const modeLabel =
                 useManifestOnly && hasCliOverrides
                     ? 'Regenerating from Manifest with Overrides'
-                    : 'Running in CLI mode';
+                    : projectConfigAnswers && !manifest
+                      ? 'Running from Project Config'
+                      : 'Running in CLI mode';
 
             console.log(
                 '\n' +
@@ -1635,10 +1818,22 @@ async function main() {
             const interactiveAnswers = await runQuestionnaire(
                 manifest,
                 manifestDir,
-                cliArgs?.config.preset,
-                cliArgs?.config.presetChoices
+                cliArgs?.config.preset || projectConfigAnswers?.preset,
+                cliArgs?.config.presetChoices || projectConfigAnswers?.presetChoices,
+                projectConfigAnswers
             );
-            answers = mergeAnswers(interactiveAnswers);
+            answers = mergeAnswers(projectConfigAnswers, interactiveAnswers);
+        }
+
+        if (!manifest && projectConfig?.selection.customizations) {
+            const materializedOutputPath = path.resolve(answers.outputPath);
+            if (!fs.existsSync(materializedOutputPath)) {
+                fs.mkdirSync(materializedOutputPath, { recursive: true });
+            }
+            writeProjectConfigCustomizations(
+                materializedOutputPath,
+                projectConfig.selection.customizations
+            );
         }
 
         // Show configuration summary
@@ -1672,6 +1867,12 @@ async function main() {
         if (answers.cloudTools && answers.cloudTools.length > 0) {
             summaryLines.push(
                 chalk.cyan('Cloud tools:     ') + chalk.white(answers.cloudTools.join(', '))
+            );
+        }
+
+        if (projectConfig?.file && !manifest) {
+            summaryLines.push(
+                chalk.cyan('Project config:  ') + chalk.white(projectConfig.file.fileName)
             );
         }
 

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { composeDevContainer } from '../questionnaire/composer.js';
+import { writeProjectConfigCustomizations } from '../schema/project-config.js';
 import type { QuestionnaireAnswers } from '../schema/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -163,6 +164,48 @@ describe('Minimal Flag and Editor Profiles', () => {
             if (devcontainer.customizations) {
                 expect(devcontainer.customizations.vscode).toBeUndefined();
             }
+        });
+
+        it('should merge project-config environment and additional feature customizations', async () => {
+            const testOutputPath = path.join(testOutputBasePath, 'project-config-customizations');
+
+            writeProjectConfigCustomizations(testOutputPath, {
+                environment: {
+                    EXTRA_PROJECT_FLAG: 'enabled',
+                },
+                devcontainerPatch: {
+                    features: {
+                        'ghcr.io/devcontainers-extra/features/apt-get-packages:1': {
+                            packages: 'jq',
+                        },
+                    },
+                },
+            });
+
+            const answers: QuestionnaireAnswers = {
+                stack: 'plain',
+                baseImage: 'bookworm',
+                needsDocker: false,
+                language: ['nodejs'],
+                playwright: false,
+                cloudTools: [],
+                devTools: [],
+                observability: [],
+                outputPath: testOutputPath,
+                editor: 'vscode',
+            };
+
+            await composeDevContainer(answers);
+
+            const envExample = fs.readFileSync(path.join(testOutputPath, '.env.example'), 'utf-8');
+            expect(envExample).toContain('EXTRA_PROJECT_FLAG=enabled');
+
+            const devcontainer = JSON.parse(
+                fs.readFileSync(path.join(testOutputPath, 'devcontainer.json'), 'utf-8')
+            );
+            expect(devcontainer.features).toHaveProperty(
+                'ghcr.io/devcontainers-extra/features/apt-get-packages:1'
+            );
         });
     });
 });

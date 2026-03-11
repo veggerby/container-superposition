@@ -48,11 +48,11 @@ before implementation._
 - [x] Spec exists at `docs/specs/002-superposition-config-file/spec.md`.
 - [x] Spec is committed and reviewed before implementation tasks or code begin.
 - [x] Plan scope, compatibility impact, and complexity notes match the approved
-  spec.
+      spec.
 - [x] Verification scope covers tests, smoke checks, and documentation updates
-  needed for the change.
+      needed for the change.
 - [x] User-visible changes include documentation updates and an `[Unreleased]`
-  `CHANGELOG.md` entry.
+      `CHANGELOG.md` entry.
 
 Gate status: Pass. Planning may proceed.
 
@@ -158,16 +158,16 @@ composition test suites.
 ## Verification Strategy
 
 - Add or update automated coverage for:
-  - repository-root project-config discovery
-  - no-config fallback behavior
-  - CLI-over-project-config precedence
-  - explicit manifest isolation from project-config defaults
-  - partial config completion through the existing questionnaire flow
-  - invalid YAML, unsupported keys or values, conflicts, and dual-file
-    ambiguity
-  - parity for supported customization inputs such as custom images, preset
-    glue, editor/minimal settings, environment-related settings, and additional
-    generated features
+    - repository-root project-config discovery
+    - no-config fallback behavior
+    - CLI-over-project-config precedence
+    - explicit manifest isolation from project-config defaults
+    - partial config completion through the existing questionnaire flow
+    - invalid YAML, unsupported keys or values, conflicts, and dual-file
+      ambiguity
+    - parity for supported customization inputs such as custom images, preset
+      glue, editor/minimal settings, environment-related settings, and additional
+      generated features
 - Run `npm test`.
 - Run `npm run lint`.
 - Run `npm run test:smoke` when generation behavior changes across representative
@@ -177,17 +177,17 @@ composition test suites.
 ## Post-Design Constitution Check
 
 - [x] Design preserves spec-first workflow and traces directly to the approved
-  spec.
+      spec.
 - [x] Design preserves overlay contract integrity by extending the existing
-  answer and generation pipeline rather than inventing a parallel path.
+      answer and generation pipeline rather than inventing a parallel path.
 - [x] Verification remains proportional to risk: automated tests, smoke
-  validation where applicable, and documentation updates are planned before
-  merge.
+      validation where applicable, and documentation updates are planned before
+      merge.
 - [x] Documentation synchronization is explicit: `README.md`,
-  `docs/workflows.md`, `docs/examples.md`, `quickstart.md`, and `CHANGELOG.md`.
+      `docs/workflows.md`, `docs/examples.md`, `quickstart.md`, and `CHANGELOG.md`.
 - [x] Simplicity and compatibility remain intact: project config is a default
-  persisted input source, explicit manifest mode remains separate, and
-  candidate-path compatibility stays required.
+      persisted input source, explicit manifest mode remains separate, and
+      candidate-path compatibility stays required.
 
 ## Complexity Tracking
 

@@ -88,3 +88,25 @@ Examples of parity checks:
 - environment-related settings
 - preset glue values
 - additional generated features
+
+## 8. Maintainer workflow review
+
+Review result for `SC-003`:
+
+- a maintainer can create or update `.superposition.yml`, run `npm run init -- --no-interactive`, and inspect the generated output without reconstructing a long command
+- the documented workflow keeps the committed project config as the source of truth while still allowing one-run CLI overrides
+
+## 9. Verification record
+
+Validated during implementation:
+
+- targeted regression tests for project-config discovery, precedence, manifest isolation, no-config fallback, and customization parity
+- `npm test`
+- `npm run lint`
+- `npm run test:smoke`
+
+Observed outcomes:
+
+- valid project-config driven runs generated the expected manifest and devcontainer output
+- `--no-interactive` now works with a repository-root project config and still fails without any persisted input source
+- explicit `--from-manifest` runs ignored repository project-config defaults as required

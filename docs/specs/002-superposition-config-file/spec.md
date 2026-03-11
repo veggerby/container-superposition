@@ -44,6 +44,7 @@ A team uses the same committed project config file in CI or scripted workflows s
 
 1. **Given** a non-interactive workflow and a valid project config file, **When** the generation flow starts, **Then** it completes using the file-defined values without requiring interactive answers for those settings.
 2. **Given** a repository where the committed project config file is unchanged, **When** the automation workflow runs repeatedly, **Then** each run resolves the same requested configuration and any direct command overrides affect only that run.
+3. **Given** a repository with a valid project config file and no conflicting persisted-input flag or clean-generation selection flags, **When** a user runs `init --no-interactive` or `regen` in the default project-file mode, **Then** the tool uses the project file as the persisted input source without requiring `--from-project`.
 
 ---
 
@@ -66,6 +67,8 @@ A contributor receives clear guidance when the project config file is invalid, i
 - What happens when a project config file defines only part of the setup? The tool uses the provided values and continues to collect any still-required missing choices through the existing flow.
 - How does the system handle explicit command input that conflicts with the project config file? Explicit command input takes precedence for that run, and the user can still keep the file as the shared default.
 - How does the system handle an explicit manifest-based run? The explicit manifest remains the persisted input source for that run, and the project config file does not silently override it.
+- How does the system handle explicit project-file or manifest-source flags that are combined with each other or with clean-generation selection flags such as stack, overlay, or preset selection? It fails before generation and tells the user to choose exactly one persisted input source for that run.
+- How does the system handle `init --no-interactive` or `regen` when a valid project config file exists and no other persisted-input source or clean-generation selection flags are provided? It may use the project file implicitly as the persisted input source for that run.
 - How does the system handle supported customizations such as environment settings, custom container definitions, or additional generated features? Those values are treated as first-class generation inputs and must round-trip through the project config file without being dropped.
 - How does the system handle unsupported overlay IDs, invalid categories, or conflicting selections in the project config file? It fails validation before generation and explains the invalid entries.
 - How does the system handle both `.superposition.yml` and `superposition.yml` in one repository? It treats this as an error to avoid ambiguity.
@@ -89,7 +92,10 @@ A contributor receives clear guidance when the project config file is invalid, i
 - **FR-013**: The system MUST produce the same effective project setup from a project config file as it would from an equivalent set of direct user selections across the full supported declaration surface.
 - **FR-014**: The system MUST allow a partially defined project config file to act as shared defaults while still collecting any remaining required choices through the existing user flow.
 - **FR-015**: The system MUST keep explicit manifest-based runs as a separate persisted-input mode and MUST NOT silently merge project config values into a run that was explicitly started from a manifest.
-- **FR-016**: The system MUST document how teams create, commit, validate, and use the project config file in local development and automation workflows, including how parity with clean generation applies to supported customization inputs.
+- **FR-016**: The system MUST support an explicit `--from-project` source-selection mode for both initialization and regeneration flows so users can deliberately choose the repository project file as the persisted input source for a run.
+- **FR-017**: The system MUST allow `init --no-interactive` and `regen` to use the repository project file implicitly when a valid project config file exists and no other persisted-input source flag or clean-generation selection flags are supplied.
+- **FR-018**: The system MUST reject conflicting persisted-input source combinations before generation, including `--from-project` with `--from-manifest` and either source-selection mode combined with clean-generation selection flags such as stack, overlay, or preset selection.
+- **FR-019**: The system MUST document how teams create, commit, validate, and use the project config file in local development, regeneration, and automation workflows, including how parity with clean generation applies to supported customization inputs and how source-selection conflicts are resolved.
 
 ### Key Entities _(include if feature involves data)_
 
@@ -101,6 +107,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 ## Dependencies & Impact _(mandatory)_
 
 - **Affected Areas**: Standard initialization workflow, clean-generation parity, supported customization handling, manifest-based regeneration boundaries, CLI usage patterns, onboarding workflow, CI/CD workflow, user documentation
+- **Affected Areas**: Standard initialization workflow, clean-generation parity, supported customization handling, manifest-based regeneration boundaries, project-file based regeneration boundaries, CLI usage patterns, onboarding workflow, CI/CD workflow, user documentation
 - **Compatibility Impact**: Backward compatible
 - **Required Documentation Updates**: README.md, workflow and examples documentation, quickstart guidance, CHANGELOG.md
 - **Verification Plan**: Unit tests for config resolution and validation, integration tests for config-driven generation, smoke tests for representative stacks, manual validation for onboarding and automation flows
@@ -109,6 +116,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 
 - The project config file becomes the team-readable source of truth for default setup intent, including supported customization inputs, but it does not remove support for current interactive, flag-driven, or explicit manifest-based flows.
 - Explicit command input remains the highest-precedence input for a single run so users can make temporary overrides without editing the shared config file.
+- `--from-project` and `--from-manifest` are mutually exclusive persisted-input modes rather than additive sources for one run.
 - A single repository should contain at most one supported project config file so the source of truth stays deterministic and easy to explain.
 
 ## Success Criteria _(mandatory)_
@@ -120,3 +128,4 @@ A contributor receives clear guidance when the project config file is invalid, i
 - **SC-003**: In usability review, at least 90% of maintainers can define or update a project’s shared setup intent within 10 minutes using the documented config file workflow.
 - **SC-004**: In invalid-configuration tests, 90% of failures identify the problematic file condition or config entry and the required correction in the first error output seen by the user.
 - **SC-005**: In parity validation, every supported customization that can be expressed through the clean generation path can also be declared in the project config file and produces the same final generated output.
+- **SC-006**: In CLI validation tests, 100% of runs that combine conflicting persisted-input source flags or mix a persisted-input source with clean-generation selection flags fail before generation with a source-conflict error that identifies the invalid combination.
