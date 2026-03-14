@@ -5,8 +5,9 @@ The `adopt` command helps you **migrate an existing `.devcontainer/` configurati
 It scans your current `devcontainer.json` and any linked `docker-compose.yml` files, matches their contents against all available overlays, and produces:
 
 1. **`superposition.json`** — the manifest written to the **project root** (next to your `src/`, `package.json`, etc.), ready to commit and share with your team
-2. **`.devcontainer/custom/devcontainer.patch.json`** — any config that has no overlay equivalent (custom features, extensions, mounts, remoteEnv, etc.)
-3. **`.devcontainer/custom/docker-compose.patch.yml`** — any compose services that have no overlay equivalent
+2. **`.superposition.yml`** — an optional repository-root project file when you pass `--project-file`, using the same inferred stack, overlays, output path, and supported customizations
+3. **`.devcontainer/custom/devcontainer.patch.json`** — any config that has no overlay equivalent (custom features, extensions, mounts, remoteEnv, etc.)
+4. **`.devcontainer/custom/docker-compose.patch.yml`** — any compose services that have no overlay equivalent
 
 The custom patches in `custom/` are automatically merged on every `regen`, so your project-specific configuration is never lost.
 
@@ -18,6 +19,9 @@ npx container-superposition adopt --dry-run
 
 # Run the analysis and write the generated files
 npx container-superposition adopt
+
+# Also write a repository-root project file for project-config workflows
+npx container-superposition adopt --project-file
 
 # Force-overwrite any existing superposition.json / custom/ files
 npx container-superposition adopt --force
@@ -93,15 +97,16 @@ automatically added to `.gitignore`.
 
 ## Options
 
-| Option                | Description                                                                  |
-| --------------------- | ---------------------------------------------------------------------------- |
-| `-d, --dir <path>`    | Path to the existing `.devcontainer/` directory (default: `./.devcontainer`) |
-| `--dry-run`           | Print the analysis without writing any files                                 |
-| `--force`             | Overwrite existing `superposition.json` / `custom/` files                    |
-| `--backup`            | Force a backup even when inside a git repo                                   |
-| `--no-backup`         | Disable backup creation even when it would normally be performed             |
-| `--backup-dir <path>` | Custom backup directory location                                             |
-| `--json`              | Output analysis as JSON (useful for scripting)                               |
+| Option                | Description                                                                   |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `-d, --dir <path>`    | Path to the existing `.devcontainer/` directory (default: `./.devcontainer`)  |
+| `--dry-run`           | Print the analysis without writing any files                                  |
+| `--force`             | Overwrite existing `superposition.json` / `custom/` files                     |
+| `--backup`            | Force a backup even when inside a git repo                                    |
+| `--no-backup`         | Disable backup creation even when it would normally be performed              |
+| `--backup-dir <path>` | Custom backup directory location                                              |
+| `--project-file`      | Also write a repository-root project config (`.superposition.yml` by default) |
+| `--json`              | Output analysis as JSON (useful for scripting)                                |
 
 ## Example Output
 
@@ -140,12 +145,13 @@ Suggested command:
 Once `adopt` has run:
 
 1. **Review `superposition.json`** — verify the detected overlays are correct; add or remove as needed.
-2. **Review `custom/` patches** — inspect what was preserved and trim anything no longer needed.
-3. **Regenerate** — rebuild your `.devcontainer/` from the manifest:
+2. **Review `.superposition.yml` if you generated one** — it captures the same inferred setup as a repository-root project file, including inline supported customizations.
+3. **Review `custom/` patches** — inspect what was preserved and trim anything no longer needed.
+4. **Regenerate** — rebuild your `.devcontainer/` from the manifest or project file:
     ```bash
     npx container-superposition regen
     ```
-4. **Commit `superposition.json`** and, if applicable, `custom/` patches.
+5. **Commit `superposition.json`**, the optional project file, and, if applicable, `custom/` patches.
 
 ## JSON Output
 

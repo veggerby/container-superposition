@@ -17,7 +17,10 @@ The design extends the existing answer-merging flow instead of creating a second
 generation pipeline, introduces an explicit `--from-project` mode, allows
 implicit project-file use for `init --no-interactive` and default `regen` when
 no conflicting source or selection flags are supplied, and keeps explicit
-manifest-based regeneration as a separate persisted-input mode.
+manifest-based regeneration as a separate persisted-input mode. The same schema
+must also be writable from `adopt --project-file` so migration from an existing
+`.devcontainer/` can produce a repository-root project config without inventing
+a parallel declaration format.
 
 ## Technical Context
 

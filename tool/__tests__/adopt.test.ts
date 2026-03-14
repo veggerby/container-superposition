@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { fileURLToPath } from 'url';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
+import { loadProjectConfig } from '../schema/project-config.js';
 import {
     adoptCommand,
     analyseDevcontainer,
@@ -355,6 +356,28 @@ describe('adoptCommand', () => {
         });
     });
 
+    describe('script-based overlay detection', () => {
+        it('detects overlays from generated setup and verify script commands', async () => {
+            writeDevcontainerJson(tmpDir, {
+                postCreateCommand: {
+                    'setup-codex': 'bash .devcontainer/scripts/setup-codex.sh',
+                    'setup-modern-cli-tools':
+                        'bash .devcontainer/scripts/setup-modern-cli-tools.sh',
+                },
+                postStartCommand: {
+                    'verify-spec-kit': 'bash .devcontainer/scripts/verify-spec-kit.sh',
+                },
+            });
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, json: true });
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+
+            expect(parsed.suggestedOverlays).toContain('codex');
+            expect(parsed.suggestedOverlays).toContain('modern-cli-tools');
+            expect(parsed.suggestedOverlays).toContain('spec-kit');
+        });
+    });
+
     // ── custom/ patch content ──────────────────────────────────────────────
 
     describe('custom/ patch content', () => {
@@ -534,6 +557,225 @@ describe('adoptCommand', () => {
             // Should be at project root, not inside .devcontainer/
             expect(fs.existsSync(path.join(tmpDir, 'superposition.json'))).toBe(true);
             expect(fs.existsSync(path.join(devcontainerDir, 'superposition.json'))).toBe(false);
+        });
+
+        it('writes a project file when --project-file is used', async () => {
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
+                name: 'Adopted Workspace',
+                features: { 'ghcr.io/devcontainers/features/node:1': {} },
+                customizations: { vscode: { extensions: ['my-org.custom-ext'] } },
+            });
+
+            const { confirm } = await import('@inquirer/prompts');
+            vi.mocked(confirm).mockResolvedValueOnce(true);
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
+                dir: devcontainerDir,
+                force: true,
+                projectFile: true,
+            });
+
+            const projectConfigPath = path.join(tmpDir, '.superposition.yml');
+            expect(fs.existsSync(projectConfigPath)).toBe(true);
+
+            const loaded = loadProjectConfig(overlaysConfig, tmpDir);
+            expect(loaded?.file.path).toBe(projectConfigPath);
+            expect(loaded?.selection.stack).toBe('plain');
+            expect(loaded?.selection.baseImage).toBe('bookworm');
+            expect(loaded?.selection.outputPath).toBe('./.devcontainer');
+            expect(loaded?.selection.containerName).toBe('Adopted Workspace');
+            expect(loaded?.selection.language).toContain('nodejs');
+            expect(
+                loaded?.selection.customizations?.devcontainerPatch?.customizations?.vscode
+                    ?.extensions
+            ).toContain('my-org.custom-ext');
+
+            const manifest = JSON.parse(
+                fs.readFileSync(path.join(tmpDir, 'superposition.json'), 'utf8')
+            );
+            expect(manifest.containerName).toBe('Adopted Workspace');
+        });
+
+        it('filters template and overlay defaults out of generated project-file customizations', async () => {
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
+                name: 'Sissyphus',
+                features: {
+                    'ghcr.io/devcontainers/features/common-utils:2': {
+                        installZsh: true,
+                        installOhMyZsh: true,
+                        upgradePackages: true,
+                        username: 'vscode',
+                        userUid: 'automatic',
+                        userGid: 'automatic',
+                    },
+                    'ghcr.io/devcontainers/features/node:1': {
+                        version: 'lts',
+                        nodeGypDependencies: true,
+                        installYarnUsingApt: true,
+                    },
+                },
+                customizations: {
+                    vscode: {
+                        extensions: [
+                            'EditorConfig.EditorConfig',
+                            'ms-azuretools.vscode-docker',
+                            'GitHub.copilot',
+                            'GitHub.copilot-chat',
+                            'dbaeumer.vscode-eslint',
+                            'esbenp.prettier-vscode',
+                            'christian-kohler.npm-intellisense',
+                            'eamodio.gitlens',
+                            'github.vscode-pull-request-github',
+                            'mhutchie.git-graph',
+                        ],
+                        settings: {
+                            'editor.formatOnSave': true,
+                            'editor.defaultFormatter': 'esbenp.prettier-vscode',
+                            'editor.codeActionsOnSave': {
+                                'source.fixAll.eslint': 'explicit',
+                            },
+                            '[typescript]': {
+                                'editor.defaultFormatter': 'esbenp.prettier-vscode',
+                            },
+                            '[javascript]': {
+                                'editor.defaultFormatter': 'esbenp.prettier-vscode',
+                            },
+                            'git.enableCommitSigning': false,
+                            'git.enableSmartCommit': true,
+                            'git.confirmSync': false,
+                            'git.autofetch': true,
+                        },
+                    },
+                },
+                remoteEnv: {
+                    LOCAL_WORKSPACE_FOLDER: '${localWorkspaceFolder}',
+                    PATH: '${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}',
+                    DOTENV_CONFIG_PATH: '/workspaces/sissyphus/.env',
+                },
+                postCreateCommand: {
+                    'setup-nodejs': 'bash .devcontainer/scripts/setup-nodejs.sh',
+                    'setup-codex': 'bash .devcontainer/scripts/setup-codex.sh',
+                },
+                postStartCommand: {
+                    'enable-git-safe-directory':
+                        'git config --global --add safe.directory ${containerWorkspaceFolder}',
+                    'verify-nodejs': 'bash .devcontainer/scripts/verify-nodejs.sh',
+                },
+                mounts: [
+                    'source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached',
+                ],
+            });
+            writeDockerCompose(
+                devcontainerDir,
+                [
+                    'services:',
+                    '  devcontainer:',
+                    '    image: mcr.microsoft.com/devcontainers/base:trixie',
+                    '    volumes:',
+                    '      - ../..:/workspaces:cached',
+                    '      - /var/run/docker.sock:/var/run/docker-host.sock',
+                    '    command: sleep infinity',
+                    '    networks:',
+                    '      - devnet',
+                    'networks:',
+                    '  devnet:',
+                    '',
+                ].join('\n')
+            );
+
+            const { confirm } = await import('@inquirer/prompts');
+            vi.mocked(confirm).mockResolvedValueOnce(true);
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
+                dir: devcontainerDir,
+                force: true,
+                projectFile: true,
+            });
+
+            const loaded = loadProjectConfig(overlaysConfig, tmpDir);
+            expect(loaded?.selection.baseImage).toBe('trixie');
+            expect(loaded?.selection.language).toContain('nodejs');
+            expect(loaded?.selection.devTools).toContain('docker-sock');
+            expect(loaded?.selection.devTools).toContain('git-helpers');
+            expect(loaded?.selection.devTools).toContain('codex');
+
+            expect(loaded?.selection.customizations?.devcontainerPatch?.features).toBeUndefined();
+            expect(
+                loaded?.selection.customizations?.devcontainerPatch?.customizations?.vscode
+                    ?.extensions
+            ).toBeUndefined();
+            expect(
+                loaded?.selection.customizations?.devcontainerPatch?.customizations?.vscode
+                    ?.settings
+            ).toBeUndefined();
+            expect(
+                loaded?.selection.customizations?.devcontainerPatch?.postCreateCommand
+            ).toBeUndefined();
+            expect(
+                loaded?.selection.customizations?.devcontainerPatch?.postStartCommand
+            ).toBeUndefined();
+            expect(loaded?.selection.customizations?.devcontainerPatch?.remoteEnv).toMatchObject({
+                DOTENV_CONFIG_PATH: '/workspaces/sissyphus/.env',
+            });
+            expect(
+                loaded?.selection.customizations?.devcontainerPatch?.remoteEnv?.PATH
+            ).toBeUndefined();
+            expect(
+                loaded?.selection.customizations?.dockerComposePatch?.services?.devcontainer
+            ).toBeUndefined();
+            expect(loaded?.selection.customizations?.devcontainerPatch?.mounts).toContain(
+                'source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached'
+            );
+        });
+
+        it('reuses an existing superposition.yml when writing a project file', async () => {
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
+                features: { 'ghcr.io/devcontainers/features/node:1': {} },
+            });
+            fs.writeFileSync(path.join(tmpDir, 'superposition.yml'), 'stack: compose\n');
+
+            const { confirm } = await import('@inquirer/prompts');
+            vi.mocked(confirm).mockResolvedValueOnce(true);
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
+                dir: devcontainerDir,
+                force: true,
+                projectFile: true,
+            });
+
+            expect(fs.existsSync(path.join(tmpDir, 'superposition.yml'))).toBe(true);
+            expect(fs.existsSync(path.join(tmpDir, '.superposition.yml'))).toBe(false);
+
+            const loaded = loadProjectConfig(overlaysConfig, tmpDir);
+            expect(loaded?.file.fileName).toBe('superposition.yml');
+            expect(loaded?.selection.language).toContain('nodejs');
+        });
+
+        it('warns when a project file exists without --force', async () => {
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
+                features: { 'ghcr.io/devcontainers/features/node:1': {} },
+            });
+            fs.writeFileSync(path.join(tmpDir, '.superposition.yml'), 'stack: compose\n');
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
+                dir: devcontainerDir,
+                projectFile: true,
+            });
+
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('.superposition.yml');
+            expect(output).toContain('--force');
+            expect(fs.readFileSync(path.join(tmpDir, '.superposition.yml'), 'utf8')).toBe(
+                'stack: compose\n'
+            );
         });
     });
 

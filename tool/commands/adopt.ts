@@ -12,14 +12,34 @@ import chalk from 'chalk';
 import boxen from 'boxen';
 import yaml from 'js-yaml';
 import { confirm } from '@inquirer/prompts';
-import type { OverlaysConfig, SuperpositionManifest } from '../schema/types.js';
+import type {
+    DevContainer,
+    OverlaysConfig,
+    ProjectConfigSelection,
+    SuperpositionManifest,
+} from '../schema/types.js';
 import { CURRENT_MANIFEST_VERSION } from '../schema/manifest-migrations.js';
+import { findProjectConfig, writeProjectConfig } from '../schema/project-config.js';
+import { applyOverlay } from '../questionnaire/composer.js';
+import { deepMerge } from '../utils/merge.js';
 import { getToolVersion } from '../utils/version.js';
 import { isInsideGitRepo, createBackup, ensureBackupPatternsInGitignore } from '../utils/backup.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const REPO_ROOT_CANDIDATES = [
+    path.join(__dirname, '..', '..'),
+    path.join(__dirname, '..', '..', '..'),
+];
+const REPO_ROOT =
+    REPO_ROOT_CANDIDATES.find(
+        (candidate) =>
+            fs.existsSync(path.join(candidate, 'templates')) &&
+            fs.existsSync(path.join(candidate, 'overlays'))
+    ) ?? REPO_ROOT_CANDIDATES[0];
+const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
 
 // ---------------------------------------------------------------------------
 // Dynamic detection table building
@@ -139,6 +159,19 @@ export function buildDetectionTables(
                     const lc = extId.toLowerCase();
                     const score = extensionMatchScore(overlay.id, lc);
                     const existing = extensionToOverlayScored[lc];
+
+                    if (score === SCORE_NO_MATCH) {
+                        if (!existing) {
+                            extensionToOverlayScored[lc] = { overlayId: overlay.id, score };
+                        } else if (
+                            existing.score === SCORE_NO_MATCH &&
+                            existing.overlayId !== overlay.id
+                        ) {
+                            delete extensionToOverlayScored[lc];
+                        }
+                        continue;
+                    }
+
                     if (!existing || score > existing.score) {
                         extensionToOverlayScored[lc] = { overlayId: overlay.id, score };
                     }
@@ -210,7 +243,7 @@ function matchExtension(extensionId: string, tables: DetectionTables): string | 
 // ---------------------------------------------------------------------------
 
 type DetectionConfidence = 'exact' | 'heuristic';
-type DetectionSourceType = 'feature' | 'service' | 'extension' | 'remoteenv';
+type DetectionSourceType = 'feature' | 'service' | 'extension' | 'remoteenv' | 'script';
 
 interface DetectionResult {
     source: string;
@@ -231,6 +264,7 @@ export interface AdoptOptions {
     /** true = --backup, false = --no-backup, undefined = auto (skip in git repos) */
     backup?: boolean;
     backupDir?: string;
+    projectFile?: boolean;
     json?: boolean;
 }
 
@@ -352,6 +386,25 @@ function analyseDockerCompose(
             parsed?.services ?? ({} as Record<string, any>)
         )) {
             const image: string = (serviceDef as any)?.image ?? '';
+            const volumes = Array.isArray((serviceDef as any)?.volumes)
+                ? ((serviceDef as any).volumes as unknown[])
+                : [];
+
+            if (
+                volumes.some(
+                    (volume) =>
+                        typeof volume === 'string' &&
+                        volume.includes('/var/run/docker.sock:/var/run/docker-host.sock')
+                )
+            ) {
+                detections.push({
+                    source: `service: ${serviceName} (docker socket mount)`,
+                    overlayId: 'docker-sock',
+                    confidence: 'heuristic',
+                    sourceType: 'service',
+                });
+            }
+
             if (!image) continue;
 
             const overlayId = matchImage(image, tables);
@@ -413,6 +466,292 @@ function analyseRemoteEnv(
     }
 
     return { detections, unmatchedRemoteEnv };
+}
+
+function normalizeCommandMap(
+    commands: unknown
+): { entries: Record<string, string>; isString: boolean } | null {
+    if (typeof commands === 'string') {
+        return { entries: { default: commands }, isString: true };
+    }
+
+    if (!commands || typeof commands !== 'object' || Array.isArray(commands)) {
+        return null;
+    }
+
+    const entries: Record<string, string> = {};
+    for (const [key, value] of Object.entries(commands)) {
+        if (typeof value === 'string') {
+            entries[key] = value;
+        }
+    }
+
+    return Object.keys(entries).length > 0 ? { entries, isString: false } : null;
+}
+
+function findOverlayIdsInCommandMap(
+    commands: unknown,
+    overlaysConfig: OverlaysConfig
+): DetectionResult[] {
+    const normalized = normalizeCommandMap(commands);
+    if (!normalized) {
+        return [];
+    }
+
+    const knownOverlays = new Set(overlaysConfig.overlays.map((overlay) => overlay.id));
+    const detections = new Map<string, DetectionResult>();
+
+    for (const [key, value] of Object.entries(normalized.entries)) {
+        const patterns = [
+            key.match(/^(?:setup|verify)-([a-z0-9-]+)$/i),
+            value.match(/(?:^|\/)(?:setup|verify)-([a-z0-9-]+)\.sh\b/i),
+        ];
+
+        for (const match of patterns) {
+            const overlayId = match?.[1];
+            if (!overlayId || !knownOverlays.has(overlayId) || detections.has(overlayId)) {
+                continue;
+            }
+
+            detections.set(overlayId, {
+                source: `command: ${key}`,
+                overlayId,
+                confidence: 'heuristic',
+                sourceType: 'script',
+            });
+        }
+    }
+
+    return Array.from(detections.values());
+}
+
+function analyseCommands(
+    devcontainer: any,
+    overlaysConfig: OverlaysConfig
+): { detections: DetectionResult[] } {
+    return {
+        detections: [
+            ...findOverlayIdsInCommandMap(devcontainer.postCreateCommand, overlaysConfig),
+            ...findOverlayIdsInCommandMap(devcontainer.postStartCommand, overlaysConfig),
+        ],
+    };
+}
+
+function loadJsonFile<T>(filePath: string, fallback: T): T {
+    if (!fs.existsSync(filePath)) {
+        return fallback;
+    }
+
+    try {
+        return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
+    } catch {
+        return fallback;
+    }
+}
+
+function loadYamlFile<T>(filePath: string, fallback: T): T {
+    if (!fs.existsSync(filePath)) {
+        return fallback;
+    }
+
+    try {
+        return (yaml.load(fs.readFileSync(filePath, 'utf8')) as T) ?? fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+function inferBaseImageSelection(
+    devcontainer: any,
+    composePaths: string[],
+    overlaysConfig: OverlaysConfig,
+    stack: 'plain' | 'compose'
+): Pick<ProjectConfigSelection, 'baseImage' | 'customImage'> {
+    let image: string | undefined;
+
+    if (stack === 'compose') {
+        for (const composePath of composePaths) {
+            const compose = loadYamlFile<any>(composePath, {});
+            const composeImage = compose?.services?.devcontainer?.image;
+            if (typeof composeImage === 'string' && composeImage.trim() !== '') {
+                image = composeImage.trim();
+                break;
+            }
+        }
+    } else if (typeof devcontainer?.image === 'string' && devcontainer.image.trim() !== '') {
+        image = devcontainer.image.trim();
+    }
+
+    if (!image) {
+        return { baseImage: 'bookworm' };
+    }
+
+    const matchedBaseImage = overlaysConfig.base_images.find((entry) => entry.image === image);
+    if (matchedBaseImage && matchedBaseImage.id !== 'custom') {
+        return { baseImage: matchedBaseImage.id as ProjectConfigSelection['baseImage'] };
+    }
+
+    return { baseImage: 'custom', customImage: image };
+}
+
+function addGeneratedOverlayCommands(
+    config: DevContainer,
+    overlayIds: string[],
+    overlaysDir: string
+): DevContainer {
+    const nextConfig: DevContainer = { ...config };
+
+    const setupOverlays = overlayIds.filter((overlayId) =>
+        fs.existsSync(path.join(overlaysDir, overlayId, 'setup.sh'))
+    );
+    const verifyOverlays = overlayIds.filter((overlayId) =>
+        fs.existsSync(path.join(overlaysDir, overlayId, 'verify.sh'))
+    );
+
+    if (setupOverlays.length > 0) {
+        const postCreate =
+            nextConfig.postCreateCommand &&
+            typeof nextConfig.postCreateCommand === 'object' &&
+            !Array.isArray(nextConfig.postCreateCommand)
+                ? { ...nextConfig.postCreateCommand }
+                : {};
+
+        for (const overlayId of setupOverlays) {
+            postCreate[`setup-${overlayId}`] = `bash .devcontainer/scripts/setup-${overlayId}.sh`;
+        }
+
+        nextConfig.postCreateCommand = postCreate;
+    }
+
+    if (verifyOverlays.length > 0) {
+        const postStart =
+            nextConfig.postStartCommand &&
+            typeof nextConfig.postStartCommand === 'object' &&
+            !Array.isArray(nextConfig.postStartCommand)
+                ? { ...nextConfig.postStartCommand }
+                : {};
+
+        for (const overlayId of verifyOverlays) {
+            postStart[`verify-${overlayId}`] = `bash .devcontainer/scripts/verify-${overlayId}.sh`;
+        }
+
+        nextConfig.postStartCommand = postStart;
+    }
+
+    return nextConfig;
+}
+
+function buildExpectedDevcontainerConfig(
+    stack: 'plain' | 'compose',
+    overlayIds: string[],
+    overlaysDir: string
+): DevContainer {
+    const templatePath = path.join(TEMPLATES_DIR, stack, '.devcontainer', 'devcontainer.json');
+    let config = loadJsonFile<DevContainer>(templatePath, {});
+
+    for (const overlayId of overlayIds) {
+        config = applyOverlay(config, overlayId, overlaysDir);
+    }
+
+    return addGeneratedOverlayCommands(config, overlayIds, overlaysDir);
+}
+
+function buildExpectedComposeConfig(
+    overlayIds: string[],
+    overlaysDir: string,
+    baseImageSelection: Pick<ProjectConfigSelection, 'baseImage' | 'customImage'>,
+    overlaysConfig: OverlaysConfig
+): Record<string, any> {
+    const templatePath = path.join(TEMPLATES_DIR, 'compose', '.devcontainer', 'docker-compose.yml');
+    let composeConfig = loadYamlFile<Record<string, any>>(templatePath, {});
+
+    for (const overlayId of overlayIds) {
+        const overlayComposePath = path.join(overlaysDir, overlayId, 'docker-compose.yml');
+        if (!fs.existsSync(overlayComposePath)) {
+            continue;
+        }
+        composeConfig = deepMerge(
+            composeConfig,
+            loadYamlFile<Record<string, any>>(overlayComposePath, {})
+        );
+    }
+
+    const image =
+        baseImageSelection.baseImage === 'custom'
+            ? baseImageSelection.customImage
+            : overlaysConfig.base_images.find((entry) => entry.id === baseImageSelection.baseImage)
+                  ?.image;
+
+    if (image) {
+        composeConfig = {
+            ...composeConfig,
+            services: {
+                ...(composeConfig.services ?? {}),
+                devcontainer: {
+                    ...(composeConfig.services?.devcontainer ?? {}),
+                    image,
+                },
+            },
+        };
+    }
+
+    return composeConfig;
+}
+
+function isPlainObject(value: unknown): value is Record<string, any> {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function deepClone<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function subtractDefaults(actual: unknown, expected: unknown): unknown {
+    if (actual === undefined) {
+        return undefined;
+    }
+
+    if (expected === undefined) {
+        return deepClone(actual);
+    }
+
+    if (Array.isArray(actual)) {
+        if (!Array.isArray(expected)) {
+            return deepClone(actual);
+        }
+
+        const filtered = actual.filter(
+            (item) =>
+                !expected.some(
+                    (expectedItem: unknown) => JSON.stringify(expectedItem) === JSON.stringify(item)
+                )
+        );
+        return filtered.length > 0 ? filtered : undefined;
+    }
+
+    if (isPlainObject(actual)) {
+        if (!isPlainObject(expected)) {
+            return deepClone(actual);
+        }
+
+        const result: Record<string, any> = {};
+        for (const [key, value] of Object.entries(actual)) {
+            const diff = subtractDefaults(value, expected[key]);
+            if (
+                diff !== undefined &&
+                (!isPlainObject(diff) ||
+                    Object.keys(diff).length > 0 ||
+                    expected[key] === undefined) &&
+                (!Array.isArray(diff) || diff.length > 0)
+            ) {
+                result[key] = diff;
+            }
+        }
+
+        return Object.keys(result).length > 0 ? result : undefined;
+    }
+
+    return actual === expected ? undefined : actual;
 }
 
 /**
@@ -481,81 +820,155 @@ function buildSuggestedCommand(
     return parts.join(' ');
 }
 
+function categorizeOverlayIds(
+    overlayIds: string[],
+    overlaysConfig: OverlaysConfig
+): Omit<ProjectConfigSelection, 'stack' | 'baseImage' | 'outputPath'> {
+    const selection: Omit<ProjectConfigSelection, 'stack' | 'baseImage' | 'outputPath'> = {};
+
+    for (const id of overlayIds) {
+        const overlay = overlaysConfig.overlays.find((entry) => entry.id === id);
+        if (!overlay) continue;
+
+        switch (overlay.category) {
+            case 'language':
+                selection.language = [...(selection.language ?? []), id as any];
+                break;
+            case 'database':
+                selection.database = [...(selection.database ?? []), id as any];
+                break;
+            case 'observability':
+                selection.observability = [...(selection.observability ?? []), id as any];
+                break;
+            case 'cloud':
+                selection.cloudTools = [...(selection.cloudTools ?? []), id as any];
+                break;
+            case 'dev':
+                selection.devTools = [...(selection.devTools ?? []), id as any];
+                break;
+        }
+    }
+
+    return selection;
+}
+
+function toProjectRelativePath(targetPath: string, projectRoot: string): string {
+    const relativePath = path.relative(projectRoot, targetPath).split(path.sep).join('/');
+    if (relativePath === '' || relativePath === '.') {
+        return './';
+    }
+    if (relativePath.startsWith('./') || relativePath.startsWith('../')) {
+        return relativePath;
+    }
+    return `./${relativePath}`;
+}
+
+function buildProjectConfigSelection(
+    analysis: AnalysisResult,
+    overlaysConfig: OverlaysConfig,
+    projectRoot: string,
+    absoluteDir: string,
+    devcontainer: any
+): ProjectConfigSelection {
+    const composePaths = resolveComposePaths(devcontainer, absoluteDir);
+    const baseImageSelection = inferBaseImageSelection(
+        devcontainer,
+        composePaths,
+        overlaysConfig,
+        analysis.suggestedStack
+    );
+    const selection: ProjectConfigSelection = {
+        stack: analysis.suggestedStack,
+        baseImage: baseImageSelection.baseImage,
+        customImage: baseImageSelection.customImage,
+        outputPath: toProjectRelativePath(absoluteDir, projectRoot),
+        containerName:
+            typeof devcontainer?.name === 'string' && devcontainer.name.trim() !== ''
+                ? devcontainer.name.trim()
+                : undefined,
+        ...categorizeOverlayIds(analysis.suggestedOverlays, overlaysConfig),
+    };
+
+    if (analysis.customDevcontainerPatch || analysis.customComposePatch) {
+        selection.customizations = {
+            devcontainerPatch: analysis.customDevcontainerPatch ?? undefined,
+            dockerComposePatch: analysis.customComposePatch ?? undefined,
+        };
+    }
+
+    return selection;
+}
+
 function buildCustomDevcontainerPatch(
     devcontainer: any,
-    unmatchedFeatures: Record<string, any>,
-    unmatchedExtensions: string[],
-    unmatchedRemoteEnv: Record<string, string>
+    expectedConfig: DevContainer
 ): Record<string, any> | null {
-    const patch: Record<string, any> = {};
+    const candidatePatch: Record<string, any> = {};
 
-    if (Object.keys(unmatchedFeatures).length > 0) {
-        patch.features = unmatchedFeatures;
+    if (devcontainer.features) {
+        candidatePatch.features = devcontainer.features;
     }
-
-    // Preserve all customizations, merging unmatched extensions into vscode.extensions.
-    // Other customizations fields (e.g. vscode.settings, jetbrains, ...) are carried through
-    // verbatim so the migration is lossless.
-    const originalCustomizations =
-        devcontainer.customizations && typeof devcontainer.customizations === 'object'
-            ? devcontainer.customizations
-            : null;
-
-    if (unmatchedExtensions.length > 0 || originalCustomizations) {
-        const customizationsPatch: Record<string, any> = originalCustomizations
-            ? { ...originalCustomizations }
-            : {};
-
-        if (unmatchedExtensions.length > 0) {
-            const originalVscode =
-                originalCustomizations?.vscode && typeof originalCustomizations.vscode === 'object'
-                    ? { ...originalCustomizations.vscode }
-                    : {};
-            const originalExtensions: string[] = Array.isArray(originalVscode.extensions)
-                ? originalVscode.extensions
-                : [];
-            // Order: existing extensions first so load order is preserved, then new unmatched ones
-            const mergedExtensions = Array.from(
-                new Set([...originalExtensions, ...unmatchedExtensions])
-            );
-            customizationsPatch.vscode = {
-                ...originalVscode,
-                extensions: mergedExtensions,
-            };
-        }
-
-        if (Object.keys(customizationsPatch).length > 0) {
-            patch.customizations = customizationsPatch;
-        }
+    if (devcontainer.customizations) {
+        candidatePatch.customizations = devcontainer.customizations;
     }
-
     if (Array.isArray(devcontainer.mounts) && devcontainer.mounts.length > 0) {
-        patch.mounts = devcontainer.mounts;
+        candidatePatch.mounts = devcontainer.mounts;
     }
-    if (devcontainer.remoteUser && devcontainer.remoteUser !== 'vscode') {
-        patch.remoteUser = devcontainer.remoteUser;
+    if (devcontainer.remoteUser) {
+        candidatePatch.remoteUser = devcontainer.remoteUser;
     }
-    // Lifecycle commands — included as-is; the user should review the custom/
-    // patch and remove anything that is already handled by overlay setup scripts.
     if (devcontainer.postCreateCommand) {
-        patch.postCreateCommand = devcontainer.postCreateCommand;
+        candidatePatch.postCreateCommand = devcontainer.postCreateCommand;
     }
     if (devcontainer.postStartCommand) {
-        patch.postStartCommand = devcontainer.postStartCommand;
+        candidatePatch.postStartCommand = devcontainer.postStartCommand;
     }
-    // Preserve remoteEnv keys not matched to any overlay so the migration is lossless.
-    if (Object.keys(unmatchedRemoteEnv).length > 0) {
-        patch.remoteEnv = unmatchedRemoteEnv;
+    if (devcontainer.remoteEnv) {
+        candidatePatch.remoteEnv = devcontainer.remoteEnv;
     }
 
-    return Object.keys(patch).length > 0 ? patch : null;
+    const expectedPatch: Record<string, any> = {};
+    if (expectedConfig.features) {
+        expectedPatch.features = expectedConfig.features;
+    }
+    if (expectedConfig.customizations) {
+        expectedPatch.customizations = expectedConfig.customizations;
+    }
+    if (expectedConfig.mounts) {
+        expectedPatch.mounts = expectedConfig.mounts;
+    }
+    if (expectedConfig.remoteUser) {
+        expectedPatch.remoteUser = expectedConfig.remoteUser;
+    }
+    if (expectedConfig.postCreateCommand) {
+        expectedPatch.postCreateCommand = expectedConfig.postCreateCommand;
+    }
+    if (expectedConfig.postStartCommand) {
+        expectedPatch.postStartCommand = expectedConfig.postStartCommand;
+    }
+    if (expectedConfig.remoteEnv) {
+        expectedPatch.remoteEnv = expectedConfig.remoteEnv;
+    }
+
+    const patch = subtractDefaults(candidatePatch, expectedPatch) as
+        | Record<string, any>
+        | undefined;
+    return patch && Object.keys(patch).length > 0 ? patch : null;
 }
 
 function buildCustomComposePatch(
-    unmatchedServices: Record<string, any>
+    unmatchedServices: Record<string, any>,
+    expectedCompose: Record<string, any>
 ): Record<string, any> | null {
     if (Object.keys(unmatchedServices).length === 0) return null;
-    return { services: unmatchedServices };
+
+    const candidatePatch = { services: unmatchedServices };
+    const expectedPatch = { services: expectedCompose.services ?? {} };
+    const patch = subtractDefaults(candidatePatch, expectedPatch) as
+        | Record<string, any>
+        | undefined;
+
+    return patch?.services && Object.keys(patch.services).length > 0 ? patch : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -565,7 +978,8 @@ function buildCustomComposePatch(
 export function analyseDevcontainer(
     dir: string,
     overlaysConfig: OverlaysConfig,
-    tables: DetectionTables
+    tables: DetectionTables,
+    overlaysDir: string
 ): AnalysisResult {
     const devcontainerPath = path.join(dir, 'devcontainer.json');
 
@@ -584,12 +998,14 @@ export function analyseDevcontainer(
     const composeResult = analyseDockerCompose(composePaths, tables);
     const extensionResult = analyseExtensions(devcontainer, tables);
     const remoteEnvResult = analyseRemoteEnv(devcontainer, tables);
+    const commandResult = analyseCommands(devcontainer, overlaysConfig);
 
     const detections = deduplicateDetections([
         ...featureResult.detections,
         ...composeResult.detections,
         ...extensionResult.detections,
         ...remoteEnvResult.detections,
+        ...commandResult.detections,
     ]);
 
     const hasDockerCompose = composePaths.length > 0;
@@ -608,47 +1024,101 @@ export function analyseDevcontainer(
         overlaysConfig
     );
 
-    // Unmatched item descriptions for display / JSON
+    const baseImageSelection = inferBaseImageSelection(
+        devcontainer,
+        composePaths,
+        overlaysConfig,
+        suggestedStack
+    );
+    const expectedDevcontainerConfig = buildExpectedDevcontainerConfig(
+        suggestedStack,
+        suggestedOverlays,
+        overlaysDir
+    );
+    const expectedComposeConfig =
+        suggestedStack === 'compose'
+            ? buildExpectedComposeConfig(
+                  suggestedOverlays,
+                  overlaysDir,
+                  baseImageSelection,
+                  overlaysConfig
+              )
+            : {};
+
+    const customDevcontainerPatch = buildCustomDevcontainerPatch(
+        devcontainer,
+        expectedDevcontainerConfig
+    );
+    const customComposePatch = buildCustomComposePatch(
+        composeResult.unmatchedServices,
+        expectedComposeConfig
+    );
     const unmatchedItems: UnmatchedItem[] = [];
-    for (const fid of Object.keys(featureResult.unmatchedFeatures)) {
+
+    for (const featureId of Object.keys(customDevcontainerPatch?.features ?? {})) {
         unmatchedItems.push({
-            source: fid,
+            source: featureId,
             reason: 'No overlay covers this feature — preserve in custom/devcontainer.patch.json',
         });
     }
-    for (const [name, def] of Object.entries(composeResult.unmatchedServices)) {
-        const image = (def as any)?.image ?? '(no image)';
+
+    const preservedExtensions = customDevcontainerPatch?.customizations?.vscode?.extensions ?? [];
+    for (const extensionId of preservedExtensions) {
         unmatchedItems.push({
-            source: `service: ${name} (image: ${image})`,
-            reason: 'No overlay covers this service — preserve in custom/docker-compose.patch.yml',
-        });
-    }
-    for (const extId of extensionResult.unmatchedExtensions) {
-        unmatchedItems.push({
-            source: `extension: ${extId}`,
+            source: `extension: ${extensionId}`,
             reason: 'No overlay installs this extension — preserve in custom/devcontainer.patch.json',
         });
     }
-    if (Array.isArray(devcontainer.mounts) && devcontainer.mounts.length > 0) {
+
+    if (
+        Array.isArray(customDevcontainerPatch?.mounts) &&
+        customDevcontainerPatch.mounts.length > 0
+    ) {
         unmatchedItems.push({
-            source: `mounts (${devcontainer.mounts.length} mount(s))`,
+            source: `mounts (${customDevcontainerPatch.mounts.length} mount(s))`,
             reason: 'Custom mounts are not managed by overlays — preserve in custom/devcontainer.patch.json',
         });
     }
-    if (devcontainer.remoteUser && devcontainer.remoteUser !== 'vscode') {
+
+    if (customDevcontainerPatch?.remoteUser) {
         unmatchedItems.push({
-            source: `remoteUser: ${devcontainer.remoteUser}`,
+            source: `remoteUser: ${customDevcontainerPatch.remoteUser}`,
             reason: 'Custom remote user — preserve in custom/devcontainer.patch.json',
         });
     }
 
-    const customDevcontainerPatch = buildCustomDevcontainerPatch(
-        devcontainer,
-        featureResult.unmatchedFeatures,
-        extensionResult.unmatchedExtensions,
-        remoteEnvResult.unmatchedRemoteEnv
-    );
-    const customComposePatch = buildCustomComposePatch(composeResult.unmatchedServices);
+    for (const [key] of Object.entries(customDevcontainerPatch?.remoteEnv ?? {})) {
+        unmatchedItems.push({
+            source: `remoteEnv: ${key}`,
+            reason: 'Custom environment variable — preserve in custom/devcontainer.patch.json',
+        });
+    }
+
+    for (const [key] of Object.entries(
+        normalizeCommandMap(customDevcontainerPatch?.postCreateCommand)?.entries ?? {}
+    )) {
+        unmatchedItems.push({
+            source: `postCreateCommand: ${key}`,
+            reason: 'Custom lifecycle command — preserve in custom/devcontainer.patch.json',
+        });
+    }
+
+    for (const [key] of Object.entries(
+        normalizeCommandMap(customDevcontainerPatch?.postStartCommand)?.entries ?? {}
+    )) {
+        unmatchedItems.push({
+            source: `postStartCommand: ${key}`,
+            reason: 'Custom lifecycle command — preserve in custom/devcontainer.patch.json',
+        });
+    }
+
+    for (const [serviceName, serviceDef] of Object.entries(customComposePatch?.services ?? {})) {
+        const image = (serviceDef as any)?.image ?? '(no image)';
+        unmatchedItems.push({
+            source: `service: ${serviceName} (image: ${image})`,
+            reason: 'No overlay covers this service — preserve in custom/docker-compose.patch.yml',
+        });
+    }
 
     return {
         detections,
@@ -738,7 +1208,7 @@ export async function adoptCommand(
     const tables = buildDetectionTables(overlaysDir, overlaysConfig);
 
     // ── Analyse ────────────────────────────────────────────────────────────
-    const analysis = analyseDevcontainer(absoluteDir, overlaysConfig, tables);
+    const analysis = analyseDevcontainer(absoluteDir, overlaysConfig, tables, overlaysDir);
 
     // ── JSON output (no decoration) ────────────────────────────────────────
     if (options.json) {
@@ -842,16 +1312,33 @@ export async function adoptCommand(
     }
 
     // ── Guard: existing files ──────────────────────────────────────────────
-    // superposition.json goes to the project root (parent of .devcontainer/) so it
-    // can be committed alongside application code, matching the team workflow pattern.
+    // superposition.json and optional project config go to the project root
+    // (parent of .devcontainer/) so they can be committed alongside app code.
     const projectRoot = path.dirname(absoluteDir);
     const manifestPath = path.join(projectRoot, 'superposition.json');
     const customDir = path.join(absoluteDir, 'custom');
     const customPatchPath = path.join(customDir, 'devcontainer.patch.json');
     const customComposePath = path.join(customDir, 'docker-compose.patch.yml');
+    const discoveredProjectFiles = options.projectFile ? findProjectConfig(projectRoot) : [];
+
+    if (discoveredProjectFiles.length > 1) {
+        console.error(
+            chalk.red(
+                `✗ Found both supported project config files in ${projectRoot}. Keep only one before using --project-file.`
+            )
+        );
+        process.exit(1);
+    }
+
+    const projectFilePath = options.projectFile
+        ? (discoveredProjectFiles[0]?.path ?? path.join(projectRoot, '.superposition.yml'))
+        : null;
 
     const existingFiles: string[] = [];
     if (fs.existsSync(manifestPath)) existingFiles.push(path.relative(process.cwd(), manifestPath));
+    if (projectFilePath && fs.existsSync(projectFilePath)) {
+        existingFiles.push(path.relative(process.cwd(), projectFilePath));
+    }
     if (analysis.customDevcontainerPatch && fs.existsSync(customPatchPath))
         existingFiles.push(path.relative(process.cwd(), customPatchPath));
     if (analysis.customComposePatch && fs.existsSync(customComposePath))
@@ -871,10 +1358,19 @@ export async function adoptCommand(
 
     // ── Prompt ────────────────────────────────────────────────────────────
     const hasCustomFiles = analysis.customDevcontainerPatch || analysis.customComposePatch;
+    const projectSelection = projectFilePath
+        ? buildProjectConfigSelection(
+              analysis,
+              overlaysConfig,
+              projectRoot,
+              absoluteDir,
+              devcontainer
+          )
+        : null;
     let confirmed: boolean;
     try {
         confirmed = await confirm({
-            message: `Generate superposition.json${hasCustomFiles ? ' and custom/ patch files' : ''} from these suggestions?`,
+            message: `Generate superposition.json${projectFilePath ? ', project config' : ''}${hasCustomFiles ? ', and custom/ patch files' : ''} from these suggestions?`,
             default: true,
         });
     } catch {
@@ -927,6 +1423,7 @@ export async function adoptCommand(
         baseTemplate: analysis.suggestedStack,
         baseImage: 'bookworm',
         overlays: analysis.suggestedOverlays,
+        containerName: projectSelection?.containerName,
     };
 
     try {
@@ -935,6 +1432,16 @@ export async function adoptCommand(
     } catch (err) {
         console.error(chalk.red('✗ Failed to write superposition.json:'), err);
         process.exit(1);
+    }
+
+    if (projectFilePath && projectSelection) {
+        try {
+            writeProjectConfig(projectFilePath, projectSelection);
+            console.log(chalk.green(`✓ Written ${path.relative(process.cwd(), projectFilePath)}`));
+        } catch (err) {
+            console.error(chalk.red('✗ Failed to write project config:'), err);
+            process.exit(1);
+        }
     }
 
     // ── Write custom patches ───────────────────────────────────────────────

@@ -455,6 +455,89 @@ function withSchemaFirst(
     return rest;
 }
 
+function hasKeys(value: Record<string, any> | undefined): boolean {
+    return Boolean(value) && Object.keys(value as Record<string, any>).length > 0;
+}
+
+function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<string, any> {
+    const document: Record<string, any> = {};
+
+    if (selection.stack) document.stack = selection.stack;
+    if (selection.baseImage) document.baseImage = selection.baseImage;
+    if (selection.customImage) document.customImage = selection.customImage;
+    if (selection.containerName) document.containerName = selection.containerName;
+    if (selection.preset) document.preset = selection.preset;
+    if (hasKeys(selection.presetChoices)) document.presetChoices = selection.presetChoices;
+    if (selection.language?.length) document.language = selection.language;
+    if (selection.database?.length) document.database = selection.database;
+    if (selection.observability?.length) document.observability = selection.observability;
+    if (selection.cloudTools?.length) document.cloudTools = selection.cloudTools;
+    if (selection.devTools?.length) document.devTools = selection.devTools;
+    if (selection.playwright !== undefined) document.playwright = selection.playwright;
+    if (selection.outputPath) document.outputPath = selection.outputPath;
+    if (selection.portOffset !== undefined) document.portOffset = selection.portOffset;
+    if (selection.target) document.target = selection.target;
+    if (selection.minimal !== undefined) document.minimal = selection.minimal;
+    if (selection.editor) document.editor = selection.editor;
+
+    if (selection.customizations) {
+        const customizations: Record<string, any> = {};
+
+        if (selection.customizations.devcontainerPatch) {
+            customizations.devcontainerPatch = withSchemaFirst(
+                selection.customizations.devcontainerPatch
+            );
+        }
+
+        if (hasKeys(selection.customizations.dockerComposePatch)) {
+            customizations.dockerComposePatch = selection.customizations.dockerComposePatch;
+        }
+
+        if (hasKeys(selection.customizations.environment)) {
+            customizations.environment = selection.customizations.environment;
+        }
+
+        if (selection.customizations.scripts?.postCreate?.length) {
+            customizations.scripts = {
+                ...(customizations.scripts ?? {}),
+                postCreate: selection.customizations.scripts.postCreate,
+            };
+        }
+
+        if (selection.customizations.scripts?.postStart?.length) {
+            customizations.scripts = {
+                ...(customizations.scripts ?? {}),
+                postStart: selection.customizations.scripts.postStart,
+            };
+        }
+
+        if (selection.customizations.files?.length) {
+            customizations.files = selection.customizations.files;
+        }
+
+        if (Object.keys(customizations).length > 0) {
+            document.customizations = customizations;
+        }
+    }
+
+    return document;
+}
+
+export function serializeProjectConfig(selection: ProjectConfigSelection): string {
+    return (
+        yaml.dump(buildProjectConfigDocument(selection), {
+            lineWidth: 120,
+            noRefs: true,
+            sortKeys: false,
+        }) + '\n'
+    );
+}
+
+export function writeProjectConfig(filePath: string, selection: ProjectConfigSelection): void {
+    ensureDirectory(path.dirname(filePath));
+    fs.writeFileSync(filePath, serializeProjectConfig(selection), 'utf8');
+}
+
 export function writeProjectConfigCustomizations(
     outputPath: string,
     customizations?: ProjectConfigCustomizationsInput

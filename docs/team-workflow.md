@@ -44,6 +44,9 @@ npx container-superposition adopt --dry-run
 
 # Run the adoption (writes superposition.json and custom/ patches)
 npx container-superposition adopt
+
+# Or also emit a repository-root project file for project-config workflows
+npx container-superposition adopt --project-file
 ```
 
 `adopt` reads every feature URI, VS Code extension, and Docker Compose service
@@ -54,7 +57,10 @@ mounts, unmatched environment variables, …) is written to
 
 `superposition.json` is written to the **project root** (not inside
 `.devcontainer/`), so it can be committed alongside your application code and
-shared with the rest of the team — matching the standard team workflow.
+shared with the rest of the team — matching the standard team workflow. If you
+pass `--project-file`, `adopt` also writes a repository-root `.superposition.yml`
+using the same inferred stack, overlays, output path, and supported
+customizations.
 
 See the [Adopt Command guide](adopt.md) for full details.
 

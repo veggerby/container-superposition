@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Adopt project-file output** — `adopt --project-file` now writes a repository-root project config alongside the manifest
+    - Reuses an existing `.superposition.yml` or `superposition.yml` when present to avoid dual-file ambiguity
+    - Carries inferred output path, container name, overlay selections, and supported customizations into the generated project file
+
 ## [0.1.5] - 2026-03-11
 
 ### Added

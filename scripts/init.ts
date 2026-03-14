@@ -1487,6 +1487,10 @@ async function parseCliArgs(): Promise<{
         )
         .option('--no-backup', 'Disable backup creation even when it would normally be performed')
         .option('--backup-dir <path>', 'Custom backup directory location')
+        .option(
+            '--project-file',
+            'Also write a repository-root project config (.superposition.yml or existing project file)'
+        )
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();

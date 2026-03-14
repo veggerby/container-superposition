@@ -29,6 +29,7 @@ A project maintainer defines the desired development environment in a single rep
 
 1. **Given** a repository with a valid project config file in its root that defines stack, overlay selections, output location, and supported customization settings, **When** a maintainer runs the generation flow from that repository root, **Then** the tool uses those values as the starting configuration for generation.
 2. **Given** a repository with a committed project config file, **When** a teammate clones the repository and runs the same generation flow from a fresh checkout, **Then** they receive the same effective project setup without needing the original author’s shell history or copied command examples.
+3. **Given** a repository with an existing hand-crafted `.devcontainer/`, **When** a maintainer runs `adopt --project-file`, **Then** the tool writes a repository-root project config that captures the inferred stack, overlay selections, output path, and supported customization inputs from the adopted setup.
 
 ---
 
@@ -72,6 +73,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 - How does the system handle supported customizations such as environment settings, custom container definitions, or additional generated features? Those values are treated as first-class generation inputs and must round-trip through the project config file without being dropped.
 - How does the system handle unsupported overlay IDs, invalid categories, or conflicting selections in the project config file? It fails validation before generation and explains the invalid entries.
 - How does the system handle both `.superposition.yml` and `superposition.yml` in one repository? It treats this as an error to avoid ambiguity.
+- How does the system handle `adopt --project-file` when a repository already contains a supported project config file? It reuses that file path, and it must still stop on dual-file ambiguity so the source of truth stays deterministic.
 
 ## Requirements _(mandatory)_
 
@@ -96,6 +98,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 - **FR-017**: The system MUST allow `init --no-interactive` and `regen` to use the repository project file implicitly when a valid project config file exists and no other persisted-input source flag or clean-generation selection flags are supplied.
 - **FR-018**: The system MUST reject conflicting persisted-input source combinations before generation, including `--from-project` with `--from-manifest` and either source-selection mode combined with clean-generation selection flags such as stack, overlay, or preset selection.
 - **FR-019**: The system MUST document how teams create, commit, validate, and use the project config file in local development, regeneration, and automation workflows, including how parity with clean generation applies to supported customization inputs and how source-selection conflicts are resolved.
+- **FR-020**: The system MUST allow `adopt --project-file` to write a repository-root project config that represents the inferred adopted setup using the same supported declaration surface as other project-config workflows.
 
 ### Key Entities _(include if feature involves data)_
 
