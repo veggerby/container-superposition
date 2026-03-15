@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Adopt project-file output** — `adopt --project-file` now writes a repository-root project config alongside the manifest
     - Reuses an existing `.superposition.yml` or `superposition.yml` when present to avoid dual-file ambiguity
     - Carries inferred output path, container name, overlay selections, and supported customizations into the generated project file
+- **Project-root selection for persisted input** — `init` and `regen` now accept `--project-root <path>`
+    - Lets you load a repository project file or discover a manifest from another directory without changing shells first
+    - Relative output paths from the selected project file continue to resolve from that repository root
 
 ## [0.1.5] - 2026-03-11
 

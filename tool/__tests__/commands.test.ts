@@ -1413,6 +1413,38 @@ describe('Command Tests', () => {
             }
         });
 
+        it('should support --project-root for explicit project-file runs', () => {
+            const workspaceDir = fs.mkdtempSync(
+                path.join(os.tmpdir(), 'project-config-root-work-')
+            );
+            const repoDir = path.join(workspaceDir, 'repo');
+            fs.mkdirSync(repoDir, { recursive: true });
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                        outputPath: './generated-from-project-root',
+                    })
+                );
+
+                runInitCli(
+                    ['init', '--from-project', '--project-root', repoDir, '--no-interactive'],
+                    workspaceDir
+                );
+
+                expect(
+                    fs.existsSync(
+                        path.join(repoDir, 'generated-from-project-root', 'superposition.json')
+                    )
+                ).toBe(true);
+            } finally {
+                fs.rmSync(workspaceDir, { recursive: true, force: true });
+            }
+        });
+
         it('should treat non-interactive init from project file as replay mode', () => {
             const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-replay-'));
 
@@ -1469,6 +1501,37 @@ describe('Command Tests', () => {
                 expect(manifest.overlays).toContain('nodejs');
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should let regen use a project file from --project-root', () => {
+            const workspaceDir = fs.mkdtempSync(
+                path.join(os.tmpdir(), 'project-config-root-regen-')
+            );
+            const repoDir = path.join(workspaceDir, 'repo');
+            fs.mkdirSync(repoDir, { recursive: true });
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        language: ['nodejs'],
+                        outputPath: './regen-from-project-root',
+                    })
+                );
+
+                runInitCli(['regen', '--project-root', repoDir], workspaceDir);
+
+                const manifest = JSON.parse(
+                    fs.readFileSync(
+                        path.join(repoDir, 'regen-from-project-root', 'superposition.json'),
+                        'utf8'
+                    )
+                );
+                expect(manifest.overlays).toContain('nodejs');
+            } finally {
+                fs.rmSync(workspaceDir, { recursive: true, force: true });
             }
         });
 

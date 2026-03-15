@@ -65,6 +65,7 @@ npx container-superposition plan --from-manifest .devcontainer/superposition.jso
 
 - `init` — generate or modify a devcontainer, optionally starting from a project file or manifest
 - `regen` — deterministically replay the repository project file or a manifest
+    - Add `--project-root <path>` to resolve persisted input from a different repository root
 - `adopt` — migrate an existing `.devcontainer/` to the overlay-based workflow, optionally emitting a repository-root project file
 - `list` — browse overlays
 - `explain` — overlay details

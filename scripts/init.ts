@@ -1279,6 +1279,7 @@ async function parseCliArgs(): Promise<{
     config: Partial<QuestionnaireAnswers>;
     manifestPath?: string;
     fromProject?: boolean;
+    projectRoot?: string;
     backupOverride?: boolean;
     backupDir?: string;
     yes?: boolean;
@@ -1300,6 +1301,10 @@ async function parseCliArgs(): Promise<{
         .command('init', { isDefault: true })
         .description('Initialize a new devcontainer configuration')
         .option('--from-project', 'Load configuration from the repository project file')
+        .option(
+            '--project-root <path>',
+            'Run project-file and manifest discovery relative to a different repository root'
+        )
         .option(
             '--from-manifest <path>',
             'Load configuration from existing superposition.json manifest'
@@ -1372,6 +1377,10 @@ async function parseCliArgs(): Promise<{
             'Regenerate devcontainer from a project file or existing superposition.json manifest'
         )
         .option('--from-project', 'Load configuration from the repository project file')
+        .option(
+            '--project-root <path>',
+            'Run project-file and manifest discovery relative to a different repository root'
+        )
         .option(
             '--from-manifest <path>',
             'Load configuration from existing superposition.json manifest'
@@ -1669,6 +1678,7 @@ async function parseCliArgs(): Promise<{
         config,
         manifestPath: initOptions.fromManifest,
         fromProject: initOptions.fromProject === true,
+        projectRoot: initOptions.projectRoot,
         backupOverride: initOptions.backup, // undefined = auto-detect; true = --backup; false = --no-backup
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
@@ -1679,6 +1689,26 @@ async function parseCliArgs(): Promise<{
 async function main() {
     try {
         const cliArgs = await parseCliArgs();
+        const initialCwd = process.cwd();
+
+        if (cliArgs?.projectRoot) {
+            const resolvedProjectRoot = path.resolve(initialCwd, cliArgs.projectRoot);
+
+            if (!fs.existsSync(resolvedProjectRoot)) {
+                console.error(chalk.red(`✗ Project root not found: ${resolvedProjectRoot}`));
+                process.exit(1);
+            }
+
+            if (!fs.statSync(resolvedProjectRoot).isDirectory()) {
+                console.error(
+                    chalk.red(`✗ Project root is not a directory: ${resolvedProjectRoot}`)
+                );
+                process.exit(1);
+            }
+
+            process.chdir(resolvedProjectRoot);
+        }
+
         let projectConfig = undefined;
         let projectConfigAnswers: Partial<QuestionnaireAnswers> | undefined;
 
