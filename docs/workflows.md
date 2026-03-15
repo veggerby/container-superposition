@@ -68,6 +68,9 @@ npx container-superposition regen
 # Or select the project file explicitly
 npx container-superposition regen --from-project
 
+# Or run from another directory while targeting a repository root
+npx container-superposition regen --from-project --project-root ../my-project
+
 # Falls back to manifest discovery when no project file exists
 npx container-superposition regen
 ```

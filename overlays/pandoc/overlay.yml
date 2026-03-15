@@ -1,0 +1,19 @@
+id: pandoc
+name: Pandoc PDF
+description: Pandoc with XeLaTeX, Mermaid diagrams, and quality fonts for Markdown-to-PDF export
+category: dev
+supports: []
+requires: []
+suggests:
+    - nodejs
+conflicts: []
+tags:
+    - dev
+    - pandoc
+    - pdf
+    - latex
+    - markdown
+    - docs
+    - mermaid
+ports: []
+order: 25
