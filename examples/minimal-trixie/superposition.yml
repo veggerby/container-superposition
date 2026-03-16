@@ -1,0 +1,8 @@
+stack: plain
+baseImage: trixie
+devTools:
+    - codex
+customizations:
+    devcontainerPatch:
+        mounts:
+            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=${containerEnv:HOME}/.codex,type=bind,consistency=cached

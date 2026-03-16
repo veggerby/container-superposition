@@ -19,8 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`pandoc` overlay on Debian trixie** — Setup now resolves the correct Carlito font package name at install time
-    - Prevents post-create failure when the distro exposes `fonts-crosextra-carlito` instead of `fonts-carlito`
 - **`cross-distro-packages` feature** — Package declarations can now use fallback names like `pkgA|pkgB`
     - Allows overlays such as `pandoc` to handle Debian-vs-Ubuntu package-name differences without embedding apt-specific detection logic in setup scripts
 
@@ -30,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project-root selection for persisted input** — `init` and `regen` now accept `--project-root <path>`
     - Lets you load a repository project file or discover a manifest from another directory without changing shells first
     - Relative output paths from the selected project file continue to resolve from that repository root
+- **`minimal-trixie` example** — Lightweight project-file-driven example using Debian Trixie with Codex and a `~/.codex` host mount
+- **`kitchen-sink` example** — Comprehensive reference example exercising every `superposition.yml` field: preset with parameter choices, additional overlays, port offset, deployment target, editor profile, and the full customizations block (patches, environment, scripts, files)
 
 ## [0.1.5] - 2026-03-11
 
