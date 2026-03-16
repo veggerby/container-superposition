@@ -18,10 +18,12 @@ else
 fi
 
 # Check pip is installed
+# Use `python3 -m pip` instead of calling pip3 directly — the wrapper script
+# inside a .venv has a shebang that can point to a stale interpreter path.
 echo ""
 echo "2️⃣ Checking pip..."
-if command -v pip3 &> /dev/null; then
-    pip3 --version
+if python3 -m pip --version &> /dev/null; then
+    python3 -m pip --version
     echo "   ✅ pip found"
 else
     echo "   ❌ pip not found"

@@ -1,6 +1,6 @@
 id: mkdocs2
 name: MkDocs 2
-description: MkDocs 2.x with Material theme — modern documentation generator
+description: MkDocs 2.0 pre-release (encode/mkdocs) — smart, simple website design tool
 category: dev
 supports: []
 requires:

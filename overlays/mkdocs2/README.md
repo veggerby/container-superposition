@@ -1,16 +1,17 @@
 # MkDocs 2 Overlay
 
-MkDocs 2.x with Material theme — modern documentation generator.
+MkDocs 2.0 pre-release from [encode/mkdocs](https://github.com/encode/mkdocs) — a smart, simple website design tool by Tom Christie.
+
+> **Pre-release notice:** MkDocs 2.0 is installed from the `encode/mkdocs` git repository. There is no PyPI release yet. This is a complete rewrite of the original MkDocs project — it is **not** backward-compatible with MkDocs 1.x.
 
 ## Features
 
-- **MkDocs 2.x** — documentation generator (2.x release series)
-- **Material for MkDocs** — polished, feature-rich theme (`mkdocs-material>=9.x`)
-- **Common MkDocs plugins:**
-    - `mkdocs-minify-plugin` — HTML/CSS/JS minification
-    - `mkdocs-redirects` — Page redirect support
-    - `pymdown-extensions` — Extended Markdown syntax
-- **Python dependency** — Automatically includes the Python overlay (required)
+- **MkDocs 2.0** — complete rewrite with modern architecture
+- **TOML configuration** — uses `mkdocs.toml` instead of `mkdocs.yml`
+- **Built-in theming** — custom theme system (does not use Material for MkDocs)
+- **GitHub Flavored Markdown** — native GFM support
+- **pymdown-extensions** — extended Markdown syntax included
+- **Python dependency** — automatically includes the Python overlay (required)
 - **VS Code Extensions:**
     - Markdown All in One
     - Markdown Lint
@@ -19,14 +20,10 @@ MkDocs 2.x with Material theme — modern documentation generator.
 
 ## How It Works
 
-The overlay's `setup.sh` script installs MkDocs 2.x and its plugins via `pip`
-into the workspace virtual environment (`.venv`) created by the Python overlay.
-This gives precise version control over each package and avoids the limitations
-of the older `ghcr.io/devcontainers-extra/features/mkdocs:2` feature used by
-the legacy `mkdocs` overlay.
-
-MkDocs is then available on the workspace `PATH` through the activated virtual
-environment.
+The overlay's `setup.sh` script installs MkDocs 2.0 directly from the
+[encode/mkdocs](https://github.com/encode/mkdocs) GitHub repository via
+`pip install git+https://github.com/encode/mkdocs.git` into the workspace
+virtual environment (`.venv`) created by the Python overlay.
 
 ## Dependencies
 
@@ -38,131 +35,76 @@ environment.
 ### New Documentation Site
 
 ```bash
-# Create new MkDocs project
-mkdocs new .
-
-# Start development server (opens at http://localhost:8000)
+# Create a README.md and start the dev server
+echo "# My Docs" > README.md
 mkdocs serve
+# Opens at http://localhost:8000
 ```
 
-### Existing Site
+### Build Static Site
 
 ```bash
-# Start development server
-mkdocs serve
-
-# Build static site (output in site/)
 mkdocs build
 ```
 
-## MkDocs Configuration
+## Configuration
 
-### Basic `mkdocs.yml`
+MkDocs 2.0 uses `mkdocs.toml` (not the 1.x `mkdocs.yml`):
 
-```yaml
-site_name: My Documentation
-theme:
-    name: material
-    palette:
-        scheme: default
-        primary: indigo
-        accent: indigo
-    features:
-        - navigation.sections
-        - navigation.expand
-        - toc.integrate
+```toml
+[mkdocs]
+nav = [
+    {path = "README.md", title = "Introduction"},
+    {path = "guide.md", title = "Guide"},
+    {path = "CREDITS.md", title = "Credits"},
+]
 
-nav:
-    - Home: index.md
-    - About: about.md
+[loaders]
+theme = "pkg://mkdocs/default"
+docs = "dir://docs"
 
-markdown_extensions:
-    - pymdownx.highlight:
-          anchor_linenums: true
-    - pymdownx.superfences
-    - pymdownx.tabbed:
-          alternate_style: true
-    - admonition
-    - attr_list
+[context]
+title = "Documentation"
+favicon = "📘"
 ```
 
-### Common Plugins
+### Page Structure
 
-```yaml
-plugins:
-    - search
-    - minify:
-          minify_html: true
-    - redirects:
-          redirect_maps:
-              'old-page.md': 'new-page.md'
+Use either `README.md` or `index.md` for the homepage. Place additional pages in a `docs/` directory:
+
 ```
+my-project/
+├── mkdocs.toml
+├── README.md
+├── docs/
+│   ├── guide.md
+│   └── reference.md
+└── site/           # Built output (git-ignored)
+```
+
+## Key Differences from MkDocs 1.x
+
+| Feature        | MkDocs 1.x (`mkdocs` overlay) | MkDocs 2.0 (`mkdocs2` overlay) |
+| -------------- | ----------------------------- | ------------------------------ |
+| Config file    | `mkdocs.yml`                  | `mkdocs.toml`                  |
+| Theme          | Material for MkDocs           | Built-in themes                |
+| Plugin system  | `mkdocs-plugins` ecosystem    | New architecture               |
+| Install source | PyPI / devcontainer feature   | `encode/mkdocs` git repo       |
+| Markdown       | Standard + extensions         | GitHub Flavored Markdown       |
+| Status         | Stable (1.6.1)                | Pre-release (2.0)              |
 
 ## Common Commands
-
-### Development
 
 ```bash
 # Start live-reloading dev server
 mkdocs serve
 
-# Serve on a different address/port
-mkdocs serve --dev-addr 0.0.0.0:8001
-
-# Build site without serving
+# Build static site
 mkdocs build
 
-# Build with verbose output
-mkdocs build --verbose
-
-# Remove site/ before building
-mkdocs build --clean
+# Serve on a different port
+mkdocs serve --dev-addr 0.0.0.0:8001
 ```
-
-### Project Management
-
-```bash
-# Create a new docs project in the current directory
-mkdocs new .
-
-# Check for configuration errors
-mkdocs build --strict
-```
-
-### Deployment
-
-```bash
-# Deploy to GitHub Pages
-mkdocs gh-deploy
-
-# Deploy with a custom message
-mkdocs gh-deploy -m "docs: update for v2.1"
-```
-
-## Adding More Plugins
-
-Install additional plugins inside the virtual environment:
-
-```bash
-pip install mkdocs-git-revision-date-localized-plugin
-pip install mkdocs-awesome-pages-plugin
-pip install mkdocs-macros-plugin
-```
-
-Or add them to your project's `requirements.txt` and rebuild the container.
-
-## Use Cases
-
-- **Project documentation** — rich developer docs alongside source code
-- **API reference sites** — combine mkdocs with mkdocstrings for Python autodoc
-- **Knowledge bases** — internal wikis with full-text search
-- **Static documentation sites** — deploy to GitHub Pages, Netlify, Cloudflare Pages
-
-**Integrates well with:**
-
-- `pre-commit` — lint Markdown before commits
-- `git-helpers` — Git workflow utilities
-- `modern-cli-tools` — ripgrep for searching docs
 
 ## Troubleshooting
 
@@ -175,31 +117,19 @@ source .venv/bin/activate
 mkdocs --version
 ```
 
-Or rebuild the container after ensuring the Python overlay is selected.
-
-### Module not found after adding a plugin
-
-Install the plugin inside the virtual environment and rebuild the container:
-
-```bash
-pip install mkdocs-<plugin-name>
-```
-
 ### Port 8000 already in use
 
-Change the port via `mkdocs serve --dev-addr 0.0.0.0:8001` or update
-`devcontainer.json` `forwardPorts` and `portsAttributes` accordingly.
+Use a different port: `mkdocs serve --dev-addr 0.0.0.0:8001`
 
 ## References
 
-- [MkDocs Documentation](https://www.mkdocs.org/)
-- [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
-- [PyMdown Extensions](https://facelessuser.github.io/pymdown-extensions/)
-- [MkDocs Plugins Catalog](https://github.com/mkdocs/catalog)
+- [encode/mkdocs on GitHub](https://github.com/encode/mkdocs)
+- [MkDocs 2.0 writing guide](https://github.com/encode/mkdocs/blob/main/docs/writing.md)
+- [MkDocs 2.0 navigation docs](https://github.com/encode/mkdocs/blob/main/docs/navigation.md)
+- [MkDocs 2.0 styling docs](https://github.com/encode/mkdocs/blob/main/docs/styling.md)
 
 **Related Overlays:**
 
 - `python` — required Python runtime
 - `mkdocs` — legacy MkDocs 1.x overlay (conflicts with this overlay)
-- `pre-commit` — lint Markdown before commits
 - `pandoc` — convert Markdown to PDF

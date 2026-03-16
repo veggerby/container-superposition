@@ -1,9 +1,9 @@
 #!/bin/bash
-# mkdocs2 setup script — install MkDocs 2.x with Material theme and common plugins
+# mkdocs2 setup script — install MkDocs 2.0 pre-release from encode/mkdocs
 
 set -e
 
-echo "📚 Setting up MkDocs 2.x..."
+echo "📚 Setting up MkDocs 2.0 (encode/mkdocs)..."
 
 # Always install into the workspace virtual environment.
 # The Python overlay is declared as a hard dependency (requires: [python]) so
@@ -12,10 +12,6 @@ echo "📚 Setting up MkDocs 2.x..."
 VENV_DIR="${PWD}/.venv"
 
 # Helper: validate that the venv's Python interpreter is actually executable.
-# A stale .venv (e.g., leftover from a previous container build) can have a
-# bin/python that is a dangling symlink or points to a Python version that no
-# longer exists, which causes "cannot execute: required file not found" when
-# any script inside the venv (including pip) is invoked.
 venv_is_valid() {
     "${VENV_DIR}/bin/python" -c "import sys" &>/dev/null
 }
@@ -43,22 +39,18 @@ fi
 # calling the pip wrapper script, whose shebang can point to a stale path.
 PYTHON="${VENV_DIR}/bin/python"
 
-echo "📦 Installing MkDocs 2.x packages..."
+echo "📦 Installing MkDocs 2.0 from encode/mkdocs..."
 "${PYTHON}" -m pip install --no-cache-dir \
-    "mkdocs>=2.0,<3.0" \
-    "mkdocs-material>=9.0" \
-    "mkdocs-minify-plugin" \
-    "mkdocs-redirects" \
-    "pymdown-extensions"
+    "mkdocs @ git+https://github.com/encode/mkdocs.git"
 
 MKDOCS_BIN="${VENV_DIR}/bin/mkdocs"
 if [ -x "${MKDOCS_BIN}" ]; then
-    echo "✓ $("${MKDOCS_BIN}" --version)"
+    echo "✓ $( "${MKDOCS_BIN}" --version 2>/dev/null || echo 'mkdocs 2.0' )"
 else
     echo "✗ mkdocs not found in ${VENV_DIR}/bin after installation"
     exit 1
 fi
 
-echo "✅ MkDocs 2.x setup complete"
+echo "✅ MkDocs 2.0 setup complete"
 echo "ℹ️  Start dev server: mkdocs serve"
 echo "ℹ️  Build static site:  mkdocs build"

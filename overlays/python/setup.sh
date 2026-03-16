@@ -56,33 +56,33 @@ echo "✓ pip, setuptools, and wheel upgraded"
 # Install overlay-specific packages (if requirements-overlay.txt exists)
 if [ -f ".devcontainer/requirements-overlay-${OVERLAY_NAME}.txt" ]; then
     echo "📦 Installing overlay packages from requirements-overlay-${OVERLAY_NAME}.txt..."
-    pip install -r ".devcontainer/requirements-overlay-${OVERLAY_NAME}.txt"
+    "${PYTHON}" -m pip install -r ".devcontainer/requirements-overlay-${OVERLAY_NAME}.txt"
     echo "✓ Overlay packages installed"
 fi
 
 # Install from root requirements.txt (project production dependencies)
 if [ -f "requirements.txt" ]; then
     echo "📦 Installing dependencies from requirements.txt..."
-    pip install -r requirements.txt
+    "${PYTHON}" -m pip install -r requirements.txt
     echo "✓ Dependencies installed from requirements.txt"
 fi
 
 # Install from requirements-dev.txt (project development dependencies)
 if [ -f "requirements-dev.txt" ]; then
     echo "📦 Installing dev dependencies from requirements-dev.txt..."
-    pip install -r requirements-dev.txt
+    "${PYTHON}" -m pip install -r requirements-dev.txt
     echo "✓ Dev dependencies installed from requirements-dev.txt"
 fi
 
 # Install project in editable mode if pyproject.toml exists (modern Python projects)
 if [ -f "pyproject.toml" ]; then
     echo "📦 Found pyproject.toml, installing project in editable mode..."
-    pip install -e .
+    "${PYTHON}" -m pip install -e .
     echo "✓ Project installed in editable mode"
 elif [ -f "setup.py" ]; then
     # Fallback for legacy Python projects
     echo "📦 Found setup.py, installing project in editable mode..."
-    pip install -e .
+    "${PYTHON}" -m pip install -e .
     echo "✓ Project installed in editable mode"
 fi
 

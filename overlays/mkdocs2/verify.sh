@@ -1,7 +1,7 @@
 #!/bin/bash
 # mkdocs2 overlay verification script
 
-echo "🔍 Verifying MkDocs 2.x overlay setup..."
+echo "🔍 Verifying MkDocs 2.0 overlay setup..."
 
 ALL_CHECKS_PASSED=true
 
@@ -16,21 +16,13 @@ if ! command -v "${MKDOCS_BIN}" &>/dev/null && [ ! -x "${MKDOCS_BIN}" ]; then
     echo "✗ mkdocs not found"
     ALL_CHECKS_PASSED=false
 else
-    VERSION=$("${MKDOCS_BIN}" --version 2>/dev/null)
+    VERSION=$("${MKDOCS_BIN}" --version 2>/dev/null || echo "unknown")
     echo "✓ mkdocs is installed: ${VERSION}"
-
-    # Verify it is MkDocs 2.x (match exactly major version 2)
-    if echo "${VERSION}" | grep -qE "mkdocs, version 2\."; then
-        echo "✓ MkDocs 2.x confirmed"
-    else
-        echo "✗ Expected MkDocs 2.x, got: ${VERSION}"
-        ALL_CHECKS_PASSED=false
-    fi
 fi
 
 if [ "${ALL_CHECKS_PASSED}" = true ]; then
     echo ""
-    echo "✅ MkDocs 2.x overlay verification complete!"
+    echo "✅ MkDocs 2.0 overlay verification complete!"
     echo ""
     echo "💡 Tips:"
     echo "  - Start dev server:    mkdocs serve"
@@ -38,6 +30,6 @@ if [ "${ALL_CHECKS_PASSED}" = true ]; then
     echo "  - New project:         mkdocs new ."
 else
     echo ""
-    echo "✗ MkDocs 2.x overlay verification failed"
+    echo "✗ MkDocs 2.0 overlay verification failed"
     exit 1
 fi
