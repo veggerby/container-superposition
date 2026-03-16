@@ -14,6 +14,7 @@ import yaml from 'js-yaml';
 import { confirm } from '@inquirer/prompts';
 import type {
     DevContainer,
+    OverlayId,
     OverlaysConfig,
     ProjectConfigSelection,
     SuperpositionManifest,
@@ -820,38 +821,6 @@ function buildSuggestedCommand(
     return parts.join(' ');
 }
 
-function categorizeOverlayIds(
-    overlayIds: string[],
-    overlaysConfig: OverlaysConfig
-): Omit<ProjectConfigSelection, 'stack' | 'baseImage' | 'outputPath'> {
-    const selection: Omit<ProjectConfigSelection, 'stack' | 'baseImage' | 'outputPath'> = {};
-
-    for (const id of overlayIds) {
-        const overlay = overlaysConfig.overlays.find((entry) => entry.id === id);
-        if (!overlay) continue;
-
-        switch (overlay.category) {
-            case 'language':
-                selection.language = [...(selection.language ?? []), id as any];
-                break;
-            case 'database':
-                selection.database = [...(selection.database ?? []), id as any];
-                break;
-            case 'observability':
-                selection.observability = [...(selection.observability ?? []), id as any];
-                break;
-            case 'cloud':
-                selection.cloudTools = [...(selection.cloudTools ?? []), id as any];
-                break;
-            case 'dev':
-                selection.devTools = [...(selection.devTools ?? []), id as any];
-                break;
-        }
-    }
-
-    return selection;
-}
-
 function toProjectRelativePath(targetPath: string, projectRoot: string): string {
     const relativePath = path.relative(projectRoot, targetPath).split(path.sep).join('/');
     if (relativePath === '' || relativePath === '.') {
@@ -886,7 +855,7 @@ function buildProjectConfigSelection(
             typeof devcontainer?.name === 'string' && devcontainer.name.trim() !== ''
                 ? devcontainer.name.trim()
                 : undefined,
-        ...categorizeOverlayIds(analysis.suggestedOverlays, overlaysConfig),
+        overlays: analysis.suggestedOverlays as OverlayId[],
     };
 
     if (analysis.customDevcontainerPatch || analysis.customComposePatch) {

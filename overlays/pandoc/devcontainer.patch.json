@@ -2,7 +2,7 @@
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
     "features": {
         "./features/cross-distro-packages": {
-            "apt": "texlive-xetex texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra texlive-lang-european fonts-carlito|fonts-crosextra-carlito fonts-noto fonts-noto-extra fonts-noto-mono fonts-jetbrains-mono fontconfig perl chromium",
+            "apt": "texlive-xetex texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra texlive-lang-european lmodern fonts-carlito|fonts-crosextra-carlito fonts-noto fonts-noto-extra fonts-noto-mono fonts-jetbrains-mono fontconfig perl chromium",
             "apk": "fontconfig perl chromium"
         }
     },

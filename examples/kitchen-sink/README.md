@@ -39,22 +39,19 @@ A comprehensive project file that exercises every configuration option supported
 
 ## Project File Fields Reference
 
-| Field            | Value                                    | Purpose                                |
-| ---------------- | ---------------------------------------- | -------------------------------------- |
-| `stack`          | `compose`                                | Docker Compose orchestration           |
-| `baseImage`      | `trixie`                                 | Debian Trixie base                     |
-| `containerName`  | `kitchen-sink`                           | Dev container display name             |
-| `preset`         | `web-api`                                | Start from the Web API preset          |
-| `presetChoices`  | `language: nodejs`, etc.                 | Pre-fill preset parameter prompts      |
-| `database`       | `[mongodb]`                              | Additional databases beyond the preset |
-| `cloudTools`     | `[aws-cli]`                              | Cloud CLI tools                        |
-| `devTools`       | `[codex, git-helpers, modern-cli-tools]` | Development tooling                    |
-| `playwright`     | `true`                                   | Browser automation                     |
-| `portOffset`     | `100`                                    | Shift all ports by +100                |
-| `target`         | `local`                                  | Deployment target                      |
-| `minimal`        | `false`                                  | Include optional overlays              |
-| `editor`         | `vscode`                                 | VS Code customizations                 |
-| `customizations` | _(see below)_                            | Patches, env, scripts, files           |
+| Field            | Value                            | Purpose                               |
+| ---------------- | -------------------------------- | ------------------------------------- |
+| `stack`          | `compose`                        | Docker Compose orchestration          |
+| `baseImage`      | `trixie`                         | Debian Trixie base                    |
+| `containerName`  | `kitchen-sink`                   | Dev container display name            |
+| `preset`         | `web-api`                        | Start from the Web API preset         |
+| `presetChoices`  | `language: nodejs`, etc.         | Pre-fill preset parameter prompts     |
+| `overlays`       | `[mongodb, aws-cli, codex, ...]` | Additional overlays beyond the preset |
+| `portOffset`     | `100`                            | Shift all ports by +100               |
+| `target`         | `local`                          | Deployment target                     |
+| `minimal`        | `false`                          | Include optional overlays             |
+| `editor`         | `vscode`                         | VS Code customizations                |
+| `customizations` | _(see below)_                    | Patches, env, scripts, files          |
 
 ### Customizations Breakdown
 

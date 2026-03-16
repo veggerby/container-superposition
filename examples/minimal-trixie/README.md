@@ -63,15 +63,15 @@ The entire configuration lives in a single `superposition.yml`:
 ```yaml
 stack: plain
 baseImage: trixie
-devTools:
+overlays:
     - codex
 customizations:
     devcontainerPatch:
         mounts:
-            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=${containerEnv:HOME}/.codex,type=bind,consistency=cached
+            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached
 ```
 
-The `customizations.devcontainerPatch` section adds a bind mount that maps `~/.codex` from the host into the container, so your API keys and Codex configuration persist across container rebuilds.
+The `customizations.devcontainerPatch` section adds a bind mount that maps `~/.codex` from the host into the container, so your API keys and Codex configuration persist across container rebuilds. The target uses `/home/vscode/.codex` because `${containerEnv:HOME}` cannot be resolved at mount time.
 
 ## When to Use This
 
@@ -86,15 +86,14 @@ Extend the project file to add capabilities:
 ```yaml
 stack: plain
 baseImage: trixie
-language:
+overlays:
     - nodejs
-devTools:
     - codex
     - git-helpers
 customizations:
     devcontainerPatch:
         mounts:
-            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=${containerEnv:HOME}/.codex,type=bind,consistency=cached
+            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached
 ```
 
 Then regenerate:

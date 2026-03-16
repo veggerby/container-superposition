@@ -10,6 +10,7 @@ import type {
     DevTool,
     EditorProfile,
     LanguageOverlay,
+    OverlayId,
     OverlayMetadata,
     ObservabilityTool,
     OverlaysConfig,
@@ -134,11 +135,14 @@ function buildCategoryLookup(overlaysConfig: OverlaysConfig) {
     );
 
     return {
+        overlayById,
         language: (value: string) => overlayById.get(value)?.category === 'language',
         database: (value: string) => overlayById.get(value)?.category === 'database',
         observability: (value: string) => overlayById.get(value)?.category === 'observability',
         cloudTools: (value: string) => overlayById.get(value)?.category === 'cloud',
         devTools: (value: string) => overlayById.get(value)?.category === 'dev',
+        isKnownOverlay: (value: string) =>
+            overlayById.has(value) && overlayById.get(value)?.category !== 'preset',
     };
 }
 
@@ -164,6 +168,109 @@ function expectOverlayArray<T extends string>(
     }
 
     return parsed as T[];
+}
+
+/**
+ * Collect overlay IDs from all category arrays and the flat overlays list,
+ * returning a deduplicated flat array. Category arrays are treated as backward-
+ * compatible sugar — internally everything is a flat list of overlay IDs.
+ */
+function aggregateOverlays(
+    document: Record<string, any>,
+    lookup: ReturnType<typeof buildCategoryLookup>
+): OverlayId[] | undefined {
+    const ids: string[] = [];
+
+    // Flat overlays field (preferred)
+    const flat = expectOverlayArray<string>(document.overlays, 'overlays', lookup.isKnownOverlay);
+    if (flat) ids.push(...flat);
+
+    // Category arrays (backward-compatible sugar)
+    const language = expectOverlayArray<string>(document.language, 'language', lookup.language);
+    if (language) ids.push(...language);
+    const database = expectOverlayArray<string>(document.database, 'database', lookup.database);
+    if (database) ids.push(...database);
+    const observability = expectOverlayArray<string>(
+        document.observability,
+        'observability',
+        lookup.observability
+    );
+    if (observability) ids.push(...observability);
+    const cloudTools = expectOverlayArray<string>(
+        document.cloudTools,
+        'cloudTools',
+        lookup.cloudTools
+    );
+    if (cloudTools) ids.push(...cloudTools);
+    const devTools = expectOverlayArray<string>(document.devTools, 'devTools', lookup.devTools);
+    if (devTools) ids.push(...devTools);
+
+    // playwright boolean maps to an overlay
+    const playwright = expectOptionalBoolean(document.playwright, 'playwright');
+    if (playwright) ids.push('playwright');
+
+    if (ids.length === 0) return undefined;
+    return [...new Set(ids)] as OverlayId[];
+}
+
+/**
+ * Distribute a flat overlay list into the category arrays expected by
+ * QuestionnaireAnswers. This is the only place where category knowledge matters.
+ */
+function distributeOverlaysToAnswers(
+    overlays: OverlayId[] | undefined,
+    overlaysConfig: OverlaysConfig
+): Pick<
+    Partial<QuestionnaireAnswers>,
+    'language' | 'database' | 'observability' | 'cloudTools' | 'devTools' | 'playwright'
+> {
+    if (!overlays?.length) return {};
+
+    const overlayById = new Map<string, OverlayMetadata>(
+        overlaysConfig.overlays.map((o) => [o.id, o])
+    );
+
+    const language: LanguageOverlay[] = [];
+    const database: DatabaseOverlay[] = [];
+    const observability: ObservabilityTool[] = [];
+    const cloudTools: CloudTool[] = [];
+    const devTools: DevTool[] = [];
+    let playwright = false;
+
+    for (const id of overlays) {
+        if (id === 'playwright') {
+            playwright = true;
+            continue;
+        }
+        const meta = overlayById.get(id);
+        if (!meta) continue;
+        switch (meta.category) {
+            case 'language':
+                language.push(id as LanguageOverlay);
+                break;
+            case 'database':
+                database.push(id as DatabaseOverlay);
+                break;
+            case 'observability':
+                observability.push(id as ObservabilityTool);
+                break;
+            case 'cloud':
+                cloudTools.push(id as CloudTool);
+                break;
+            case 'dev':
+                devTools.push(id as DevTool);
+                break;
+        }
+    }
+
+    return {
+        language: language.length > 0 ? language : undefined,
+        database: database.length > 0 ? database : undefined,
+        observability: observability.length > 0 ? observability : undefined,
+        cloudTools: cloudTools.length > 0 ? cloudTools : undefined,
+        devTools: devTools.length > 0 ? devTools : undefined,
+        playwright,
+    };
 }
 
 function parsePresetChoices(value: unknown): Record<string, string> | undefined {
@@ -319,6 +426,7 @@ export function loadProjectConfig(
         'containerName',
         'preset',
         'presetChoices',
+        'overlays',
         'language',
         'database',
         'observability',
@@ -341,6 +449,10 @@ export function loadProjectConfig(
     }
 
     const lookup = buildCategoryLookup(overlaysConfig);
+
+    // Aggregate flat overlays + category arrays into a single canonical list
+    const overlays = aggregateOverlays(document, lookup);
+
     const selection: ProjectConfigSelection = {
         stack: expectOptionalEnum(document.stack, 'stack', STACK_VALUES),
         baseImage: expectOptionalEnum(document.baseImage, 'baseImage', BASE_IMAGE_VALUES),
@@ -348,28 +460,7 @@ export function loadProjectConfig(
         containerName: expectOptionalString(document.containerName, 'containerName'),
         preset: expectOptionalString(document.preset, 'preset'),
         presetChoices: parsePresetChoices(document.presetChoices),
-        language: expectOverlayArray<LanguageOverlay>(
-            document.language,
-            'language',
-            lookup.language
-        ),
-        database: expectOverlayArray<DatabaseOverlay>(
-            document.database,
-            'database',
-            lookup.database
-        ),
-        observability: expectOverlayArray<ObservabilityTool>(
-            document.observability,
-            'observability',
-            lookup.observability
-        ),
-        cloudTools: expectOverlayArray<CloudTool>(
-            document.cloudTools,
-            'cloudTools',
-            lookup.cloudTools
-        ),
-        devTools: expectOverlayArray<DevTool>(document.devTools, 'devTools', lookup.devTools),
-        playwright: expectOptionalBoolean(document.playwright, 'playwright'),
+        overlays,
         outputPath: expectOptionalString(document.outputPath, 'outputPath'),
         portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
         target: expectOptionalEnum(document.target, 'target', TARGET_VALUES),
@@ -396,7 +487,8 @@ export function loadProjectConfig(
 }
 
 export function buildAnswersFromProjectConfig(
-    selection: ProjectConfigSelection
+    selection: ProjectConfigSelection,
+    overlaysConfig: OverlaysConfig
 ): Partial<QuestionnaireAnswers> {
     return {
         stack: selection.stack,
@@ -405,12 +497,7 @@ export function buildAnswersFromProjectConfig(
         containerName: selection.containerName,
         preset: selection.preset,
         presetChoices: selection.presetChoices,
-        language: selection.language,
-        database: selection.database,
-        observability: selection.observability,
-        cloudTools: selection.cloudTools,
-        devTools: selection.devTools,
-        playwright: selection.playwright,
+        ...distributeOverlaysToAnswers(selection.overlays, overlaysConfig),
         outputPath: selection.outputPath,
         portOffset: selection.portOffset,
         target: selection.target,
@@ -468,12 +555,7 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.containerName) document.containerName = selection.containerName;
     if (selection.preset) document.preset = selection.preset;
     if (hasKeys(selection.presetChoices)) document.presetChoices = selection.presetChoices;
-    if (selection.language?.length) document.language = selection.language;
-    if (selection.database?.length) document.database = selection.database;
-    if (selection.observability?.length) document.observability = selection.observability;
-    if (selection.cloudTools?.length) document.cloudTools = selection.cloudTools;
-    if (selection.devTools?.length) document.devTools = selection.devTools;
-    if (selection.playwright !== undefined) document.playwright = selection.playwright;
+    if (selection.overlays?.length) document.overlays = selection.overlays;
     if (selection.outputPath) document.outputPath = selection.outputPath;
     if (selection.portOffset !== undefined) document.portOffset = selection.portOffset;
     if (selection.target) document.target = selection.target;

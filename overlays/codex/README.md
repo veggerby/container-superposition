@@ -104,7 +104,7 @@ Then add this mount to your `devcontainer.json`:
 
 ```json
 "mounts": [
-  "source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=${containerEnv:HOME}/.codex,type=bind,consistency=cached"
+  "source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
 ]
 ```
 

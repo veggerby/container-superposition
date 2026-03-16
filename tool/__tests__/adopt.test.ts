@@ -586,7 +586,7 @@ describe('adoptCommand', () => {
             expect(loaded?.selection.baseImage).toBe('bookworm');
             expect(loaded?.selection.outputPath).toBe('./.devcontainer');
             expect(loaded?.selection.containerName).toBe('Adopted Workspace');
-            expect(loaded?.selection.language).toContain('nodejs');
+            expect(loaded?.selection.overlays).toContain('nodejs');
             expect(
                 loaded?.selection.customizations?.devcontainerPatch?.customizations?.vscode
                     ?.extensions
@@ -698,10 +698,10 @@ describe('adoptCommand', () => {
 
             const loaded = loadProjectConfig(overlaysConfig, tmpDir);
             expect(loaded?.selection.baseImage).toBe('trixie');
-            expect(loaded?.selection.language).toContain('nodejs');
-            expect(loaded?.selection.devTools).toContain('docker-sock');
-            expect(loaded?.selection.devTools).toContain('git-helpers');
-            expect(loaded?.selection.devTools).toContain('codex');
+            expect(loaded?.selection.overlays).toContain('nodejs');
+            expect(loaded?.selection.overlays).toContain('docker-sock');
+            expect(loaded?.selection.overlays).toContain('git-helpers');
+            expect(loaded?.selection.overlays).toContain('codex');
 
             expect(loaded?.selection.customizations?.devcontainerPatch?.features).toBeUndefined();
             expect(
@@ -754,7 +754,7 @@ describe('adoptCommand', () => {
 
             const loaded = loadProjectConfig(overlaysConfig, tmpDir);
             expect(loaded?.file.fileName).toBe('superposition.yml');
-            expect(loaded?.selection.language).toContain('nodejs');
+            expect(loaded?.selection.overlays).toContain('nodejs');
         });
 
         it('warns when a project file exists without --force', async () => {

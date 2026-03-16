@@ -10,15 +10,13 @@ presetChoices:
     broker: nats
     observability: full
 
-database:
+overlays:
     - mongodb
-cloudTools:
     - aws-cli
-devTools:
     - codex
     - git-helpers
     - modern-cli-tools
-playwright: true
+    - playwright
 
 portOffset: 100
 target: local
@@ -28,7 +26,7 @@ editor: vscode
 customizations:
     devcontainerPatch:
         mounts:
-            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=${containerEnv:HOME}/.codex,type=bind,consistency=cached
+            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached
         remoteEnv:
             APP_NAME: kitchen-sink
     dockerComposePatch:

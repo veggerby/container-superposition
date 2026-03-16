@@ -1,8 +1,8 @@
 stack: plain
 baseImage: trixie
-devTools:
+overlays:
     - codex
 customizations:
     devcontainerPatch:
         mounts:
-            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=${containerEnv:HOME}/.codex,type=bind,consistency=cached
+            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached

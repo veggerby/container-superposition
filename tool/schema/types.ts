@@ -20,6 +20,7 @@ export type LanguageOverlay =
     | 'go'
     | 'rust'
     | 'bun'
+    | 'jupyter'
     | 'powershell';
 export type DatabaseOverlay =
     | 'postgres'
@@ -28,6 +29,7 @@ export type DatabaseOverlay =
     | 'mysql'
     | 'sqlserver'
     | 'sqlite'
+    | 'duckdb'
     | 'minio'
     | 'rabbitmq'
     | 'redpanda'
@@ -36,7 +38,10 @@ export type CloudTool =
     | 'azure-cli'
     | 'aws-cli'
     | 'gcloud'
+    | 'cloudflared'
     | 'kubectl-helm'
+    | 'kind'
+    | 'localstack'
     | 'terraform'
     | 'pulumi';
 export type DevTool =
@@ -45,19 +50,41 @@ export type DevTool =
     | 'codex'
     | 'playwright'
     | 'git-helpers'
+    | 'grpc-tools'
+    | 'keycloak'
+    | 'mailpit'
     | 'pre-commit'
     | 'commitlint'
     | 'just'
     | 'direnv'
     | 'modern-cli-tools'
     | 'ngrok'
+    | 'openapi-tools'
+    | 'pandoc'
     | 'spec-kit'
+    | 'tilt'
     | 'claude-code'
     | 'gemini-cli'
     | 'amp'
     | 'windsurf-cli'
     | 'opencode';
-export type ObservabilityTool = 'otel-collector' | 'jaeger' | 'prometheus' | 'grafana' | 'loki';
+export type ObservabilityTool =
+    | 'alertmanager'
+    | 'otel-collector'
+    | 'otel-demo-nodejs'
+    | 'otel-demo-python'
+    | 'jaeger'
+    | 'prometheus'
+    | 'promtail'
+    | 'grafana'
+    | 'loki'
+    | 'tempo';
+
+/**
+ * Union of all overlay ID types — used for the flat `overlays` field
+ * in project config and anywhere an overlay ID is accepted regardless of category.
+ */
+export type OverlayId = LanguageOverlay | DatabaseOverlay | CloudTool | DevTool | ObservabilityTool;
 
 // Legacy type for backwards compatibility
 export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
@@ -378,12 +405,7 @@ export interface ProjectConfigSelection {
     containerName?: string;
     preset?: string;
     presetChoices?: Record<string, string>;
-    language?: LanguageOverlay[];
-    database?: DatabaseOverlay[];
-    observability?: ObservabilityTool[];
-    cloudTools?: CloudTool[];
-    devTools?: DevTool[];
-    playwright?: boolean;
+    overlays?: OverlayId[];
     outputPath?: string;
     portOffset?: number;
     target?: DeploymentTarget;

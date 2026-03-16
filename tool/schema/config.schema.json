@@ -34,6 +34,79 @@
             },
             "description": "Preset parameter choices keyed by parameter name"
         },
+        "overlays": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "alertmanager",
+                    "amp",
+                    "aws-cli",
+                    "azure-cli",
+                    "bun",
+                    "claude-code",
+                    "cloudflared",
+                    "codex",
+                    "commitlint",
+                    "direnv",
+                    "docker-in-docker",
+                    "docker-sock",
+                    "dotnet",
+                    "duckdb",
+                    "gcloud",
+                    "gemini-cli",
+                    "git-helpers",
+                    "go",
+                    "grafana",
+                    "grpc-tools",
+                    "jaeger",
+                    "java",
+                    "jupyter",
+                    "just",
+                    "keycloak",
+                    "kind",
+                    "kubectl-helm",
+                    "localstack",
+                    "loki",
+                    "mailpit",
+                    "minio",
+                    "mkdocs",
+                    "modern-cli-tools",
+                    "mongodb",
+                    "mysql",
+                    "nats",
+                    "ngrok",
+                    "nodejs",
+                    "openapi-tools",
+                    "opencode",
+                    "otel-collector",
+                    "otel-demo-nodejs",
+                    "otel-demo-python",
+                    "pandoc",
+                    "playwright",
+                    "postgres",
+                    "powershell",
+                    "pre-commit",
+                    "prometheus",
+                    "promtail",
+                    "pulumi",
+                    "python",
+                    "rabbitmq",
+                    "redis",
+                    "redpanda",
+                    "rust",
+                    "spec-kit",
+                    "sqlite",
+                    "sqlserver",
+                    "tempo",
+                    "terraform",
+                    "tilt",
+                    "windsurf-cli"
+                ]
+            },
+            "default": [],
+            "description": "Flat list of overlay IDs to include (preferred). Accepts any overlay regardless of category."
+        },
         "language": {
             "type": "array",
             "items": {
@@ -47,11 +120,12 @@
                     "go",
                     "rust",
                     "bun",
+                    "jupyter",
                     "powershell"
                 ]
             },
             "default": [],
-            "description": "Language/framework overlays"
+            "description": "Deprecated: use 'overlays' instead. Language/framework overlays (kept for backward compatibility)."
         },
         "database": {
             "type": "array",
@@ -64,6 +138,7 @@
                     "mysql",
                     "sqlserver",
                     "sqlite",
+                    "duckdb",
                     "minio",
                     "rabbitmq",
                     "redpanda",
@@ -71,21 +146,31 @@
                 ]
             },
             "default": [],
-            "description": "Database overlays"
+            "description": "Deprecated: use 'overlays' instead. Database overlays (kept for backward compatibility)."
         },
         "playwright": {
             "type": "boolean",
             "default": false,
-            "description": "Include Playwright for browser automation"
+            "description": "Deprecated: use 'overlays: [playwright]' instead. Include Playwright for browser automation (kept for backward compatibility)."
         },
         "cloudTools": {
             "type": "array",
             "items": {
                 "type": "string",
-                "enum": ["azure-cli", "aws-cli", "gcloud", "kubectl-helm", "terraform", "pulumi"]
+                "enum": [
+                    "azure-cli",
+                    "aws-cli",
+                    "gcloud",
+                    "cloudflared",
+                    "kubectl-helm",
+                    "kind",
+                    "localstack",
+                    "terraform",
+                    "pulumi"
+                ]
             },
             "default": [],
-            "description": "Cloud/orchestration tools to include"
+            "description": "Deprecated: use 'overlays' instead. Cloud/orchestration tools (kept for backward compatibility)."
         },
         "devTools": {
             "type": "array",
@@ -97,13 +182,19 @@
                     "codex",
                     "playwright",
                     "git-helpers",
+                    "grpc-tools",
+                    "keycloak",
+                    "mailpit",
                     "pre-commit",
                     "commitlint",
                     "just",
                     "direnv",
                     "modern-cli-tools",
                     "ngrok",
+                    "openapi-tools",
+                    "pandoc",
                     "spec-kit",
+                    "tilt",
                     "claude-code",
                     "gemini-cli",
                     "amp",
@@ -112,16 +203,27 @@
                 ]
             },
             "default": [],
-            "description": "Developer tooling overlays"
+            "description": "Deprecated: use 'overlays' instead. Developer tooling overlays (kept for backward compatibility)."
         },
         "observability": {
             "type": "array",
             "items": {
                 "type": "string",
-                "enum": ["otel-collector", "jaeger", "prometheus", "grafana", "loki"]
+                "enum": [
+                    "alertmanager",
+                    "otel-collector",
+                    "otel-demo-nodejs",
+                    "otel-demo-python",
+                    "jaeger",
+                    "prometheus",
+                    "promtail",
+                    "grafana",
+                    "loki",
+                    "tempo"
+                ]
             },
             "default": [],
-            "description": "Observability tools to include"
+            "description": "Deprecated: use 'overlays' instead. Observability tools (kept for backward compatibility)."
         },
         "portOffset": {
             "type": "number",

@@ -1713,11 +1713,11 @@ async function main() {
         let projectConfigAnswers: Partial<QuestionnaireAnswers> | undefined;
 
         if (!cliArgs?.manifestPath) {
-            projectConfig =
-                loadProjectConfig(loadOverlaysConfigWrapper(), process.cwd()) ?? undefined;
+            const overlaysConfigForProject = loadOverlaysConfigWrapper();
+            projectConfig = loadProjectConfig(overlaysConfigForProject, process.cwd()) ?? undefined;
             if (projectConfig) {
                 projectConfigAnswers = applyPresetSelections(
-                    buildAnswersFromProjectConfig(projectConfig.selection)
+                    buildAnswersFromProjectConfig(projectConfig.selection, overlaysConfigForProject)
                 );
             }
         }

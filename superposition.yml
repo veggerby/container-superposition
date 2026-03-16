@@ -1,9 +1,8 @@
 stack: plain
 baseImage: trixie
 containerName: Container Superposition
-language:
+overlays:
     - nodejs
-devTools:
     - codex
     - spec-kit
     - docker-sock

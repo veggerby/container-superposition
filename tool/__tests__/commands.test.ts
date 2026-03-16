@@ -1253,23 +1253,26 @@ describe('Command Tests', () => {
                 const loaded = loadProjectConfig(overlaysConfig, repoDir);
                 expect(loaded?.file.fileName).toBe('.superposition.yml');
                 expect(loaded?.selection.stack).toBe('compose');
-                expect(loaded?.selection.language).toEqual(['nodejs']);
-                expect(loaded?.selection.database).toEqual(['postgres']);
+                expect(loaded?.selection.overlays).toEqual(
+                    expect.arrayContaining(['nodejs', 'postgres'])
+                );
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }
         });
 
         it('should build questionnaire answers from project config', () => {
-            const answers = buildAnswersFromProjectConfig({
-                stack: 'compose',
-                baseImage: 'custom',
-                customImage: 'mcr.microsoft.com/devcontainers/base:ubuntu',
-                language: ['nodejs'],
-                devTools: ['docker-sock'],
-                minimal: true,
-                editor: 'none',
-            });
+            const answers = buildAnswersFromProjectConfig(
+                {
+                    stack: 'compose',
+                    baseImage: 'custom',
+                    customImage: 'mcr.microsoft.com/devcontainers/base:ubuntu',
+                    overlays: ['nodejs', 'docker-sock'],
+                    minimal: true,
+                    editor: 'none',
+                },
+                overlaysConfig
+            );
 
             expect(answers.stack).toBe('compose');
             expect(answers.baseImage).toBe('custom');
