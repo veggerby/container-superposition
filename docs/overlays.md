@@ -605,7 +605,7 @@ Email testing tool with web UI and SMTP server
 
 ### MkDocs 2 (`mkdocs2`)
 
-MkDocs 2.x with Material theme — modern documentation generator
+MkDocs 2.0 pre-release (encode/mkdocs) — smart, simple website design tool
 
 | Property      | Value                                      |
 | ------------- | ------------------------------------------ |
