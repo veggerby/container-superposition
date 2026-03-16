@@ -3,23 +3,7 @@
 
 set -e
 
-echo "📦 Installing TeX Live (XeLaTeX + fonts)..."
-sudo apt-get update -qq
-sudo apt-get install -y --no-install-recommends \
-    texlive-xetex \
-    texlive-fonts-recommended \
-    texlive-fonts-extra \
-    texlive-latex-extra \
-    texlive-lang-european \
-    fonts-carlito \
-    fonts-noto \
-    fonts-noto-extra \
-    fonts-noto-mono \
-    fonts-jetbrains-mono \
-    fontconfig \
-    perl \
-    chromium
-
+echo "📦 Refreshing font cache..."
 sudo fc-cache -fv
 
 echo "📦 Installing Pandoc (latest release)..."
@@ -50,7 +34,11 @@ if command -v npm &>/dev/null; then
   "args": ["--no-sandbox", "--disable-setuid-sandbox"]
 }
 EOF
-    echo "✓ mmdc $(mmdc --version 2>/dev/null || echo 'installed')"
+    if command -v mmdc >/dev/null 2>&1; then
+        echo "✓ Mermaid CLI installed: $(command -v mmdc)"
+    else
+        echo "⚠  Mermaid CLI install completed but mmdc is not on PATH yet"
+    fi
 else
     echo "⚠  Node.js not found — Mermaid CLI skipped. Add the nodejs overlay for diagram support."
 fi

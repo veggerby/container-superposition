@@ -6,7 +6,8 @@ Adds a complete Markdown → PDF pipeline to your devcontainer, powered by Pando
 
 - **Pandoc 3.x** — Latest release binary from GitHub (not the outdated apt version)
 - **TeX Live / XeLaTeX** — Full Unicode-capable PDF engine (`texlive-xetex`, `texlive-fonts-extra`, `texlive-latex-extra`)
-- **Quality fonts** — Carlito (body), JetBrains Mono (code), Noto Sans Symbols 2 (Unicode fallback) via apt packages
+- **Quality fonts** — Carlito (body), JetBrains Mono (code), Noto Sans Symbols 2 (Unicode fallback) via system packages
+    - Uses the `cross-distro-packages` feature with fallback package names for Carlito (`fonts-carlito|fonts-crosextra-carlito`)
 - **`diagram.lua`** — Lua filter from [pandoc-ext/diagram](https://github.com/pandoc-ext/diagram) for rendering code-block diagrams
 - **Mermaid CLI (`mmdc`)** — Installed when the `nodejs` overlay is present; skipped gracefully otherwise
 - **`~/.pandoc/pandoc.yaml`** — Ready-to-use defaults file (XeLaTeX engine, font settings, table tweaks)
@@ -14,7 +15,7 @@ Adds a complete Markdown → PDF pipeline to your devcontainer, powered by Pando
 
 ## How It Works
 
-The setup script installs TeX Live packages and fonts via apt, then downloads the official Pandoc `.deb` from GitHub releases (Pandoc 3.x is required for `diagram.lua`'s `Figure` AST element). Chromium is installed system-wide to serve as Puppeteer's browser for Mermaid headless rendering.
+System packages are installed through the `cross-distro-packages` feature, which handles package-manager detection and now supports fallback package names for distro variants. The setup script then downloads the official Pandoc `.deb` from GitHub releases (Pandoc 3.x is required for `diagram.lua`'s `Figure` AST element). Chromium is installed system-wide to serve as Puppeteer's browser for Mermaid headless rendering.
 
 The pipeline:
 

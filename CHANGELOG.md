@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - System Chromium wired to Puppeteer with `--no-sandbox` for headless Mermaid rendering inside containers
     - Ready-to-use `~/.pandoc/pandoc.yaml` defaults file with XeLaTeX engine, font, and table settings
 
+### Fixed
+
+- **`pandoc` overlay on Debian trixie** — Setup now resolves the correct Carlito font package name at install time
+    - Prevents post-create failure when the distro exposes `fonts-crosextra-carlito` instead of `fonts-carlito`
+- **`cross-distro-packages` feature** — Package declarations can now use fallback names like `pkgA|pkgB`
+    - Allows overlays such as `pandoc` to handle Debian-vs-Ubuntu package-name differences without embedding apt-specific detection logic in setup scripts
+
 - **Adopt project-file output** — `adopt --project-file` now writes a repository-root project config alongside the manifest
     - Reuses an existing `.superposition.yml` or `superposition.yml` when present to avoid dual-file ambiguity
     - Carries inferred output path, container name, overlay selections, and supported customizations into the generated project file
