@@ -452,6 +452,16 @@ Specify CLI for Spec-Driven Development with any AI coding agent
 | **Suggests** | `python`, `codex`                                        |
 | **Tags**     | `dev`, `ai`, `sdd`, `spec-driven`, `specify`, `spec-kit` |
 
+### Pandoc PDF (`pandoc`)
+
+Pandoc with XeLaTeX, Mermaid diagrams, and quality fonts for Markdown-to-PDF export
+
+| Property     | Value                                                          |
+| ------------ | -------------------------------------------------------------- |
+| **Category** | dev                                                            |
+| **Suggests** | `nodejs`                                                       |
+| **Tags**     | `dev`, `pandoc`, `pdf`, `latex`, `markdown`, `docs`, `mermaid` |
+
 ### Amp (`amp`)
 
 Sourcegraph Amp CLI for AI-powered code generation and assistance
