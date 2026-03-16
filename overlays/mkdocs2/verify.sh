@@ -19,8 +19,8 @@ else
     VERSION=$("${MKDOCS_BIN}" --version 2>/dev/null)
     echo "✓ mkdocs is installed: ${VERSION}"
 
-    # Verify it is MkDocs 2.x
-    if echo "${VERSION}" | grep -qE "mkdocs, version [2-9]"; then
+    # Verify it is MkDocs 2.x (match exactly major version 2)
+    if echo "${VERSION}" | grep -qE "mkdocs, version 2\."; then
         echo "✓ MkDocs 2.x confirmed"
     else
         echo "✗ Expected MkDocs 2.x, got: ${VERSION}"
