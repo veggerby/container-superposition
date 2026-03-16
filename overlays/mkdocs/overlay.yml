@@ -6,7 +6,8 @@ supports: []
 requires:
     - python
 suggests: []
-conflicts: []
+conflicts:
+    - mkdocs2
 tags:
     - documentation
     - mkdocs

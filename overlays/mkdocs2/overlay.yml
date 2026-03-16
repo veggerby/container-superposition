@@ -1,0 +1,17 @@
+id: mkdocs2
+name: MkDocs 2
+description: MkDocs 2.x with Material theme — modern documentation generator
+category: dev
+supports: []
+requires:
+    - python
+suggests: []
+conflicts:
+    - mkdocs
+tags:
+    - dev
+    - documentation
+    - mkdocs
+    - python
+ports:
+    - 8000
