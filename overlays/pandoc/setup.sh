@@ -8,12 +8,23 @@ sudo fc-cache -fv
 
 echo "📦 Installing Pandoc (latest release)..."
 PANDOC_VERSION="3.6.4"
-ARCH=$(dpkg --print-architecture)
-PANDOC_DEB="pandoc-${PANDOC_VERSION}-1-${ARCH}.deb"
-curl -fsSL "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/${PANDOC_DEB}" \
-    -o "/tmp/${PANDOC_DEB}"
-sudo dpkg -i "/tmp/${PANDOC_DEB}"
-rm "/tmp/${PANDOC_DEB}"
+
+if command -v apt-get > /dev/null 2>&1; then
+    # Debian/Ubuntu — install official .deb from GitHub releases
+    ARCH=$(dpkg --print-architecture)
+    PANDOC_DEB="pandoc-${PANDOC_VERSION}-1-${ARCH}.deb"
+    curl -fsSL "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/${PANDOC_DEB}" \
+        -o "/tmp/${PANDOC_DEB}"
+    sudo dpkg -i "/tmp/${PANDOC_DEB}"
+    rm "/tmp/${PANDOC_DEB}"
+elif command -v apk > /dev/null 2>&1; then
+    # Alpine Linux — install via apk (version may differ from pinned release)
+    echo "⚠  Alpine detected: installing pandoc via apk (version may differ from ${PANDOC_VERSION})"
+    apk add --no-cache pandoc
+else
+    echo "❌ Unsupported distro: neither apt-get nor apk found. Cannot install Pandoc."
+    exit 1
+fi
 
 echo "✓ pandoc $(pandoc --version | head -1)"
 

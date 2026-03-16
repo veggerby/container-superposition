@@ -26,5 +26,5 @@
 
 **Key Technologies:**
 
-- **Runtime**: Node.js 18+ with TypeScript 5.3.3 (compiled to ESM modules in `dist/`)
+- **Runtime**: Node.js 20+ with TypeScript 5.3.3 (compiled to ESM modules in `dist/`)
 - **CLI Framework**: Commander for argument parsing, Inquirer for interactive prompts

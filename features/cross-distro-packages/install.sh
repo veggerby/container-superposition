@@ -70,9 +70,8 @@ echo "📦 Installing cross-distro packages..."
 if command -v apk > /dev/null 2>&1; then
     # Alpine Linux (apk)
     if [ -n "$APK_PACKAGES" ]; then
-        # Deduplicate package list
-        APK_PACKAGES=$(deduplicate_packages "$APK_PACKAGES")
-        
+        APK_PACKAGES=$(resolve_package_list "apk" "$APK_PACKAGES")
+
         echo "  Detected: Alpine Linux (apk)"
         echo "  Installing: $APK_PACKAGES"
         apk add --no-cache $APK_PACKAGES
