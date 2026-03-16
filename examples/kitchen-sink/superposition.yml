@@ -1,0 +1,54 @@
+stack: compose
+baseImage: trixie
+containerName: kitchen-sink
+
+preset: web-api
+presetChoices:
+    language: nodejs
+    database: postgres
+    cache: redis
+    broker: nats
+    observability: full
+
+database:
+    - mongodb
+cloudTools:
+    - aws-cli
+devTools:
+    - codex
+    - git-helpers
+    - modern-cli-tools
+playwright: true
+
+portOffset: 100
+target: local
+minimal: false
+editor: vscode
+
+customizations:
+    devcontainerPatch:
+        mounts:
+            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=${containerEnv:HOME}/.codex,type=bind,consistency=cached
+        remoteEnv:
+            APP_NAME: kitchen-sink
+    dockerComposePatch:
+        services:
+            app:
+                labels:
+                    com.example.project: kitchen-sink
+    environment:
+        LOG_LEVEL: debug
+        NODE_ENV: development
+    scripts:
+        postCreate:
+            - echo "Kitchen sink devcontainer ready"
+            - npm install --if-present
+        postStart:
+            - echo "Services are starting..."
+    files:
+        - path: notes.md
+          content: |
+              # Kitchen Sink Example
+
+              This devcontainer was generated from a project file
+              that exercises every supported configuration option.

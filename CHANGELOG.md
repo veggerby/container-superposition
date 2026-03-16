@@ -7,11 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-03-16
+
 ### Added
 
+- **`pandoc` overlay** — Complete Markdown → PDF pipeline with Pandoc, XeLaTeX, and optional Mermaid diagram rendering
+    - Installs Pandoc 3.x from the official GitHub release (not the outdated apt version)
+    - TeX Live / XeLaTeX with Carlito, JetBrains Mono, and Noto Sans Symbols 2 fonts for clean Unicode output
+    - `diagram.lua` Lua filter from pandoc-ext/diagram for fenced `mermaid` code block rendering
+    - Mermaid CLI (`mmdc`) installed automatically when the `nodejs` overlay is present; skipped gracefully otherwise
+    - System Chromium wired to Puppeteer with `--no-sandbox` for headless Mermaid rendering inside containers
+    - Ready-to-use `~/.pandoc/pandoc.yaml` defaults file with XeLaTeX engine, font, and table settings
 - **Adopt project-file output** — `adopt --project-file` now writes a repository-root project config alongside the manifest
     - Reuses an existing `.superposition.yml` or `superposition.yml` when present to avoid dual-file ambiguity
     - Carries inferred output path, container name, overlay selections, and supported customizations into the generated project file
+- **Project-root selection for persisted input** — `init` and `regen` now accept `--project-root <path>`
+    - Lets you load a repository project file or discover a manifest from another directory without changing shells first
+    - Relative output paths from the selected project file continue to resolve from that repository root
+- **`minimal-trixie` example** — Lightweight project-file-driven example using Debian Trixie with Codex and a `~/.codex` host mount
+- **`kitchen-sink` example** — Comprehensive reference example exercising every `superposition.yml` field: preset with parameter choices, additional overlays, port offset, deployment target, editor profile, and the full customizations block (patches, environment, scripts, files)
+
+### Fixed
+
+- **`cross-distro-packages` feature** — Package declarations can now use fallback names like `pkgA|pkgB`
+    - Allows overlays such as `pandoc` to handle Debian-vs-Ubuntu package-name differences without embedding apt-specific detection logic in setup scripts
 
 ## [0.1.5] - 2026-03-11
 
@@ -336,7 +355,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/veggerby/container-superposition/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/veggerby/container-superposition/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/veggerby/container-superposition/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/veggerby/container-superposition/compare/v0.1.2...v0.1.3

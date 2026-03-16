@@ -20,7 +20,9 @@ no conflicting source or selection flags are supplied, and keeps explicit
 manifest-based regeneration as a separate persisted-input mode. The same schema
 must also be writable from `adopt --project-file` so migration from an existing
 `.devcontainer/` can produce a repository-root project config without inventing
-a parallel declaration format.
+a parallel declaration format. Persisted-input workflows must also support an
+explicit repository-root override so users can run `init` or `regen` against a
+different repository without first changing their shell working directory.
 
 ## Technical Context
 

@@ -61,6 +61,7 @@
 - [x] T017 [US1] Ensure project-config driven answers produce the same composed output as equivalent clean-generation input in `tool/questionnaire/composer.ts`
 - [x] T018 [US1] Keep generated run summaries accurate for project-config sourced generation in `tool/utils/summary.ts`
 - [x] T018a [US1] Let `adopt --project-file` write a repository-root project config from inferred overlay selections and supported customizations in `tool/commands/adopt.ts` and `tool/schema/project-config.ts`
+- [x] T018b [US1] Let `init` and `regen` target a different repository root for project-file and manifest discovery via `--project-root <path>` in `scripts/init.ts` and `tool/__tests__/commands.test.ts`
 
 **Checkpoint**: User Story 1 should now be fully functional and testable on its own
 

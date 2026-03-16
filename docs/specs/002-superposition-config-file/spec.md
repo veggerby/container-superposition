@@ -30,6 +30,7 @@ A project maintainer defines the desired development environment in a single rep
 1. **Given** a repository with a valid project config file in its root that defines stack, overlay selections, output location, and supported customization settings, **When** a maintainer runs the generation flow from that repository root, **Then** the tool uses those values as the starting configuration for generation.
 2. **Given** a repository with a committed project config file, **When** a teammate clones the repository and runs the same generation flow from a fresh checkout, **Then** they receive the same effective project setup without needing the original author’s shell history or copied command examples.
 3. **Given** a repository with an existing hand-crafted `.devcontainer/`, **When** a maintainer runs `adopt --project-file`, **Then** the tool writes a repository-root project config that captures the inferred stack, overlay selections, output path, and supported customization inputs from the adopted setup.
+4. **Given** a maintainer is working outside the target repository, **When** they run `init --from-project --project-root <path>` or `regen --project-root <path>`, **Then** the tool resolves the project file and relative output paths from that selected repository root.
 
 ---
 
@@ -74,6 +75,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 - How does the system handle unsupported overlay IDs, invalid categories, or conflicting selections in the project config file? It fails validation before generation and explains the invalid entries.
 - How does the system handle both `.superposition.yml` and `superposition.yml` in one repository? It treats this as an error to avoid ambiguity.
 - How does the system handle `adopt --project-file` when a repository already contains a supported project config file? It reuses that file path, and it must still stop on dual-file ambiguity so the source of truth stays deterministic.
+- How does the system handle project-file or manifest discovery from outside the target repository? An explicit project-root option may redirect persisted-input discovery and relative output resolution to that repository root.
 
 ## Requirements _(mandatory)_
 
@@ -99,6 +101,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 - **FR-018**: The system MUST reject conflicting persisted-input source combinations before generation, including `--from-project` with `--from-manifest` and either source-selection mode combined with clean-generation selection flags such as stack, overlay, or preset selection.
 - **FR-019**: The system MUST document how teams create, commit, validate, and use the project config file in local development, regeneration, and automation workflows, including how parity with clean generation applies to supported customization inputs and how source-selection conflicts are resolved.
 - **FR-020**: The system MUST allow `adopt --project-file` to write a repository-root project config that represents the inferred adopted setup using the same supported declaration surface as other project-config workflows.
+- **FR-021**: The system MUST allow `init` and `regen` to resolve project-file and manifest discovery from an explicitly selected repository root so users can run persisted-input workflows without changing their shell working directory first.
 
 ### Key Entities _(include if feature involves data)_
 
