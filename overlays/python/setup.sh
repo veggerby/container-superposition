@@ -13,6 +13,23 @@ WORKSPACE_ROOT="${PWD}"
 VENV_DIR="${WORKSPACE_ROOT}/.venv"
 
 # Create virtual environment if it doesn't exist
+# Helper: validate that the venv's Python interpreter is actually executable.
+# A stale .venv (e.g., leftover from a previous container build) can have a
+# bin/python that is a dangling symlink, causing "cannot execute: required
+# file not found" when pip or other venv scripts are invoked.
+venv_is_valid() {
+    "${VENV_DIR}/bin/python" -c "import sys" &>/dev/null
+}
+
+if [ -d "${VENV_DIR}" ]; then
+    if venv_is_valid; then
+        echo "✓ Virtual environment already exists at .venv"
+    else
+        echo "⚠️  Existing .venv is invalid (stale interpreter), recreating..."
+        rm -rf "${VENV_DIR}"
+    fi
+fi
+
 if [ ! -d "${VENV_DIR}" ]; then
     echo "📦 Creating virtual environment at .venv..."
     if ! command -v python3 >/dev/null 2>&1; then
@@ -21,17 +38,19 @@ if [ ! -d "${VENV_DIR}" ]; then
     fi
     python3 -m venv "${VENV_DIR}"
     echo "✓ Virtual environment created"
-else
-    echo "✓ Virtual environment already exists at .venv"
 fi
 
-# Activate virtual environment
+# Use the venv's Python directly to invoke pip — this is more robust than
+# calling the pip wrapper script, whose shebang can point to a stale path.
+PYTHON="${VENV_DIR}/bin/python"
+
+# Activate virtual environment for PATH and VIRTUAL_ENV
 # shellcheck source=/dev/null
 source "${VENV_DIR}/bin/activate"
 
 # Upgrade pip, setuptools, and wheel inside the venv
 echo "⬆️  Upgrading pip, setuptools, and wheel..."
-pip install --upgrade pip setuptools wheel
+"${PYTHON}" -m pip install --upgrade pip setuptools wheel
 echo "✓ pip, setuptools, and wheel upgraded"
 
 # Install overlay-specific packages (if requirements-overlay.txt exists)
