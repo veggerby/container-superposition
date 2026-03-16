@@ -1,0 +1,17 @@
+id: mkdocs2
+name: MkDocs 2
+description: MkDocs 2.0 pre-release (encode/mkdocs) — smart, simple website design tool
+category: dev
+supports: []
+requires:
+    - python
+suggests: []
+conflicts:
+    - mkdocs
+tags:
+    - dev
+    - documentation
+    - mkdocs
+    - python
+ports:
+    - 8000

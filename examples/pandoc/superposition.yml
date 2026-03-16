@@ -3,6 +3,7 @@ stack: plain
 baseImage: trixie
 containerName: Pandoc Test
 overlays:
+    - mkdocs2
     - codex
     - pandoc
 customizations:

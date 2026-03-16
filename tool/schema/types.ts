@@ -67,7 +67,8 @@ export type DevTool =
     | 'gemini-cli'
     | 'amp'
     | 'windsurf-cli'
-    | 'opencode';
+    | 'opencode'
+    | 'mkdocs2';
 export type ObservabilityTool =
     | 'alertmanager'
     | 'otel-collector'

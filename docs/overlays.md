@@ -69,12 +69,13 @@ Jupyter notebook server for interactive computing and data science
 
 Material for MkDocs - professional documentation generator
 
-| Property     | Value                               |
-| ------------ | ----------------------------------- |
-| **Category** | language                            |
-| **Requires** | `python`                            |
-| **Tags**     | `documentation`, `mkdocs`, `python` |
-| **Ports**    | 8000                                |
+| Property      | Value                               |
+| ------------- | ----------------------------------- |
+| **Category**  | language                            |
+| **Requires**  | `python`                            |
+| **Conflicts** | `mkdocs2`                           |
+| **Tags**      | `documentation`, `mkdocs`, `python` |
+| **Ports**     | 8000                                |
 
 ### Node.js (`nodejs`)
 
@@ -601,6 +602,18 @@ Email testing tool with web UI and SMTP server
 | **Supports** | compose                           |
 | **Tags**     | `dev`, `email`, `smtp`, `testing` |
 | **Ports**    | [object Object], [object Object]  |
+
+### MkDocs 2 (`mkdocs2`)
+
+MkDocs 2.0 pre-release (encode/mkdocs) — smart, simple website design tool
+
+| Property      | Value                                      |
+| ------------- | ------------------------------------------ |
+| **Category**  | dev                                        |
+| **Requires**  | `python`                                   |
+| **Conflicts** | `mkdocs`                                   |
+| **Tags**      | `dev`, `documentation`, `mkdocs`, `python` |
+| **Ports**     | 8000                                       |
 
 ### Modern CLI Tools (`modern-cli-tools`)
 
