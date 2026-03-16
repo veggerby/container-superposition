@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/config.schema.json
+stack: plain
+baseImage: trixie
+containerName: Pandoc Test
+overlays:
+    - codex
+    - pandoc
+customizations:
+    devcontainerPatch:
+        mounts:
+            - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached

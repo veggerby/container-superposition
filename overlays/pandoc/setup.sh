@@ -37,14 +37,15 @@ curl -fsSL \
 echo "📦 Installing Mermaid CLI (requires Node.js)..."
 if command -v npm &>/dev/null; then
     npm install -g @mermaid-js/mermaid-cli
-    # Point mmdc at the system Chromium (avoids Puppeteer downloading its own)
-    mkdir -p "$HOME/.config/mermaid"
-    cat > "$HOME/.config/mermaid/puppeteer-config.json" <<'EOF'
-{
-  "executablePath": "/usr/bin/chromium",
-  "args": ["--no-sandbox", "--disable-setuid-sandbox"]
-}
-EOF
+    # Create a chromium wrapper that always passes --no-sandbox (required in containers).
+    # This is more robust than configuring mmdc/puppeteer individually — any tool
+    # that launches chromium via PUPPETEER_EXECUTABLE_PATH gets the sandbox flags.
+    sudo tee /usr/local/bin/chromium-no-sandbox > /dev/null <<'WRAPPER'
+#!/bin/sh
+exec /usr/bin/chromium --no-sandbox --disable-setuid-sandbox "$@"
+WRAPPER
+    sudo chmod +x /usr/local/bin/chromium-no-sandbox
+    echo "✓ chromium-no-sandbox wrapper installed"
     if command -v mmdc >/dev/null 2>&1; then
         echo "✓ Mermaid CLI installed: $(command -v mmdc)"
     else
