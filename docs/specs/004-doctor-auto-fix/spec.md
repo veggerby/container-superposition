@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-doctor-auto-fix`  
 **Created**: 2026-03-11  
-**Status**: Draft  
+**Status**: Final  
 **Input**: User description: "`doctor` already validates the environment, but the `--fix` path is a placeholder. Auto-fixing common issues (missing Docker, wrong Node version, stale manifest schema) would reduce friction for new users and CI pipelines."
 
 > Use repo-relative Markdown links for repository files. The root `README.md`
@@ -11,8 +11,8 @@
 ## Review & Approval _(mandatory before implementation)_
 
 - **Spec Path**: `docs/specs/004-doctor-auto-fix/spec.md`
-- **Commit Status**: Not Yet Committed
-- **Review Status**: Pending Review
+- **Commit Status**: Committed
+- **Review Status**: Approved
 - **Implementation Gate**: No implementation code may begin until this spec is
   committed and reviewed.
 
