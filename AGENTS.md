@@ -791,6 +791,8 @@ Update connection strings in application code accordingly.
 8. **Vitest Warnings**: Test file TypeScript errors don't affect build
 
 ## Active Technologies
+- TypeScript 5.3.3 on Node.js 20+ + Commander, chalk, boxen, js-yaml, ora, Inquirer, Node.js standard library (`fs`, `path`, `child_process`, `net`) (004-doctor-auto-fix)
+- Filesystem-based `superposition.json` manifests, generated `.devcontainer/` artifacts, overlay manifests, and temporary backup/rollback files (004-doctor-auto-fix)
 
 - Filesystem-based overlay manifests, project `superposition.json` manifests, templates, and generated devcontainer artifacts (001-verbose-plan-graph)
 - TypeScript 5.3.3 on Node.js 20+ + Commander, chalk, boxen, js-yaml, ora, Inquirer (001-verbose-plan-graph)
