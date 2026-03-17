@@ -5,13 +5,7 @@ containerName: Container Superposition
 overlays:
     - nodejs
     - codex
-    - spec-kit
     - docker-sock
     - git-helpers
     - modern-cli-tools
 outputPath: ./.devcontainer
-customizations:
-    devcontainerPatch:
-        remoteEnv:
-            SPECIFY_AI_AGENT: codex
-            CODEX_HOME: /workspaces/container-superposition/.codex
