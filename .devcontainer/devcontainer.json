@@ -67,12 +67,12 @@
             }
         }
     },
-    "mounts": [],
+    "mounts": [
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
+    ],
     "remoteEnv": {
         "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
-        "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}",
-        "SPECIFY_AI_AGENT": "codex",
-        "CODEX_HOME": "/workspaces/container-superposition/.codex"
+        "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"
     },
     "remoteUser": "vscode",
     "forwardPorts": [3000, 8080],
