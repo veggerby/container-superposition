@@ -14,8 +14,13 @@ go install golang.org/x/tools/gopls@latest || echo "⚠️ gopls installation fa
 # delve (Debugger)
 go install github.com/go-delve/delve/cmd/dlv@latest || echo "⚠️ delve installation failed"
 
-# golangci-lint (Linter) - install via go install for security
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest || echo "⚠️ golangci-lint installation failed"
+# golangci-lint (Linter) — use official installer to avoid gold linker issues on arm64
+if ! command -v golangci-lint &>/dev/null; then
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+        | sh -s -- -b "$(go env GOPATH)/bin" || echo "⚠️ golangci-lint installation failed"
+else
+    echo "ℹ️ golangci-lint already installed: $(golangci-lint version --short 2>/dev/null || true)"
+fi
 
 # gofumpt (Formatter)
 go install mvdan.cc/gofumpt@latest || echo "⚠️ gofumpt installation failed"

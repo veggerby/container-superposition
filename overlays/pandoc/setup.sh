@@ -166,7 +166,8 @@ EOF
 
 echo "📦 Installing Mermaid CLI (requires Node.js)..."
 if command -v npm &>/dev/null; then
-    npm install -g @mermaid-js/mermaid-cli
+    # TERM=dumb suppresses OSC terminal escape sequences from nvm's init script
+    TERM=dumb npm install -g @mermaid-js/mermaid-cli
     # Create a chromium wrapper that always passes --no-sandbox (required in containers).
     # This is more robust than configuring mmdc/puppeteer individually — any tool
     # that launches chromium via PUPPETEER_EXECUTABLE_PATH gets the sandbox flags.
@@ -192,6 +193,7 @@ cat > "$HOME/.pandoc/pandoc.yaml" <<'EOF'
 pdf-engine: xelatex
 filters:
   - __PANDOC_FILTERS_DIR__/emoji-fallback.lua
+  - __PANDOC_FILTERS_DIR__/diagram.lua
 
 variables:
   mainfont: "Carlito"
@@ -216,15 +218,10 @@ variables:
 # toc: true
 # toc-depth: 3
 # number-sections: true
-
-# Uncomment to enable Mermaid/diagram rendering (requires nodejs overlay):
-# filters:
-#   - __PANDOC_FILTERS_DIR__/emoji-fallback.lua
-#   - __PANDOC_FILTERS_DIR__/diagram.lua
 EOF
 sed -i "s|__PANDOC_FILTERS_DIR__|${PANDOC_FILTERS_DIR}|g" "$HOME/.pandoc/pandoc.yaml"
 
 echo ""
 echo "✓ pandoc overlay setup complete"
-echo "ℹ️  Build a PDF:  pandoc doc.md -o doc.pdf"
-echo "ℹ️  With Mermaid: pandoc --lua-filter ~/.pandoc/filters/diagram.lua doc.md -o doc.pdf"
+echo "ℹ️  Build a PDF:           pandoc doc.md -o doc.pdf"
+echo "ℹ️  With Mermaid diagrams: pandoc doc.md -o doc.pdf  (diagram.lua enabled by default)"

@@ -2,6 +2,8 @@
 
 .*
 .devcontainer/
+commitlint.config.js
+Justfile
 
 # direnv (container-superposition)
 .envrc.local

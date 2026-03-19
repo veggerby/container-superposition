@@ -14,8 +14,6 @@ if command -v apk >/dev/null 2>&1; then
     apk add --no-cache mongodb-tools
 elif command -v apt-get >/dev/null 2>&1; then
     # Debian/Ubuntu — install from MongoDB's official apt repository
-    apt_install gnupg curl ca-certificates
-
     # MongoDB doesn't publish a trixie/sid repo yet; fall back to bookworm
     CODENAME=$(. /etc/os-release && echo "${VERSION_CODENAME:-bookworm}")
     case "$CODENAME" in
@@ -28,10 +26,14 @@ elif command -v apt-get >/dev/null 2>&1; then
         "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server.gpg ] https://repo.mongodb.org/apt/debian ${CODENAME}/mongodb-org/8.0 main" \
         "/etc/apt/sources.list.d/mongodb-org.list"
 
-    apt_install mongodb-mongosh
-
+    # Single lock acquisition: install prereqs, then mongosh without a second apt-get update
+    acquire_apt_lock
+    sudo apt-get update -qq
+    sudo apt-get install -y --no-install-recommends gnupg curl ca-certificates
+    sudo apt-get install -y --no-install-recommends mongodb-mongosh
     sudo apt-get clean
     sudo rm -rf /var/lib/apt/lists/*
+    release_apt_lock
 else
     echo "⚠️  Unsupported package manager, skipping mongosh installation"
     exit 0

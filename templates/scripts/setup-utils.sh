@@ -18,8 +18,8 @@ _CS_APT_LOCK=/tmp/.cs-apt.lock
 acquire_apt_lock() {
     exec 9>"$_CS_APT_LOCK"
     echo "⏳ Acquiring apt lock..."
-    flock -w 120 9 || {
-        echo "❌ Timed out waiting for apt lock after 120s"
+    flock -w 300 9 || {
+        echo "❌ Timed out waiting for apt lock after 300s"
         return 1
     }
 }
