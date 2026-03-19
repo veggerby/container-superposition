@@ -868,6 +868,112 @@ function applyGlueConfig(
 }
 
 /**
+ * Parse the effective host port from any docker-compose port binding format:
+ *   "8081:8081", "127.0.0.1:8081:8081", "${VAR:-8081}:8081", 8081, {published:8081}
+ */
+function parseHostPortFromBinding(
+    binding: string | number | Record<string, unknown>
+): number | null {
+    if (typeof binding === 'number') return binding;
+    if (typeof binding === 'object' && binding !== null) {
+        const pub = (binding as any).published;
+        if (pub == null) return null;
+        if (typeof pub === 'number') return pub;
+        const m = String(pub).match(/^(\d+)$/);
+        return m ? parseInt(m[1], 10) : null;
+    }
+    if (typeof binding !== 'string') return null;
+    // "${VAR:-8081}:..." — extract default
+    const envMatch = binding.match(/^\$\{[^}]+:-(\d+)\}/);
+    if (envMatch) return parseInt(envMatch[1], 10);
+    const parts = binding.split(':');
+    if (parts.length === 3) {
+        const n = parseInt(parts[1], 10);
+        return isNaN(n) ? null : n;
+    }
+    if (parts.length === 2) {
+        const n = parseInt(parts[0], 10);
+        return isNaN(n) ? null : n;
+    }
+    const n = parseInt(parts[0], 10);
+    return isNaN(n) ? null : n;
+}
+
+/**
+ * Replace the host port in a binding, preserving its format.
+ */
+function replaceHostPortInBinding(
+    binding: string | number | Record<string, unknown>,
+    newPort: number
+): string | number | Record<string, unknown> {
+    if (typeof binding === 'number') return `${newPort}:${binding}`;
+    if (typeof binding === 'object' && binding !== null)
+        return { ...(binding as object), published: newPort };
+    if (typeof binding !== 'string') return binding;
+    // "${VAR:-8081}:container"
+    const replaced = binding.replace(/^(\$\{[^:}]+:-)(\d+)(\})/, `$1${newPort}$3`);
+    if (replaced !== binding) return replaced;
+    const parts = binding.split(':');
+    if (parts.length === 3) return `${parts[0]}:${newPort}:${parts[2]}`;
+    if (parts.length === 2) return `${newPort}:${parts[1]}`;
+    return `${newPort}:${binding}`;
+}
+
+/**
+ * Detect and auto-resolve host port conflicts in a merged services map.
+ * The first service that claims a port keeps it; later ones are bumped to the
+ * next free port. Returns a list of remappings made (for logging).
+ */
+function resolveDockerComposePortConflicts(
+    services: Record<string, any>
+): Array<{ service: string; originalPort: number; newPort: number }> {
+    const remappings: Array<{ service: string; originalPort: number; newPort: number }> = [];
+
+    // Build port → [serviceNames] map
+    const portOwners = new Map<number, string>();
+    const allocatedPorts = new Set<number>();
+
+    for (const [serviceName, service] of Object.entries(services)) {
+        if (!Array.isArray(service?.ports)) continue;
+        for (const binding of service.ports) {
+            const p = parseHostPortFromBinding(binding);
+            if (p == null) continue;
+            allocatedPorts.add(p);
+            if (!portOwners.has(p)) portOwners.set(p, serviceName);
+        }
+    }
+
+    function nextFreePort(start: number): number {
+        let p = start + 1;
+        while (allocatedPorts.has(p)) p++;
+        return p;
+    }
+
+    for (const [serviceName, service] of Object.entries(services)) {
+        if (!Array.isArray(service?.ports)) continue;
+        const newBindings: (string | number | Record<string, unknown>)[] = [];
+
+        for (const binding of service.ports) {
+            const p = parseHostPortFromBinding(binding);
+            if (p != null && portOwners.get(p) !== serviceName) {
+                // This service lost the port; remap it
+                const newPort = nextFreePort(p);
+                allocatedPorts.add(newPort);
+                portOwners.set(newPort, serviceName);
+                remappings.push({ service: serviceName, originalPort: p, newPort });
+                newBindings.push(replaceHostPortInBinding(binding, newPort));
+            } else {
+                newBindings.push(binding);
+            }
+        }
+
+        service.ports = newBindings;
+    }
+
+    return remappings;
+}
+
+/**
  * Merge docker-compose.yml files from base and overlays into a single file
  */
 function mergeDockerComposeFiles(
@@ -966,6 +1072,16 @@ function mergeDockerComposeFiles(
     // Remove empty sections
     if (Object.keys(merged.volumes).length === 0) delete merged.volumes;
     if (Object.keys(merged.networks).length === 0) delete merged.networks;
+
+    // Auto-resolve host port conflicts across composed services
+    const portRemappings = resolveDockerComposePortConflicts(merged.services);
+    if (portRemappings.length > 0) {
+        console.log(chalk.yellow('\n⚠️  Host port conflicts detected and auto-resolved:'));
+        for (const { service, originalPort, newPort } of portRemappings) {
+            console.log(chalk.yellow(`   • ${service}: host port ${originalPort} → ${newPort}`));
+        }
+        console.log();
+    }
 
     // Write combined docker-compose.yml
     const outputComposePath = path.join(outputPath, 'docker-compose.yml');
