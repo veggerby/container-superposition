@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
     nats:
-        image: nats:${NATS_VERSION:-latest}-alpine
+        image: nats:${NATS_VERSION:-2}-alpine
         restart: unless-stopped
         command:
             - '--jetstream'
