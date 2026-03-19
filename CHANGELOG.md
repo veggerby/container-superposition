@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Flat `overlays` field in project config** — project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, `cloudTools`, `observability`)
+    - Users no longer need to know which category an overlay belongs to — just list overlay IDs
+    - Old category keys are still parsed for backward compatibility and merged into the flat list
+    - Internally backed by a strongly-typed `OverlayId` union type for compile-time safety
 - **`doctor` timeout fix** — added 5 s timeout to all `docker info`, `docker --version`, and `docker compose version` subprocess calls; prevents test hangs in environments without Docker
 - **`doctor` check metadata** — check functions now populate `fixEligibility` and `remediationKey` fields on `CheckResult` for use by the fix flow; the legacy `fixable` boolean is still emitted for backward compatibility
 
@@ -30,13 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`${containerEnv:HOME}` in mount targets** — replaced with absolute path `/home/vscode/.codex` in examples and codex overlay README; Docker cannot resolve container env vars at mount time
 - **`pandoc` overlay missing `lmodern`** — added `lmodern` package to the apt package list; required by Pandoc's default LaTeX template on Trixie where `--no-install-recommends` skips it
-
-### Changed
-
-- **Flat `overlays` field in project config** — project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, `cloudTools`, `observability`)
-    - Users no longer need to know which category an overlay belongs to — just list overlay IDs
-    - Old category keys are still parsed for backward compatibility and merged into the flat list
-    - Internally backed by a strongly-typed `OverlayId` union type for compile-time safety
 
 ## [0.1.6] - 2026-03-16
 
