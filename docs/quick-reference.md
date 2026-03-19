@@ -175,6 +175,15 @@ container-superposition doctor
 # Specify a custom path
 container-superposition doctor --output ./my-project/.devcontainer
 
+# Point to a manifest file directly (outputPath is derived from the manifest)
+container-superposition doctor --from-manifest ./superposition.json
+
+# Load the output path from the repository project file (superposition.yml)
+container-superposition doctor --from-project
+
+# Run discovery relative to a different repository root
+container-superposition doctor --project-root /path/to/repo
+
 # Machine-readable JSON output
 container-superposition doctor --json
 ```

@@ -40,9 +40,13 @@ import {
 import { MERGE_STRATEGY } from '../utils/merge.js';
 import { extractPorts } from '../utils/port-utils.js';
 import { composeDevContainer } from '../questionnaire/composer.js';
+import { loadProjectConfig } from '../schema/project-config.js';
 
 interface DoctorOptions {
     output?: string;
+    fromManifest?: string;
+    fromProject?: boolean;
+    projectRoot?: string;
     fix?: boolean;
     json?: boolean;
 }
@@ -339,11 +343,11 @@ function checkDockerCompose(): CheckResult {
 /**
  * Run environment checks
  */
-function checkEnvironment(outputPath: string): CheckResult[] {
+function checkEnvironment(outputPath: string, explicitManifestPath?: string): CheckResult[] {
     const results: CheckResult[] = [checkNodeVersion(), checkDocker()];
 
     // Only check Docker Compose if using compose stack
-    const baseTemplate = getBaseTemplateFromManifest(outputPath);
+    const baseTemplate = getBaseTemplateFromManifest(outputPath, explicitManifestPath);
     if (baseTemplate === 'compose') {
         results.push(checkDockerCompose());
     }
@@ -355,9 +359,10 @@ function checkEnvironment(outputPath: string): CheckResult[] {
  * Get base template from manifest if it exists
  */
 function getBaseTemplateFromManifest(
-    outputPath: string
+    outputPath: string,
+    explicitManifestPath?: string
 ): SuperpositionManifest['baseTemplate'] | undefined {
-    const manifestPath = path.join(outputPath, 'superposition.json');
+    const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
 
     if (!fs.existsSync(manifestPath)) {
         return undefined;
@@ -630,12 +635,12 @@ function checkPorts(overlaysConfig: OverlaysConfig, manifestPath?: string): Chec
 /**
  * Check manifest compatibility
  */
-function checkManifest(outputPath: string): CheckResult[] {
+function checkManifest(outputPath: string, explicitManifestPath?: string): CheckResult[] {
     const results: CheckResult[] = [];
-    const manifestPath = path.join(outputPath, 'superposition.json');
+    const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
 
-    // Check if output path exists
-    if (!fs.existsSync(outputPath)) {
+    // Check if output path exists (skip when manifest is explicitly provided; the dir may not exist yet)
+    if (!explicitManifestPath && !fs.existsSync(outputPath)) {
         return [
             {
                 name: 'Devcontainer directory',
@@ -1212,8 +1217,8 @@ function buildAnswersFromManifest(
 /**
  * Execute manifest migration fix (Class 1).
  */
-function executeManifestMigration(outputPath: string): FixExecution {
-    const manifestPath = path.join(outputPath, 'superposition.json');
+function executeManifestMigration(outputPath: string, explicitManifestPath?: string): FixExecution {
+    const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
 
     if (!fs.existsSync(manifestPath)) {
         return {
@@ -1511,11 +1516,12 @@ async function executeSingleFix(
     outputPath: string,
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
-    silent = false
+    silent = false,
+    explicitManifestPath?: string
 ): Promise<FixExecution> {
     switch (finding.remediationKey) {
         case 'manifest-migration':
-            return executeManifestMigration(outputPath);
+            return executeManifestMigration(outputPath, explicitManifestPath);
         case 'devcontainer-regeneration':
             return executeRegeneration(outputPath, overlaysConfig, overlaysDir, silent);
         case 'node-version-fix':
@@ -1598,7 +1604,8 @@ async function executeFixRun(
     outputPath: string,
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
-    requestedJson: boolean
+    requestedJson: boolean,
+    explicitManifestPath?: string
 ): Promise<FixRun> {
     const initialFindings = reportToFindings(report);
 
@@ -1646,7 +1653,8 @@ async function executeFixRun(
             outputPath,
             overlaysConfig,
             overlaysDir,
-            requestedJson
+            requestedJson,
+            explicitManifestPath
         );
         executions.push(execution);
 
@@ -1675,8 +1683,8 @@ async function executeFixRun(
     }
 
     // Re-run checks to get final state
-    const envChecks = checkEnvironment(outputPath);
-    const manifestChecks = checkManifest(outputPath);
+    const envChecks = checkEnvironment(outputPath, explicitManifestPath);
+    const manifestChecks = checkManifest(outputPath, explicitManifestPath);
     const mergeChecks = checkMergeStrategy(outputPath);
     const finalFindings = [
         ...checksToFindings(envChecks, 'environment', 'environment'),
@@ -1795,7 +1803,81 @@ export async function doctorCommand(
     overlaysDir: string,
     options: DoctorOptions
 ): Promise<void> {
-    const outputPath = options.output || './.devcontainer';
+    // ── Validate mutually exclusive source flags ───────────────────────────
+    if (options.fromManifest && options.fromProject) {
+        console.error(
+            chalk.red('✗ Error: --from-manifest and --from-project cannot be used together')
+        );
+        process.exit(1);
+    }
+
+    // ── Resolve working directory (--project-root) ────────────────────────
+    const workingDir = options.projectRoot ? path.resolve(options.projectRoot) : process.cwd();
+
+    if (options.projectRoot) {
+        if (!fs.existsSync(workingDir)) {
+            console.error(chalk.red(`✗ Project root not found: ${workingDir}`));
+            process.exit(1);
+        }
+        if (!fs.statSync(workingDir).isDirectory()) {
+            console.error(chalk.red(`✗ Project root is not a directory: ${workingDir}`));
+            process.exit(1);
+        }
+    }
+
+    // ── Resolve outputPath and optional explicit manifest path ─────────────
+    let outputPath: string;
+    let explicitManifestPath: string | undefined;
+
+    if (options.fromManifest) {
+        // Resolve manifest path (absolute or relative to workingDir)
+        const resolvedManifest = path.resolve(workingDir, options.fromManifest);
+        if (!fs.existsSync(resolvedManifest)) {
+            console.error(chalk.red(`✗ Could not find manifest file: ${resolvedManifest}`));
+            process.exit(1);
+        }
+        explicitManifestPath = resolvedManifest;
+
+        // Derive outputPath from manifest's own outputPath field, relative to manifest's directory
+        try {
+            const raw = JSON.parse(fs.readFileSync(resolvedManifest, 'utf8'));
+            const manifestOutputPath =
+                typeof raw.outputPath === 'string' ? raw.outputPath : '.devcontainer';
+            outputPath = path.resolve(path.dirname(resolvedManifest), manifestOutputPath);
+        } catch {
+            // If the manifest is unparseable, use its directory as outputPath
+            outputPath = path.dirname(resolvedManifest);
+        }
+    } else if (options.fromProject) {
+        // Load the repository project file (superposition.yml / .superposition.yml)
+        let projectConfig;
+        try {
+            projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+        } catch (err) {
+            console.error(
+                chalk.red(
+                    `✗ Failed to load project config: ${err instanceof Error ? err.message : String(err)}`
+                )
+            );
+            process.exit(1);
+        }
+        if (!projectConfig) {
+            console.error(chalk.red('✗ Could not find project file'));
+            console.error(chalk.gray('  Searched for: .superposition.yml, superposition.yml'));
+            console.error(
+                chalk.gray(
+                    '  Use --from-project in a repository that has a project config file, or use --from-manifest <path> instead'
+                )
+            );
+            process.exit(1);
+        }
+        outputPath = path.resolve(
+            workingDir,
+            projectConfig.selection.outputPath || '.devcontainer'
+        );
+    } else {
+        outputPath = path.resolve(workingDir, options.output || './.devcontainer');
+    }
 
     if (!options.json) {
         console.log(
@@ -1809,11 +1891,11 @@ export async function doctorCommand(
     }
 
     // Run all checks
-    const environmentChecks = checkEnvironment(outputPath);
+    const environmentChecks = checkEnvironment(outputPath, explicitManifestPath);
     const overlayChecks = checkOverlays(overlaysDir);
-    const manifestChecks = checkManifest(outputPath);
+    const manifestChecks = checkManifest(outputPath, explicitManifestPath);
     const mergeChecks = checkMergeStrategy(outputPath);
-    const manifestPath = path.join(outputPath, 'superposition.json');
+    const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, manifestPath);
 
     // Generate report
@@ -1837,7 +1919,8 @@ export async function doctorCommand(
             outputPath,
             overlaysConfig,
             overlaysDir,
-            options.json ?? false
+            options.json ?? false,
+            explicitManifestPath
         );
 
         if (options.json) {
