@@ -514,6 +514,16 @@ Conventional commits validation for automated releases
 | **Suggests** | `pre-commit`                                |
 | **Tags**     | `dev`, `git`, `commits`, `semantic-release` |
 
+### Dev Container CLI (`devcontainer-cli`)
+
+Official devcontainer CLI for building and testing devcontainer configurations
+
+| Property     | Value                                   |
+| ------------ | --------------------------------------- |
+| **Category** | dev                                     |
+| **Suggests** | `docker-sock`, `docker-in-docker`       |
+| **Tags**     | `dev`, `devcontainer`, `cli`, `testing` |
+
 ### direnv (`direnv`)
 
 Per-directory environment variable management

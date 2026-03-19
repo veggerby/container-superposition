@@ -93,10 +93,12 @@ function generateDocumentation(config: OverlaysConfig): string {
     sections.push('- [Dev Tool Overlays](#dev-tool-overlays)');
     sections.push('');
 
+    const visibleOverlays = config.overlays.filter((o) => !o.hidden);
+
     // Language overlays
     sections.push('## Language Overlays');
     sections.push('');
-    config.overlays
+    visibleOverlays
         .filter((o) => o.category === 'language')
         .forEach((overlay) => {
             sections.push(formatOverlay(overlay));
@@ -105,7 +107,7 @@ function generateDocumentation(config: OverlaysConfig): string {
     // Database overlays
     sections.push('## Database Overlays');
     sections.push('');
-    config.overlays
+    visibleOverlays
         .filter((o) => o.category === 'database')
         .forEach((overlay) => {
             sections.push(formatOverlay(overlay));
@@ -114,7 +116,7 @@ function generateDocumentation(config: OverlaysConfig): string {
     // Observability overlays
     sections.push('## Observability Overlays');
     sections.push('');
-    config.overlays
+    visibleOverlays
         .filter((o) => o.category === 'observability')
         .forEach((overlay) => {
             sections.push(formatOverlay(overlay));
@@ -123,7 +125,7 @@ function generateDocumentation(config: OverlaysConfig): string {
     // Cloud tool overlays
     sections.push('## Cloud Tool Overlays');
     sections.push('');
-    config.overlays
+    visibleOverlays
         .filter((o) => o.category === 'cloud')
         .forEach((overlay) => {
             sections.push(formatOverlay(overlay));
@@ -132,7 +134,7 @@ function generateDocumentation(config: OverlaysConfig): string {
     // Dev tool overlays
     sections.push('## Dev Tool Overlays');
     sections.push('');
-    config.overlays
+    visibleOverlays
         .filter((o) => o.category === 'dev')
         .forEach((overlay) => {
             sections.push(formatOverlay(overlay));
