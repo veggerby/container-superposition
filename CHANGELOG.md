@@ -7,17 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`doctor --fix`** — Interactive auto-repair flow for common environment issues
+    - Diagnoses the environment, remediates in deterministic order, re-checks, and prints a structured summary
+    - Four in-scope repair classes: stale manifest migration, missing devcontainer regeneration, Node.js version fix (nvm / fnm / volta), and Docker daemon guidance
+    - Every finding resolves to exactly one outcome: `fixed`, `already compliant`, `skipped`, or `requires manual action`
+    - Atomic writes with timestamped backups for all manifest and generated-artifact changes
+    - Prerequisite ordering: manifest migration always runs before devcontainer regeneration; regeneration is skipped if migration fails
+    - `--fix --json` outputs a machine-readable `FixRun` object with `initialFindings`, `executions`, `finalFindings`, `summary` counts, and `exitDisposition`
+    - Exit code `1` only when unresolved failures remain after the run
+- **`DiagnosticFinding`, `RemediationAction`, `FixExecution`, `FixRun`, `FixOutcomeSummary`** types exported from `tool/schema/types.ts`
+- **`doctor --fix` documentation** — added to `docs/quick-reference.md` with fix vocabulary, fixable issue table, safety notes, and JSON schema example
+- **`docs/specs/004-doctor-fix/spec.md`** — feature spec committed per repository spec-first policy
+
+### Changed
+
+- **`doctor` timeout fix** — added 5 s timeout to all `docker info`, `docker --version`, and `docker compose version` subprocess calls; prevents test hangs in environments without Docker
+- **`doctor` check metadata** — check functions now populate `fixEligibility` and `remediationKey` fields on `CheckResult` for use by the fix flow; the legacy `fixable` boolean is still emitted for backward compatibility
+
+### Fixed
+
+- **`${containerEnv:HOME}` in mount targets** — replaced with absolute path `/home/vscode/.codex` in examples and codex overlay README; Docker cannot resolve container env vars at mount time
+- **`pandoc` overlay missing `lmodern`** — added `lmodern` package to the apt package list; required by Pandoc's default LaTeX template on Trixie where `--no-install-recommends` skips it
+
 ### Changed
 
 - **Flat `overlays` field in project config** — project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, `cloudTools`, `observability`)
     - Users no longer need to know which category an overlay belongs to — just list overlay IDs
     - Old category keys are still parsed for backward compatibility and merged into the flat list
     - Internally backed by a strongly-typed `OverlayId` union type for compile-time safety
-
-### Fixed
-
-- **`${containerEnv:HOME}` in mount targets** — replaced with absolute path `/home/vscode/.codex` in examples and codex overlay README; Docker cannot resolve container env vars at mount time
-- **`pandoc` overlay missing `lmodern`** — added `lmodern` package to the apt package list; required by Pandoc's default LaTeX template on Trixie where `--no-install-recommends` skips it
 
 ## [0.1.6] - 2026-03-16
 

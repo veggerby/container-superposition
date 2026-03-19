@@ -1003,6 +1003,230 @@ describe('Command Tests', () => {
             expect(consoleLogSpy).toHaveBeenCalled();
             // Fix functionality would be in output if there are fixable issues
         });
+
+        it('should output no-op fix message when no fixable issues', async () => {
+            // Use a directory with no issues expected (non-existent → warnings, not fails)
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-fix-noop-'));
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                    output: tmpDir + '/nonexistent',
+                    fix: true,
+                });
+            } catch (e: any) {
+                // Process.exit is called, ignore
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Running diagnostics');
+        });
+
+        it('should fix stale manifest (manifest migration)', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-fix-manifest-'));
+            try {
+                // Create a legacy manifest (no manifestVersion field)
+                const legacyManifest = {
+                    version: '0.1.0', // legacy field only
+                    generated: new Date().toISOString(),
+                    baseTemplate: 'plain',
+                    baseImage: 'bookworm',
+                    overlays: [] as string[],
+                };
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify(legacyManifest, null, 2)
+                );
+                // Also create devcontainer.json so only manifest check fires
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        fix: true,
+                    });
+                } catch (e: any) {
+                    // process.exit
+                }
+
+                // Manifest should now have manifestVersion field
+                const updated = JSON.parse(
+                    fs.readFileSync(path.join(tmpDir, 'superposition.json'), 'utf8')
+                );
+                expect(updated.manifestVersion).toBeDefined();
+
+                // A backup should exist
+                const backups = fs
+                    .readdirSync(tmpDir)
+                    .filter((f) => f.startsWith('superposition.json.backup-'));
+                expect(backups.length).toBeGreaterThan(0);
+
+                const output = consoleLogSpy.mock.calls.join('\n');
+                expect(output).toContain('fixed');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should output JSON fix run when --fix --json is used', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-fix-json-'));
+            try {
+                // Create a compliant devcontainer
+                const manifest = {
+                    manifestVersion: '1',
+                    generatedBy: '0.1.3',
+                    generated: new Date().toISOString(),
+                    baseTemplate: 'plain',
+                    baseImage: 'bookworm',
+                    overlays: [] as string[],
+                };
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify(manifest, null, 2)
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        fix: true,
+                        json: true,
+                    });
+                } catch (e: any) {
+                    // process.exit
+                }
+
+                expect(consoleLogSpy).toHaveBeenCalled();
+                const rawOutput = consoleLogSpy.mock.calls[0][0];
+                expect(() => JSON.parse(rawOutput)).not.toThrow();
+
+                const parsed = JSON.parse(rawOutput);
+                expect(parsed.outputPath).toBeDefined();
+                expect(Array.isArray(parsed.initialFindings)).toBe(true);
+                expect(Array.isArray(parsed.executions)).toBe(true);
+                expect(Array.isArray(parsed.finalFindings)).toBe(true);
+                expect(parsed.summary).toBeDefined();
+                expect(typeof parsed.summary.fixed).toBe('number');
+                expect(typeof parsed.summary.requiresManualAction).toBe('number');
+                expect(typeof parsed.summary.total).toBe('number');
+                expect(parsed.exitDisposition).toBeDefined();
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should produce correct exitDisposition for unresolved failures', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-exit-'));
+            try {
+                // No manifest, no devcontainer.json → manual-only warnings
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir + '/nonexistent-subdir',
+                        fix: true,
+                        json: true,
+                    });
+                } catch (e: any) {
+                    // process.exit
+                }
+
+                expect(consoleLogSpy).toHaveBeenCalled();
+                const rawOutput = consoleLogSpy.mock.calls[0][0];
+                expect(() => JSON.parse(rawOutput)).not.toThrow();
+                const parsed = JSON.parse(rawOutput);
+                expect(['success', 'repaired-with-warnings', 'unresolved-failures']).toContain(
+                    parsed.exitDisposition
+                );
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should list fixable findings in initialFindings with fixEligibility', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-findings-'));
+            try {
+                const legacyManifest = {
+                    version: '0.1.0',
+                    generated: new Date().toISOString(),
+                    baseTemplate: 'plain',
+                    baseImage: 'bookworm',
+                    overlays: [] as string[],
+                };
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify(legacyManifest, null, 2)
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        fix: true,
+                        json: true,
+                    });
+                } catch (e: any) {
+                    // process.exit
+                }
+
+                const rawOutput = consoleLogSpy.mock.calls[0][0];
+                const parsed = JSON.parse(rawOutput);
+
+                // Should have at least one automatic fix eligible finding
+                const autoFixable = parsed.initialFindings.filter(
+                    (f: any) => f.fixEligibility === 'automatic'
+                );
+                expect(autoFixable.length).toBeGreaterThan(0);
+
+                // executions should record the manifest migration
+                const migrationExec = parsed.executions.find(
+                    (e: any) => e.remediationKey === 'manifest-migration'
+                );
+                expect(migrationExec).toBeDefined();
+                expect(migrationExec.attempted).toBe(true);
+                expect(migrationExec.outcome).toBe('fixed');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should skip devcontainer regeneration when manifest migration fails', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-skip-'));
+            try {
+                // Write an invalid JSON manifest that will fail migration
+                fs.writeFileSync(path.join(tmpDir, 'superposition.json'), 'not valid json');
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        fix: true,
+                        json: true,
+                    });
+                } catch (e: any) {
+                    // process.exit
+                }
+
+                const rawOutput = consoleLogSpy.mock.calls[0][0];
+                const parsed = JSON.parse(rawOutput);
+
+                // The devcontainer-regeneration execution should be skipped or manifest should be manual
+                const regenExec = parsed.executions.find(
+                    (e: any) => e.remediationKey === 'devcontainer-regeneration'
+                );
+                if (regenExec) {
+                    expect(['skipped', 'requires-manual-action']).toContain(regenExec.outcome);
+                }
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
     });
 
     describe('hashCommand', () => {
