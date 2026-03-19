@@ -134,6 +134,9 @@ function getAllOverlayDefs(config: OverlaysConfig): OverlayMetadata[] {
     return config.overlays;
 }
 
+/** ID for the meta overlay that expands to all available overlays */
+const META_OVERLAY_ID = 'meta';
+
 /**
  * Resolve dependencies for a set of overlays
  * Returns the expanded list with dependencies and metadata about what was added
@@ -145,12 +148,24 @@ function resolveDependencies(
     const overlayMap = new Map<string, OverlayMetadata>();
     allOverlayDefs.forEach((def) => overlayMap.set(def.id, def));
 
-    const resolved = new Set<string>(requestedOverlays);
+    // Expand the meta overlay to all known non-meta overlay IDs
+    let expandedRequest = requestedOverlays;
+    if (requestedOverlays.includes(META_OVERLAY_ID)) {
+        const allIds = allOverlayDefs
+            .filter((def) => def.id !== META_OVERLAY_ID)
+            .map((def) => def.id);
+        expandedRequest = [
+            ...requestedOverlays.filter((id) => id !== META_OVERLAY_ID),
+            ...allIds.filter((id) => !requestedOverlays.includes(id)),
+        ];
+    }
+
+    const resolved = new Set<string>(expandedRequest);
     const autoAdded: string[] = [];
     const resolutionReasons: string[] = [];
 
     // Resolve dependencies recursively
-    const toProcess = [...requestedOverlays];
+    const toProcess = [...expandedRequest];
     const processed = new Set<string>();
 
     while (toProcess.length > 0) {

@@ -506,7 +506,8 @@ function buildOverlayChoices(
 
     categoryList.forEach((category) => {
         const filtered = category.overlays.filter(
-            (o: any) => !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+            (o: any) =>
+                !o.hidden && (!o.supports || o.supports.length === 0 || o.supports.includes(stack))
         );
 
         if (filtered.length > 0) {

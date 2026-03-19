@@ -1,0 +1,16 @@
+id: devcontainer-cli
+name: Dev Container CLI
+description: Official devcontainer CLI for building and testing devcontainer configurations
+category: dev
+supports: []
+requires: []
+suggests:
+    - docker-sock
+    - docker-in-docker
+conflicts: []
+tags:
+    - dev
+    - devcontainer
+    - cli
+    - testing
+ports: []

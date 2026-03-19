@@ -68,7 +68,8 @@ export type DevTool =
     | 'amp'
     | 'windsurf-cli'
     | 'opencode'
-    | 'mkdocs2';
+    | 'mkdocs2'
+    | 'devcontainer-cli';
 export type ObservabilityTool =
     | 'alertmanager'
     | 'otel-collector'
@@ -245,6 +246,7 @@ export interface OverlayMetadata {
     order?: number;
     imports?: string[]; // Shared files to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
+    hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
 }
 
 /**
