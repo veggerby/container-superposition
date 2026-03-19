@@ -14,16 +14,23 @@ else
     exit 1
 fi
 
+# Bootstrap NuGet provider and trust PSGallery non-interactively
+echo "🔧 Bootstrapping NuGet provider..."
+pwsh -NoProfile -Command '
+    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser | Out-Null
+    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+'
+
 # Install common PowerShell modules
 echo "📦 Installing PowerShell modules..."
 
 # PSScriptAnalyzer (Linting and best practices)
-pwsh -NoProfile -Command 'Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser -AllowClobber' || echo "⚠️ PSScriptAnalyzer installation failed"
+pwsh -NoProfile -Command 'Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser -AllowClobber -Repository PSGallery' || echo "⚠️ PSScriptAnalyzer installation failed"
 
 # Pester (Testing framework)
-pwsh -NoProfile -Command 'Install-Module -Name Pester -Force -Scope CurrentUser -AllowClobber -SkipPublisherCheck' || echo "⚠️ Pester installation failed"
+pwsh -NoProfile -Command 'Install-Module -Name Pester -Force -Scope CurrentUser -AllowClobber -SkipPublisherCheck -Repository PSGallery' || echo "⚠️ Pester installation failed"
 
 # PowerShellGet (Module management)
-pwsh -NoProfile -Command 'Install-Module -Name PowerShellGet -Force -Scope CurrentUser -AllowClobber' || echo "⚠️ PowerShellGet installation failed"
+pwsh -NoProfile -Command 'Install-Module -Name PowerShellGet -Force -Scope CurrentUser -AllowClobber -Repository PSGallery' || echo "⚠️ PowerShellGet installation failed"
 
 echo "✓ PowerShell setup complete"

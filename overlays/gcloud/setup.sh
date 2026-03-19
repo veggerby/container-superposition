@@ -13,24 +13,24 @@ if command -v apk >/dev/null 2>&1; then
     ln -sf /usr/local/google-cloud-sdk/bin/gsutil /usr/local/bin/gsutil
 elif command -v apt-get >/dev/null 2>&1; then
     # Debian/Ubuntu — add Google Cloud apt repo using modern signed-by method
-    apt-get update -y -qq
-    apt-get install -y --no-install-recommends apt-transport-https ca-certificates gnupg curl
+    sudo apt-get update -y -qq
+    sudo apt-get install -y --no-install-recommends apt-transport-https ca-certificates gnupg curl
 
     # Add Google Cloud GPG key (modern method, no apt-key)
     curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-        | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+        | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
 
     # Google Cloud SDK uses its own flat distribution (cloud-sdk), not Debian codename-specific
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
-        >/etc/apt/sources.list.d/google-cloud-sdk.list
+        | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list >/dev/null
 
-    apt-get update -y -qq
-    apt-get install -y --no-install-recommends \
+    sudo apt-get update -y -qq
+    sudo apt-get install -y --no-install-recommends \
         google-cloud-cli \
         google-cloud-cli-gke-gcloud-auth-plugin
 
-    apt-get clean
-    rm -rf /var/lib/apt/lists/*
+    sudo apt-get clean
+    sudo rm -rf /var/lib/apt/lists/*
 else
     echo "⚠️  Unsupported package manager, skipping gcloud installation"
     exit 0

@@ -15,6 +15,21 @@ curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
     | sudo tee /etc/apt/sources.list.d/ngrok.list
 
+# Wait for apt lock (handles parallel setup scripts running concurrently)
+wait_for_apt_lock() {
+    local retries=15
+    while [ $retries -gt 0 ]; do
+        if ! sudo flock -n /var/lib/apt/lists/lock true 2>/dev/null; then
+            echo "⏳ Waiting for apt lock..."
+            sleep 4
+            retries=$((retries - 1))
+        else
+            return 0
+        fi
+    done
+}
+wait_for_apt_lock
+
 # Update and install
 sudo apt-get update -qq
 sudo apt-get install -y ngrok

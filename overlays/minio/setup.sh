@@ -8,22 +8,18 @@ echo "🔧 Setting up MinIO client..."
 # Install MinIO client (mc)
 echo "📦 Installing MinIO client (mc)..."
 if ! command -v mc &> /dev/null; then
-    # Pin to a specific version for security and reproducibility
-    MC_VERSION="RELEASE.2024-11-17T19-35-25Z"
-    MC_URL="https://dl.min.io/client/mc/release/linux-amd64/archive/mc.${MC_VERSION}"
-    MC_CHECKSUM="27e18faeabd9a0c8066e3b4aadb13a2c0ae4dac09a1e24defe34c99a11b59e26"
-    
-    echo "   Downloading MinIO client version ${MC_VERSION}..."
-    wget -q "${MC_URL}" -O /tmp/mc
-    
-    # Verify checksum
-    echo "   Verifying checksum..."
-    echo "${MC_CHECKSUM}  /tmp/mc" | sha256sum -c - || {
-        echo "   ❌ Checksum verification failed!"
-        rm -f /tmp/mc
-        exit 1
-    }
-    
+    MC_VERSION="${MC_VERSION:-RELEASE.2024-11-17T19-35-25Z}"
+    ARCH=$(uname -m)
+    case "$ARCH" in
+        x86_64)  MC_ARCH="amd64" ;;
+        aarch64|arm64) MC_ARCH="arm64" ;;
+        *) echo "⚠️  Unsupported architecture: $ARCH"; exit 1 ;;
+    esac
+    MC_URL="https://dl.min.io/client/mc/release/linux-${MC_ARCH}/archive/mc.${MC_VERSION}"
+
+    echo "   Downloading MinIO client version ${MC_VERSION} for ${MC_ARCH}..."
+    curl -fsSL "${MC_URL}" -o /tmp/mc
+
     sudo install /tmp/mc /usr/local/bin/
     rm /tmp/mc
     echo "   ✅ MinIO client installed (${MC_VERSION})"

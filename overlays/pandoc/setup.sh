@@ -10,6 +10,21 @@ echo "📦 Installing Pandoc (latest release)..."
 PANDOC_VERSION="3.6.4"
 
 if command -v apt-get > /dev/null 2>&1; then
+    # Wait for apt lock (handles parallel setup scripts running concurrently)
+    wait_for_apt_lock() {
+        local retries=15
+        while [ $retries -gt 0 ]; do
+            if ! sudo flock -n /var/lib/dpkg/lock-frontend true 2>/dev/null && \
+               ! sudo flock -n /var/lib/apt/lists/lock true 2>/dev/null; then
+                echo "⏳ Waiting for apt/dpkg lock..."
+                sleep 4
+                retries=$((retries - 1))
+            else
+                return 0
+            fi
+        done
+    }
+    wait_for_apt_lock
     # Debian/Ubuntu — install official .deb from GitHub releases
     ARCH=$(dpkg --print-architecture)
     PANDOC_DEB="pandoc-${PANDOC_VERSION}-1-${ARCH}.deb"
