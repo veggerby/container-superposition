@@ -1,11 +1,12 @@
 # Full Feature Pandoc Example
 
-This markdown file demonstrates a variety of features supported by Pandoc, including headings, lists, tables, code blocks, images, math, blockquotes, footnotes, and a Mermaid diagram.
+This markdown file demonstrates a variety of features supported by Pandoc, including headings, lists, tables, code blocks, images, math, blockquotes, footnotes, Unicode text, emoji, and a Mermaid diagram.
 
 To render this markdown file to PDF with Mermaid diagram support using Pandoc and a Lua filter, run:
 
 ```sh
-pandoc --lua-filter ~/.pandoc/filters/diagram.lua example.md -o example.pdf
+pandoc --lua-filter ~/.pandoc/filters/diagram.lua \
+  example.md -o example.pdf
 ```
 
 ---
@@ -26,6 +27,7 @@ pandoc --lua-filter ~/.pandoc/filters/diagram.lua example.md -o example.pdf
     - [Math](#math)
     - [Blockquotes](#blockquotes)
     - [Footnotes](#footnotes)
+    - [Unicode and Emoji](#unicode-and-emoji)
     - [Mermaid Diagram](#mermaid-diagram)
 
 ---
@@ -104,6 +106,18 @@ $$
 Here is a statement with a footnote.[^1]
 
 [^1]: This is the footnote text.
+
+---
+
+## Unicode and Emoji
+
+This section includes plain Unicode text plus emoji and flags that exercise the LaTeX fallback filter.
+
+- Status icons: ✅ ⚠️ ❌
+- Activity emoji: 🎉 🚀 🧪
+- Weather emoji: ☀️ 🌧️ ❄️
+- Flag emoji: 🇺🇸 🇯🇵 🇧🇷
+- Mixed sample: Unicode check 😀
 
 ---
 

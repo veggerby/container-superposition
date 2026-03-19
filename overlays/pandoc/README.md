@@ -6,9 +6,10 @@ Adds a complete Markdown → PDF pipeline to your devcontainer, powered by Pando
 
 - **Pandoc 3.x** — Latest release binary from GitHub (not the outdated apt version)
 - **TeX Live / XeLaTeX** — Full Unicode-capable PDF engine (`texlive-xetex`, `texlive-fonts-extra`, `texlive-latex-extra`)
-- **Quality fonts** — Carlito (body), JetBrains Mono (code), Noto Sans Symbols 2 (Unicode fallback) via system packages
+- **Quality fonts** — Carlito (body), JetBrains Mono (code), Noto Sans Symbols 2 (Unicode fallback), and Noto Color Emoji via system packages
     - Uses the `cross-distro-packages` feature with fallback package names for Carlito (`fonts-carlito|fonts-crosextra-carlito`)
 - **`diagram.lua`** — Lua filter from [pandoc-ext/diagram](https://github.com/pandoc-ext/diagram) for rendering code-block diagrams
+- **`emoji-fallback.lua`** — Built-in Lua filter that rewrites unsupported emoji and flag glyphs to plain-text placeholders for reliable XeLaTeX PDF builds
 - **Mermaid CLI (`mmdc`)** — Installed when the `nodejs` overlay is present; skipped gracefully otherwise
 - **`~/.pandoc/pandoc.yaml`** — Ready-to-use defaults file (XeLaTeX engine, font settings, table tweaks)
 - **VS Code Extensions:** Markdown All in One (`yzhang.markdown-all-in-one`), markdownlint (`DavidAnson.vscode-markdownlint`)
@@ -30,13 +31,17 @@ Markdown
 
 Font discovery is updated with `fc-cache -fv` after installation so XeLaTeX can locate the apt-installed fonts.
 
+The generated defaults also enable an emoji fallback filter for LaTeX output. The overlay now installs Noto Color Emoji as well, which may improve glyph coverage in some contexts, but the fallback filter remains enabled because XeLaTeX still is not reliable for full emoji and flag rendering. The filter converts unsupported glyphs such as `🇵🇹` to `[PT]` and generic emoji such as `😀` to `[emoji]` before XeLaTeX runs, preventing the `Unicode character ... not set up for use with LaTeX` failure.
+
+The setup script also installs a `/usr/local/bin/pandoc` wrapper that automatically applies `~/.pandoc/pandoc.yaml` unless you explicitly pass `-d` or `--defaults`. That makes plain commands like `pandoc doc.md -o doc.pdf` use the overlay defaults.
+
 ## Common Commands
 
 ### Basic PDF export
 
 ```bash
-# Use the default pandoc.yaml
-pandoc -d ~/.pandoc/pandoc.yaml document.md -o document.pdf
+# Uses the installed wrapper, which applies ~/.pandoc/pandoc.yaml automatically
+pandoc document.md -o document.pdf
 
 # Override the output font on the fly
 pandoc -d ~/.pandoc/pandoc.yaml -V mainfont="DejaVu Serif" document.md -o document.pdf
@@ -45,8 +50,7 @@ pandoc -d ~/.pandoc/pandoc.yaml -V mainfont="DejaVu Serif" document.md -o docume
 ### PDF with Mermaid diagrams (requires nodejs overlay)
 
 ```bash
-pandoc -d ~/.pandoc/pandoc.yaml \
-  --lua-filter ~/.pandoc/filters/diagram.lua \
+pandoc --lua-filter ~/.pandoc/filters/diagram.lua \
   document.md -o document.pdf
 ```
 
@@ -95,6 +99,8 @@ The setup script writes a defaults file with proven settings:
 
 ```yaml
 pdf-engine: xelatex
+filters:
+    - /home/your-user/.pandoc/filters/emoji-fallback.lua
 
 variables:
     mainfont: 'Carlito'
@@ -129,8 +135,9 @@ variables:
 toc: true
 toc-depth: 3
 number-sections: true
-lua-filter:
-    - ~/.pandoc/filters/diagram.lua
+filters:
+    - /home/your-user/.pandoc/filters/emoji-fallback.lua
+    - /home/your-user/.pandoc/filters/diagram.lua
 ```
 
 Then build with:
@@ -154,21 +161,21 @@ number-sections: true
 Uncomment in `~/.pandoc/pandoc.yaml`:
 
 ```yaml
-lua-filter:
-    - ~/.pandoc/filters/diagram.lua
+filters:
+    - /home/your-user/.pandoc/filters/emoji-fallback.lua
+    - /home/your-user/.pandoc/filters/diagram.lua
 ```
 
 ## Unicode and Emoji
 
-XeLaTeX handles Unicode well with the Noto and Carlito fonts, but emoji (🎉 🚀) require a colour emoji font (e.g. `fonts-noto-color-emoji`) which is not installed by default due to size. For documents with emoji, either:
+XeLaTeX handles normal Unicode text well with the bundled fonts. The overlay now also installs Noto Color Emoji, which can help with emoji coverage, but the failure mode in PDF builds is still usually emoji or regional-indicator flags, for example `🇵🇹`, which XeLaTeX may reject before font fallback can help.
 
-1. Replace emoji with text equivalents before generating the PDF:
+The overlay now enables `~/.pandoc/filters/emoji-fallback.lua` by default for LaTeX output. It keeps normal Unicode text intact and rewrites unsupported emoji to plain-text placeholders:
 
-    ```bash
-    sed 's/🎉/[celebration]/g; s/🚀/[rocket]/g' doc.md | pandoc -d ~/.pandoc/pandoc.yaml -o doc.pdf
-    ```
+- `🇵🇹 Porto` becomes `[PT] Porto`
+- `😀` becomes `[emoji]`
 
-2. Install `fonts-noto-color-emoji` and add `\setmainfont{Noto Color Emoji}` for the emoji font fallback in your `header-includes`.
+If you want to experiment with more native emoji rendering, keep the installed emoji font and override the default Pandoc/LaTeX settings in a project-local `pandoc.yaml`, but the placeholder filter is still the reliable default for PDF generation.
 
 ## Use Cases
 
