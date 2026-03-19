@@ -8,4 +8,4 @@ overlays:
     - docker-sock
     - git-helpers
     - modern-cli-tools
-outputPath: ./.devcontainer
+    - devcontainer-cli

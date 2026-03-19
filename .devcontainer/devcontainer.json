@@ -46,7 +46,8 @@
                 "christian-kohler.npm-intellisense",
                 "eamodio.gitlens",
                 "github.vscode-pull-request-github",
-                "mhutchie.git-graph"
+                "mhutchie.git-graph",
+                "ms-vscode-remote.remote-containers"
             ],
             "settings": {
                 "editor.formatOnSave": true,
@@ -95,6 +96,7 @@
         "setup-nodejs": "bash .devcontainer/scripts/setup-nodejs.sh",
         "setup-codex": "bash .devcontainer/scripts/setup-codex.sh",
         "setup-git-helpers": "bash .devcontainer/scripts/setup-git-helpers.sh",
-        "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh"
+        "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh",
+        "setup-devcontainer-cli": "bash .devcontainer/scripts/setup-devcontainer-cli.sh"
     }
 }
