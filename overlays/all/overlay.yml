@@ -1,5 +1,5 @@
-id: meta
-name: Meta (All Overlays)
+id: all
+name: All Overlays
 description: Internal testing overlay that activates all available overlays to verify the full build
 category: dev
 hidden: true
@@ -10,5 +10,5 @@ conflicts: []
 tags:
     - internal
     - testing
-    - meta
+    - all
 ports: []

@@ -13,7 +13,7 @@ The `meta` overlay exists to make CI/integration testing straightforward: adding
 stack: compose
 containerName: meta-test
 overlays:
-    - meta
+    - all
 outputPath: .devcontainer
 ```
 

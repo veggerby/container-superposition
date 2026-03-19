@@ -135,7 +135,7 @@ function getAllOverlayDefs(config: OverlaysConfig): OverlayMetadata[] {
 }
 
 /** ID for the meta overlay that expands to all available overlays */
-const META_OVERLAY_ID = 'meta';
+const META_OVERLAY_ID = 'all';
 
 /**
  * Resolve dependencies for a set of overlays
@@ -152,7 +152,7 @@ function resolveDependencies(
     let expandedRequest = requestedOverlays;
     if (requestedOverlays.includes(META_OVERLAY_ID)) {
         const allIds = allOverlayDefs
-            .filter((def) => def.id !== META_OVERLAY_ID)
+            .filter((def) => def.id !== META_OVERLAY_ID && def.category !== 'preset')
             .map((def) => def.id);
         expandedRequest = [
             ...requestedOverlays.filter((id) => id !== META_OVERLAY_ID),

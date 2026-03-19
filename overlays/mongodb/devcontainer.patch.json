@@ -1,11 +1,5 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-    "features": {
-        "./features/cross-distro-packages": {
-            "apt": "mongodb-mongosh",
-            "apk": "mongodb-tools"
-        }
-    },
     "customizations": {
         "vscode": {
             "extensions": ["mongodb.mongodb-vscode"]

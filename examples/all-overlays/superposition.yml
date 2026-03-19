@@ -3,5 +3,5 @@ stack: compose
 baseImage: trixie
 containerName: all-overlays
 overlays:
-    - meta
+    - all
 outputPath: .devcontainer
