@@ -1865,6 +1865,14 @@ function mergeSetupScripts(
     );
     if (hasScripts) {
         fileRegistry.addDirectory('scripts');
+        // Emit shared apt utilities so setup scripts can source them
+        const aptUtilsSrc = path.join(TEMPLATES_DIR, 'scripts', 'apt-utils.sh');
+        if (fs.existsSync(aptUtilsSrc)) {
+            const aptUtilsDest = path.join(scriptsDir, 'apt-utils.sh');
+            fs.copyFileSync(aptUtilsSrc, aptUtilsDest);
+            fs.chmodSync(aptUtilsDest, 0o755);
+            fileRegistry.addFile('scripts/apt-utils.sh');
+        }
     }
 
     for (const overlay of overlays) {

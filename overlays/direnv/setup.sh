@@ -5,30 +5,11 @@ set -e
 
 echo "🔐 Setting up direnv..."
 
-# Wait for apt lock (handles parallel setup scripts running concurrently)
-wait_for_apt_lock() {
-    local retries=15
-    while [ $retries -gt 0 ]; do
-        if ! sudo flock -n /var/lib/apt/lists/lock true 2>/dev/null; then
-            echo "⏳ Waiting for apt lock..."
-            sleep 4
-            retries=$((retries - 1))
-        else
-            return 0
-        fi
-    done
-}
-wait_for_apt_lock
-
-# Install direnv from package manager
-sudo apt-get update -qq
-sudo apt-get install -y direnv
-
-# Verify installation
+# Verify installation (installed via cross-distro-packages feature)
 if command -v direnv &> /dev/null; then
     echo "✓ direnv installed: $(direnv version)"
 else
-    echo "✗ direnv installation failed"
+    echo "✗ direnv not found — check cross-distro-packages feature"
     exit 1
 fi
 

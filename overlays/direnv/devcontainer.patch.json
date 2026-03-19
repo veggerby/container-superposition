@@ -1,5 +1,11 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "direnv",
+            "apk": "direnv"
+        }
+    },
     "remoteEnv": {
         "DIRENV_LOG_FORMAT": ""
     }
