@@ -1318,11 +1318,13 @@ function executeManifestMigration(outputPath: string): FixExecution {
 
 /**
  * Execute devcontainer regeneration fix (Class 2).
+ * @param silent When true, suppresses console output during regeneration (for --json mode).
  */
 async function executeRegeneration(
     outputPath: string,
     overlaysConfig: OverlaysConfig,
-    overlaysDir: string
+    overlaysDir: string,
+    silent = false
 ): Promise<FixExecution> {
     const manifestPath = path.join(outputPath, 'superposition.json');
 
@@ -1364,9 +1366,17 @@ async function executeRegeneration(
 
     const answers = buildAnswersFromManifest(manifest, outputPath, overlaysConfig);
 
+    // Suppress console output during regeneration when in JSON mode
+    const originalLog = console.log;
+    if (silent) {
+        console.log = () => {};
+    }
     try {
         await composeDevContainer(answers, overlaysDir, { isRegen: true });
     } catch (err) {
+        if (silent) {
+            console.log = originalLog;
+        }
         return {
             findingId: 'devcontainer-config',
             remediationKey: 'devcontainer-regeneration',
@@ -1375,6 +1385,10 @@ async function executeRegeneration(
             reason: `Regeneration failed: ${err instanceof Error ? err.message : String(err)}`,
             rechecked: false,
         };
+    } finally {
+        if (silent) {
+            console.log = originalLog;
+        }
     }
 
     // Re-check
@@ -1496,17 +1510,17 @@ async function executeSingleFix(
     finding: DiagnosticFinding,
     outputPath: string,
     overlaysConfig: OverlaysConfig,
-    overlaysDir: string
+    overlaysDir: string,
+    silent = false
 ): Promise<FixExecution> {
     switch (finding.remediationKey) {
         case 'manifest-migration':
             return executeManifestMigration(outputPath);
         case 'devcontainer-regeneration':
-            return executeRegeneration(outputPath, overlaysConfig, overlaysDir);
+            return executeRegeneration(outputPath, overlaysConfig, overlaysDir, silent);
         case 'node-version-fix':
             return executeNodeVersionFix();
         case 'docker-repair': {
-            const action = REMEDIATION_REGISTRY.get('docker-repair')!;
             return {
                 findingId: finding.id,
                 remediationKey: 'docker-repair',
@@ -1627,7 +1641,13 @@ async function executeFixRun(
             }
         }
 
-        const execution = await executeSingleFix(finding, outputPath, overlaysConfig, overlaysDir);
+        const execution = await executeSingleFix(
+            finding,
+            outputPath,
+            overlaysConfig,
+            overlaysDir,
+            requestedJson
+        );
         executions.push(execution);
 
         if (
