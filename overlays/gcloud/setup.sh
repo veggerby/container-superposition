@@ -17,9 +17,8 @@ if command -v apk >/dev/null 2>&1; then
     ln -sf /usr/local/google-cloud-sdk/bin/gsutil /usr/local/bin/gsutil
 elif command -v apt-get >/dev/null 2>&1; then
     # Debian/Ubuntu — add Google Cloud apt repo using modern signed-by method
-    acquire_apt_lock
-    sudo apt-get update -y -qq
-    sudo apt-get install -y --no-install-recommends apt-transport-https ca-certificates gnupg curl
+    # add_apt_repo does not need the lock (only writes key/sources files)
+    apt_install apt-transport-https ca-certificates gnupg curl
 
     # Google Cloud SDK uses its own flat distribution (cloud-sdk), not Debian codename-specific
     add_apt_repo \
@@ -28,14 +27,12 @@ elif command -v apt-get >/dev/null 2>&1; then
         "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
         "/etc/apt/sources.list.d/google-cloud-sdk.list"
 
-    sudo apt-get update -y -qq
-    sudo apt-get install -y --no-install-recommends \
+    apt_install \
         google-cloud-cli \
         google-cloud-cli-gke-gcloud-auth-plugin
 
     sudo apt-get clean
     sudo rm -rf /var/lib/apt/lists/*
-    release_apt_lock
 else
     echo "⚠️  Unsupported package manager, skipping gcloud installation"
     exit 0

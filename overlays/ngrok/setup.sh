@@ -19,12 +19,8 @@ curl -fsSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
     | sudo tee /etc/apt/sources.list.d/ngrok.list >/dev/null
 
-wait_for_apt_lock
-
 # Update and install
-sudo apt-get update -qq
-sudo apt-get install -y ngrok
-release_apt_lock
+apt_install ngrok
 
 # Verify installation
 if command -v ngrok &> /dev/null; then

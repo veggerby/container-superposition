@@ -20,7 +20,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 detect_arch amd64
 
 install_binary \
-    "https://github.com/cloudflare/cloudflared/releases/download/${CF_VERSION}/cloudflared-linux-${ARCH_AMD64_ARM64}" \
+    "https://github.com/cloudflare/cloudflared/releases/download/${CF_VERSION}/cloudflared-linux-${CS_ARCH}" \
     "cloudflared" "755"
 
 # Verify installation

@@ -288,18 +288,34 @@ set -e
 source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 ```
 
-#### APT locking — `acquire_apt_lock` / `release_apt_lock`
+#### APT locking — `apt_install` / `with_apt_lock` / `acquire_apt_lock`
 
-Setup scripts run in parallel. Without coordination, two scripts calling `apt-get update` simultaneously will corrupt the apt database. Wrap **all** apt/dpkg operations in the lock:
+Setup scripts run in parallel. Without coordination, two scripts calling `apt-get update` simultaneously will corrupt the apt database.
+
+For the common case of installing packages, use `apt_install` — it acquires the lock, runs `apt-get update`, installs, then releases the lock:
 
 ```bash
+apt_install my-package another-package
+```
+
+For operations that need the lock but aren't a plain `apt-get install` (e.g. `dpkg -i`), use `with_apt_lock`:
+
+```bash
+with_apt_lock sudo dpkg -i /tmp/package.deb
+```
+
+For multi-step sequences (add repo, then install), use `acquire_apt_lock` / `release_apt_lock` directly:
+
+```bash
+add_apt_repo ...
 acquire_apt_lock
 sudo apt-get update -qq
 sudo apt-get install -y my-package
+sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
 release_apt_lock
 ```
 
-The lock is `flock`-based and crash-safe: the kernel releases it automatically if the process exits for any reason, and the EXIT trap closes the file descriptor so background children cannot extend the lock.
+The lock is `flock`-based and crash-safe: the kernel releases it automatically if the process exits for any reason.
 
 #### Adding a custom apt repo — `add_apt_repo`
 
@@ -311,25 +327,25 @@ add_apt_repo \
     "/etc/apt/sources.list.d/example.list"
 ```
 
-This handles the `curl → gpg --dearmor → tee sources.list.d` sequence. Call it **before** `acquire_apt_lock` — it only writes key/sources files and does not invoke apt.
+This handles the `curl → gpg --dearmor → tee sources.list.d` sequence, including `mkdir -p` for the keyring and sources directories. Call it **before** `acquire_apt_lock` — it only writes key/sources files and does not invoke apt.
 
 #### Architecture detection — `detect_arch`
 
 ```bash
-detect_arch             # exits on unknown arch
+detect_arch             # returns 1 on unknown arch
 detect_arch amd64       # falls back to amd64 on unknown arch
-# $ARCH_AMD64_ARM64 is now "amd64" or "arm64"
+# $CS_ARCH is now "amd64" or "arm64"
 ```
 
 #### Installing a binary — `install_binary` / `install_binary_from_tar`
 
 ```bash
 # Single binary
-install_binary "https://example.com/tool-linux-${ARCH_AMD64_ARM64}" "tool"
+install_binary "https://example.com/tool-linux-${CS_ARCH}" "tool"
 
 # Binary inside a .tar.gz
 install_binary_from_tar \
-    "https://example.com/tool-${VERSION}-linux-${ARCH_AMD64_ARM64}.tar.gz" \
+    "https://example.com/tool-${VERSION}-linux-${CS_ARCH}.tar.gz" \
     "tool"          # name inside archive
 ```
 
@@ -349,10 +365,7 @@ add_apt_repo \
     "deb [signed-by=/usr/share/keyrings/my-tool.gpg] https://my-tool.example.com/apt stable main" \
     "/etc/apt/sources.list.d/my-tool.list"
 
-acquire_apt_lock
-sudo apt-get update -qq
-sudo apt-get install -y my-tool
-release_apt_lock
+apt_install my-tool
 
 echo "✅ my-tool installed: $(my-tool --version)"
 ```
@@ -368,9 +381,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 
 MY_VERSION="${MY_VERSION:-1.2.3}"
 detect_arch
-echo "📦 Installing my-cli ${MY_VERSION} for ${ARCH_AMD64_ARM64}..."
+echo "📦 Installing my-cli ${MY_VERSION} for ${CS_ARCH}..."
 install_binary \
-    "https://github.com/example/my-cli/releases/download/v${MY_VERSION}/my-cli-linux-${ARCH_AMD64_ARM64}" \
+    "https://github.com/example/my-cli/releases/download/v${MY_VERSION}/my-cli-linux-${CS_ARCH}" \
     "my-cli"
 
 echo "✅ my-cli installed: $(my-cli --version)"
@@ -672,7 +685,7 @@ Before submitting an overlay:
 
 - [ ] devcontainer.patch.json validates against schema
 - [ ] Packages available in standard repos use `cross-distro-packages` feature (not `apt-get install` in setup.sh)
-- [ ] `setup.sh` (if present) sources `setup-utils.sh` and uses `acquire_apt_lock`/`install_binary`/`detect_arch`
+- [ ] `setup.sh` (if present) sources `setup-utils.sh` and uses `apt_install`/`install_binary`/`detect_arch`
 - [ ] docker-compose.yml uses version "3.8" and devnet network
 - [ ] .env.example has sensible defaults and comments
 - [ ] README.md documents ports, environment variables, usage

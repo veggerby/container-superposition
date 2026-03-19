@@ -14,9 +14,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 if ! command -v mc &> /dev/null; then
     MC_VERSION="${MC_VERSION:-RELEASE.2024-11-17T19-35-25Z}"
     detect_arch
-    echo "   Downloading MinIO client version ${MC_VERSION} for ${ARCH_AMD64_ARM64}..."
+    echo "   Downloading MinIO client version ${MC_VERSION} for ${CS_ARCH}..."
     install_binary \
-        "https://dl.min.io/client/mc/release/linux-${ARCH_AMD64_ARM64}/archive/mc.${MC_VERSION}" \
+        "https://dl.min.io/client/mc/release/linux-${CS_ARCH}/archive/mc.${MC_VERSION}" \
         "mc"
     echo "   ✅ MinIO client installed (${MC_VERSION})"
 else

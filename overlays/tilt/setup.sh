@@ -11,7 +11,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 
 TILT_VERSION="${TILT_VERSION:-0.37.0}"
 detect_arch
-TILT_ARCH="$ARCH_AMD64_ARM64"
+TILT_ARCH="$CS_ARCH"
 # tilt uses x86_64 for amd64 in its tarball names
 [ "$TILT_ARCH" = "amd64" ] && TILT_ARCH="x86_64"
 

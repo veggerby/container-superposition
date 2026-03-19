@@ -16,7 +16,7 @@ KIND_VERSION="${KIND_VERSION:-v0.22.0}"
 echo "📦 Installing kind ${KIND_VERSION}..."
 
 install_binary \
-    "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${ARCH_AMD64_ARM64}" \
+    "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${CS_ARCH}" \
     "kind"
 
 # Verify installation

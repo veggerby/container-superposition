@@ -14,15 +14,13 @@ PANDOC_VERSION="3.6.4"
 source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 
 if command -v apt-get > /dev/null 2>&1; then
-    wait_for_apt_lock
     # Debian/Ubuntu — install official .deb from GitHub releases
     ARCH=$(dpkg --print-architecture)
     PANDOC_DEB="pandoc-${PANDOC_VERSION}-1-${ARCH}.deb"
     curl -fsSL "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/${PANDOC_DEB}" \
         -o "/tmp/${PANDOC_DEB}"
-    sudo dpkg -i "/tmp/${PANDOC_DEB}"
+    with_apt_lock sudo dpkg -i "/tmp/${PANDOC_DEB}"
     rm "/tmp/${PANDOC_DEB}"
-    release_apt_lock
 elif command -v apk > /dev/null 2>&1; then
     # Alpine Linux — install via apk (version may differ from pinned release)
     echo "⚠  Alpine detected: installing pandoc via apk (version may differ from ${PANDOC_VERSION})"
