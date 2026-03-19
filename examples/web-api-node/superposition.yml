@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/config.schema.json
+stack: compose
+containerName: web-api-node
+overlays:
+    - nodejs
+    - postgres
+    - redis
+    - otel-collector
+    - prometheus
+    - grafana
+    - loki

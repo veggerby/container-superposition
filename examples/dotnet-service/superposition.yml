@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/config.schema.json
+stack: compose
+containerName: dotnet-service
+overlays:
+    - dotnet
+    - postgres
+    - otel-collector
+    - jaeger
+    - prometheus
