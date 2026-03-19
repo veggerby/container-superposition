@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
     "features": {
-        "ghcr.io/devcontainers/features/google-cloud-cli:1": {
+        "ghcr.io/dhoeric/features/google-cloud-cli:1": {
             "version": "latest",
             "installGkeGcloudAuthPlugin": true
         }

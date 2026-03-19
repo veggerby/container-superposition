@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
     "features": {
-        "ghcr.io/devcontainers/features/pulumi:1": {
+        "ghcr.io/devcontainers-extra/features/pulumi:1": {
             "version": "latest"
         }
     },
