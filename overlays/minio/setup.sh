@@ -7,21 +7,17 @@ echo "🔧 Setting up MinIO client..."
 
 # Install MinIO client (mc)
 echo "📦 Installing MinIO client (mc)..."
+# Source shared setup utilities
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+
 if ! command -v mc &> /dev/null; then
     MC_VERSION="${MC_VERSION:-RELEASE.2024-11-17T19-35-25Z}"
-    ARCH=$(uname -m)
-    case "$ARCH" in
-        x86_64)  MC_ARCH="amd64" ;;
-        aarch64|arm64) MC_ARCH="arm64" ;;
-        *) echo "⚠️  Unsupported architecture: $ARCH"; exit 1 ;;
-    esac
-    MC_URL="https://dl.min.io/client/mc/release/linux-${MC_ARCH}/archive/mc.${MC_VERSION}"
-
-    echo "   Downloading MinIO client version ${MC_VERSION} for ${MC_ARCH}..."
-    curl -fsSL "${MC_URL}" -o /tmp/mc
-
-    sudo install /tmp/mc /usr/local/bin/
-    rm /tmp/mc
+    detect_arch
+    echo "   Downloading MinIO client version ${MC_VERSION} for ${ARCH_AMD64_ARM64}..."
+    install_binary \
+        "https://dl.min.io/client/mc/release/linux-${ARCH_AMD64_ARM64}/archive/mc.${MC_VERSION}" \
+        "mc"
     echo "   ✅ MinIO client installed (${MC_VERSION})"
 else
     echo "   ✅ MinIO client already installed"

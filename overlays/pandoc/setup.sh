@@ -9,9 +9,9 @@ sudo fc-cache -fv
 echo "📦 Installing Pandoc (latest release)..."
 PANDOC_VERSION="3.6.4"
 
-# Source shared apt utilities
-# shellcheck source=apt-utils.sh
-source "$(dirname "${BASH_SOURCE[0]}")/apt-utils.sh"
+# Source shared setup utilities
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 
 if command -v apt-get > /dev/null 2>&1; then
     wait_for_apt_lock

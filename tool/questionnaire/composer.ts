@@ -1865,13 +1865,13 @@ function mergeSetupScripts(
     );
     if (hasScripts) {
         fileRegistry.addDirectory('scripts');
-        // Emit shared apt utilities so setup scripts can source them
-        const aptUtilsSrc = path.join(TEMPLATES_DIR, 'scripts', 'apt-utils.sh');
-        if (fs.existsSync(aptUtilsSrc)) {
-            const aptUtilsDest = path.join(scriptsDir, 'apt-utils.sh');
-            fs.copyFileSync(aptUtilsSrc, aptUtilsDest);
-            fs.chmodSync(aptUtilsDest, 0o755);
-            fileRegistry.addFile('scripts/apt-utils.sh');
+        // Emit shared setup utilities so overlay scripts can source them
+        const setupUtilsSrc = path.join(TEMPLATES_DIR, 'scripts', 'setup-utils.sh');
+        if (fs.existsSync(setupUtilsSrc)) {
+            const setupUtilsDest = path.join(scriptsDir, 'setup-utils.sh');
+            fs.copyFileSync(setupUtilsSrc, setupUtilsDest);
+            fs.chmodSync(setupUtilsDest, 0o755);
+            fileRegistry.addFile('scripts/setup-utils.sh');
         }
     }
 

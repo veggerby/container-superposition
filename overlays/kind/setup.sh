@@ -5,28 +5,19 @@ set -e
 
 echo "🔧 Setting up kind (Kubernetes in Docker)..."
 
-# Detect architecture
-ARCH=$(uname -m)
-case $ARCH in
-    x86_64)
-        KIND_ARCH="amd64"
-        ;;
-    aarch64|arm64)
-        KIND_ARCH="arm64"
-        ;;
-    *)
-        echo "❌ Unsupported architecture: $ARCH"
-        exit 1
-        ;;
-esac
+# Source shared setup utilities
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+
+detect_arch
 
 # Install kind
 KIND_VERSION="${KIND_VERSION:-v0.22.0}"
 echo "📦 Installing kind ${KIND_VERSION}..."
 
-curl -Lo /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${KIND_ARCH}"
-chmod +x /tmp/kind
-sudo mv /tmp/kind /usr/local/bin/kind
+install_binary \
+    "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${ARCH_AMD64_ARM64}" \
+    "kind"
 
 # Verify installation
 if command -v kind &> /dev/null; then
