@@ -24,6 +24,7 @@ wait_for_apt_lock
 # Update and install
 sudo apt-get update -qq
 sudo apt-get install -y ngrok
+release_apt_lock
 
 # Verify installation
 if command -v ngrok &> /dev/null; then

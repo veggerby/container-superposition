@@ -6,7 +6,8 @@
             "version": "os-provided"
         },
         "ghcr.io/devcontainers/features/git-lfs:1": {
-            "version": "latest"
+            "version": "latest",
+            "autoPull": false
         },
         "ghcr.io/devcontainers/features/github-cli:1": {
             "version": "latest"

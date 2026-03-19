@@ -22,6 +22,7 @@ if command -v apt-get > /dev/null 2>&1; then
         -o "/tmp/${PANDOC_DEB}"
     sudo dpkg -i "/tmp/${PANDOC_DEB}"
     rm "/tmp/${PANDOC_DEB}"
+    release_apt_lock
 elif command -v apk > /dev/null 2>&1; then
     # Alpine Linux — install via apk (version may differ from pinned release)
     echo "⚠  Alpine detected: installing pandoc via apk (version may differ from ${PANDOC_VERSION})"

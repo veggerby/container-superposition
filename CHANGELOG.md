@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`DiagnosticFinding`, `RemediationAction`, `FixExecution`, `FixRun`, `FixOutcomeSummary`** types exported from `tool/schema/types.ts`
 - **`doctor --fix` documentation** — added to `docs/quick-reference.md` with fix vocabulary, fixable issue table, safety notes, and JSON schema example
 - **`docs/specs/004-doctor-fix/spec.md`** — feature spec committed per repository spec-first policy
+- **`all` overlay** — meta-overlay that expands to all non-preset overlays; useful for `examples/all-overlays` and integration testing; hidden from the interactive questionnaire
+- **`templates/scripts/setup-utils.sh`** — shared Bash utility library emitted automatically into `scripts/setup-utils.sh` whenever any overlay contributes a `setup.sh`
+    - `acquire_apt_lock` / `release_apt_lock` — `flock`-based mutual exclusion for `apt`/`dpkg` operations; eliminates race conditions between parallel `postCreateCommand` scripts; crash-safe (kernel releases lock on process exit, EXIT trap closes fd so child processes cannot extend the lock)
+    - `wait_for_apt_lock` — kept for backward compatibility; now delegates to `acquire_apt_lock`
+    - `add_apt_repo <key-url> <keyring> <repo-line> <sources-file>` — adds a third-party apt repository via `gpg --dearmor`, replacing repeated inline curl-pipe patterns
+    - `detect_arch [fallback]` — maps `uname -m` to `amd64`/`arm64`, sets `$ARCH_AMD64_ARM64`
+    - `install_binary <url> <name> [mode]` — downloads a single binary to a temp file and installs it to `/usr/local/bin`
+    - `install_binary_from_tar <url> <bin> [dest] [mode]` — downloads a `.tar.gz`, extracts a named binary, and installs it to `/usr/local/bin`
+- **Port conflict auto-resolution** — `mergeDockerComposeFiles` now detects host-port collisions across all selected overlays and remaps conflicting ports to the next free port at generation time; warns in output with before/after mapping
 
 ### Changed
 
@@ -29,11 +38,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Internally backed by a strongly-typed `OverlayId` union type for compile-time safety
 - **`doctor` timeout fix** — added 5 s timeout to all `docker info`, `docker --version`, and `docker compose version` subprocess calls; prevents test hangs in environments without Docker
 - **`doctor` check metadata** — check functions now populate `fixEligibility` and `remediationKey` fields on `CheckResult` for use by the fix flow; the legacy `fixable` boolean is still emitted for backward compatibility
+- **`direnv` overlay** — package installation moved to `cross-distro-packages` devcontainer feature (runs at build time); `setup.sh` now only handles shell hook configuration
+- **`modern-cli-tools` overlay** — `jq`, `ripgrep`, `fd-find`, `bat` moved to `cross-distro-packages`; `setup.sh` now only installs `yq` (not in standard repos) and creates the Debian-specific `fdfind→fd` and `batcat→bat` symlinks
+- **`git-lfs` feature** — `autoPull` set to `false` in the `git-helpers` overlay; prevents container creation failures in repos with no LFS remote configured; users can run `git lfs pull` manually
 
 ### Fixed
 
 - **`${containerEnv:HOME}` in mount targets** — replaced with absolute path `/home/vscode/.codex` in examples and codex overlay README; Docker cannot resolve container env vars at mount time
 - **`pandoc` overlay missing `lmodern`** — added `lmodern` package to the apt package list; required by Pandoc's default LaTeX template on Trixie where `--no-install-recommends` skips it
+- **`tilt` overlay** — replaced pipe-to-bash upstream installer with a direct download to a known temp directory; fixes `sudo mv tilt: No such file or directory` failure caused by the upstream script's relative-path `mv` running inside a subshell
+- **`minio` overlay** — hardcoded `amd64`-only URL and stale SHA256 checksum removed; now uses `detect_arch` for correct binary selection on `aarch64`
+- **`just` overlay** — removed hardcoded SHA256 checksums that were wrong for `aarch64`; uses `curl -fsSL` (fail-on-error) instead
+- **`mongodb` overlay** — replaced `cross-distro-packages` feature (package not in standard repos) with `setup.sh` that adds the official MongoDB apt repo; all `apt-get`/`gpg`/`tee` calls use `sudo`
+- **`gcloud` overlay** — replaced `ghcr.io/dhoeric/features/google-cloud-cli` (uses removed `apt-key`) with `setup.sh` that adds the repo via `gpg --dearmor`; all commands use `sudo`
+- **`nats` overlay** — default version changed from `latest` to `2`; the `latest-alpine` tag does not exist on Docker Hub
+- **`windsurf-cli` overlay** — replaced `npm install -g @codeium/windsurf-cli` (package does not exist on npm) with binary download from GitHub releases
+- **`powershell` overlay** — `Install-Module` no longer hangs waiting for an interactive NuGet provider prompt; NuGet is now bootstrapped with `-Force` and PSGallery is set to `Trusted` before module installation
+- **Parallel apt contention** — `direnv`, `ngrok`, `pandoc` setup scripts previously raced to acquire the system apt lock; all now use `acquire_apt_lock` from `setup-utils.sh`
 
 ## [0.1.6] - 2026-03-16
 
