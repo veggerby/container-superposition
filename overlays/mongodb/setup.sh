@@ -28,9 +28,10 @@ elif command -v apt-get >/dev/null 2>&1; then
 
     # Single lock acquisition: install prereqs, then mongosh without a second apt-get update
     acquire_apt_lock
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq --no-install-recommends gnupg curl ca-certificates
-    sudo apt-get install -y -qq --no-install-recommends mongodb-mongosh
+    # Pass env vars explicitly — sudo strips them by default.
+    sudo DEBIAN_FRONTEND=noninteractive TERM=dumb apt-get update -qq
+    sudo DEBIAN_FRONTEND=noninteractive TERM=dumb apt-get install -y -qq --no-install-recommends gnupg curl ca-certificates
+    sudo DEBIAN_FRONTEND=noninteractive TERM=dumb apt-get install -y -qq --no-install-recommends mongodb-mongosh
     sudo apt-get clean
     sudo rm -rf /var/lib/apt/lists/*
     release_apt_lock

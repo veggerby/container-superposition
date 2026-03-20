@@ -14,12 +14,17 @@ else
     exit 1
 fi
 
-# Bootstrap NuGet provider and trust PSGallery non-interactively
-echo "🔧 Bootstrapping NuGet provider..."
+# Trust PSGallery non-interactively.
+# PowerShell 7+ bundles the NuGet provider — Install-PackageProvider is not
+# needed and will fail with "No match found" on PS7.  Call it only on PS5.
+echo "🔧 Configuring PSGallery..."
 timeout 120 pwsh -NoProfile -Command '
-    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser | Out-Null
+    $major = $PSVersionTable.PSVersion.Major
+    if ($major -lt 7) {
+        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser | Out-Null
+    }
     Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-' || echo "⚠️ Failed to configure NuGet provider (network may be unavailable)"
+' || echo "⚠️ Failed to configure PSGallery (network may be unavailable)"
 
 # Install common PowerShell modules
 echo "📦 Installing PowerShell modules..."

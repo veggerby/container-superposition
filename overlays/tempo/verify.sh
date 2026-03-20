@@ -6,19 +6,18 @@ echo "🔍 Verifying Tempo installation..."
 # Track overall success
 ALL_CHECKS_PASSED=true
 
-# Check if Tempo service is running
-if docker ps --format '{{.Names}}' | grep -q tempo; then
-    echo "✓ Tempo service is running"
-else
-    echo "✗ Tempo service is not running"
-    ALL_CHECKS_PASSED=false
-fi
-
-# Check if Tempo HTTP API is accessible
+# Check if Tempo /ready endpoint is accessible (primary health signal).
+# docker ps is informational only — not reliably accessible in all devcontainers.
 if curl -s -o /dev/null -w "%{http_code}" http://tempo:3200/ready 2>/dev/null | grep -q "200"; then
     echo "✓ Tempo HTTP API is accessible"
 else
-    echo "⚠️ Tempo HTTP API not responding yet (may still be starting)"
+    echo "✗ Tempo /ready endpoint not responding (http://tempo:3200/ready)"
+    ALL_CHECKS_PASSED=false
+fi
+
+# Informational: check via docker ps if available.
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q tempo; then
+    echo "✓ Tempo container visible in docker ps"
 fi
 
 # Final result

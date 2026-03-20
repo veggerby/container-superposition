@@ -121,8 +121,9 @@ with_apt_lock() {
 # Usage: apt_install <package> [packages...]
 apt_install() {
     acquire_apt_lock || return 1
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq "$@"
+    # Pass DEBIAN_FRONTEND and TERM explicitly: sudo strips environment by default.
+    sudo DEBIAN_FRONTEND=noninteractive TERM=dumb apt-get update -qq
+    sudo DEBIAN_FRONTEND=noninteractive TERM=dumb apt-get install -y -qq "$@"
     local rc=$?
     release_apt_lock
     return $rc

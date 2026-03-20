@@ -6,19 +6,18 @@ echo "🔍 Verifying Alertmanager installation..."
 # Track overall success
 ALL_CHECKS_PASSED=true
 
-# Check if Alertmanager service is running
-if docker ps --format '{{.Names}}' | grep -q alertmanager; then
-    echo "✓ Alertmanager service is running"
-else
-    echo "✗ Alertmanager service is not running"
-    ALL_CHECKS_PASSED=false
-fi
-
-# Check if Alertmanager API is accessible
+# Check if Alertmanager API is accessible (primary health signal).
+# docker ps is used for info only — it may not be accessible in all setups.
 if curl -s -o /dev/null -w "%{http_code}" http://alertmanager:9093/-/healthy 2>/dev/null | grep -q "200"; then
     echo "✓ Alertmanager API is accessible"
 else
-    echo "⚠️ Alertmanager API not responding yet (may still be starting)"
+    echo "✗ Alertmanager API not responding (http://alertmanager:9093/-/healthy)"
+    ALL_CHECKS_PASSED=false
+fi
+
+# Informational: check via docker ps if available.
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q alertmanager; then
+    echo "✓ Alertmanager container visible in docker ps"
 fi
 
 # Final result
