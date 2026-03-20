@@ -35,6 +35,7 @@ import { planCommand } from '../tool/commands/plan.js';
 import { doctorCommand } from '../tool/commands/doctor.js';
 import { adoptCommand } from '../tool/commands/adopt.js';
 import { hashCommand } from '../tool/commands/hash.js';
+import { generateCommand } from '../tool/commands/generate.js';
 import { getIncompatibleOverlays, DEPLOYMENT_TARGETS } from '../tool/schema/deployment-targets.js';
 import {
     migrateManifest,
@@ -1532,6 +1533,44 @@ async function parseCliArgs(): Promise<{
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
             await hashCommand(overlaysConfig, OVERLAYS_DIR, options);
+            process.exit(0);
+        });
+
+    // Generate command
+    program
+        .command('generate')
+        .description(
+            'Generate or modify a superposition.yml manifest using a natural-language prompt (requires AI provider API key)'
+        )
+        .requiredOption(
+            '--prompt <text>',
+            'Natural-language description of the desired environment'
+        )
+        .option(
+            '--scaffold',
+            'Also generate the full .devcontainer/ scaffold (not just the manifest)'
+        )
+        .option(
+            '--adopt',
+            'Scan the repository for language/framework signals and combine with the prompt'
+        )
+        .option('--from-scratch', 'Force from-scratch mode even if a superposition.yml is present')
+        .option('--no-interactive', 'Skip the confirmation prompt and write directly')
+        .option('-o, --output <path>', 'Output directory (default: current directory)')
+        .option('--port-offset <n>', 'Port offset applied when scaffolding', parseInt)
+        .option('--json', 'Output result as JSON (implies --no-interactive)')
+        .action(async (options) => {
+            const overlaysConfig = loadOverlaysConfigWrapper();
+            await generateCommand(overlaysConfig, OVERLAYS_DIR, {
+                prompt: options.prompt as string,
+                scaffold: !!options.scaffold,
+                adopt: !!options.adopt,
+                fromScratch: !!options.fromScratch,
+                noInteractive: !!(options.noInteractive ?? options.json),
+                output: options.output as string | undefined,
+                portOffset: options.portOffset as number | undefined,
+                json: !!options.json,
+            });
             process.exit(0);
         });
 

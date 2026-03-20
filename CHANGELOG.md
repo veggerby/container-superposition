@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`generate` command** — AI-powered intent-driven environment scaffolding
+    - `cs generate --prompt "Python app with postgres and redis"` — generates a `superposition.yml` manifest from a natural-language description
+    - Modify mode: when a `superposition.yml` is already present, applies an incremental diff (`add jaeger`, `remove otel-collector`, `switch to compose`) rather than regenerating from scratch
+    - `--scaffold` — also runs `composeDevContainer` to emit a full `.devcontainer/` folder
+    - `--adopt` — scans the repository for language/framework signals (`package.json`, `go.mod`, `Cargo.toml`, etc.) and combines them with the prompt for richer intent detection
+    - `--from-scratch` — forces from-scratch mode even if a `superposition.yml` exists
+    - `--no-interactive` / `--json` — skip confirmation and write directly (CI-friendly)
+    - Backed by [Mastra](https://mastra.ai) with structured Zod-validated output; model configurable via `CS_AI_MODEL` env var (default: `openai/gpt-4o-mini`)
+    - The LLM can only select from the live overlay catalog — it cannot invent IDs
+    - Fails clearly when no API key is configured (`OPENAI_API_KEY` for the default provider)
+    - Original manifest is backed up to `superposition.yml.bak` before modify-mode overwrites
+- **`tool/ai/` module** — new AI utilities
+    - `intent.ts` — `EnvironmentIntent` + `ManifestDiff` types with Zod schemas
+    - `mapper.ts` — `mapIntentToAnswers()` + `applyDiffToAnswers()` pure functions (LLM-free, fully testable)
+    - `overlay-context.ts` — `buildOverlayContextString()` serialises the overlay catalog for LLM context
+    - `agent.ts` — Mastra agent wrappers for `extractIntent()` and `extractDiff()`
+- **`@mastra/core` and `zod` dependencies** — added as production dependencies
+
 - **`doctor --fix`** — Interactive repair flow for common environment problems
     - Can fix stale manifests, missing devcontainer regeneration, Node.js version mismatches, and Docker daemon issues
     - Re-runs checks after remediation and reports a structured outcome summary; use `--fix --json` for machine-readable output
