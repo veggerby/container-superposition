@@ -67,6 +67,11 @@ npx container-superposition plan --from-manifest .devcontainer/superposition.jso
     - Add `--project-root <path>` to resolve persisted input from a different repository root
 - `regen` — deterministically replay the repository project file or a manifest
     - Add `--project-root <path>` to resolve persisted input from a different repository root
+- `generate` — AI-powered intent-driven scaffolding from a natural-language prompt (requires an OpenAI/Anthropic API key)
+    - `--prompt "Python app with postgres and redis"` — generate a `superposition.yml` from scratch
+    - `--scaffold` — also emit the full `.devcontainer/` output
+    - `--adopt` — enrich the prompt with repo language/framework signals
+    - When a `superposition.yml` already exists, operates in modify mode and backs up the original
 - `adopt` — migrate an existing `.devcontainer/` to the overlay-based workflow, optionally emitting a repository-root project file
 - `list` — browse overlays
 - `explain` — overlay details
