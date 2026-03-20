@@ -1463,7 +1463,7 @@ function executeNodeVersionFix(): FixExecution {
     // nvm requires bash for `source`; fnm and volta work with the system default shell.
     const runCmd = manager === 'nvm' ? `bash -lc '${fixCmd}'` : fixCmd;
     try {
-        execSync(runCmd, { stdio: 'pipe', timeout: 60_000, shell: manager !== 'nvm' });
+        execSync(runCmd, { stdio: 'pipe', timeout: 60_000 });
     } catch (err) {
         return {
             findingId: 'nodejs-version',
@@ -1482,7 +1482,6 @@ function executeNodeVersionFix(): FixExecution {
             encoding: 'utf8',
             stdio: ['pipe', 'pipe', 'pipe'],
             timeout: 10_000,
-            shell: true,
         });
         const match = version.trim().match(/^v(\d+)/);
         const major = match ? parseInt(match[1], 10) : 0;
