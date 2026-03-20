@@ -16,10 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Atomic writes with timestamped backups for all manifest and generated-artifact changes
     - Prerequisite ordering: manifest migration always runs before devcontainer regeneration; regeneration is skipped if migration fails
     - `--fix --json` outputs a machine-readable `FixRun` object with `initialFindings`, `executions`, `finalFindings`, `summary` counts, and `exitDisposition`
-    - Exit code `1` only when unresolved failures remain after the run
-- **`DiagnosticFinding`, `RemediationAction`, `FixExecution`, `FixRun`, `FixOutcomeSummary`** types exported from `tool/schema/types.ts`
 - **`doctor --fix` documentation** — added to `docs/quick-reference.md` with fix vocabulary, fixable issue table, safety notes, and JSON schema example
-- **`docs/specs/004-doctor-fix/spec.md`** — feature spec committed per repository spec-first policy
 - **`all` overlay** — meta-overlay that expands to all non-preset overlays; useful for `examples/all-overlays` and integration testing; hidden from the interactive questionnaire
 - **`templates/scripts/setup-utils.sh`** — shared Bash utility library emitted automatically into `scripts/setup-utils.sh` whenever any overlay contributes a `setup.sh`
     - `acquire_apt_lock` / `release_apt_lock` — `flock`-based mutual exclusion for `apt`/`dpkg` operations; eliminates race conditions between parallel `postCreateCommand` scripts; crash-safe (kernel releases lock on process exit, EXIT trap closes fd so child processes cannot extend the lock)
@@ -28,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `detect_arch [fallback]` — maps `uname -m` to `amd64`/`arm64`, sets `$CS_ARCH`
     - `install_binary <url> <name> [mode]` — downloads a single binary to a temp file and installs it to `/usr/local/bin`
     - `install_binary_from_tar <url> <bin> [dest] [mode]` — downloads a `.tar.gz`, extracts a named binary, and installs it to `/usr/local/bin`
+    - `run_spinner <label> <command> [args...]` — runs a command silently with a progress spinner; prints `✓ <label>` on success or `✗ <label> (exit N)` on failure and propagates the exit code; eliminates noisy `go: downloading`, `cargo: Compiling`, and similar output during `postCreateCommand`; adopted by `go`, `rust`, `spec-kit`, `dotnet`, and `mkdocs2` setup scripts
+    - `load_nvm` — ensures `npm` is on PATH in non-interactive `postCreateCommand` shells by sourcing nvm when needed; all npm-dependent setup scripts (`amp`, `claude-code`, `codex`, `commitlint`, `devcontainer-cli`, `gemini-cli`, `nodejs`, `openapi-tools`, `opencode`, `pandoc`) call this before any `npm install -g` invocation
+- **`devcontainer-cli` overlay** — installs `@devcontainers/cli` globally so you can build, run, and manage devcontainers from the terminal; requires the `nodejs` overlay; hidden from the interactive questionnaire (install explicitly with `--dev-tools devcontainer-cli`)
 - **Port conflict auto-resolution** — `mergeDockerComposeFiles` now detects host-port collisions across all selected overlays and remaps conflicting ports to the next free port at generation time; warns in output with before/after mapping
 
 ### Changed
@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`direnv` overlay** — package installation moved to `cross-distro-packages` devcontainer feature (runs at build time); `setup.sh` now only handles shell hook configuration
 - **`modern-cli-tools` overlay** — `jq`, `ripgrep`, `fd-find`, `bat` moved to `cross-distro-packages`; `setup.sh` now only installs `yq` (not in standard repos) and creates the Debian-specific `fdfind→fd` and `batcat→bat` symlinks
 - **`git-lfs` feature** — `autoPull` set to `false` in the `git-helpers` overlay; prevents container creation failures in repos with no LFS remote configured; users can run `git lfs pull` manually
+- **`doctor` command** — `--from-manifest <path>`, `--from-project <path>`, and `--project-root <path>` flags added; brings `doctor`'s project-file and manifest selection into parity with `init` and `regen`
 
 ### Fixed
 
@@ -55,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`windsurf-cli` overlay** — replaced `npm install -g @codeium/windsurf-cli` (package does not exist on npm) with binary download from GitHub releases
 - **`powershell` overlay** — `Install-Module` no longer hangs waiting for an interactive NuGet provider prompt; NuGet is now bootstrapped with `-Force` and PSGallery is set to `Trusted` before module installation
 - **Parallel apt contention** — `direnv`, `ngrok`, `pandoc` setup scripts previously raced to acquire the system apt lock; all now use `acquire_apt_lock` from `setup-utils.sh`
+- **`keycloak` overlay** — health-check URL corrected from port `8180` to `9000` (Keycloak's internal management port); startup retries and wait period increased for slower environments
+- **`redpanda` overlay** — Redpanda Console schema-registry YAML indentation corrected; malformed indentation caused the schema-registry URL to be ignored at startup
+- **`sqlserver` overlay** — health-check path updated from `mssql-tools` to `mssql-tools18`; `-No` flag added to `sqlcmd` to trust the self-signed server certificate
+- **`pre-commit` overlay** — installation now prefers `pipx` over `pip --user` to avoid conflicts with virtualenvs; falls back to `pip3`/`pip` with `--break-system-packages` as needed
 
 ## [0.1.6] - 2026-03-16
 

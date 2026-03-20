@@ -3,6 +3,10 @@
 
 set -e
 
+# Source shared setup utilities (provides run_spinner)
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+
 # Suppress the .NET SDK first-run welcome banner and telemetry noise
 export DOTNET_NOLOGO=1
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -26,20 +30,18 @@ if [ -f ".devcontainer/global-tools-${OVERLAY_NAME}.txt" ]; then
         if [[ "$line" =~ ^(.+)::(.+)$ ]]; then
             tool="${BASH_REMATCH[1]}"
             version="${BASH_REMATCH[2]}"
-            echo "  Installing $tool version $version..."
-            dotnet tool install --global "$tool" --version "$version" 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
+            run_spinner "$tool@$version" dotnet tool install --global "$tool" --version "$version" || true
         else
             tool="$line"
-            echo "  Installing $tool..."
-            dotnet tool install --global "$tool" 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
+            run_spinner "$tool" dotnet tool install --global "$tool" || true
         fi
     done < ".devcontainer/global-tools-${OVERLAY_NAME}.txt"
 else
     # Fallback to hardcoded list
     echo "📦 Installing default .NET global tools..."
-    dotnet tool install --global dotnet-ef 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
-    dotnet tool install --global dotnet-format 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
-    dotnet tool install --global dotnet-outdated-tool 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
+    run_spinner "dotnet-ef" dotnet tool install --global dotnet-ef || true
+    run_spinner "dotnet-format" dotnet tool install --global dotnet-format || true
+    run_spinner "dotnet-outdated-tool" dotnet tool install --global dotnet-outdated-tool || true
 fi
 
 # Verify installations

@@ -3,6 +3,11 @@
 
 set -e
 
+# Source shared setup utilities (provides load_nvm)
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+load_nvm
+
 echo "📦 Installing opencode AI coding agent..."
 
 # Install opencode-ai globally

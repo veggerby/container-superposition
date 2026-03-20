@@ -34,7 +34,7 @@ if ! command -v bun &> /dev/null; then
     BUN_URL="https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-${BUN_ARCH}.zip"
     
     echo "   Downloading Bun version ${BUN_VERSION} for ${ARCH}..."
-    if ! wget "${BUN_URL}" -O /tmp/bun.zip 2>&1; then
+    if ! wget -q "${BUN_URL}" -O /tmp/bun.zip; then
         echo "   ❌ Failed to download Bun from ${BUN_URL}"
         exit 1
     fi

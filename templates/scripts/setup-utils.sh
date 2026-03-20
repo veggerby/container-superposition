@@ -6,6 +6,74 @@
 # Use the locking helpers below for any apt/dpkg operations.
 
 # ---------------------------------------------------------------------------
+# Spinner helper
+# ---------------------------------------------------------------------------
+
+# Run a command silently while showing a spinner and a label.
+# Stdout/stderr of the command are suppressed; only pass/fail is reported.
+# Usage: run_spinner "Installing foo..." <command> [args...]
+# Exit code: the exit code of <command>.
+run_spinner() {
+    local label="$1"; shift
+    local rc
+
+    if [ -t 1 ]; then
+        # Interactive TTY: animated spinner with carriage-return overwriting.
+        local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+        local i=0
+        "$@" &>/dev/null &
+        local pid=$!
+        while kill -0 "$pid" 2>/dev/null; do
+            printf "\r  %s  %s" "${spin:$((i % ${#spin})):1}" "$label"
+            sleep 0.1
+            (( i++ )) || true
+        done
+        wait "$pid"; rc=$?
+        if [ "$rc" -eq 0 ]; then
+            printf "\r  ✓  %s\n" "$label"
+        else
+            printf "\r  ✗  %s (exit %d)\n" "$label" "$rc"
+        fi
+    else
+        # Non-TTY (devcontainer build log, CI): emit a start line immediately
+        # so the log shows progress, then a done line when the command finishes.
+        # No carriage-return tricks — plain newlines so each line is visible.
+        printf "  ⋯  %s\n" "$label"
+        "$@" &>/dev/null; rc=$?
+        if [ "$rc" -eq 0 ]; then
+            printf "  ✓  %s\n" "$label"
+        else
+            printf "  ✗  %s (exit %d)\n" "$label" "$rc"
+        fi
+    fi
+    return $rc
+}
+
+# ---------------------------------------------------------------------------
+# Node.js / npm helpers
+# ---------------------------------------------------------------------------
+
+# Ensure npm (and node) are on PATH by loading nvm if needed.
+# The devcontainer node feature installs via nvm; postCreateCommand scripts
+# run in a non-interactive shell that may not have nvm on PATH.
+# Safe to call multiple times (idempotent).
+# Usage: load_nvm
+load_nvm() {
+    if command -v npm &>/dev/null; then
+        return 0  # already on PATH
+    fi
+    local nvm_dir="${NVM_DIR:-/usr/local/share/nvm}"
+    # shellcheck disable=SC1091
+    if [ -s "$nvm_dir/nvm.sh" ]; then
+        TERM=dumb \. "$nvm_dir/nvm.sh" --no-use 2>/dev/null || true
+    fi
+    # Fallback: add the nvm current symlink bin directory to PATH
+    if ! command -v npm &>/dev/null && [ -d "$nvm_dir/current/bin" ]; then
+        export PATH="$nvm_dir/current/bin:$PATH"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # APT / DPKG helpers
 # ---------------------------------------------------------------------------
 

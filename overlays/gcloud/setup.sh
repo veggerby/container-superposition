@@ -27,9 +27,9 @@ elif command -v apt-get >/dev/null 2>&1; then
     # Single lock acquisition: install prereqs + add repo + install gcloud in one pass
     acquire_apt_lock
     sudo apt-get update -qq
-    sudo apt-get install -y --no-install-recommends apt-transport-https ca-certificates gnupg curl
+    sudo apt-get install -y -qq --no-install-recommends apt-transport-https ca-certificates gnupg curl
     # apt index already fresh — install gcloud packages without a second update
-    sudo apt-get install -y --no-install-recommends \
+    sudo apt-get install -y -qq --no-install-recommends \
         google-cloud-cli \
         google-cloud-cli-gke-gcloud-auth-plugin
     sudo apt-get clean

@@ -12,6 +12,7 @@ PANDOC_VERSION="3.6.4"
 # Source shared setup utilities
 # shellcheck source=setup-utils.sh
 source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+load_nvm
 
 if command -v apt-get > /dev/null 2>&1; then
     # Debian/Ubuntu — install official .deb from GitHub releases

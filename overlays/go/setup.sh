@@ -3,35 +3,26 @@
 
 set -e
 
-echo "🔧 Setting up Go development environment..."
+# Source shared setup utilities
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 
-# Install common Go tools
+echo "🔧 Setting up Go development environment..."
 echo "📦 Installing Go development tools..."
 
-# Redirect go: downloading lines — they are noisy and uninformative in logs
-exec 3>&2 2>/dev/null
+run_spinner "gopls (language server)"   go install golang.org/x/tools/gopls@latest
+run_spinner "delve (debugger)"          go install github.com/go-delve/delve/cmd/dlv@latest
 
-# gopls (Language Server)
-go install golang.org/x/tools/gopls@latest 2>&3 || echo "⚠️ gopls installation failed"
-
-# delve (Debugger)
-go install github.com/go-delve/delve/cmd/dlv@latest 2>&3 || echo "⚠️ delve installation failed"
-
-# golangci-lint (Linter) — use official installer to avoid gold linker issues on arm64
+# golangci-lint — use official installer to avoid gold linker issues on arm64
 if ! command -v golangci-lint &>/dev/null; then
-    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-        | sh -s -- -b "$(go env GOPATH)/bin" || echo "⚠️ golangci-lint installation failed"
+    run_spinner "golangci-lint" \
+        bash -c 'curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)/bin"'
 else
-    echo "ℹ️ golangci-lint already installed: $(golangci-lint version --short 2>/dev/null || true)"
+    echo "  ℹ️  golangci-lint already installed: $(golangci-lint version --short 2>/dev/null || true)"
 fi
 
-# gofumpt (Formatter)
-go install mvdan.cc/gofumpt@latest 2>&3 || echo "⚠️ gofumpt installation failed"
-
-# staticcheck (Static analyzer)
-go install honnef.co/go/tools/cmd/staticcheck@latest 2>&3 || echo "⚠️ staticcheck installation failed"
-
-exec 2>&3 3>&-  # restore stderr
+run_spinner "gofumpt (formatter)"      go install mvdan.cc/gofumpt@latest
+run_spinner "staticcheck (analyzer)"   go install honnef.co/go/tools/cmd/staticcheck@latest
 
 # Install project dependencies if go.mod exists
 if [ -f "go.mod" ]; then
