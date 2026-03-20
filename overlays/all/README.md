@@ -6,7 +6,7 @@ Internal testing overlay that activates **all available overlays** at once. Used
 
 ## Purpose
 
-The `meta` overlay exists to make CI/integration testing straightforward: adding a single overlay ID pulls in every other overlay via `requires`, exercising the full composition pipeline in one pass.
+The `all` overlay exists to make CI/integration testing straightforward: selecting it expands to every non-preset, non-hidden overlay in the live registry, exercising the full composition pipeline in one pass.
 
 ```yaml
 # superposition.yml
@@ -17,19 +17,25 @@ overlays:
 outputPath: .devcontainer
 ```
 
+## How expansion works
+
+There is no `requires` list in `overlays/all/overlay.yml`. Instead, the dependency resolver in
+`resolveDependencies()` detects the special `all` overlay ID and replaces it with the full live
+overlay registry (excluding hidden and preset overlays) at resolution time. This means:
+
+- New overlays are automatically included the moment they are added to the catalogue — no manual
+  update to this file is needed.
+- The expansion is driven by the live registry, not a hard-coded list.
+
 ## Conflicts
 
-Some overlays in `meta`'s `requires` list are mutually exclusive at runtime:
+Some overlays expanded from `all` are mutually exclusive at runtime:
 
 | Conflict                           | Details                                                 |
 | ---------------------------------- | ------------------------------------------------------- |
 | `docker-in-docker` ↔ `docker-sock` | Two different Docker access strategies — cannot coexist |
 
 The composer will emit warnings for these conflicts. They are expected and do not block the build. The intent is to test patch composition, not to produce a runnable container.
-
-## Adding New Overlays
-
-No action needed. When a new overlay is added to the catalogue the `meta` overlay picks it up automatically at build time — the expansion is driven by the live overlay registry, not a list in this file.
 
 ## References
 

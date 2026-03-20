@@ -27,19 +27,26 @@ const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 function getGhcrToken(repoPath: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const url = `https://ghcr.io/token?scope=repository:${repoPath}:pull&service=ghcr.io`;
-        https
-            .get(url, (res) => {
-                let data = '';
-                res.on('data', (chunk) => (data += chunk));
-                res.on('end', () => {
-                    try {
-                        resolve(JSON.parse(data).token ?? '');
-                    } catch {
-                        reject(new Error(`Failed to parse token response for ${repoPath}`));
-                    }
-                });
-            })
-            .on('error', reject);
+        const req = https.get(url, (res) => {
+            if (res.statusCode !== 200) {
+                res.resume(); // drain to free memory
+                reject(new Error(`Token endpoint returned HTTP ${res.statusCode} for ${repoPath}`));
+                return;
+            }
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data).token ?? '');
+                } catch {
+                    reject(new Error(`Failed to parse token response for ${repoPath}`));
+                }
+            });
+        });
+        req.setTimeout(10_000, () => {
+            req.destroy(new Error(`Token request timed out for ${repoPath}`));
+        });
+        req.on('error', reject);
     });
 }
 
@@ -52,8 +59,14 @@ function checkGhcrFeature(repoPath: string, token: string): Promise<number> {
                 path: `/v2/${repoPath}/tags/list`,
                 headers: { Authorization: `Bearer ${token}` },
             },
-            (res) => resolve(res.statusCode ?? 0)
+            (res) => {
+                res.resume(); // drain to free memory (we only need the status code)
+                resolve(res.statusCode ?? 0);
+            }
         );
+        req.setTimeout(10_000, () => {
+            req.destroy(new Error(`Feature check timed out for ${repoPath}`));
+        });
         req.on('error', reject);
     });
 }

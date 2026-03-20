@@ -874,7 +874,11 @@ function applyGlueConfig(
 function parseHostPortFromBinding(
     binding: string | number | Record<string, unknown>
 ): number | null {
-    if (typeof binding === 'number') return binding;
+    if (typeof binding === 'number') {
+        // A bare number in docker-compose ports means container port → random host port.
+        // There is no deterministic host port to conflict on, so treat as "no host port".
+        return null;
+    }
     if (typeof binding === 'object' && binding !== null) {
         const pub = (binding as any).published;
         if (pub == null) return null;
@@ -895,8 +899,8 @@ function parseHostPortFromBinding(
         const n = parseInt(parts[0], 10);
         return isNaN(n) ? null : n;
     }
-    const n = parseInt(parts[0], 10);
-    return isNaN(n) ? null : n;
+    // Single segment: "8081" string — same as bare number, random host port.
+    return null;
 }
 
 /**

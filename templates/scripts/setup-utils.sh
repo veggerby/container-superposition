@@ -13,7 +13,7 @@
 _CS_APT_LOCK=/tmp/.cs-apt.lock
 
 # Acquire an exclusive flock-based lock for apt/dpkg operations.
-# Blocks until the lock is available or 120 s elapses (hard failure).
+# Blocks until the lock is available or 300 s elapses (hard failure).
 # The kernel releases the lock automatically on process exit for any reason.
 acquire_apt_lock() {
     exec 9>"$_CS_APT_LOCK"

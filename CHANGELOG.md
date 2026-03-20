@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `acquire_apt_lock` / `release_apt_lock` — `flock`-based mutual exclusion for `apt`/`dpkg` operations; eliminates race conditions between parallel `postCreateCommand` scripts; crash-safe (kernel releases lock on process exit, EXIT trap closes fd so child processes cannot extend the lock)
     - `wait_for_apt_lock` — kept for backward compatibility; now delegates to `acquire_apt_lock`
     - `add_apt_repo <key-url> <keyring> <repo-line> <sources-file>` — adds a third-party apt repository via `gpg --dearmor`, replacing repeated inline curl-pipe patterns
-    - `detect_arch [fallback]` — maps `uname -m` to `amd64`/`arm64`, sets `$ARCH_AMD64_ARM64`
+    - `detect_arch [fallback]` — maps `uname -m` to `amd64`/`arm64`, sets `$CS_ARCH`
     - `install_binary <url> <name> [mode]` — downloads a single binary to a temp file and installs it to `/usr/local/bin`
     - `install_binary_from_tar <url> <bin> [dest] [mode]` — downloads a `.tar.gz`, extracts a named binary, and installs it to `/usr/local/bin`
 - **Port conflict auto-resolution** — `mergeDockerComposeFiles` now detects host-port collisions across all selected overlays and remaps conflicting ports to the next free port at generation time; warns in output with before/after mapping

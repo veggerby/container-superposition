@@ -1329,9 +1329,10 @@ async function executeRegeneration(
     outputPath: string,
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
-    silent = false
+    silent = false,
+    explicitManifestPath?: string
 ): Promise<FixExecution> {
-    const manifestPath = path.join(outputPath, 'superposition.json');
+    const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
 
     if (!fs.existsSync(manifestPath)) {
         return {
@@ -1459,8 +1460,10 @@ function executeNodeVersionFix(): FixExecution {
             break;
     }
 
+    // nvm requires bash for `source`; fnm and volta work with the system default shell.
+    const runCmd = manager === 'nvm' ? `bash -lc '${fixCmd}'` : fixCmd;
     try {
-        execSync(`bash -c '${fixCmd}'`, { stdio: 'pipe', timeout: 60_000 });
+        execSync(runCmd, { stdio: 'pipe', timeout: 60_000, shell: manager !== 'nvm' });
     } catch (err) {
         return {
             findingId: 'nodejs-version',
@@ -1473,12 +1476,13 @@ function executeNodeVersionFix(): FixExecution {
         };
     }
 
-    // Re-check in a fresh shell subprocess
+    // Re-check in a fresh subprocess (no bash dependency for the re-check itself)
     try {
-        const version = execSync("bash -c 'node --version'", {
+        const version = execSync('node --version', {
             encoding: 'utf8',
             stdio: ['pipe', 'pipe', 'pipe'],
             timeout: 10_000,
+            shell: true,
         });
         const match = version.trim().match(/^v(\d+)/);
         const major = match ? parseInt(match[1], 10) : 0;
@@ -1523,7 +1527,13 @@ async function executeSingleFix(
         case 'manifest-migration':
             return executeManifestMigration(outputPath, explicitManifestPath);
         case 'devcontainer-regeneration':
-            return executeRegeneration(outputPath, overlaysConfig, overlaysDir, silent);
+            return executeRegeneration(
+                outputPath,
+                overlaysConfig,
+                overlaysDir,
+                silent,
+                explicitManifestPath
+            );
         case 'node-version-fix':
             return executeNodeVersionFix();
         case 'docker-repair': {
@@ -1686,10 +1696,15 @@ async function executeFixRun(
     const envChecks = checkEnvironment(outputPath, explicitManifestPath);
     const manifestChecks = checkManifest(outputPath, explicitManifestPath);
     const mergeChecks = checkMergeStrategy(outputPath);
+    const overlayChecks = checkOverlays(overlaysDir);
+    const finalManifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
+    const portChecks = checkPorts(overlaysConfig, finalManifestPath);
     const finalFindings = [
         ...checksToFindings(envChecks, 'environment', 'environment'),
         ...checksToFindings(manifestChecks, 'manifest', 'manifest'),
         ...checksToFindings(mergeChecks, 'merge', 'devcontainer'),
+        ...checksToFindings(overlayChecks, 'overlay', 'full'),
+        ...checksToFindings(portChecks, 'ports', 'environment'),
     ];
 
     const summary = buildOutcomeSummary(executions);
