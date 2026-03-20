@@ -8,11 +8,14 @@ echo "🔧 Setting up Go development environment..."
 # Install common Go tools
 echo "📦 Installing Go development tools..."
 
+# Redirect go: downloading lines — they are noisy and uninformative in logs
+exec 3>&2 2>/dev/null
+
 # gopls (Language Server)
-go install golang.org/x/tools/gopls@latest || echo "⚠️ gopls installation failed"
+go install golang.org/x/tools/gopls@latest 2>&3 || echo "⚠️ gopls installation failed"
 
 # delve (Debugger)
-go install github.com/go-delve/delve/cmd/dlv@latest || echo "⚠️ delve installation failed"
+go install github.com/go-delve/delve/cmd/dlv@latest 2>&3 || echo "⚠️ delve installation failed"
 
 # golangci-lint (Linter) — use official installer to avoid gold linker issues on arm64
 if ! command -v golangci-lint &>/dev/null; then
@@ -23,10 +26,12 @@ else
 fi
 
 # gofumpt (Formatter)
-go install mvdan.cc/gofumpt@latest || echo "⚠️ gofumpt installation failed"
+go install mvdan.cc/gofumpt@latest 2>&3 || echo "⚠️ gofumpt installation failed"
 
 # staticcheck (Static analyzer)
-go install honnef.co/go/tools/cmd/staticcheck@latest || echo "⚠️ staticcheck installation failed"
+go install honnef.co/go/tools/cmd/staticcheck@latest 2>&3 || echo "⚠️ staticcheck installation failed"
+
+exec 2>&3 3>&-  # restore stderr
 
 # Install project dependencies if go.mod exists
 if [ -f "go.mod" ]; then

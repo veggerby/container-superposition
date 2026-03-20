@@ -44,6 +44,16 @@ export function deepMerge(target: any, source: any): any {
             } else if (key === 'remoteEnv') {
                 // Special handling for remoteEnv to merge PATH variables intelligently
                 output[key] = mergeRemoteEnv(target[key], source[key]);
+            } else if (
+                key === 'postCreateCommand' ||
+                key === 'postStartCommand' ||
+                key === 'postAttachCommand'
+            ) {
+                // Normalise string commands to objects before merging so that
+                // spreading a string ("npx ...") never produces { 0:'n', 1:'p', ... }
+                const t = typeof target[key] === 'string' ? { default: target[key] } : target[key];
+                const s = typeof source[key] === 'string' ? { default: source[key] } : source[key];
+                output[key] = deepMerge(t, s);
             } else {
                 // Recursively merge objects
                 output[key] = deepMerge(target[key], source[key]);

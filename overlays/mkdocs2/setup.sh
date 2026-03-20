@@ -51,7 +51,7 @@ fi
 PYTHON="${VENV_DIR}/bin/python"
 
 echo "📦 Installing MkDocs 2.0 from encode/mkdocs..."
-"${PYTHON}" -m pip install --no-cache-dir \
+"${PYTHON}" -m pip install -q --no-cache-dir \
     "mkdocs @ git+https://github.com/encode/mkdocs.git"
 
 MKDOCS_BIN="${VENV_DIR}/bin/mkdocs"

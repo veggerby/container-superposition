@@ -3,6 +3,11 @@
 
 set -e
 
+# Suppress the .NET SDK first-run welcome banner and telemetry noise
+export DOTNET_NOLOGO=1
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+
 # Extract overlay name from script filename (setup-<overlay>.sh -> <overlay>)
 OVERLAY_NAME=$(basename "$0" | sed 's/setup-//;s/\.sh$//')
 
@@ -22,19 +27,19 @@ if [ -f ".devcontainer/global-tools-${OVERLAY_NAME}.txt" ]; then
             tool="${BASH_REMATCH[1]}"
             version="${BASH_REMATCH[2]}"
             echo "  Installing $tool version $version..."
-            dotnet tool install --global "$tool" --version "$version" || echo "  ⚠️  $tool already installed or failed"
+            dotnet tool install --global "$tool" --version "$version" 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
         else
             tool="$line"
             echo "  Installing $tool..."
-            dotnet tool install --global "$tool" || echo "  ⚠️  $tool already installed or failed"
+            dotnet tool install --global "$tool" 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
         fi
     done < ".devcontainer/global-tools-${OVERLAY_NAME}.txt"
 else
     # Fallback to hardcoded list
     echo "📦 Installing default .NET global tools..."
-    dotnet tool install --global dotnet-ef || echo "dotnet-ef already installed"
-    dotnet tool install --global dotnet-format || echo "dotnet-format already installed"
-    dotnet tool install --global dotnet-outdated-tool || echo "dotnet-outdated-tool already installed"
+    dotnet tool install --global dotnet-ef 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
+    dotnet tool install --global dotnet-format 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
+    dotnet tool install --global dotnet-outdated-tool 2>&1 | grep -v 'Tools directory\|export PATH\|cat <<\|bash_profile\|current session\|You can invoke' || true
 fi
 
 # Verify installations

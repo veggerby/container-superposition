@@ -22,10 +22,10 @@ echo "📦 Installing specify-cli..."
 # where stdlib modules like shutil/os can be missing due to Debian's split packages)
 UV_PYTHON_VERSION="3.12"
 echo "  Ensuring uv-managed Python ${UV_PYTHON_VERSION} is available..."
-uv python install "${UV_PYTHON_VERSION}"
+uv python install --quiet "${UV_PYTHON_VERSION}"
 
 # Install specify-cli using the uv-managed Python, not the system interpreter
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git \
+uv tool install --quiet specify-cli --from git+https://github.com/github/spec-kit.git \
     --python "${UV_PYTHON_VERSION}"
 
 # Verify — use the full path as a fallback in case the shim dir is not yet in PATH

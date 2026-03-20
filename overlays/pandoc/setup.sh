@@ -4,7 +4,7 @@
 set -e
 
 echo "📦 Refreshing font cache..."
-sudo fc-cache -fv
+sudo fc-cache -f
 
 echo "📦 Installing Pandoc (latest release)..."
 PANDOC_VERSION="3.6.4"
