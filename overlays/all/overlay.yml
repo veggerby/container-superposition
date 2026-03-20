@@ -1,0 +1,14 @@
+id: all
+name: All Overlays
+description: Internal testing overlay that activates all available overlays to verify the full build
+category: dev
+hidden: true
+supports: []
+requires: []
+suggests: []
+conflicts: []
+tags:
+    - internal
+    - testing
+    - all
+ports: []

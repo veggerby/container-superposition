@@ -4,10 +4,15 @@
 set -e
 
 echo "📦 Refreshing font cache..."
-sudo fc-cache -fv
+sudo fc-cache -f
 
 echo "📦 Installing Pandoc (latest release)..."
 PANDOC_VERSION="3.6.4"
+
+# Source shared setup utilities
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+load_nvm
 
 if command -v apt-get > /dev/null 2>&1; then
     # Debian/Ubuntu — install official .deb from GitHub releases
@@ -15,7 +20,7 @@ if command -v apt-get > /dev/null 2>&1; then
     PANDOC_DEB="pandoc-${PANDOC_VERSION}-1-${ARCH}.deb"
     curl -fsSL "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/${PANDOC_DEB}" \
         -o "/tmp/${PANDOC_DEB}"
-    sudo dpkg -i "/tmp/${PANDOC_DEB}"
+    with_apt_lock sudo dpkg -i "/tmp/${PANDOC_DEB}"
     rm "/tmp/${PANDOC_DEB}"
 elif command -v apk > /dev/null 2>&1; then
     # Alpine Linux — install via apk (version may differ from pinned release)
@@ -79,90 +84,156 @@ curl -fsSL \
 
 echo "📦 Writing emoji fallback Lua filter..."
 cat > "$HOME/.pandoc/filters/emoji-fallback.lua" <<'EOF'
--- Replace emoji and flag glyphs that XeLaTeX commonly cannot render with
--- readable plain-text placeholders before Pandoc emits LaTeX.
+-- Replace emoji and flag glyphs that XeLaTeX commonly cannot render.
+--
+-- * BMP symbols (Miscellaneous Symbols U+2600-U+26FF, Dingbats U+2700-U+27BF)
+--   are routed to the fallback font via \textfallback{} so they render as
+--   real glyphs using Noto Sans Symbols 2 (declared by pandoc's fallbackfont
+--   variable in pandoc.yaml).
+--
+-- * High-plane emoji (U+1F000-U+1FAFF: 🎉 🚀 etc.) are replaced with the
+--   plain-text marker [emoji] because no common PDF font covers them fully.
+--
+-- * Flag sequences (pairs of regional-indicator letters: 🇺🇸 etc.) are
+--   replaced with the two-letter country code in brackets, e.g. [US].
+--
+-- The filter is a no-op for all non-LaTeX output formats.
 
 local REGIONAL_INDICATOR_A = 0x1F1E6
 local REGIONAL_INDICATOR_Z = 0x1F1FF
 
-local function is_regional_indicator(codepoint)
-    return codepoint >= REGIONAL_INDICATOR_A and codepoint <= REGIONAL_INDICATOR_Z
+local function is_regional_indicator(cp)
+    return cp >= REGIONAL_INDICATOR_A and cp <= REGIONAL_INDICATOR_Z
 end
 
-local function is_emoji_codepoint(codepoint)
-    return codepoint >= 0x1F000 and codepoint <= 0x1FAFF
+-- High-plane emoji that no standard PDF font renders reliably.
+local function is_high_plane_emoji(cp)
+    return cp >= 0x1F000 and cp <= 0x1FAFF
 end
 
-local function sanitize_text(text)
-    local codepoints = {}
-    for _, codepoint in utf8.codes(text) do
-        table.insert(codepoints, codepoint)
+-- BMP symbol blocks absent from Carlito (and most body fonts).
+-- Characters in these ranges are routed to the \textfallback font instead.
+local function is_bmp_symbol(cp)
+    return (cp >= 0x2600 and cp <= 0x26FF)  -- Miscellaneous Symbols (⚠ ☀ ⛔ …)
+        or (cp >= 0x2700 and cp <= 0x27BF)  -- Dingbats             (✅ ❌ ✓ …)
+end
+
+-- Parse text into a list of pandoc inline elements, applying substitutions.
+-- Returns nil when no substitutions are needed.
+local function text_to_inlines(text)
+    if FORMAT ~= 'latex' then return nil end
+
+    -- Quick scan: skip AST work when there is nothing to process.
+    local needs_processing = false
+    for _, cp in utf8.codes(text) do
+        if is_regional_indicator(cp) or is_high_plane_emoji(cp) or is_bmp_symbol(cp)
+                or cp == 0x200D or cp == 0x20E3 or cp == 0xFE0F then
+            needs_processing = true
+            break
+        end
     end
+    if not needs_processing then return nil end
 
-    local out = {}
-    local i = 1
-    local last_was_emoji = false
+    local codepoints = {}
+    for _, cp in utf8.codes(text) do table.insert(codepoints, cp) end
 
-    while i <= #codepoints do
-        local codepoint = codepoints[i]
+    local inlines = {}
+    local buf = {}
 
-        if is_regional_indicator(codepoint)
-            and i < #codepoints
-            and is_regional_indicator(codepoints[i + 1]) then
-            local first = string.char((codepoint - REGIONAL_INDICATOR_A) + string.byte('A'))
-            local second =
-                string.char((codepoints[i + 1] - REGIONAL_INDICATOR_A) + string.byte('A'))
-            table.insert(out, '[' .. first .. second .. ']')
-            last_was_emoji = false
-            i = i + 2
-        elseif codepoint == 0x200D or codepoint == 0x20E3 or codepoint == 0xFE0F then
-            i = i + 1
-        elseif is_emoji_codepoint(codepoint) then
-            if not last_was_emoji then
-                table.insert(out, '[emoji]')
-                last_was_emoji = true
-            end
-            i = i + 1
-        else
-            table.insert(out, utf8.char(codepoint))
-            last_was_emoji = false
-            i = i + 1
+    local function flush_buf()
+        if #buf > 0 then
+            table.insert(inlines, pandoc.Str(table.concat(buf)))
+            buf = {}
         end
     end
 
-    return table.concat(out)
-end
+    local i = 1
+    while i <= #codepoints do
+        local cp = codepoints[i]
 
-local function sanitize_element_text(el)
-    if FORMAT ~= 'latex' then
+        -- Variation selectors / zero-width joiners / combining enclosing keycap
+        if cp == 0x200D or cp == 0x20E3 or cp == 0xFE0F then
+            i = i + 1
+
+        -- Flag sequences: two consecutive regional-indicator letters → [XX]
+        elseif is_regional_indicator(cp)
+                and i < #codepoints
+                and is_regional_indicator(codepoints[i + 1]) then
+            flush_buf()
+            local a = string.char((cp - REGIONAL_INDICATOR_A) + string.byte('A'))
+            local b = string.char((codepoints[i + 1] - REGIONAL_INDICATOR_A) + string.byte('A'))
+            table.insert(inlines, pandoc.Str('[' .. a .. b .. ']'))
+            i = i + 2
+
+        -- High-plane emoji → [emoji] text marker
+        elseif is_high_plane_emoji(cp) then
+            flush_buf()
+            table.insert(inlines, pandoc.Str('[emoji]'))
+            i = i + 1
+            -- Collapse consecutive emoji into one marker
+            while i <= #codepoints
+                    and (is_high_plane_emoji(codepoints[i])
+                         or codepoints[i] == 0xFE0F
+                         or codepoints[i] == 0x200D) do
+                i = i + 1
+            end
+
+        -- BMP symbols → \textfallback{char} (renders with Noto Sans Symbols 2)
+        elseif is_bmp_symbol(cp) then
+            flush_buf()
+            table.insert(inlines, pandoc.RawInline('latex',
+                '\\textfallback{' .. utf8.char(cp) .. '}'))
+            i = i + 1
+            -- Skip trailing variation selector-16 (e.g. U+FE0F after ⚠)
+            if i <= #codepoints and codepoints[i] == 0xFE0F then i = i + 1 end
+
+        else
+            table.insert(buf, utf8.char(cp))
+            i = i + 1
+        end
+    end
+    flush_buf()
+
+    -- If result is a single identical Str, nothing actually changed.
+    if #inlines == 1 and inlines[1].t == 'Str' and inlines[1].text == text then
         return nil
     end
 
-    local sanitized = sanitize_text(el.text)
-    if sanitized == el.text then
-        return nil
-    end
-
-    el.text = sanitized
-    return el
+    return inlines
 end
 
 function Str(el)
-    return sanitize_element_text(el)
+    local inlines = text_to_inlines(el.text)
+    if inlines == nil then return nil end
+    return inlines
 end
 
-function Code(el)
-    return sanitize_element_text(el)
+-- In code spans / code blocks we cannot use \textfallback (verbatim context),
+-- so we simply drop the offending characters to prevent XeLaTeX warnings.
+local function strip_unsupported(el)
+    if FORMAT ~= 'latex' then return nil end
+    local changed = false
+    local out = {}
+    for _, cp in utf8.codes(el.text) do
+        if is_high_plane_emoji(cp) or is_bmp_symbol(cp)
+                or cp == 0x200D or cp == 0x20E3 or cp == 0xFE0F then
+            changed = true
+        else
+            table.insert(out, utf8.char(cp))
+        end
+    end
+    if not changed then return nil end
+    el.text = table.concat(out)
+    return el
 end
 
-function CodeBlock(el)
-    return sanitize_element_text(el)
-end
+function Code(el)     return strip_unsupported(el) end
+function CodeBlock(el) return strip_unsupported(el) end
 EOF
 
 echo "📦 Installing Mermaid CLI (requires Node.js)..."
 if command -v npm &>/dev/null; then
-    npm install -g @mermaid-js/mermaid-cli
+    run_spinner "Mermaid CLI" npm install -g @mermaid-js/mermaid-cli
     # Create a chromium wrapper that always passes --no-sandbox (required in containers).
     # This is more robust than configuring mmdc/puppeteer individually — any tool
     # that launches chromium via PUPPETEER_EXECUTABLE_PATH gets the sandbox flags.
@@ -188,6 +259,7 @@ cat > "$HOME/.pandoc/pandoc.yaml" <<'EOF'
 pdf-engine: xelatex
 filters:
   - __PANDOC_FILTERS_DIR__/emoji-fallback.lua
+  - __PANDOC_FILTERS_DIR__/diagram.lua
 
 variables:
   mainfont: "Carlito"
@@ -212,15 +284,10 @@ variables:
 # toc: true
 # toc-depth: 3
 # number-sections: true
-
-# Uncomment to enable Mermaid/diagram rendering (requires nodejs overlay):
-# filters:
-#   - __PANDOC_FILTERS_DIR__/emoji-fallback.lua
-#   - __PANDOC_FILTERS_DIR__/diagram.lua
 EOF
 sed -i "s|__PANDOC_FILTERS_DIR__|${PANDOC_FILTERS_DIR}|g" "$HOME/.pandoc/pandoc.yaml"
 
 echo ""
 echo "✓ pandoc overlay setup complete"
-echo "ℹ️  Build a PDF:  pandoc doc.md -o doc.pdf"
-echo "ℹ️  With Mermaid: pandoc --lua-filter ~/.pandoc/filters/diagram.lua doc.md -o doc.pdf"
+echo "ℹ️  Build a PDF:           pandoc doc.md -o doc.pdf"
+echo "ℹ️  With Mermaid diagrams: pandoc doc.md -o doc.pdf  (diagram.lua enabled by default)"

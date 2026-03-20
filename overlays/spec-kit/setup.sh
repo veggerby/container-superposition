@@ -3,6 +3,10 @@
 
 set -e
 
+# Source shared setup utilities (provides run_spinner)
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+
 echo "📦 Installing prerequisites for spec-kit..."
 
 # Ensure uv tool bin directory is always on PATH (uv puts shims here regardless
@@ -21,11 +25,11 @@ echo "📦 Installing specify-cli..."
 # Pin to a uv-managed Python (avoids broken system Python 3.13 on Debian trixie
 # where stdlib modules like shutil/os can be missing due to Debian's split packages)
 UV_PYTHON_VERSION="3.12"
-echo "  Ensuring uv-managed Python ${UV_PYTHON_VERSION} is available..."
-uv python install "${UV_PYTHON_VERSION}"
+run_spinner "Python ${UV_PYTHON_VERSION} (uv)"  uv python install --quiet "${UV_PYTHON_VERSION}"
 
 # Install specify-cli using the uv-managed Python, not the system interpreter
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git \
+run_spinner "specify-cli"  uv tool install --quiet specify-cli \
+    --from git+https://github.com/github/spec-kit.git \
     --python "${UV_PYTHON_VERSION}"
 
 # Verify — use the full path as a fallback in case the shim dir is not yet in PATH

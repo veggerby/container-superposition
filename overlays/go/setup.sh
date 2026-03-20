@@ -3,25 +3,26 @@
 
 set -e
 
-echo "🔧 Setting up Go development environment..."
+# Source shared setup utilities
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 
-# Install common Go tools
+echo "🔧 Setting up Go development environment..."
 echo "📦 Installing Go development tools..."
 
-# gopls (Language Server)
-go install golang.org/x/tools/gopls@latest || echo "⚠️ gopls installation failed"
+run_spinner "gopls (language server)"   go install golang.org/x/tools/gopls@latest
+run_spinner "delve (debugger)"          go install github.com/go-delve/delve/cmd/dlv@latest
 
-# delve (Debugger)
-go install github.com/go-delve/delve/cmd/dlv@latest || echo "⚠️ delve installation failed"
+# golangci-lint — use official installer to avoid gold linker issues on arm64
+if ! command -v golangci-lint &>/dev/null; then
+    run_spinner "golangci-lint" \
+        bash -c 'curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)/bin"'
+else
+    echo "  ℹ️  golangci-lint already installed: $(golangci-lint version --short 2>/dev/null || true)"
+fi
 
-# golangci-lint (Linter) - install via go install for security
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest || echo "⚠️ golangci-lint installation failed"
-
-# gofumpt (Formatter)
-go install mvdan.cc/gofumpt@latest || echo "⚠️ gofumpt installation failed"
-
-# staticcheck (Static analyzer)
-go install honnef.co/go/tools/cmd/staticcheck@latest || echo "⚠️ staticcheck installation failed"
+run_spinner "gofumpt (formatter)"      go install mvdan.cc/gofumpt@latest
+run_spinner "staticcheck (analyzer)"   go install honnef.co/go/tools/cmd/staticcheck@latest
 
 # Install project dependencies if go.mod exists
 if [ -f "go.mod" ]; then

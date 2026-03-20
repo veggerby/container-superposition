@@ -5,15 +5,11 @@ set -e
 
 echo "🔐 Setting up direnv..."
 
-# Install direnv from package manager
-sudo apt-get update -qq
-sudo apt-get install -y direnv
-
-# Verify installation
+# Verify installation (installed via cross-distro-packages feature)
 if command -v direnv &> /dev/null; then
     echo "✓ direnv installed: $(direnv version)"
 else
-    echo "✗ direnv installation failed"
+    echo "✗ direnv not found — check cross-distro-packages feature"
     exit 1
 fi
 
@@ -78,6 +74,11 @@ EOF
     echo "⚠️  Auto-allowing .envrc for devcontainer (review contents before use)"
     direnv allow .envrc 2>/dev/null || true
     echo "✓ .envrc pre-allowed (run 'direnv deny' to disable)"
+fi
+
+# Ensure any pre-existing .envrc is also allowed (idempotent re-runs)
+if [ -f .envrc ]; then
+    direnv allow .envrc 2>/dev/null || true
 fi
 
 # Create sample .env file if it doesn't exist

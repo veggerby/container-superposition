@@ -8,16 +8,19 @@ echo "🌐 Setting up ngrok..."
 # Install ngrok using official apt repository (provides signed packages)
 echo "📦 Installing ngrok from official repository..."
 
-# Add ngrok's GPG key and repository
-curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-    | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+# Source shared setup utilities
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 
+# Add ngrok GPG key and repository
+# Note: ngrok uses .asc (armored) format, piped directly to trusted.gpg.d (no --dearmor needed)
+curl -fsSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+    | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
 echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-    | sudo tee /etc/apt/sources.list.d/ngrok.list
+    | sudo tee /etc/apt/sources.list.d/ngrok.list >/dev/null
 
 # Update and install
-sudo apt-get update -qq
-sudo apt-get install -y ngrok
+apt_install ngrok
 
 # Verify installation
 if command -v ngrok &> /dev/null; then

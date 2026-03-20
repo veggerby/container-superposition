@@ -162,6 +162,105 @@ npm run init -- \
   --cloud-tools aws-cli,azure-cli,kubectl-helm
 ```
 
+## Doctor Command
+
+The `doctor` command validates the current environment and devcontainer configuration.
+
+### Basic Diagnostics
+
+```bash
+# Run diagnostics against the default .devcontainer/
+container-superposition doctor
+
+# Specify a custom path
+container-superposition doctor --output ./my-project/.devcontainer
+
+# Point to a manifest file directly (outputPath is derived from the manifest)
+container-superposition doctor --from-manifest ./superposition.json
+
+# Load the output path from the repository project file (superposition.yml)
+container-superposition doctor --from-project
+
+# Run discovery relative to a different repository root
+container-superposition doctor --project-root /path/to/repo
+
+# Machine-readable JSON output
+container-superposition doctor --json
+```
+
+### Auto-Repair with `--fix`
+
+The `--fix` flag runs the full diagnosis and then attempts to automatically repair
+any fixable issues:
+
+```bash
+# Interactive auto-repair (text output)
+container-superposition doctor --fix
+
+# Machine-readable repair output (for CI/scripting)
+container-superposition doctor --fix --json
+```
+
+**Fix run output vocabulary:**
+
+| Outcome                  | Meaning                                              |
+| ------------------------ | ---------------------------------------------------- |
+| `fixed`                  | Tool changed the environment; re-check now passes    |
+| `already compliant`      | No change needed — check already passed              |
+| `skipped`                | Not attempted (prerequisite step failed)             |
+| `requires manual action` | Automation unsafe/unavailable; manual steps provided |
+
+**Fixable issue classes:**
+
+| Issue                                        | Auto-fix condition                                         |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| Stale / legacy `superposition.json` manifest | Always — migrate to current schema                         |
+| Missing or corrupt `devcontainer.json`       | When a valid manifest is present — regenerate              |
+| Unsupported Node.js runtime                  | Only when `nvm`, `fnm`, or `volta` is installed            |
+| Docker daemon not accessible                 | Manual only — platform-specific restart instructions shown |
+
+**Remediation ordering:** Manifest migration always runs before devcontainer regeneration.
+If migration fails, regeneration is skipped and marked as `skipped`.
+
+**Safety:** All file mutations use atomic write (write to `.tmp`, then rename).
+A timestamped backup is created before any manifest is modified.
+
+**Exit codes:**
+
+- `0` — all findings resolved (success or already-compliant)
+- `0` — some findings require manual action (`repaired-with-warnings`)
+- `1` — unresolved failures remain after fix run
+
+### JSON Fix Run Structure
+
+```json
+{
+  "outputPath": "./.devcontainer",
+  "requestedJson": true,
+  "initialFindings": [...],
+  "executions": [
+    {
+      "findingId": "manifest-version",
+      "remediationKey": "manifest-migration",
+      "attempted": true,
+      "outcome": "fixed",
+      "reason": "Manifest migrated to current schema version",
+      "changedFiles": [".devcontainer/superposition.json"],
+      "backupPath": ".devcontainer/superposition.json.backup-2026-03-19-..."
+    }
+  ],
+  "finalFindings": [...],
+  "summary": {
+    "fixed": 1,
+    "alreadyCompliant": 3,
+    "skipped": 0,
+    "requiresManualAction": 0,
+    "total": 4
+  },
+  "exitDisposition": "success"
+}
+```
+
 ## Output Structure
 
 ### Minimal (plain + language)

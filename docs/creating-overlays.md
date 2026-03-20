@@ -46,10 +46,24 @@ Overlays automatically detect the package manager based on the selected base ima
 - **Alpine**: Uses `apk` for package installation
 - **Custom**: Defaults to `apt-get` (may need manual adjustment)
 
-When creating overlays with package installations, use devcontainer features that handle this automatically, or detect the package manager in setup scripts:
+When creating overlays with package installations, prefer the `cross-distro-packages` devcontainer feature for packages available in standard distro repos — they run at build time and require no shell scripting:
+
+```json
+{
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "direnv ripgrep fd-find",
+            "apk": "direnv ripgrep fd"
+        }
+    }
+}
+```
+
+For packages that require a custom apt repository or are not in standard repos, use a `setup.sh` script instead (see [Setup Scripts](#setup-scripts) below).
+
+If you do need to detect the package manager in a setup script:
 
 ```bash
-# Example: Detect package manager
 if command -v apk > /dev/null; then
     apk add --no-cache some-package
 elif command -v apt-get > /dev/null; then
@@ -251,6 +265,139 @@ volumes:
 ```
 
 These files are automatically copied to the output directory.
+
+## Setup Scripts
+
+If your overlay needs shell work at container-create time (e.g., adding a custom apt repo, downloading a binary, or configuring shell hooks), add a `setup.sh` to your overlay directory.
+
+```
+overlays/my-overlay/
+├── devcontainer.patch.json
+└── setup.sh                # postCreateCommand script
+```
+
+The composer copies `setup.sh` to `scripts/setup-my-overlay.sh` and wires it into `postCreateCommand` automatically. All setup scripts for all selected overlays **run in parallel**, so you must use the shared locking utilities for any apt/dpkg operations.
+
+### Using setup-utils.sh
+
+A shared utility library is automatically emitted to `scripts/setup-utils.sh` whenever any overlay contributes a setup script. Source it at the top of your `setup.sh`:
+
+```bash
+#!/bin/bash
+set -e
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+```
+
+#### APT locking — `apt_install` / `with_apt_lock` / `acquire_apt_lock`
+
+Setup scripts run in parallel. Without coordination, two scripts calling `apt-get update` simultaneously will corrupt the apt database.
+
+For the common case of installing packages, use `apt_install` — it acquires the lock, runs `apt-get update`, installs, then releases the lock:
+
+```bash
+apt_install my-package another-package
+```
+
+For operations that need the lock but aren't a plain `apt-get install` (e.g. `dpkg -i`), use `with_apt_lock`:
+
+```bash
+with_apt_lock sudo dpkg -i /tmp/package.deb
+```
+
+For multi-step sequences (add repo, then install), use `acquire_apt_lock` / `release_apt_lock` directly:
+
+```bash
+add_apt_repo ...
+acquire_apt_lock
+sudo apt-get update -qq
+sudo apt-get install -y my-package
+sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
+release_apt_lock
+```
+
+The lock is `flock`-based and crash-safe: the kernel releases it automatically if the process exits for any reason.
+
+#### Adding a custom apt repo — `add_apt_repo`
+
+```bash
+add_apt_repo \
+    "https://example.com/repo.gpg" \
+    "/usr/share/keyrings/example.gpg" \
+    "deb [signed-by=/usr/share/keyrings/example.gpg] https://repo.example.com stable main" \
+    "/etc/apt/sources.list.d/example.list"
+```
+
+This handles the `curl → gpg --dearmor → tee sources.list.d` sequence, including `mkdir -p` for the keyring and sources directories. Call it **before** `acquire_apt_lock` — it only writes key/sources files and does not invoke apt.
+
+#### Architecture detection — `detect_arch`
+
+```bash
+detect_arch             # returns 1 on unknown arch
+detect_arch amd64       # falls back to amd64 on unknown arch
+# $CS_ARCH is now "amd64" or "arm64"
+```
+
+#### Installing a binary — `install_binary` / `install_binary_from_tar`
+
+```bash
+# Single binary
+install_binary "https://example.com/tool-linux-${CS_ARCH}" "tool"
+
+# Binary inside a .tar.gz
+install_binary_from_tar \
+    "https://example.com/tool-${VERSION}-linux-${CS_ARCH}.tar.gz" \
+    "tool"          # name inside archive
+```
+
+### Full example — custom apt repo
+
+```bash
+#!/bin/bash
+# my-tool setup script
+set -e
+
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+
+echo "📦 Installing my-tool..."
+add_apt_repo \
+    "https://my-tool.example.com/gpg.key" \
+    "/usr/share/keyrings/my-tool.gpg" \
+    "deb [signed-by=/usr/share/keyrings/my-tool.gpg] https://my-tool.example.com/apt stable main" \
+    "/etc/apt/sources.list.d/my-tool.list"
+
+apt_install my-tool
+
+echo "✅ my-tool installed: $(my-tool --version)"
+```
+
+### Full example — binary download
+
+```bash
+#!/bin/bash
+# my-cli setup script
+set -e
+
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+
+MY_VERSION="${MY_VERSION:-1.2.3}"
+detect_arch
+echo "📦 Installing my-cli ${MY_VERSION} for ${CS_ARCH}..."
+install_binary \
+    "https://github.com/example/my-cli/releases/download/v${MY_VERSION}/my-cli-linux-${CS_ARCH}" \
+    "my-cli"
+
+echo "✅ my-cli installed: $(my-cli --version)"
+```
+
+### Checklist for setup scripts
+
+- Source `setup-utils.sh` at the top
+- Use `acquire_apt_lock` / `release_apt_lock` around **all** apt/dpkg calls
+- Use `detect_arch` instead of a hand-rolled `uname -m` case statement
+- Use `install_binary` / `install_binary_from_tar` instead of `curl | tar | mv`
+- Use `add_apt_repo` instead of inline `curl | gpg | tee`
+- Never hardcode architecture (`x86_64`, `amd64`) or checksums that will go stale
+- Verify the installed tool with `command -v` after installation
 
 ## .env.example
 
@@ -537,6 +684,8 @@ CLI tools without services:
 Before submitting an overlay:
 
 - [ ] devcontainer.patch.json validates against schema
+- [ ] Packages available in standard repos use `cross-distro-packages` feature (not `apt-get install` in setup.sh)
+- [ ] `setup.sh` (if present) sources `setup-utils.sh` and uses `apt_install`/`install_binary`/`detect_arch`
 - [ ] docker-compose.yml uses version "3.8" and devnet network
 - [ ] .env.example has sensible defaults and comments
 - [ ] README.md documents ports, environment variables, usage

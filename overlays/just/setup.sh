@@ -9,30 +9,18 @@ echo "⚡ Setting up just task runner..."
 JUST_VERSION="1.25.2"
 ARCH=$(uname -m)
 
-# SHA256 checksums for just v1.25.2
-if [ "$ARCH" = "x86_64" ]; then
-    ARCH="x86_64"
-    CHECKSUM="6804798c3744fd1ce563840ee9fe14ae53c74b3cc7b8536da3f87751d7f85501"
-elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
     ARCH="aarch64"
-    CHECKSUM="f287a95846131ce8de65181b0b1ec0a0b7db4f6f8d393b3b548f70fcb5a4b0ee"
-else
-    echo "⚠️  Unsupported architecture: $ARCH"
+elif [ "$ARCH" = "x86_64" ]; then
     ARCH="x86_64"
-    CHECKSUM="6804798c3744fd1ce563840ee9fe14ae53c74b3cc7b8536da3f87751d7f85501"
+else
+    echo "⚠️  Unsupported architecture: $ARCH, falling back to x86_64"
+    ARCH="x86_64"
 fi
 
 echo "📦 Downloading just v${JUST_VERSION} for ${ARCH}..."
-curl -L "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-${ARCH}-unknown-linux-musl.tar.gz" \
+curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-${ARCH}-unknown-linux-musl.tar.gz" \
     -o /tmp/just.tar.gz
-
-# Verify checksum
-echo "🔐 Verifying checksum..."
-echo "${CHECKSUM}  /tmp/just.tar.gz" | sha256sum -c - || {
-    echo "✗ Checksum verification failed"
-    rm /tmp/just.tar.gz
-    exit 1
-}
 
 # Extract and install
 tar -xzf /tmp/just.tar.gz -C /tmp

@@ -13,18 +13,15 @@ echo "📦 Installing cloudflared..."
 # Check https://github.com/cloudflare/cloudflared/releases for newer versions
 CF_VERSION="${CLOUDFLARED_VERSION:-2025.2.1}"
 
-# Detect architecture
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64) CF_ARCH="amd64" ;;
-    aarch64 | arm64) CF_ARCH="arm64" ;;
-    *) echo "   ⚠️  Unsupported architecture: $ARCH" ; CF_ARCH="amd64" ;;
-esac
+# Source shared setup utilities
+# shellcheck source=setup-utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
 
-CF_URL="https://github.com/cloudflare/cloudflared/releases/download/${CF_VERSION}/cloudflared-linux-${CF_ARCH}"
-curl -sSL "$CF_URL" -o /tmp/cloudflared
-sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
-rm -f /tmp/cloudflared
+detect_arch amd64
+
+install_binary \
+    "https://github.com/cloudflare/cloudflared/releases/download/${CF_VERSION}/cloudflared-linux-${CS_ARCH}" \
+    "cloudflared" "755"
 
 # Verify installation
 if command -v cloudflared &> /dev/null; then

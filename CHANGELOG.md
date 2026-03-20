@@ -7,17 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`doctor --fix`** — Interactive repair flow for common environment problems
+    - Can fix stale manifests, missing devcontainer regeneration, Node.js version mismatches, and Docker daemon issues
+    - Re-runs checks after remediation and reports a structured outcome summary; use `--fix --json` for machine-readable output
+- **Shared setup utilities** — A generated `scripts/setup-utils.sh` is now included automatically when any overlay provides a `setup.sh`
+    - Centralises apt locking, architecture detection, binary installation helpers, npm environment setup, and quieter script output
+    - Eliminates apt-lock races between parallel `postCreateCommand` scripts and reduces boilerplate across overlay setup scripts
+- **`all` overlay** — Meta-overlay that expands to all non-preset overlays; useful for integration testing; hidden from the interactive questionnaire
+- **`devcontainer-cli` overlay** — Installs `@devcontainers/cli` globally for building and managing devcontainers from the terminal
+- **Port conflict auto-resolution** — `init` and `regen` now detect host-port collisions across selected overlays and remap conflicting ports automatically, with a before/after warning in the output
+
 ### Changed
 
-- **Flat `overlays` field in project config** — project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, `cloudTools`, `observability`)
-    - Users no longer need to know which category an overlay belongs to — just list overlay IDs
-    - Old category keys are still parsed for backward compatibility and merged into the flat list
-    - Internally backed by a strongly-typed `OverlayId` union type for compile-time safety
+- **Flat `overlays` field in project config** — Project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, etc.); old category keys are still accepted for backward compatibility
+- **`doctor` command** — `--from-manifest`, `--from-project`, and `--project-root` flags added, bringing `doctor` into parity with `init` and `regen` for project-file and manifest selection
+- **`direnv` overlay** — Package installation moved to `cross-distro-packages` devcontainer feature (runs at image-build time); `setup.sh` now handles only shell hook configuration
+- **`modern-cli-tools` overlay** — Core packages (`jq`, `ripgrep`, `fd-find`, `bat`) moved to `cross-distro-packages`; `setup.sh` now only installs `yq` and creates platform symlinks (`fdfind→fd`, `batcat→bat`)
+- **`git-lfs` feature** — `autoPull` set to `false` in the `git-helpers` overlay; prevents container creation failures in repos with no LFS remote configured
 
 ### Fixed
 
-- **`${containerEnv:HOME}` in mount targets** — replaced with absolute path `/home/vscode/.codex` in examples and codex overlay README; Docker cannot resolve container env vars at mount time
-- **`pandoc` overlay missing `lmodern`** — added `lmodern` package to the apt package list; required by Pandoc's default LaTeX template on Trixie where `--no-install-recommends` skips it
+- **`${containerEnv:HOME}` in mount targets** — Replaced with absolute path `/home/vscode/.codex`; Docker cannot resolve container env vars at mount time
+- **`pandoc` overlay** — Added missing `lmodern` package required by the default LaTeX template on Trixie; `emoji-fallback.lua` filter extended to cover BMP symbol blocks (Dingbats U+2700–U+27BF, Miscellaneous Symbols U+2600–U+26FF) — ✅ ⚠ ❌ and similar characters are now routed to `\textfallback{}` (Noto Sans Symbols 2) so they render as proper glyphs instead of generating XeLaTeX `[WARNING] Missing character` messages
+- **`tilt` overlay** — Replaced pipe-to-bash installer with direct binary download; fixes `sudo mv: No such file or directory` on some systems
+- **`minio` overlay** — Fixed hardcoded `amd64`-only download URL; now correctly selects the `aarch64` binary
+- **`just` overlay** — Removed hardcoded SHA256 checksums that were incorrect for `aarch64`
+- **`mongodb` overlay** — Replaced standard-repo feature (package not in default repos) with a `setup.sh` that adds the official MongoDB apt repository
+- **`gcloud` overlay** — Replaced deprecated `apt-key`-based feature with a `setup.sh` using `gpg --dearmor`
+- **`nats` overlay** — Fixed `latest-alpine` tag not existing on Docker Hub; default version is now `2`
+- **`windsurf-cli` overlay** — Replaced non-existent npm package with binary download from GitHub releases; verify script now exits gracefully on unsupported platforms (arm64)
+- **`powershell` overlay** — Fixed hang on interactive NuGet provider prompt; `Install-PackageProvider` is now skipped on PowerShell 7+ where the provider is built-in
+- **`playwright` overlay** — Browser install moved to a `setup.sh` that holds the shared apt lock, preventing `E: Could not get lock` races with other parallel setup scripts; noisy apt and download progress output suppressed
+- **`keycloak` overlay** — Health-check URL corrected to port `9000` (management port) instead of `8180`; verify timeout increased to cover the full container startup window; `depends_on` now waits for postgres to be healthy (`condition: service_healthy`) so Keycloak no longer starts before its database is ready
+- **`postgres` overlay** — Added `pg_isready` healthcheck to the service definition so dependent overlays (e.g. Keycloak) can use `condition: service_healthy`
+- **`sqlserver` overlay** — Verify script replaced `docker exec` (which requires Docker socket access) with a two-path strategy: `docker exec` via the container's ancestor image when available, TCP port check (`/dev/tcp`) as an automatic fallback when the Docker socket is not mounted
+- **`redpanda` overlay** — Fixed YAML indentation in the Console config that caused the schema-registry URL to be silently ignored
+- **`pre-commit` overlay** — Installation now prefers `pipx` to avoid conflicts with active virtualenvs
+- **`direnv` overlay** — `direnv allow` now also runs on container rebuilds when `.envrc` already exists, fixing the "blocked" error on subsequent opens
+- **`bun` overlay** — PATH entry persisted to shell profiles; verify script falls back to `~/.bun/bin/bun` when the binary is not yet on PATH in a non-interactive shell
+- **`alertmanager` / `otel-collector` overlays** — Fixed workspace-root detection; scripts now locate `.devcontainer/` relative to their own path, eliminating failures when `LOCAL_WORKSPACE_FOLDER` is a host-only path
+- **`alertmanager`, `promtail`, `tempo`, `otel-demo-nodejs`, `otel-demo-python` overlays** — Verify scripts now use the service's HTTP health endpoint as the primary readiness check instead of `docker ps`; eliminates false failures when the Docker socket is not accessible from inside the devcontainer
+- **`mysql` overlay** — Verify script timeout increased to 90 seconds to match the container healthcheck window
+- **Duplicate `postCreateCommand` entries** — `duckdb`, `kind`, `openapi-tools`, `tilt`, and `playwright` overlay patches were causing setup scripts to run twice; redundant entries removed
+- **Parallel apt contention** — Setup scripts now coordinate through the shared apt lock, eliminating `E: Could not get lock` failures during parallel `postCreateCommand` execution
+- **Escape sequences in apt output** — `DEBIAN_FRONTEND=noninteractive` and `TERM=dumb` are now passed explicitly on `sudo apt-get` invocations; prevents cursor-probe escape sequences appearing in devcontainer build logs
 
 ## [0.1.6] - 2026-03-16
 

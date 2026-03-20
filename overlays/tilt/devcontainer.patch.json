@@ -12,6 +12,5 @@
             "label": "Tilt UI",
             "onAutoForward": "openBrowser"
         }
-    },
-    "postCreateCommand": "bash .devcontainer/scripts/setup-tilt.sh"
+    }
 }

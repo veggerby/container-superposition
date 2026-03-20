@@ -111,6 +111,7 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             ports: ensurePortsArray(manifest.ports),
             imports: ensureArray(manifest.imports),
             minimal: manifest.minimal !== undefined ? ensureBoolean(manifest.minimal) : false,
+            hidden: manifest.hidden !== undefined ? ensureBoolean(manifest.hidden) : false,
         };
     } catch (error) {
         console.warn(`Warning: Failed to parse manifest in ${overlayDir}:`, error);

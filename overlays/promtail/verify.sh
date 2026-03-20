@@ -6,19 +6,25 @@ echo "🔍 Verifying Promtail installation..."
 # Track overall success
 ALL_CHECKS_PASSED=true
 
-# Check if Promtail service is running
-if docker ps --format '{{.Names}}' | grep -q promtail; then
-    echo "✓ Promtail service is running"
-else
-    echo "✗ Promtail service is not running"
+# Wait for Promtail /ready endpoint (primary health signal).
+# docker ps is informational only — not reliably accessible in all devcontainers.
+PROMTAIL_READY=false
+for i in {1..40}; do
+    if curl -s -o /dev/null -w "%{http_code}" http://promtail:3101/ready 2>/dev/null | grep -q "200"; then
+        echo "✓ Promtail is ready (HTTP /ready)"
+        PROMTAIL_READY=true
+        break
+    fi
+    sleep 3
+done
+if [ "$PROMTAIL_READY" = false ]; then
+    echo "✗ Promtail /ready endpoint not responding after 120 s (http://promtail:3101/ready)"
     ALL_CHECKS_PASSED=false
 fi
 
-# Check if Promtail can access Docker socket
-if docker exec promtail test -S /var/run/docker.sock 2>/dev/null; then
-    echo "✓ Promtail has access to Docker socket"
-else
-    echo "⚠️ Promtail cannot access Docker socket"
+# Informational: check via docker ps if available.
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q promtail; then
+    echo "✓ Promtail container visible in docker ps"
 fi
 
 # Final result

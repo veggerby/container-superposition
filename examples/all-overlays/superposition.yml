@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/config.schema.json
+stack: compose
+baseImage: trixie
+containerName: all-overlays
+overlays:
+    - all
+outputPath: .devcontainer

@@ -5,5 +5,7 @@
             "version": "lts"
         }
     },
-    "postCreateCommand": "npx -y playwright install --with-deps chromium"
+    "postCreateCommand": {
+        "setup-playwright": "bash .devcontainer/scripts/setup-playwright.sh"
+    }
 }

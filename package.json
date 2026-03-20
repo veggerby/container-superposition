@@ -13,6 +13,7 @@
         "init:build": "npm run build && node dist/scripts/init.js",
         "test": "vitest run",
         "test:watch": "vitest",
+        "test:integration": "INTEGRATION=true vitest run tool/__tests__/overlay-features-integration.test.ts",
         "test:smoke": "bash scripts/test.sh",
         "docs:generate": "tsx docs/generate-docs.ts && prettier --write docs/overlays.md",
         "lint": "tsc --noEmit && npm run format:check",

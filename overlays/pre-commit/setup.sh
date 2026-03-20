@@ -5,10 +5,19 @@ set -e
 
 echo "🔍 Setting up pre-commit framework..."
 
-# Install pre-commit using pip
-pip install --user pre-commit
+# Install pre-commit — prefer pipx (avoids --user conflicts inside virtualenvs)
+if command -v pipx &> /dev/null; then
+    pipx install pre-commit
+elif command -v pip3 &> /dev/null; then
+    pip3 install pre-commit 2>/dev/null || pip3 install --break-system-packages pre-commit
+elif command -v pip &> /dev/null; then
+    pip install pre-commit 2>/dev/null || pip install --break-system-packages pre-commit
+else
+    echo "✗ No pip/pipx found — cannot install pre-commit"
+    exit 1
+fi
 
-# Add to PATH if not already there
+# pipx installs to ~/.local/bin
 export PATH="$HOME/.local/bin:$PATH"
 
 # Verify installation

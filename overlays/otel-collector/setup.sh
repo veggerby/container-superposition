@@ -5,23 +5,10 @@ set -e
 
 echo "🔧 Configuring OpenTelemetry Collector trace backend..."
 
-# Determine workspace root dynamically
-WORKSPACE_ROOT="${LOCAL_WORKSPACE_FOLDER:-$PWD}"
+# Resolve the .devcontainer directory relative to this script.
+DEVCONTAINER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 
-if [ ! -d "$WORKSPACE_ROOT/.devcontainer" ]; then
-    if [ -d "/workspaces" ]; then
-        FIRST_WORKSPACE_DIR="$(find /workspaces -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -n 1)"
-        if [ -n "$FIRST_WORKSPACE_DIR" ] && [ -d "$FIRST_WORKSPACE_DIR/.devcontainer" ]; then
-            WORKSPACE_ROOT="$FIRST_WORKSPACE_DIR"
-        fi
-    fi
-fi
-
-if [ ! -d "$WORKSPACE_ROOT/.devcontainer" ] && [ -d "/workspace/.devcontainer" ]; then
-    WORKSPACE_ROOT="/workspace"
-fi
-
-OTEL_CONFIG="$WORKSPACE_ROOT/.devcontainer/otel-collector-config-otel-collector.yaml"
+OTEL_CONFIG="$DEVCONTAINER_DIR/otel-collector-config-otel-collector.yaml"
 
 if [ ! -f "$OTEL_CONFIG" ]; then
     echo "⚠️ OTel Collector config not found"

@@ -20,9 +20,20 @@ if [ -d "${VENV_DIR}" ]; then
     if venv_is_valid; then
         echo "  Using virtual environment: ${VENV_DIR}"
     else
-        echo "⚠️  Existing .venv is invalid (stale interpreter), recreating..."
+        echo "⚠️  Existing .venv is invalid (stale interpreter or broken site-packages), recreating..."
         rm -rf "${VENV_DIR}"
     fi
+else
+    # Also handle the case where the directory listing showed site-packages exists
+    # but venv_is_valid failed — this handles partial/corrupted venvs
+    : # nothing to do, venv doesn't exist yet
+fi
+
+# If the venv directory exists but python fails with EEXIST on site-packages,
+# it is a leftover from a previous interrupted run — recreate it.
+if [ -d "${VENV_DIR}" ] && ! "${VENV_DIR}/bin/python" -m pip --version &>/dev/null; then
+    echo "⚠️  Existing .venv has broken pip, recreating..."
+    rm -rf "${VENV_DIR}"
 fi
 
 if [ ! -d "${VENV_DIR}" ]; then
@@ -40,7 +51,7 @@ fi
 PYTHON="${VENV_DIR}/bin/python"
 
 echo "📦 Installing MkDocs 2.0 from encode/mkdocs..."
-"${PYTHON}" -m pip install --no-cache-dir \
+"${PYTHON}" -m pip install -q --no-cache-dir \
     "mkdocs @ git+https://github.com/encode/mkdocs.git"
 
 MKDOCS_BIN="${VENV_DIR}/bin/mkdocs"

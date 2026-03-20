@@ -68,7 +68,8 @@ export type DevTool =
     | 'amp'
     | 'windsurf-cli'
     | 'opencode'
-    | 'mkdocs2';
+    | 'mkdocs2'
+    | 'devcontainer-cli';
 export type ObservabilityTool =
     | 'alertmanager'
     | 'otel-collector'
@@ -245,6 +246,7 @@ export interface OverlayMetadata {
     order?: number;
     imports?: string[]; // Shared files to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
+    hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
 }
 
 /**
@@ -397,6 +399,93 @@ export interface ProjectConfigCustomizationsInput {
         path: string;
         content: string;
     }>;
+}
+
+// ─── Doctor --fix types ────────────────────────────────────────────────────
+
+export type DiagnosticCategory = 'environment' | 'overlay' | 'manifest' | 'merge' | 'ports';
+
+/**
+ * Whether a diagnostic finding can be automatically remediated.
+ */
+export type FixEligibility = 'automatic' | 'manual-only' | 'not-applicable';
+
+export type RecheckScope = 'environment' | 'manifest' | 'devcontainer' | 'full';
+
+export type SafetyClass = 'safe-unattended' | 'requires-manual-action';
+
+export type ExecutionKind = 'shell-command' | 'manifest-migration' | 'regeneration' | 'no-op';
+
+export type FixOutcome = 'fixed' | 'already-compliant' | 'skipped' | 'requires-manual-action';
+
+export type ExitDisposition = 'success' | 'repaired-with-warnings' | 'unresolved-failures';
+
+/**
+ * A single diagnostic finding produced by the doctor command.
+ * Extends the internal CheckResult with structured fix metadata.
+ */
+export interface DiagnosticFinding {
+    id: string;
+    category: DiagnosticCategory;
+    name: string;
+    status: 'pass' | 'warn' | 'fail';
+    message: string;
+    details?: string[];
+    fixEligibility: FixEligibility;
+    remediationKey?: string;
+    recheckScope: RecheckScope;
+}
+
+/**
+ * A remediation action registered for a specific finding.
+ */
+export interface RemediationAction {
+    key: string;
+    findingId: string;
+    safetyClass: SafetyClass;
+    executionKind: ExecutionKind;
+    preconditions: string[];
+    plannedChanges: string[];
+    manualFallback: string[];
+}
+
+/**
+ * Result of executing a single remediation action.
+ */
+export interface FixExecution {
+    findingId: string;
+    remediationKey: string;
+    attempted: boolean;
+    outcome: FixOutcome;
+    reason: string;
+    commands?: string[];
+    changedFiles?: string[];
+    backupPath?: string;
+    rechecked: boolean;
+}
+
+/**
+ * Aggregated outcome counts for a fix run.
+ */
+export interface FixOutcomeSummary {
+    fixed: number;
+    alreadyCompliant: number;
+    skipped: number;
+    requiresManualAction: number;
+    total: number;
+}
+
+/**
+ * Complete record of a doctor --fix execution.
+ */
+export interface FixRun {
+    outputPath: string;
+    requestedJson: boolean;
+    initialFindings: DiagnosticFinding[];
+    executions: FixExecution[];
+    finalFindings: DiagnosticFinding[];
+    summary: FixOutcomeSummary;
+    exitDisposition: ExitDisposition;
 }
 
 export interface ProjectConfigSelection {

@@ -506,7 +506,8 @@ function buildOverlayChoices(
 
     categoryList.forEach((category) => {
         const filtered = category.overlays.filter(
-            (o: any) => !o.supports || o.supports.length === 0 || o.supports.includes(stack)
+            (o: any) =>
+                !o.hidden && (!o.supports || o.supports.length === 0 || o.supports.includes(stack))
         );
 
         if (filtered.length > 0) {
@@ -1471,6 +1472,15 @@ async function parseCliArgs(): Promise<{
         .command('doctor')
         .description('Check environment and validate configuration')
         .option('-o, --output <path>', 'Devcontainer path to validate (default: ./.devcontainer)')
+        .option(
+            '--from-manifest <path>',
+            'Load configuration from an existing superposition.json manifest'
+        )
+        .option('--from-project', 'Load configuration from the repository project file')
+        .option(
+            '--project-root <path>',
+            'Run project-file and manifest discovery relative to a different repository root'
+        )
         .option('--fix', 'Apply automatic fixes where possible')
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {

@@ -1,0 +1,8 @@
+{
+    "version": "0.1.0",
+    "generated": "2025-01-01T00:00:00.000Z",
+    "baseTemplate": "plain",
+    "baseImage": "bookworm",
+    "overlays": ["nodejs", "git-helpers"],
+    "portOffset": 0
+}

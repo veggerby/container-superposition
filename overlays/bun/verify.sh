@@ -7,10 +7,15 @@ echo "🔍 Verifying Bun overlay..."
 echo ""
 
 # Check Bun is installed
+# The verify script runs in a non-interactive shell that may not have ~/.bun/bin on PATH.
 echo "1️⃣ Checking Bun..."
-if command -v bun &> /dev/null; then
+BUN_BIN="${BUN_INSTALL:-$HOME/.bun}/bin/bun"
+if command -v bun &>/dev/null; then
     bun --version
     echo "   ✅ Bun found"
+elif [ -x "$BUN_BIN" ]; then
+    "$BUN_BIN" --version
+    echo "   ✅ Bun found (at $BUN_BIN)"
 else
     echo "   ❌ Bun not found"
     exit 1

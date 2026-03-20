@@ -1,0 +1,22 @@
+# all files
+
+.*
+.devcontainer/
+commitlint.config.js
+Justfile
+
+# direnv (container-superposition)
+.envrc.local
+.env
+.env.local
+.direnv/
+
+# python (container-superposition)
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/

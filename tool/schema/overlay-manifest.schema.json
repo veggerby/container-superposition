@@ -140,6 +140,11 @@
             "type": "boolean",
             "description": "Whether this overlay is excluded in minimal mode (true = extra/optional)",
             "default": false
+        },
+        "hidden": {
+            "type": "boolean",
+            "description": "Whether this overlay is hidden from the interactive questionnaire (code-only use)",
+            "default": false
         }
     },
     "additionalProperties": false

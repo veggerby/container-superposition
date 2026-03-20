@@ -134,6 +134,9 @@ function getAllOverlayDefs(config: OverlaysConfig): OverlayMetadata[] {
     return config.overlays;
 }
 
+/** ID for the meta overlay that expands to all available overlays */
+const META_OVERLAY_ID = 'all';
+
 /**
  * Resolve dependencies for a set of overlays
  * Returns the expanded list with dependencies and metadata about what was added
@@ -145,12 +148,24 @@ function resolveDependencies(
     const overlayMap = new Map<string, OverlayMetadata>();
     allOverlayDefs.forEach((def) => overlayMap.set(def.id, def));
 
-    const resolved = new Set<string>(requestedOverlays);
+    // Expand the meta overlay to all known non-meta overlay IDs
+    let expandedRequest = requestedOverlays;
+    if (requestedOverlays.includes(META_OVERLAY_ID)) {
+        const allIds = allOverlayDefs
+            .filter((def) => def.id !== META_OVERLAY_ID && def.category !== 'preset' && !def.hidden)
+            .map((def) => def.id);
+        expandedRequest = [
+            ...requestedOverlays.filter((id) => id !== META_OVERLAY_ID),
+            ...allIds.filter((id) => !requestedOverlays.includes(id)),
+        ];
+    }
+
+    const resolved = new Set<string>(expandedRequest);
     const autoAdded: string[] = [];
     const resolutionReasons: string[] = [];
 
     // Resolve dependencies recursively
-    const toProcess = [...requestedOverlays];
+    const toProcess = [...expandedRequest];
     const processed = new Set<string>();
 
     while (toProcess.length > 0) {
@@ -853,6 +868,116 @@ function applyGlueConfig(
 }
 
 /**
+ * Parse the effective host port from any docker-compose port binding format:
+ *   "8081:8081", "127.0.0.1:8081:8081", "${VAR:-8081}:8081", 8081, {published:8081}
+ */
+function parseHostPortFromBinding(
+    binding: string | number | Record<string, unknown>
+): number | null {
+    if (typeof binding === 'number') {
+        // A bare number in docker-compose ports means container port → random host port.
+        // There is no deterministic host port to conflict on, so treat as "no host port".
+        return null;
+    }
+    if (typeof binding === 'object' && binding !== null) {
+        const pub = (binding as any).published;
+        if (pub == null) return null;
+        if (typeof pub === 'number') return pub;
+        const m = String(pub).match(/^(\d+)$/);
+        return m ? parseInt(m[1], 10) : null;
+    }
+    if (typeof binding !== 'string') return null;
+    // "${VAR:-8081}:..." — extract default
+    const envMatch = binding.match(/^\$\{[^}]+:-(\d+)\}/);
+    if (envMatch) return parseInt(envMatch[1], 10);
+    const parts = binding.split(':');
+    if (parts.length === 3) {
+        const n = parseInt(parts[1], 10);
+        return isNaN(n) ? null : n;
+    }
+    if (parts.length === 2) {
+        const n = parseInt(parts[0], 10);
+        return isNaN(n) ? null : n;
+    }
+    // Single segment: "8081" string — same as bare number, random host port.
+    return null;
+}
+
+/**
+ * Replace the host port in a binding, preserving its format.
+ */
+function replaceHostPortInBinding(
+    binding: string | number | Record<string, unknown>,
+    newPort: number
+): string | number | Record<string, unknown> {
+    if (typeof binding === 'number') return `${newPort}:${binding}`;
+    if (typeof binding === 'object' && binding !== null)
+        return { ...(binding as object), published: newPort };
+    if (typeof binding !== 'string') return binding;
+    // "${VAR:-8081}:container"
+    const replaced = binding.replace(/^(\$\{[^:}]+:-)(\d+)(\})/, `$1${newPort}$3`);
+    if (replaced !== binding) return replaced;
+    const parts = binding.split(':');
+    if (parts.length === 3) return `${parts[0]}:${newPort}:${parts[2]}`;
+    if (parts.length === 2) return `${newPort}:${parts[1]}`;
+    return `${newPort}:${binding}`;
+}
+
+/**
+ * Detect and auto-resolve host port conflicts in a merged services map.
+ * The first service that claims a port keeps it; later ones are bumped to the
+ * next free port. Returns a list of remappings made (for logging).
+ */
+function resolveDockerComposePortConflicts(
+    services: Record<string, any>
+): Array<{ service: string; originalPort: number; newPort: number }> {
+    const remappings: Array<{ service: string; originalPort: number; newPort: number }> = [];
+
+    // Build port → [serviceNames] map
+    const portOwners = new Map<number, string>();
+    const allocatedPorts = new Set<number>();
+
+    for (const [serviceName, service] of Object.entries(services)) {
+        if (!Array.isArray(service?.ports)) continue;
+        for (const binding of service.ports) {
+            const p = parseHostPortFromBinding(binding);
+            if (p == null) continue;
+            allocatedPorts.add(p);
+            if (!portOwners.has(p)) portOwners.set(p, serviceName);
+        }
+    }
+
+    function nextFreePort(start: number): number {
+        let p = start + 1;
+        while (allocatedPorts.has(p)) p++;
+        return p;
+    }
+
+    for (const [serviceName, service] of Object.entries(services)) {
+        if (!Array.isArray(service?.ports)) continue;
+        const newBindings: (string | number | Record<string, unknown>)[] = [];
+
+        for (const binding of service.ports) {
+            const p = parseHostPortFromBinding(binding);
+            if (p != null && portOwners.get(p) !== serviceName) {
+                // This service lost the port; remap it
+                const newPort = nextFreePort(p);
+                allocatedPorts.add(newPort);
+                portOwners.set(newPort, serviceName);
+                remappings.push({ service: serviceName, originalPort: p, newPort });
+                newBindings.push(replaceHostPortInBinding(binding, newPort));
+            } else {
+                newBindings.push(binding);
+            }
+        }
+
+        service.ports = newBindings;
+    }
+
+    return remappings;
+}
+
+/**
  * Merge docker-compose.yml files from base and overlays into a single file
  */
 function mergeDockerComposeFiles(
@@ -862,7 +987,7 @@ function mergeDockerComposeFiles(
     overlaysDir: string,
     portOffset?: number,
     customImage?: string
-): void {
+): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
     // Add base docker-compose if exists
@@ -885,7 +1010,7 @@ function mergeDockerComposeFiles(
     }
 
     if (composeFiles.length === 0) {
-        return; // No docker-compose files to merge
+        return []; // No docker-compose files to merge
     }
 
     // Merge all compose files
@@ -952,6 +1077,16 @@ function mergeDockerComposeFiles(
     if (Object.keys(merged.volumes).length === 0) delete merged.volumes;
     if (Object.keys(merged.networks).length === 0) delete merged.networks;
 
+    // Auto-resolve host port conflicts across composed services
+    const portRemappings = resolveDockerComposePortConflicts(merged.services);
+    if (portRemappings.length > 0) {
+        console.log(chalk.yellow('\n⚠️  Host port conflicts detected and auto-resolved:'));
+        for (const { service, originalPort, newPort } of portRemappings) {
+            console.log(chalk.yellow(`   • ${service}: host port ${originalPort} → ${newPort}`));
+        }
+        console.log();
+    }
+
     // Write combined docker-compose.yml
     const outputComposePath = path.join(outputPath, 'docker-compose.yml');
     const yamlContent = yaml.dump(merged, {
@@ -966,6 +1101,8 @@ function mergeDockerComposeFiles(
             `   🐳 Created combined docker-compose.yml with ${serviceNames.length} service(s)`
         )
     );
+
+    return portRemappings;
 }
 
 /**
@@ -1441,9 +1578,11 @@ export async function composeDevContainer(
     mergeRunServices(config, overlays, actualOverlaysDir);
 
     // 11. Merge docker-compose files into single combined file
+    let composePortRemappings: Array<{ service: string; originalPort: number; newPort: number }> =
+        [];
     if (answers.stack === 'compose') {
         const customImage = config._customImage as string | undefined;
-        mergeDockerComposeFiles(
+        composePortRemappings = mergeDockerComposeFiles(
             outputPath,
             answers.stack,
             overlays,
@@ -1605,6 +1744,22 @@ export async function composeDevContainer(
 
         portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
 
+        // Propagate host-port conflict remappings into the generated docs so that
+        // ports.json and services.md reflect the actual ports in docker-compose.yml.
+        if (composePortRemappings.length > 0) {
+            // Build a lookup map: original (post-offset) host port → remapped host port.
+            const remapByOriginal = new Map(
+                composePortRemappings.map(({ originalPort, newPort }) => [originalPort, newPort])
+            );
+            portsDoc = {
+                ...portsDoc,
+                ports: portsDoc.ports.map((p) => {
+                    const remapped = remapByOriginal.get(p.actualPort);
+                    return remapped !== undefined ? { ...p, actualPort: remapped } : p;
+                }),
+            };
+        }
+
         const portsPath = path.join(outputPath, 'ports.json');
         fs.writeFileSync(portsPath, JSON.stringify(portsDoc, null, 2) + '\n');
         fileRegistry.addFile('ports.json');
@@ -1734,6 +1889,14 @@ function mergeSetupScripts(
     );
     if (hasScripts) {
         fileRegistry.addDirectory('scripts');
+        // Emit shared setup utilities so overlay scripts can source them
+        const setupUtilsSrc = path.join(TEMPLATES_DIR, 'scripts', 'setup-utils.sh');
+        if (fs.existsSync(setupUtilsSrc)) {
+            const setupUtilsDest = path.join(scriptsDir, 'setup-utils.sh');
+            fs.copyFileSync(setupUtilsSrc, setupUtilsDest);
+            fs.chmodSync(setupUtilsDest, 0o755);
+            fileRegistry.addFile('scripts/setup-utils.sh');
+        }
     }
 
     for (const overlay of overlays) {

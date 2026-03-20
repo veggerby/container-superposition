@@ -5,6 +5,5 @@
             "apt": "curl",
             "apk": "curl"
         }
-    },
-    "postCreateCommand": "bash .devcontainer/scripts/setup-kind.sh"
+    }
 }
