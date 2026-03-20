@@ -40,8 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`windsurf-cli` overlay** — Replaced non-existent npm package with binary download from GitHub releases; verify script now exits gracefully on unsupported platforms (arm64)
 - **`powershell` overlay** — Fixed hang on interactive NuGet provider prompt; `Install-PackageProvider` is now skipped on PowerShell 7+ where the provider is built-in
 - **`playwright` overlay** — Browser install moved to a `setup.sh` that holds the shared apt lock, preventing `E: Could not get lock` races with other parallel setup scripts; noisy apt and download progress output suppressed
-- **`keycloak` overlay** — Health-check URL corrected to port `9000` (management port) instead of `8180`; verify timeout increased to cover the full container startup window
-- **`sqlserver` overlay** — Fixed `sqlcmd` path (`mssql-tools18`) and added `-No` flag for certificate trust; verify timeout increased to 120 seconds
+- **`keycloak` overlay** — Health-check URL corrected to port `9000` (management port) instead of `8180`; verify timeout increased to cover the full container startup window; `depends_on` now waits for postgres to be healthy (`condition: service_healthy`) so Keycloak no longer starts before its database is ready
+- **`postgres` overlay** — Added `pg_isready` healthcheck to the service definition so dependent overlays (e.g. Keycloak) can use `condition: service_healthy`
+- **`sqlserver` overlay** — Verify script replaced `docker exec` (which requires Docker socket access) with a two-path strategy: `docker exec` via the container's ancestor image when available, TCP port check (`/dev/tcp`) as an automatic fallback when the Docker socket is not mounted
 - **`redpanda` overlay** — Fixed YAML indentation in the Console config that caused the schema-registry URL to be silently ignored
 - **`pre-commit` overlay** — Installation now prefers `pipx` to avoid conflicts with active virtualenvs
 - **`direnv` overlay** — `direnv allow` now also runs on container rebuilds when `.envrc` already exists, fixing the "blocked" error on subsequent opens

@@ -19,7 +19,8 @@ services:
         ports:
             - '${KEYCLOAK_PORT:-8180}:8180'
         depends_on:
-            - postgres
+            postgres:
+                condition: service_healthy
         networks:
             - devnet
         healthcheck:
