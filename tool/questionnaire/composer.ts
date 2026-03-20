@@ -1010,7 +1010,7 @@ function mergeDockerComposeFiles(
     }
 
     if (composeFiles.length === 0) {
-        return; // No docker-compose files to merge
+        return []; // No docker-compose files to merge
     }
 
     // Merge all compose files

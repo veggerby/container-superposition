@@ -106,9 +106,7 @@ const REMEDIATION_REGISTRY = new Map<string, RemediationAction>([
             safetyClass: 'safe-unattended',
             executionKind: 'regeneration',
             preconditions: ['Valid superposition.json manifest must be present'],
-            plannedChanges: [
-                'Regenerate devcontainer.json from superposition.json',
-            ],
+            plannedChanges: ['Regenerate devcontainer.json from superposition.json'],
             manualFallback: ['Run "container-superposition regen --output <path>" to regenerate'],
         },
     ],
@@ -1469,9 +1467,9 @@ function executeNodeVersionFix(): FixExecution {
     // that will always fail in the current process.
     // volta persists via its shim mechanism and can be verified immediately.
     if (manager === 'nvm' || manager === 'fnm') {
-        const runCmd = manager === 'nvm' ? `bash -lc '${fixCmd}'` : fixCmd;
+        const runCmd = manager === 'nvm' ? `bash -lc '${fixCmd}'` : `sh -lc '${fixCmd}'`;
         try {
-            execSync(runCmd, { stdio: 'pipe', timeout: 60_000, shell: manager !== 'nvm' });
+            execSync(runCmd, { stdio: 'pipe', timeout: 60_000 });
         } catch (err) {
             return {
                 findingId: 'nodejs-version',
@@ -1496,7 +1494,7 @@ function executeNodeVersionFix(): FixExecution {
 
     // volta: shim persists across processes — attempt + re-check is reliable.
     try {
-        execSync(fixCmd, { stdio: 'pipe', timeout: 60_000, shell: true });
+        execSync(`sh -lc '${fixCmd}'`, { stdio: 'pipe', timeout: 60_000 });
     } catch (err) {
         return {
             findingId: 'nodejs-version',
@@ -1511,11 +1509,10 @@ function executeNodeVersionFix(): FixExecution {
 
     // Re-check (volta updates shim; new processes see the updated Node)
     try {
-        const version = execSync('node --version', {
+        const version = execSync('sh -lc "node --version"', {
             encoding: 'utf8',
             stdio: ['pipe', 'pipe', 'pipe'],
             timeout: 10_000,
-            shell: true,
         });
         const match = version.trim().match(/^v(\d+)/);
         const major = match ? parseInt(match[1], 10) : 0;
