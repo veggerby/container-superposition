@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`${containerEnv:HOME}` in mount targets** — Replaced with absolute path `/home/vscode/.codex`; Docker cannot resolve container env vars at mount time
-- **`pandoc` overlay** — Added missing `lmodern` package required by the default LaTeX template on Trixie
+- **`pandoc` overlay** — Added missing `lmodern` package required by the default LaTeX template on Trixie; `emoji-fallback.lua` filter extended to cover BMP symbol blocks (Dingbats U+2700–U+27BF, Miscellaneous Symbols U+2600–U+26FF) — ✅ ⚠ ❌ and similar characters are now routed to `\textfallback{}` (Noto Sans Symbols 2) so they render as proper glyphs instead of generating XeLaTeX `[WARNING] Missing character` messages
 - **`tilt` overlay** — Replaced pipe-to-bash installer with direct binary download; fixes `sudo mv: No such file or directory` on some systems
 - **`minio` overlay** — Fixed hardcoded `amd64`-only download URL; now correctly selects the `aarch64` binary
 - **`just` overlay** — Removed hardcoded SHA256 checksums that were incorrect for `aarch64`
