@@ -25,8 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `detect_arch [fallback]` — maps `uname -m` to `amd64`/`arm64`, sets `$CS_ARCH`
     - `install_binary <url> <name> [mode]` — downloads a single binary to a temp file and installs it to `/usr/local/bin`
     - `install_binary_from_tar <url> <bin> [dest] [mode]` — downloads a `.tar.gz`, extracts a named binary, and installs it to `/usr/local/bin`
-    - `run_spinner <label> <command> [args...]` — runs a command silently with a progress spinner; prints `✓ <label>` on success or `✗ <label> (exit N)` on failure and propagates the exit code; eliminates noisy `go: downloading`, `cargo: Compiling`, and similar output during `postCreateCommand`; adopted by `go`, `rust`, `spec-kit`, `dotnet`, and `mkdocs2` setup scripts
+    - `run_spinner <label> <command> [args...]` — runs a command silently with a progress spinner; prints `✓ <label>` on success or `✗ <label> (exit N)` on failure and propagates the exit code; eliminates noisy `go: downloading`, `cargo: Compiling`, and similar output during `postCreateCommand`; adopted by `go`, `rust`, `spec-kit`, `dotnet`, `mkdocs2`, `openapi-tools`, and `pandoc` (Mermaid CLI) setup scripts
     - `load_nvm` — ensures `npm` is on PATH in non-interactive `postCreateCommand` shells by sourcing nvm when needed; all npm-dependent setup scripts (`amp`, `claude-code`, `codex`, `commitlint`, `devcontainer-cli`, `gemini-cli`, `nodejs`, `openapi-tools`, `opencode`, `pandoc`) call this before any `npm install -g` invocation
+    - `NO_COLOR=1`, `NPM_CONFIG_UPDATE_NOTIFIER=false`, `TERM=dumb` — exported on source to suppress ANSI colour codes, npm version-upgrade notices, and terminal-capability probe responses (`OSC 11`, cursor-position queries) in devcontainer build logs
 - **`devcontainer-cli` overlay** — installs `@devcontainers/cli` globally so you can build, run, and manage devcontainers from the terminal; requires the `nodejs` overlay; hidden from the interactive questionnaire (install explicitly with `--dev-tools devcontainer-cli`)
 - **Port conflict auto-resolution** — `mergeDockerComposeFiles` now detects host-port collisions across all selected overlays and remaps conflicting ports to the next free port at generation time; warns in output with before/after mapping
 
@@ -56,10 +57,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`windsurf-cli` overlay** — replaced `npm install -g @codeium/windsurf-cli` (package does not exist on npm) with binary download from GitHub releases
 - **`powershell` overlay** — `Install-Module` no longer hangs waiting for an interactive NuGet provider prompt; NuGet is now bootstrapped with `-Force` and PSGallery is set to `Trusted` before module installation
 - **Parallel apt contention** — `direnv`, `ngrok`, `pandoc` setup scripts previously raced to acquire the system apt lock; all now use `acquire_apt_lock` from `setup-utils.sh`
-- **`keycloak` overlay** — health-check URL corrected from port `8180` to `9000` (Keycloak's internal management port); startup retries and wait period increased for slower environments
+- **`keycloak` overlay** — health-check URL corrected from port `8180` to `9000` (Keycloak's internal management port); startup retries and wait period increased for slower environments; `verify-keycloak.sh` updated to probe port `9000` and wait up to 4 minutes to match the container healthcheck window
 - **`redpanda` overlay** — Redpanda Console schema-registry YAML indentation corrected; malformed indentation caused the schema-registry URL to be ignored at startup
-- **`sqlserver` overlay** — health-check path updated from `mssql-tools` to `mssql-tools18`; `-No` flag added to `sqlcmd` to trust the self-signed server certificate
+- **`sqlserver` overlay** — health-check path updated from `mssql-tools` to `mssql-tools18`; `-No` flag added to `sqlcmd` to trust the self-signed server certificate; `verify-sqlserver.sh` updated to use `mssql-tools18` path, add `-No` flag, and wait up to 120 seconds (was 60 s) to cover the container's full `start_period`
 - **`pre-commit` overlay** — installation now prefers `pipx` over `pip --user` to avoid conflicts with virtualenvs; falls back to `pip3`/`pip` with `--break-system-packages` as needed
+- **Duplicate `postCreateCommand` entries** — `duckdb`, `kind`, `openapi-tools`, and `tilt` overlays had both a `setup.sh`-registered named entry and a redundant `"postCreateCommand": "bash ..."` string in `devcontainer.patch.json`, causing each setup script to run twice; the redundant strings have been removed; `playwright` overlay converted its string form to the named-entry object form
+- **`all` overlay** — empty `"postCreateCommand": ""` in `devcontainer.patch.json` was coerced to `{"default": ""}` by the merge logic, injecting a spurious `Running default of postCreateCommand` entry; field removed
+- **`bun` overlay** — `setup-bun.sh` exported `PATH` only for its own subprocess; `verify-bun.sh` (a separate process) could not find the `bun` binary; PATH entry is now persisted to `~/.bashrc` and `~/.profile`
+- **`windsurf-cli` overlay** — `verify-windsurf-cli.sh` exited 1 when the binary was absent, even when the setup script had deliberately skipped installation on unsupported platforms (arm64 Linux); now exits 0 with an informational message on arm64, and only fails on platforms where the install should have succeeded
+- **`mysql` overlay** — `verify-mysql.sh` waited only 15 seconds for MySQL to become ready, well below the container's healthcheck window of up to 50 seconds; increased to 45 seconds
+- **`openapi-tools` overlay** — `npm install -g` calls for `swagger-cli`, `spectral`, and `redocly` produced large deprecation-warning floods in build logs; all three are now wrapped in `run_spinner`
+- **`mongodb` overlay** — `apt-get install` calls used `-y` without `-qq`, emitting verbose `Get:` download progress lines; added `-qq` to suppress
+- **`direnv` overlay** — `direnv allow .envrc` was only called when the setup script created the file; on subsequent container rebuilds the pre-existing `.envrc` remained blocked, showing `direnv: error … is blocked`; the allow is now also applied unconditionally when `.envrc` already exists
 
 ## [0.1.6] - 2026-03-16
 

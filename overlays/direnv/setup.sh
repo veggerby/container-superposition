@@ -76,6 +76,11 @@ EOF
     echo "✓ .envrc pre-allowed (run 'direnv deny' to disable)"
 fi
 
+# Ensure any pre-existing .envrc is also allowed (idempotent re-runs)
+if [ -f .envrc ]; then
+    direnv allow .envrc 2>/dev/null || true
+fi
+
 # Create sample .env file if it doesn't exist
 if [ ! -f .env ] && [ ! -f .env.example ]; then
     cat > .env.example << 'EOF'

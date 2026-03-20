@@ -13,14 +13,10 @@ echo "🔧 Setting up OpenAPI Tools..."
 # Install OpenAPI tools globally via npm
 echo "📦 Installing OpenAPI tools..."
 
-# Install swagger-cli (OpenAPI validation)
-npm install -g @apidevtools/swagger-cli || echo "⚠️ swagger-cli already installed or failed"
-
-# Install spectral (OpenAPI linting)
-npm install -g @stoplight/spectral-cli || echo "⚠️ spectral already installed or failed"
-
-# Install redocly CLI (documentation and bundling)
-npm install -g @redocly/cli || echo "⚠️ redocly already installed or failed"
+# Wrap each install in run_spinner to suppress noisy deprecation warnings
+run_spinner "swagger-cli"  npm install -g @apidevtools/swagger-cli
+run_spinner "spectral"     npm install -g @stoplight/spectral-cli
+run_spinner "redocly"      npm install -g @redocly/cli
 
 # Verify installations
 echo ""

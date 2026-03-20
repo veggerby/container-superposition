@@ -20,10 +20,11 @@ echo ""
 echo "2️⃣ Checking Keycloak service..."
 KEYCLOAK_HOST="${KEYCLOAK_HOST:-keycloak}"
 KEYCLOAK_PORT="${KEYCLOAK_PORT:-8180}"
+KEYCLOAK_MGMT_PORT="${KEYCLOAK_MGMT_PORT:-9000}"
 KEYCLOAK_READY=false
 
-for i in {1..40}; do
-    if curl -sf "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/health/ready" &> /dev/null; then
+for i in {1..80}; do
+    if curl -sf "http://${KEYCLOAK_HOST}:${KEYCLOAK_MGMT_PORT}/health/ready" &> /dev/null; then
         echo "   ✅ Keycloak service is ready"
         KEYCLOAK_READY=true
         break
@@ -32,7 +33,7 @@ for i in {1..40}; do
 done
 
 if [ "$KEYCLOAK_READY" = false ]; then
-    echo "   ❌ Keycloak service not ready after 2 minutes"
+    echo "   ❌ Keycloak service not ready after 4 minutes"
     echo "   ℹ️  Keycloak can take a while to start on first run"
     exit 1
 fi

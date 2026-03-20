@@ -21,7 +21,7 @@ fi
 echo ""
 echo "2️⃣ Checking MySQL service..."
 MYSQL_READY=false
-for i in {1..15}; do
+for i in {1..45}; do
     if mysql -h mysql -P 3306 -u root -prootpassword -e "SELECT 1" &> /dev/null; then
         echo "   ✅ MySQL service is ready"
         MYSQL_READY=true
@@ -31,7 +31,7 @@ for i in {1..15}; do
 done
 
 if [ "$MYSQL_READY" = false ]; then
-    echo "   ❌ MySQL service not ready after 15 seconds"
+    echo "   ❌ MySQL service not ready after 45 seconds"
     exit 1
 fi
 

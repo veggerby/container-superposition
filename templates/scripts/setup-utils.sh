@@ -5,6 +5,14 @@
 # All setup scripts for selected overlays run in PARALLEL via postCreateCommand.
 # Use the locking helpers below for any apt/dpkg operations.
 
+# Suppress terminal-capability probes (OSC queries, colour-detection) and npm
+# update notices that show up as garbage or noise in devcontainer build logs.
+export NO_COLOR=1
+export NPM_CONFIG_UPDATE_NOTIFIER=false
+# TERM=dumb prevents most tools from querying cursor position or emitting ANSI
+# escape sequences in non-interactive build logs.
+export TERM=dumb
+
 # ---------------------------------------------------------------------------
 # Spinner helper
 # ---------------------------------------------------------------------------
@@ -114,7 +122,7 @@ with_apt_lock() {
 apt_install() {
     acquire_apt_lock || return 1
     sudo apt-get update -qq
-    sudo apt-get install -y "$@"
+    sudo apt-get install -y -qq "$@"
     local rc=$?
     release_apt_lock
     return $rc

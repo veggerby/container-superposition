@@ -2,6 +2,5 @@
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
     "features": {},
     "customizations": {},
-    "forwardPorts": [],
-    "postCreateCommand": ""
+    "forwardPorts": []
 }

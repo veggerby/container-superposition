@@ -5,6 +5,5 @@
             "apt": "wget unzip",
             "apk": "wget unzip"
         }
-    },
-    "postCreateCommand": "bash .devcontainer/scripts/setup-duckdb.sh"
+    }
 }

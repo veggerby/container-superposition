@@ -10,9 +10,9 @@ echo ""
 # Check if SQL Server service is running
 echo "1️⃣ Checking SQL Server service..."
 SQLSERVER_READY=false
-for i in {1..30}; do
+for i in {1..60}; do
     # Try to connect using docker exec (sqlcmd is in the container, not necessarily in dev container)
-    if docker exec $(docker ps -qf "name=sqlserver") /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Passw0rd' -Q "SELECT 1" &> /dev/null; then
+    if docker exec $(docker ps -qf "name=sqlserver") /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Passw0rd' -Q "SELECT 1" -No &> /dev/null; then
         echo "   ✅ SQL Server service is ready"
         SQLSERVER_READY=true
         break
@@ -21,7 +21,7 @@ for i in {1..30}; do
 done
 
 if [ "$SQLSERVER_READY" = false ]; then
-    echo "   ❌ SQL Server service not ready after 60 seconds"
+    echo "   ❌ SQL Server service not ready after 120 seconds"
     echo "   ⚠️  SQL Server can take 30-60 seconds to start"
     exit 1
 fi

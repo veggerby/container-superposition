@@ -61,6 +61,15 @@ fi
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+# Persist PATH so verify script (and interactive shells) can find bun
+for _shell_rc in "$HOME/.bashrc" "$HOME/.profile"; do
+    if [ -f "$_shell_rc" ] && ! grep -q 'BUN_INSTALL' "$_shell_rc" 2>/dev/null; then
+        echo 'export BUN_INSTALL="$HOME/.bun"' >> "$_shell_rc"
+        echo 'export PATH="$BUN_INSTALL/bin:$PATH"' >> "$_shell_rc"
+    fi
+done
+unset _shell_rc
+
 # Verify installation
 if command -v bun &> /dev/null; then
     INSTALLED_VERSION=$(bun --version)

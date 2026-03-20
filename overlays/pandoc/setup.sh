@@ -167,8 +167,7 @@ EOF
 
 echo "📦 Installing Mermaid CLI (requires Node.js)..."
 if command -v npm &>/dev/null; then
-    # TERM=dumb suppresses OSC terminal escape sequences from nvm's init script
-    TERM=dumb npm install -g @mermaid-js/mermaid-cli
+    run_spinner "Mermaid CLI" npm install -g @mermaid-js/mermaid-cli
     # Create a chromium wrapper that always passes --no-sandbox (required in containers).
     # This is more robust than configuring mmdc/puppeteer individually — any tool
     # that launches chromium via PUPPETEER_EXECUTABLE_PATH gets the sandbox flags.

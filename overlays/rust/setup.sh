@@ -6,6 +6,7 @@ set -e
 # Source shared setup utilities
 # shellcheck source=setup-utils.sh
 source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
+export CARGO_TERM_COLOR=never
 
 echo "🔧 Setting up Rust development environment..."
 
