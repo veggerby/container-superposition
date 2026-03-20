@@ -25,3 +25,6 @@ pnpm-lock.yaml
 # Generated test outputs
 tool/__tests__/output/
 test-output-regen-flags/
+
+# Local generated/example workspaces
+**/.venv/
