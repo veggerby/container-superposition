@@ -152,7 +152,7 @@ function resolveDependencies(
     let expandedRequest = requestedOverlays;
     if (requestedOverlays.includes(META_OVERLAY_ID)) {
         const allIds = allOverlayDefs
-            .filter((def) => def.id !== META_OVERLAY_ID && def.category !== 'preset')
+            .filter((def) => def.id !== META_OVERLAY_ID && def.category !== 'preset' && !def.hidden)
             .map((def) => def.id);
         expandedRequest = [
             ...requestedOverlays.filter((id) => id !== META_OVERLAY_ID),
@@ -987,7 +987,7 @@ function mergeDockerComposeFiles(
     overlaysDir: string,
     portOffset?: number,
     customImage?: string
-): void {
+): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
     // Add base docker-compose if exists
@@ -1101,6 +1101,8 @@ function mergeDockerComposeFiles(
             `   🐳 Created combined docker-compose.yml with ${serviceNames.length} service(s)`
         )
     );
+
+    return portRemappings;
 }
 
 /**
@@ -1576,9 +1578,11 @@ export async function composeDevContainer(
     mergeRunServices(config, overlays, actualOverlaysDir);
 
     // 11. Merge docker-compose files into single combined file
+    let composePortRemappings: Array<{ service: string; originalPort: number; newPort: number }> =
+        [];
     if (answers.stack === 'compose') {
         const customImage = config._customImage as string | undefined;
-        mergeDockerComposeFiles(
+        composePortRemappings = mergeDockerComposeFiles(
             outputPath,
             answers.stack,
             overlays,
@@ -1739,6 +1743,22 @@ export async function composeDevContainer(
         console.log(chalk.cyan('\n📡 Generating ports documentation...'));
 
         portsDoc = generatePortsDocumentation(selectedOverlayMetadata, portOffset, envVars);
+
+        // Propagate host-port conflict remappings into the generated docs so that
+        // ports.json and services.md reflect the actual ports in docker-compose.yml.
+        if (composePortRemappings.length > 0) {
+            // Build a lookup map: original (post-offset) host port → remapped host port.
+            const remapByOriginal = new Map(
+                composePortRemappings.map(({ originalPort, newPort }) => [originalPort, newPort])
+            );
+            portsDoc = {
+                ...portsDoc,
+                ports: portsDoc.ports.map((p) => {
+                    const remapped = remapByOriginal.get(p.actualPort);
+                    return remapped !== undefined ? { ...p, actualPort: remapped } : p;
+                }),
+            };
+        }
 
         const portsPath = path.join(outputPath, 'ports.json');
         fs.writeFileSync(portsPath, JSON.stringify(portsDoc, null, 2) + '\n');

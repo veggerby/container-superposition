@@ -108,7 +108,6 @@ const REMEDIATION_REGISTRY = new Map<string, RemediationAction>([
             preconditions: ['Valid superposition.json manifest must be present'],
             plannedChanges: [
                 'Regenerate devcontainer.json from superposition.json',
-                'Create backup of existing .devcontainer/ files',
             ],
             manualFallback: ['Run "container-superposition regen --output <path>" to regenerate'],
         },
@@ -1132,10 +1131,15 @@ function orderFindingsForRemediation(findings: DiagnosticFinding[]): DiagnosticF
 
 /**
  * Atomically write a JSON file (write to .tmp then rename).
+ * On Windows, rename fails if the destination already exists; delete it first.
  */
 function atomicWriteJson(filePath: string, data: object): void {
     const tmpPath = filePath + '.tmp';
     fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+    // Windows requires the destination to be absent before renaming.
+    if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+    }
     fs.renameSync(tmpPath, filePath);
 }
 
@@ -1460,10 +1464,39 @@ function executeNodeVersionFix(): FixExecution {
             break;
     }
 
-    // nvm requires bash for `source`; fnm and volta work with the system default shell.
-    const runCmd = manager === 'nvm' ? `bash -lc '${fixCmd}'` : fixCmd;
+    // nvm and fnm only update the child shell's PATH — `doctor` won't see the change.
+    // Treat these as "installed; open a new shell" rather than attempting a re-check
+    // that will always fail in the current process.
+    // volta persists via its shim mechanism and can be verified immediately.
+    if (manager === 'nvm' || manager === 'fnm') {
+        const runCmd = manager === 'nvm' ? `bash -lc '${fixCmd}'` : fixCmd;
+        try {
+            execSync(runCmd, { stdio: 'pipe', timeout: 60_000, shell: manager !== 'nvm' });
+        } catch (err) {
+            return {
+                findingId: 'nodejs-version',
+                remediationKey: 'node-version-fix',
+                attempted: true,
+                outcome: 'requires-manual-action',
+                reason: `Fix command failed: ${err instanceof Error ? err.message : String(err)}`,
+                commands: [fixCmd],
+                rechecked: false,
+            };
+        }
+        return {
+            findingId: 'nodejs-version',
+            remediationKey: 'node-version-fix',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Node.js 20 installed via ${manager}. Open a new shell (or run \`${fixCmd}\`) to activate it — the current process cannot pick up the PATH change.`,
+            commands: [fixCmd],
+            rechecked: false,
+        };
+    }
+
+    // volta: shim persists across processes — attempt + re-check is reliable.
     try {
-        execSync(runCmd, { stdio: 'pipe', timeout: 60_000 });
+        execSync(fixCmd, { stdio: 'pipe', timeout: 60_000, shell: true });
     } catch (err) {
         return {
             findingId: 'nodejs-version',
@@ -1476,12 +1509,13 @@ function executeNodeVersionFix(): FixExecution {
         };
     }
 
-    // Re-check in a fresh subprocess (no bash dependency for the re-check itself)
+    // Re-check (volta updates shim; new processes see the updated Node)
     try {
         const version = execSync('node --version', {
             encoding: 'utf8',
             stdio: ['pipe', 'pipe', 'pipe'],
             timeout: 10_000,
+            shell: true,
         });
         const match = version.trim().match(/^v(\d+)/);
         const major = match ? parseInt(match[1], 10) : 0;
@@ -1491,7 +1525,7 @@ function executeNodeVersionFix(): FixExecution {
                 remediationKey: 'node-version-fix',
                 attempted: true,
                 outcome: 'fixed',
-                reason: `Node.js ${version.trim()} activated via ${manager}`,
+                reason: `Node.js ${version.trim()} activated via volta`,
                 commands: [fixCmd],
                 rechecked: true,
             };
@@ -1505,7 +1539,7 @@ function executeNodeVersionFix(): FixExecution {
         remediationKey: 'node-version-fix',
         attempted: true,
         outcome: 'requires-manual-action',
-        reason: `Version manager command ran but node --version still reports < 20. Open a new shell and run: ${fixCmd}`,
+        reason: `volta ran but node --version still reports < 20. Open a new shell and run: ${fixCmd}`,
         commands: [fixCmd],
         rechecked: true,
     };
@@ -1593,9 +1627,8 @@ function determineExitDisposition(
     summary: FixOutcomeSummary,
     finalFindings: DiagnosticFinding[]
 ): ExitDisposition {
-    const unresolvedFailures = finalFindings.filter(
-        (f) => f.status === 'fail' && f.fixEligibility !== 'not-applicable'
-    );
+    // Any failing finding (regardless of fix eligibility) is an unresolved failure.
+    const unresolvedFailures = finalFindings.filter((f) => f.status === 'fail');
     if (unresolvedFailures.length > 0) {
         return 'unresolved-failures';
     }
@@ -1726,9 +1759,19 @@ async function executeFixRun(
 function formatFixRunText(fixRun: FixRun): string {
     const lines: string[] = [];
 
-    if (fixRun.executions.length === 0) {
+    const hasIssues = fixRun.finalFindings.some((f) => f.status === 'warn' || f.status === 'fail');
+    if (fixRun.executions.length === 0 && !hasIssues) {
         lines.push(
             chalk.green('\n✓ No remediation needed — all checked items are already compliant.')
+        );
+        return lines.join('\n');
+    }
+
+    if (fixRun.executions.length === 0 && hasIssues) {
+        lines.push(
+            chalk.yellow(
+                '\n⚠ No automatic remediation available. Review the findings above for manual action.'
+            )
         );
         return lines.join('\n');
     }
