@@ -63,7 +63,7 @@ For GPU workloads you typically want a CUDA-capable base image. Popular choices:
 
 Browse all tags at [hub.docker.com/r/nvidia/cuda](https://hub.docker.com/r/nvidia/cuda) and [catalog.ngc.nvidia.com](https://catalog.ngc.nvidia.com).
 
-To use a CUDA image, set the `image` field in your `.devcontainer/devcontainer.json` (for plain stack) or as the `build.context` image (for compose stack).
+To use a CUDA image, set the `image` field in your `.devcontainer/devcontainer.json` (for plain stack) or configure the appropriate service's `image` (or its `build`/`dockerfile`) in your compose-based devcontainer setup (for compose stack).
 
 ## Common Commands
 

@@ -7,12 +7,12 @@ set -e
 
 echo "🖥️  Setting up CUDA (NVIDIA GPU) overlay..."
 
-if command -v nvidia-smi &> /dev/null; then
+if nvidia-smi -L >/dev/null 2>&1; then
     echo "✓ nvidia-smi found: $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n1 || nvidia-smi -L 2>/dev/null | head -n1 || echo 'GPU detected')"
     echo "✓ CUDA overlay is ready"
 else
     echo ""
-    echo "⚠️  nvidia-smi not found inside the container."
+    echo "⚠️  nvidia-smi is installed but failed to run inside the container."
     echo ""
     echo "   GPU passthrough requires the following on the host:"
     echo "   1. A supported NVIDIA GPU"
@@ -28,5 +28,5 @@ else
     echo ""
     echo "   Once the host is configured, rebuild the dev container."
     echo ""
-    echo "ℹ️  CUDA overlay setup complete (nvidia-smi not available on this host)"
+    echo "ℹ️  CUDA overlay setup complete (nvidia-smi not functioning on this host)"
 fi
