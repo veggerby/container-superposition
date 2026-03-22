@@ -695,6 +695,16 @@ Automated code quality gates with pre-commit hooks
 | **Suggests** | `commitlint`                     |
 | **Tags**     | `dev`, `git`, `quality`, `hooks` |
 
+### ROCm (AMD GPU) (`rocm`)
+
+AMD ROCm libraries and GPU passthrough for containerised ML/inference workloads
+
+| Property      | Value                                          |
+| ------------- | ---------------------------------------------- |
+| **Category**  | dev                                            |
+| **Conflicts** | `cuda`                                         |
+| **Tags**      | `dev`, `gpu`, `rocm`, `amd`, `ml`, `inference` |
+
 ### Tilt (`tilt`)
 
 Live update and orchestration for Kubernetes development
