@@ -1,6 +1,6 @@
 id: rocm
 name: ROCm (AMD GPU)
-description: AMD ROCm libraries and GPU passthrough for containerised ML/inference workloads
+description: AMD ROCm libraries and GPU passthrough for containerized ML/inference workloads
 category: dev
 supports: []
 requires: []

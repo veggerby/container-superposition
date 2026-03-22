@@ -1,6 +1,6 @@
 # ROCm (AMD GPU) Overlay
 
-Enables AMD GPU passthrough for containerised ML, inference, and ROCm compute workloads.
+Enables AMD GPU passthrough for containerized ML, inference, and ROCm compute workloads.
 
 > ⚠️ **ROCm-in-container is more fragile than CUDA.** It depends heavily on the host kernel version, AMD driver stack, specific device support, and container runtime configuration. Treat this as a separate supported profile — not a drop-in equivalent of CUDA.
 

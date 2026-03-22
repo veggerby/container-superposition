@@ -1,6 +1,16 @@
 # Feature Specification: ROCm (AMD GPU) Overlay
 
-## Status: Accepted
+**Feature Branch**: `copilot/add-rocm-overlay`
+**Created**: 2026-03-22
+**Status**: Accepted
+**Input**: Add a `rocm` overlay to enable AMD GPU-accelerated workloads inside a dev container.
+
+## Review & Approval _(mandatory before implementation)_
+
+- **Spec Path**: `docs/specs/006-rocm-overlay/spec.md`
+- **Commit Status**: Committed
+- **Review Status**: Approved
+- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
 ## Overview
 
@@ -34,7 +44,7 @@ Add a `rocm` overlay to enable AMD GPU-accelerated workloads inside a dev contai
 ```yaml
 id: rocm
 name: ROCm (AMD GPU)
-description: AMD ROCm libraries and GPU passthrough for containerised ML/inference workloads
+description: AMD ROCm libraries and GPU passthrough for containerized ML/inference workloads
 category: dev
 supports: []
 requires: []

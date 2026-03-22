@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `setup.sh` probes `nvidia-smi` on container start and prints step-by-step remediation guidance when GPU access is unavailable
     - `verify.sh` asserts `nvidia-smi` exits 0 for `doctor` checks
     - Conflicts with `rocm` (the companion AMD GPU overlay)
-- **`rocm` overlay** — AMD ROCm GPU passthrough for containerised ML/inference workloads
+- **`rocm` overlay** — AMD ROCm GPU passthrough for containerized ML/inference workloads
     - Injects `--device=/dev/kfd`, `--device=/dev/dri`, `--group-add=video`, and `--group-add=render` into `runArgs`
     - `setup.sh` probes `rocm-smi` / `rocminfo` on container start and prints actionable host-setup guidance when GPU access is unavailable
     - `verify.sh` asserts `rocm-smi` exits 0 for `doctor` checks

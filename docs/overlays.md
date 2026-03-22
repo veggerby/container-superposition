@@ -697,7 +697,7 @@ Automated code quality gates with pre-commit hooks
 
 ### ROCm (AMD GPU) (`rocm`)
 
-AMD ROCm libraries and GPU passthrough for containerised ML/inference workloads
+AMD ROCm libraries and GPU passthrough for containerized ML/inference workloads
 
 | Property      | Value                                          |
 | ------------- | ---------------------------------------------- |

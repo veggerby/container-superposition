@@ -8,10 +8,18 @@ set -e
 echo "🖥️  Setting up ROCm (AMD GPU) overlay..."
 
 if rocm-smi --showproductname >/dev/null 2>&1; then
-    echo "✓ rocm-smi found: $(rocm-smi --showproductname 2>/dev/null | grep -i 'card\|gpu\|product' | head -n1 || echo 'AMD GPU detected')"
+    gpu_name="$(rocm-smi --showproductname 2>/dev/null | grep -i 'card\|gpu\|product' | head -n1)"
+    if [ -z "$gpu_name" ]; then
+        gpu_name="AMD GPU detected"
+    fi
+    echo "✓ rocm-smi found: $gpu_name"
     echo "✓ ROCm overlay is ready"
 elif rocminfo >/dev/null 2>&1; then
-    echo "✓ rocminfo found: $(rocminfo 2>/dev/null | grep 'Marketing Name' | head -n1 | sed 's/.*: *//' || echo 'AMD GPU detected')"
+    gpu_name="$(rocminfo 2>/dev/null | grep 'Marketing Name' | head -n1 | sed 's/.*: *//')"
+    if [ -z "$gpu_name" ]; then
+        gpu_name="AMD GPU detected"
+    fi
+    echo "✓ rocminfo found: $gpu_name"
     echo "✓ ROCm overlay is ready"
 else
     echo ""
