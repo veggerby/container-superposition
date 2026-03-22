@@ -49,12 +49,12 @@ The overlay patches `devcontainer.json` with:
 }
 ```
 
-| Flag | Purpose |
-|------|---------|
-| `--device=/dev/kfd` | AMD Kernel Fusion Driver; required for ROCm compute |
-| `--device=/dev/dri` | Direct Rendering Infrastructure; gives access to GPU render nodes |
-| `--group-add=video` | Adds the container user to the `video` group (owns `/dev/dri`) |
-| `--group-add=render` | Adds the container user to the `render` group (owns `/dev/kfd`) |
+| Flag                 | Purpose                                                           |
+| -------------------- | ----------------------------------------------------------------- |
+| `--device=/dev/kfd`  | AMD Kernel Fusion Driver; required for ROCm compute               |
+| `--device=/dev/dri`  | Direct Rendering Infrastructure; gives access to GPU render nodes |
+| `--group-add=video`  | Adds the container user to the `video` group (owns `/dev/dri`)    |
+| `--group-add=render` | Adds the container user to the `render` group (owns `/dev/kfd`)   |
 
 The container image itself must include ROCm user-space libraries (e.g., `libamdhip64`) to use ROCm APIs. See [Base Image](#base-image) below.
 
@@ -62,12 +62,12 @@ The container image itself must include ROCm user-space libraries (e.g., `libamd
 
 For ROCm workloads you typically want a ROCm-capable base image. Popular choices:
 
-| Image | Use case |
-|-------|---------|
+| Image                   | Use case                             |
+| ----------------------- | ------------------------------------ |
 | `rocm/dev-ubuntu-22.04` | Ubuntu 22.04 with ROCm pre-installed |
 | `rocm/dev-ubuntu-24.04` | Ubuntu 24.04 with ROCm pre-installed |
-| `rocm/pytorch` | PyTorch with ROCm support |
-| `rocm/tensorflow` | TensorFlow with ROCm support |
+| `rocm/pytorch`          | PyTorch with ROCm support            |
+| `rocm/tensorflow`       | TensorFlow with ROCm support         |
 
 Browse all official ROCm images at [hub.docker.com/u/rocm](https://hub.docker.com/u/rocm).
 
@@ -117,9 +117,11 @@ print(torch.cuda.get_device_name(0))    # e.g. "AMD Radeon RX 7900 XTX"
 ```
 
 > **Note:** PyTorch ROCm uses `torch.cuda` APIs via the HIP/CUDA compatibility layer. Install the ROCm-specific PyTorch wheel:
+>
 > ```bash
 > pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.0
 > ```
+>
 > Find the correct wheel URL at [pytorch.org/get-started/locally](https://pytorch.org/get-started/locally/).
 
 ### TensorFlow ROCm smoke test
