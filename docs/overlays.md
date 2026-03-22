@@ -514,6 +514,16 @@ Conventional commits validation for automated releases
 | **Suggests** | `pre-commit`                                |
 | **Tags**     | `dev`, `git`, `commits`, `semantic-release` |
 
+### CUDA (NVIDIA GPU) (`cuda`)
+
+NVIDIA CUDA libraries and GPU passthrough for containerized ML/inference workloads
+
+| Property      | Value                                             |
+| ------------- | ------------------------------------------------- |
+| **Category**  | dev                                               |
+| **Conflicts** | `rocm`                                            |
+| **Tags**      | `dev`, `gpu`, `cuda`, `nvidia`, `ml`, `inference` |
+
 ### Dev Container CLI (`devcontainer-cli`)
 
 Official devcontainer CLI for building and testing devcontainer configurations

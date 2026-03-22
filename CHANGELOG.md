@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Centralises apt locking, architecture detection, binary installation helpers, npm environment setup, and quieter script output
     - Eliminates apt-lock races between parallel `postCreateCommand` scripts and reduces boilerplate across overlay setup scripts
 - **`all` overlay** — Meta-overlay that expands to all non-preset overlays; useful for integration testing; hidden from the interactive questionnaire
+- **`cuda` overlay** — NVIDIA CUDA GPU passthrough for containerized ML/inference workloads
+    - Injects `"runArgs": ["--gpus=all"]` and `"hostRequirements": {"gpu": true}` into devcontainer.json
+    - `setup.sh` probes `nvidia-smi` on container start and prints step-by-step remediation guidance when GPU access is unavailable
+    - `verify.sh` asserts `nvidia-smi` exits 0 for `doctor` checks
+    - Conflicts with `rocm` (the companion AMD GPU overlay)
 - **`devcontainer-cli` overlay** — Installs `@devcontainers/cli` globally for building and managing devcontainers from the terminal
 - **Port conflict auto-resolution** — `init` and `regen` now detect host-port collisions across selected overlays and remap conflicting ports automatically, with a before/after warning in the output
 

@@ -1,0 +1,17 @@
+id: cuda
+name: CUDA (NVIDIA GPU)
+description: NVIDIA CUDA libraries and GPU passthrough for containerized ML/inference workloads
+category: dev
+supports: []
+requires: []
+suggests: []
+conflicts:
+    - rocm
+tags:
+    - dev
+    - gpu
+    - cuda
+    - nvidia
+    - ml
+    - inference
+ports: []
