@@ -11,24 +11,24 @@ Enables NVIDIA GPU passthrough for containerized ML, inference, and CUDA compute
 
 ## Prerequisites (host-side — out of scope for this overlay)
 
-This overlay configures the *container* side of GPU passthrough. The host must be prepared independently:
+This overlay configures the _container_ side of GPU passthrough. The host must be prepared independently:
 
 1. **Supported NVIDIA GPU** — Pascal (GTX 10xx) or newer recommended
 2. **NVIDIA drivers** — Install the appropriate driver for your OS from [https://www.nvidia.com/drivers](https://www.nvidia.com/drivers)
 3. **NVIDIA Container Toolkit** — Install and configure following the [official guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html):
-   ```bash
-   # Example for Ubuntu
-   curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-   curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-     sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-   sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
-   ```
+    ```bash
+    # Example for Ubuntu
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+      sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+      sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+    ```
 4. **Configure the Docker runtime** — Run once after installing the toolkit:
-   ```bash
-   sudo nvidia-ctk runtime configure --runtime=docker
-   sudo systemctl restart docker
-   ```
+    ```bash
+    sudo nvidia-ctk runtime configure --runtime=docker
+    sudo systemctl restart docker
+    ```
 
 > ⚠️ **This overlay cannot install or replace host drivers.** Version alignment between the CUDA user-space libraries inside the container and the host kernel module is the user's responsibility.
 
@@ -54,11 +54,11 @@ The container image itself does **not** need to be an official NVIDIA CUDA image
 
 For GPU workloads you typically want a CUDA-capable base image. Popular choices:
 
-| Image | Use case |
-| --- | --- |
-| `nvidia/cuda:12.x.x-runtime-ubuntu22.04` | Runtime-only (inference) |
-| `nvidia/cuda:12.x.x-devel-ubuntu22.04` | Full toolkit (compilation) |
-| `nvcr.io/nvidia/pytorch:24.xx-py3` | PyTorch + CUDA pre-built |
+| Image                                     | Use case                    |
+| ----------------------------------------- | --------------------------- |
+| `nvidia/cuda:12.x.x-runtime-ubuntu22.04`  | Runtime-only (inference)    |
+| `nvidia/cuda:12.x.x-devel-ubuntu22.04`    | Full toolkit (compilation)  |
+| `nvcr.io/nvidia/pytorch:24.xx-py3`        | PyTorch + CUDA pre-built    |
 | `nvcr.io/nvidia/tensorflow:24.xx-tf2-py3` | TensorFlow + CUDA pre-built |
 
 Browse all tags at [hub.docker.com/r/nvidia/cuda](https://hub.docker.com/r/nvidia/cuda) and [catalog.ngc.nvidia.com](https://catalog.ngc.nvidia.com).
@@ -124,13 +124,13 @@ print(tf.config.list_physical_devices('GPU'))
 
 The container cannot see the GPU. Work through this checklist:
 
-1. Verify host drivers: `nvidia-smi` should work on the *host* before it works inside the container.
+1. Verify host drivers: `nvidia-smi` should work on the _host_ before it works inside the container.
 2. Verify NVIDIA Container Toolkit is installed: `nvidia-ctk --version`.
 3. Verify Docker is configured to use the NVIDIA runtime:
-   ```bash
-   docker info | grep -i runtime
-   # Should list: nvidia
-   ```
+    ```bash
+    docker info | grep -i runtime
+    # Should list: nvidia
+    ```
 4. Rebuild the dev container after configuring the toolkit.
 
 ### `Failed to initialize NVML: Driver/library version mismatch`
