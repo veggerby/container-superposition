@@ -5,6 +5,7 @@ containerName: Container Superposition
 overlays:
     - nodejs
     - codex
+    - claude-code
     - docker-sock
     - git-helpers
     - modern-cli-tools
