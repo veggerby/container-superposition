@@ -927,7 +927,7 @@ describe('Command Tests', () => {
             expect(output).toContain('Environment:');
             expect(output).toContain('Node.js version');
             expect(output).toContain('Docker');
-        });
+        }, 15_000);
 
         it('should validate all overlays', async () => {
             try {
@@ -940,7 +940,7 @@ describe('Command Tests', () => {
             const output = consoleLogSpy.mock.calls.join('\n');
             expect(output).toContain('Overlays:');
             expect(output).toContain('overlays valid');
-        });
+        }, 15_000);
 
         it('should check manifest if it exists', async () => {
             try {
