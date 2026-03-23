@@ -87,14 +87,14 @@ function collectPorts(
                     port: p + portOffset,
                     service: id,
                     description: '',
-                    protocol: 'http',
+                    protocol: 'tcp',
                 });
             } else {
                 result.push({
                     port: p.port + portOffset,
                     service: p.service ?? id,
                     description: p.description ?? '',
-                    protocol: p.protocol ?? 'http',
+                    protocol: p.protocol ?? 'tcp',
                 });
             }
         }

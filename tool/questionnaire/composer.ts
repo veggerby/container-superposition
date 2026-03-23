@@ -353,7 +353,8 @@ function generateManifest(
     answers: QuestionnaireAnswers,
     overlays: string[],
     autoResolved: { added: string[]; reason: string },
-    containerName?: string
+    containerName?: string,
+    effectiveTarget?: DeploymentTarget
 ): void {
     const toolVersion = getToolVersion();
 
@@ -372,7 +373,7 @@ function generateManifest(
         preset: answers.preset,
         presetChoices: answers.presetChoices,
         containerName,
-        target: answers.target || 'local',
+        target: effectiveTarget ?? answers.target ?? 'local',
     };
 
     if (autoResolved.added.length > 0) {
@@ -1601,25 +1602,31 @@ export async function composeDevContainer(
     }
 
     // 5a. Remove stale project-root artifacts from a previous target run
-    const activeTarget: DeploymentTarget = answers.target || 'local';
     const manifestPath_existing = path.join(outputPath, 'superposition.json');
+    let manifestTarget: DeploymentTarget | undefined;
     if (fs.existsSync(manifestPath_existing)) {
         try {
             const existingManifest = JSON.parse(
                 fs.readFileSync(manifestPath_existing, 'utf-8')
             ) as { target?: DeploymentTarget };
-            const previousTarget: DeploymentTarget = existingManifest.target || 'local';
-            if (previousTarget !== activeTarget) {
-                removeStaleTargetArtifacts(previousTarget, activeTarget, projectRoot);
-                console.log(
-                    chalk.dim(
-                        `   🧹 Removed stale target artifacts for previous target '${previousTarget}'`
-                    )
-                );
-            }
+            manifestTarget = existingManifest.target;
         } catch {
             // If manifest is unreadable, skip stale cleanup gracefully
         }
+    }
+
+    // When answers.target is undefined (e.g. regen without --target), fall back to the
+    // target recorded in the existing manifest so the correct artifacts are reproduced.
+    const activeTarget: DeploymentTarget = answers.target ?? manifestTarget ?? 'local';
+    const previousTarget: DeploymentTarget = manifestTarget ?? 'local';
+
+    if (previousTarget !== activeTarget) {
+        removeStaleTargetArtifacts(previousTarget, activeTarget, projectRoot);
+        console.log(
+            chalk.dim(
+                `   🧹 Removed stale target artifacts for previous target '${previousTarget}'`
+            )
+        );
     }
 
     // 6. Apply overlays
@@ -1778,7 +1785,8 @@ export async function composeDevContainer(
         answers,
         overlays,
         autoResolved,
-        answers.containerName || config.name
+        answers.containerName || config.name,
+        activeTarget
     );
     fileRegistry.addFile('superposition.json');
 
