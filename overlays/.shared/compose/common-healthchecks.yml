@@ -1,5 +1,10 @@
 # Common Docker Compose Healthcheck Patterns
-# These can be referenced by overlays to ensure consistent healthcheck configuration
+#
+# REFERENCE ONLY — do not import this file via overlay.yml `imports:`.
+# This file uses a `healthchecks:` top-level key (not a devcontainer field) and
+# is not a valid devcontainer patch. Copy the relevant pattern directly into
+# your overlay's docker-compose.yml instead.
+#
 
 healthchecks:
     http:

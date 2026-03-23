@@ -495,17 +495,14 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
             }
         }
     } catch (error) {
-        if (error instanceof Error && error.message.startsWith('Import ')) {
+        const structuredPrefixes = [
+            'Import ',
+            'Path traversal',
+            'Unsupported import',
+            'Failed to parse',
+        ];
+        if (error instanceof Error && structuredPrefixes.some((p) => error.message.startsWith(p))) {
             // Re-throw structured errors as-is
-            throw error;
-        }
-        if (error instanceof Error && error.message.startsWith('Path traversal')) {
-            throw error;
-        }
-        if (error instanceof Error && error.message.startsWith('Unsupported import')) {
-            throw error;
-        }
-        if (error instanceof Error && error.message.startsWith('Failed to parse')) {
             throw error;
         }
         console.warn(chalk.yellow(`⚠️  Failed to load imports for overlay: ${overlayName}`));
@@ -766,9 +763,7 @@ function mergeEnvExamples(
                                 );
                                 const content = fs.readFileSync(fullImportPath, 'utf-8').trim();
                                 if (content) {
-                                    envSections.push(
-                                        `# from .shared/${importPath.replace(/^\.shared\//, '')}\n${content}`
-                                    );
+                                    envSections.push(`# from ${importPath}\n${content}`);
                                 }
                             } else {
                                 throw new Error(
