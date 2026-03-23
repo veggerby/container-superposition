@@ -2095,16 +2095,6 @@ async function main() {
 
             // Print comprehensive summary
             printSummary(summary);
-
-            if (projectFileOutputPath) {
-                const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
-                writeProjectConfig(projectFileOutputPath, projectSelection);
-                console.log(
-                    chalk.green(
-                        `✓ Project config written: ${path.relative(process.cwd(), projectFileOutputPath)}`
-                    )
-                );
-            }
         } catch (error) {
             spinner.fail(
                 chalk.red(
@@ -2112,6 +2102,26 @@ async function main() {
                 )
             );
             throw error;
+        }
+
+        // Write project config separately so that a failure here does not mask a
+        // successful devcontainer/manifest generation above.
+        if (projectFileOutputPath) {
+            try {
+                const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
+                writeProjectConfig(projectFileOutputPath, projectSelection);
+                console.log(
+                    chalk.green(
+                        `✓ Project config written: ${path.relative(process.cwd(), projectFileOutputPath)}`
+                    )
+                );
+            } catch (projectFileError) {
+                console.error(
+                    chalk.yellow(
+                        `⚠ Failed to write project config: ${projectFileError instanceof Error ? projectFileError.message : String(projectFileError)}`
+                    )
+                );
+            }
         }
     } catch (error) {
         console.error(

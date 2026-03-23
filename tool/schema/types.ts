@@ -379,6 +379,8 @@ export interface CustomizationConfig {
     files?: Array<{
         source: string;
         destination: string;
+        /** Pre-loaded file content; avoids re-reading from disk when available (e.g. when materialized from a project config). */
+        content?: string;
     }>;
 }
 
