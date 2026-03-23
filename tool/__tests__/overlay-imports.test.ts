@@ -498,14 +498,6 @@ describe('Overlay Imports', () => {
         });
 
         it('an overlay can import recommended-extensions.json and get its extensions merged', () => {
-            // Test that the JSON format is compatible with applyOverlay
-            createTestOverlay(
-                REAL_OVERLAYS_DIR.replace(REPO_ROOT, tempDir) || overlaysDir,
-                'ext-overlay',
-                ['.shared/vscode/recommended-extensions.json'],
-                {}
-            );
-
             // Create a local .shared/vscode pointing to the real recommended-extensions.json
             const localSharedVscode = path.join(overlaysDir, '.shared', 'vscode');
             fs.mkdirSync(localSharedVscode, { recursive: true });

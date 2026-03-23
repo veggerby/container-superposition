@@ -71,7 +71,7 @@ imports:
 
 ### JSON import example
 
-```json
+```jsonc
 // overlays/.shared/vscode/recommended-extensions.json
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
@@ -80,10 +80,10 @@ imports:
             "extensions": [
                 "streetsidesoftware.code-spell-checker",
                 "usernamehw.errorlens",
-                "eamodio.gitlens"
-            ]
-        }
-    }
+                "eamodio.gitlens",
+            ],
+        },
+    },
 }
 ```
 

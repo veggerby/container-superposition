@@ -10,7 +10,7 @@ This directory contains reusable configuration fragments that can be imported by
 │   ├── instrumentation.env            # OTEL SDK env vars for instrumentation
 │   └── otel-base-config.yaml          # Base OTEL collector pipeline config
 ├── compose/                           # Docker Compose patterns
-│   └── common-healthchecks.yml        # Standard healthcheck patterns (reference)
+│   └── common-healthchecks.md         # Standard healthcheck patterns (reference — not importable)
 └── vscode/                            # VS Code extension sets
     └── recommended-extensions.json    # Commonly recommended extensions (devcontainer patch)
 ```
@@ -44,11 +44,11 @@ This directory contains reusable configuration fragments that can be imported by
 
 ---
 
-### `compose/common-healthchecks.yml`
+### `compose/common-healthchecks.md`
 
 **Purpose:** Reference library of standard Docker Compose healthcheck patterns for common services (HTTP, PostgreSQL, Redis, MongoDB, MySQL).
 
-**Note:** This fragment contains `healthchecks:` as a top-level key (not a devcontainer field). It is intended as a reference document; overlays should extract the relevant pattern and apply it directly in their `docker-compose.yml` rather than importing this file.
+**Note:** This is a `.md` file (documentation only) — it cannot be imported via `overlay.yml` `imports:`. Copy the relevant pattern directly into your overlay's `docker-compose.yml`.
 
 ---
 

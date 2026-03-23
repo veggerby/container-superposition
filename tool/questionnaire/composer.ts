@@ -495,16 +495,11 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
             }
         }
     } catch (error) {
-        const structuredPrefixes = [
-            'Import ',
-            'Path traversal',
-            'Unsupported import',
-            'Failed to parse',
-        ];
-        if (error instanceof Error && structuredPrefixes.some((p) => error.message.startsWith(p))) {
-            // Re-throw structured errors as-is
+        if (error instanceof Error) {
+            // Fail fast on any error while loading imports so configuration issues are not silently ignored
             throw error;
         }
+        // Non-Error throwables are unexpected; log a warning but continue
         console.warn(chalk.yellow(`⚠️  Failed to load imports for overlay: ${overlayName}`));
     }
 
@@ -774,7 +769,10 @@ function mergeEnvExamples(
                     }
                 }
             } catch (error) {
-                // Ignore errors reading manifest
+                if (error instanceof Error) {
+                    // Fail fast on import errors so .env import violations are not silently ignored
+                    throw error;
+                }
             }
         }
 
