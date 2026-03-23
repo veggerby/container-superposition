@@ -13,6 +13,7 @@ import type {
     PresetGlueConfig,
     CustomizationConfig,
     PortsDocumentation,
+    DeploymentTarget,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import {
@@ -35,6 +36,12 @@ import { generatePortsDocumentation } from '../utils/port-utils.js';
 import { generateServicesMarkdown, generateEnvLocalExample } from '../utils/services-export.js';
 import type { GenerationSummary } from '../utils/summary.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
+import {
+    getTargetRule,
+    resolveTargetFilePath,
+    removeStaleTargetArtifacts,
+} from '../schema/target-rules.js';
+import type { TargetRuleContext } from '../schema/target-rules.js';
 import {
     detectWarnings,
     generateTips,
@@ -365,6 +372,7 @@ function generateManifest(
         preset: answers.preset,
         presetChoices: answers.presetChoices,
         containerName,
+        target: answers.target || 'local',
     };
 
     if (autoResolved.added.length > 0) {
@@ -1585,10 +1593,33 @@ export async function composeDevContainer(
 
     // 5. Create output directory and file registry for cleanup
     const outputPath = path.resolve(answers.outputPath);
+    const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
 
     if (!fs.existsSync(outputPath)) {
         fs.mkdirSync(outputPath, { recursive: true });
+    }
+
+    // 5a. Remove stale project-root artifacts from a previous target run
+    const activeTarget: DeploymentTarget = answers.target || 'local';
+    const manifestPath_existing = path.join(outputPath, 'superposition.json');
+    if (fs.existsSync(manifestPath_existing)) {
+        try {
+            const existingManifest = JSON.parse(
+                fs.readFileSync(manifestPath_existing, 'utf-8')
+            ) as { target?: DeploymentTarget };
+            const previousTarget: DeploymentTarget = existingManifest.target || 'local';
+            if (previousTarget !== activeTarget) {
+                removeStaleTargetArtifacts(previousTarget, activeTarget, projectRoot);
+                console.log(
+                    chalk.dim(
+                        `   🧹 Removed stale target artifacts for previous target '${previousTarget}'`
+                    )
+                );
+            }
+        } catch {
+            // If manifest is unreadable, skip stale cleanup gracefully
+        }
     }
 
     // 6. Apply overlays
@@ -1709,6 +1740,25 @@ export async function composeDevContainer(
                 delete config.customizations;
             }
         }
+    }
+
+    // 11b. Apply target-specific devcontainer.json patch
+    const targetRule = getTargetRule(activeTarget);
+    const overlayMetadataMapForTarget = new Map<string, OverlayMetadata>(
+        allOverlayDefs.map((o) => [o.id, o])
+    );
+    const targetCtx: TargetRuleContext = {
+        overlays,
+        overlayMetadata: overlayMetadataMapForTarget,
+        portOffset: answers.portOffset ?? 0,
+        stack: answers.stack,
+        outputPath,
+        projectRoot,
+    };
+    const targetPatch = targetRule.devcontainerPatch(targetCtx);
+    if (Object.keys(targetPatch).length > 0) {
+        config = deepMerge(config, targetPatch) as DevContainer;
+        console.log(chalk.dim(`   🎯 Applied ${activeTarget} target patch to devcontainer.json`));
     }
 
     // 12. Write merged devcontainer.json
@@ -1863,6 +1913,24 @@ export async function composeDevContainer(
         fs.writeFileSync(envLocalPath, envLocalContent);
         fileRegistry.addFile('env.local.example');
         console.log(chalk.dim(`   📄 Created env.local.example with optional overrides`));
+    }
+
+    // 17d. Generate target-specific workspace artifacts and guidance
+    if (activeTarget !== 'local') {
+        console.log(chalk.cyan(`\n🎯 Generating ${activeTarget} target artifacts...`));
+        const targetFiles = targetRule.generateFiles(targetCtx);
+        for (const [key, content] of targetFiles) {
+            const absPath = resolveTargetFilePath(key, outputPath, projectRoot);
+            fs.writeFileSync(absPath, content);
+            if (key.startsWith('../')) {
+                // Project-root file: log but do NOT add to fileRegistry
+                // (fileRegistry only tracks outputPath-relative files)
+                console.log(chalk.dim(`   📄 Created ${path.basename(absPath)} at project root`));
+            } else {
+                fileRegistry.addFile(key);
+                console.log(chalk.dim(`   📄 Created ${key} in .devcontainer/`));
+            }
+        }
     }
 
     // 18. Clean up stale files from previous runs (preserves superposition.json and .env)

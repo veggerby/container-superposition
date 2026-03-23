@@ -359,6 +359,7 @@ export interface SuperpositionManifest {
         reason: string;
     };
     containerName?: string; // Container/project name from devcontainer.json
+    target?: DeploymentTarget; // Deployment target used during generation
     customizations?: {
         enabled: boolean;
         location: string;
