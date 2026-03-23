@@ -516,10 +516,17 @@ function buildProjectConfigCustomizationsFromAnswers(
         return undefined;
     }
 
-    const files = customizations.files?.map((entry) => ({
-        path: entry.destination,
-        content: fs.readFileSync(entry.source, 'utf8'),
-    }));
+    const files = customizations.files?.map((entry) => {
+        // Prefer already-available content (e.g. when materialized from an existing project config)
+        // to avoid re-reading from disk via a path that may not exist on the current filesystem.
+        const content =
+            entry.content !== undefined ? entry.content : fs.readFileSync(entry.source, 'utf8');
+
+        return {
+            path: entry.destination,
+            content,
+        };
+    });
 
     const input: ProjectConfigCustomizationsInput = {
         devcontainerPatch: customizations.devcontainerPatch,
@@ -582,6 +589,7 @@ function materializeCustomizationConfig(
         files: input.files?.map((entry) => ({
             source: entry.path,
             destination: entry.path,
+            content: entry.content,
         })),
     };
 }
