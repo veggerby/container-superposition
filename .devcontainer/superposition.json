@@ -1,22 +1,22 @@
 {
-  "manifestVersion": "1",
-  "generatedBy": "0.1.3",
-  "version": "0.1.0",
-  "generated": "2026-03-23T07:31:04.730Z",
-  "baseTemplate": "plain",
-  "baseImage": "trixie",
-  "overlays": [
-    "nodejs",
-    "codex",
-    "claude-code",
-    "docker-sock",
-    "git-helpers",
-    "modern-cli-tools",
-    "devcontainer-cli"
-  ],
-  "containerName": "Container Superposition",
-  "customizations": {
-    "enabled": true,
-    "location": ".devcontainer/custom"
-  }
+    "manifestVersion": "1",
+    "generatedBy": "0.1.3",
+    "version": "0.1.0",
+    "generated": "2026-03-23T07:31:04.730Z",
+    "baseTemplate": "plain",
+    "baseImage": "trixie",
+    "overlays": [
+        "nodejs",
+        "codex",
+        "claude-code",
+        "docker-sock",
+        "git-helpers",
+        "modern-cli-tools",
+        "devcontainer-cli"
+    ],
+    "containerName": "Container Superposition",
+    "customizations": {
+        "enabled": true,
+        "location": ".devcontainer/custom"
+    }
 }
