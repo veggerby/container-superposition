@@ -4,25 +4,28 @@ Overlays can import shared configuration fragments from `overlays/.shared/` to r
 
 ## Overview
 
-Import functionality allows overlays to reference common configuration files instead of duplicating them in every overlay. This promotes DRY (Don't Repeat Yourself) principles and makes it easier to maintain consistent patterns.
+The import mechanism allows overlays to reference common configuration files instead of duplicating them. This promotes DRY principles and makes it easier to maintain consistent patterns.
+
+Imports are declared in the overlay's `overlay.yml` manifest and applied **before** the overlay's own `devcontainer.patch.json`, so each overlay can specialize on top of a shared baseline.
 
 ## Shared Directory Structure
 
 ```
 overlays/
 ├── .shared/
-│   ├── otel/                           # OpenTelemetry configurations
-│   │   ├── otel-base-config.yaml      # Base OTEL collector config
-│   │   └── instrumentation.env        # Common env vars for instrumentation
-│   ├── compose/                        # Docker Compose patterns
-│   │   └── common-healthchecks.yml    # Standard healthcheck configurations
-│   └── vscode/                         # VS Code extension sets
-│       └── recommended-extensions.json # Commonly recommended extensions
+│   ├── README.md
+│   ├── otel/
+│   │   ├── instrumentation.env        # OTEL SDK env vars — imported by otel-collector, prometheus, jaeger
+│   │   └── otel-base-config.yaml      # Base OTEL collector pipeline config
+│   ├── compose/
+│   │   └── common-healthchecks.yml    # Standard Docker Compose healthcheck patterns
+│   └── vscode/
+│       └── recommended-extensions.json # Commonly recommended VS Code extensions (devcontainer patch format)
 ├── prometheus/
-│   ├── overlay.yml                     # Can import from .shared/
+│   ├── overlay.yml                    # imports: [.shared/otel/instrumentation.env]
 │   └── devcontainer.patch.json
 └── jaeger/
-    ├── overlay.yml                     # Can import from .shared/
+    ├── overlay.yml                    # imports: [.shared/otel/instrumentation.env]
     └── devcontainer.patch.json
 ```
 
@@ -48,101 +51,128 @@ ports:
     - 9090
 imports:
     - .shared/otel/instrumentation.env
-    - .shared/compose/common-healthchecks.yml
 ```
 
-## Supported File Types
+**Rules:**
 
-### JSON Files (`.json`)
+- All paths **must** begin with `.shared/` — references outside `.shared/` are rejected (path traversal prevention)
+- Paths are relative to `overlays/`
+- Order is significant — fragments are applied in declaration order, then the overlay's own `devcontainer.patch.json`
+- Missing files, unsupported types, or path traversal attempts cause generation to fail with a message identifying the overlay and the broken reference
 
-Merged as devcontainer patches, just like `devcontainer.patch.json`.
+## Supported File Types and Merge Behavior
 
-**Example: `.shared/vscode/recommended-extensions.json`**
+| Extension        | How it is merged                                                               |
+| ---------------- | ------------------------------------------------------------------------------ |
+| `.json`          | Deep-merged into `devcontainer.json` patch (same as `devcontainer.patch.json`) |
+| `.yaml` / `.yml` | Loaded and deep-merged into `devcontainer.json` patch                          |
+| `.env`           | Concatenated into `.env.example` with a `# from .shared/…` comment header      |
+| Anything else    | Rejected with a clear unsupported-type error                                   |
+
+### JSON import example
 
 ```json
+// overlays/.shared/vscode/recommended-extensions.json
 {
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
     "customizations": {
         "vscode": {
             "extensions": [
                 "streetsidesoftware.code-spell-checker",
                 "usernamehw.errorlens",
-                "editorconfig.editorconfig"
+                "eamodio.gitlens"
             ]
         }
     }
 }
 ```
 
-### YAML Files (`.yaml`, `.yml`)
-
-Loaded and merged as devcontainer patches. Useful for complex configurations.
-
-**Example: `.shared/otel/otel-base-config.yaml`**
+### YAML import example
 
 ```yaml
-receivers:
-    otlp:
-        protocols:
-            grpc:
-                endpoint: 0.0.0.0:4317
-            http:
-                endpoint: 0.0.0.0:4318
+# overlays/.shared/otel/otel-base-config.yaml
+remoteEnv:
+    OTEL_SERVICE_NAME: my-service
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
 ```
 
-### Environment Files (`.env`)
-
-Merged into `.env.example` with a comment indicating the import source.
-
-**Example: `.shared/otel/instrumentation.env`**
+### ENV import example
 
 ```bash
-# OpenTelemetry Configuration
+# overlays/.shared/otel/instrumentation.env
+# OpenTelemetry SDK Configuration
 OTEL_SERVICE_NAME=my-service
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 OTEL_TRACES_SAMPLER=always_on
+OTEL_TRACES_EXPORTER=otlp
+OTEL_METRICS_EXPORTER=otlp
+OTEL_LOGS_EXPORTER=otlp
 ```
 
-## How Imports Work
+When this `.env` fragment is imported, the generated `.env.example` will contain:
 
-1. **Resolution**: Imports are resolved relative to the `overlays/` directory
-2. **Order**: Imports are applied in the order listed, then the overlay's own files
-3. **Merging**:
-    - JSON/YAML: Deep merged into devcontainer configuration
-    - ENV: Concatenated into `.env.example` with source comments
-4. **Validation**: Doctor command validates that all imports exist and are valid
-
-## Benefits
-
-### Reduced Duplication
-
-Before imports:
-
-```
-prometheus/devcontainer.patch.json  (200 lines with OTEL config)
-jaeger/devcontainer.patch.json      (200 lines with OTEL config)
-grafana/devcontainer.patch.json     (200 lines with OTEL config)
+```bash
+# from .shared/otel/instrumentation.env
+OTEL_SERVICE_NAME=my-service
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+...
 ```
 
-After imports:
+## Import Ordering and Conflict Resolution
+
+Imports are applied in declaration order, then the overlay's own `devcontainer.patch.json` is applied last:
 
 ```
-.shared/otel/otel-base-config.yaml  (50 lines, shared)
-prometheus/overlay.yml              (imports: [.shared/otel/otel-base-config.yaml])
-jaeger/overlay.yml                  (imports: [.shared/otel/otel-base-config.yaml])
-grafana/overlay.yml                 (imports: [.shared/otel/otel-base-config.yaml])
+[import 1] → [import 2] → … → [import N] → [overlay own patch]
 ```
 
-### Consistency
+- The **second** import wins over the first on key conflict
+- The **overlay's own patch always wins** over any shared fragment
 
-All overlays using the same shared config stay in sync automatically.
+This means overlays can intentionally override shared defaults by setting the same key in their `devcontainer.patch.json`.
 
-### Maintainability
+## Worked Example: OTEL Instrumentation
 
-Update shared configuration once, all importing overlays benefit.
+Many observability overlays need OTEL environment variables. With imports, these are defined once:
 
-## Validation
+**`overlays/.shared/otel/instrumentation.env`** — shared once
 
-The `doctor` command validates imports:
+**`overlays/otel-collector/overlay.yml`:**
+
+```yaml
+imports:
+    - .shared/otel/instrumentation.env
+```
+
+**`overlays/prometheus/overlay.yml`:**
+
+```yaml
+imports:
+    - .shared/otel/instrumentation.env
+```
+
+**`overlays/jaeger/overlay.yml`:**
+
+```yaml
+imports:
+    - .shared/otel/instrumentation.env
+```
+
+When any of these overlays is used, the generated `.env.example` will contain the OTEL environment variables with a comment indicating they came from the shared fragment.
+
+## Security: Path Traversal Prevention
+
+Import paths are validated before any file is read:
+
+1. The path **must** begin with `.shared/`
+2. The resolved absolute path **must** remain inside `overlays/.shared/`
+
+Any import that fails either check causes generation to abort with an error identifying the overlay and the rejected path. References like `../secret.json`, `/etc/passwd`, or `other-overlay/file.json` are all rejected.
+
+## Validation via Doctor
+
+The `doctor` command validates all imports for every overlay:
 
 ```bash
 container-superposition doctor
@@ -150,60 +180,53 @@ container-superposition doctor
 
 Checks performed:
 
-- Import files exist
-- File types are supported (`.json`, `.yaml`, `.yml`, `.env`)
-- No broken import references
+- Import path starts with `.shared/` (path traversal check)
+- Import path resolves within `overlays/.shared/` (traversal check)
+- Import file exists on disk
+- File type is one of `.json`, `.yaml`, `.yml`, `.env`
+
+Broken references are reported with the overlay ID and the bad path so maintainers can fix them quickly.
+
+## Viewing Imports in `explain`
+
+When an overlay has imports, they are shown in the `explain` output:
+
+```bash
+container-superposition explain prometheus
+```
+
+```
+Shared Imports:
+  (Fragments from overlays/.shared/ applied before this overlay)
+  📎 .shared/otel/instrumentation.env
+```
 
 ## Creating Shared Configurations
 
-1. **Identify common patterns** across overlays
-2. **Extract to `.shared/` subdirectory** with descriptive path
-3. **Update overlays** to import the shared file
-4. **Test** that composition works correctly
-5. **Document** the shared file's purpose in `.shared/README.md`
+1. **Identify common patterns** across multiple overlays
+2. **Create `overlays/.shared/<category>/<name>.<ext>`** — use descriptive paths, one concern per file
+3. **Update overlays** to reference the fragment via `imports:` in their `overlay.yml`
+4. **Update `.shared/README.md`** to document the fragment's purpose and which overlays use it
+5. **Test** with `npm test` and `container-superposition doctor` to verify
 
-## Example: OTEL Instrumentation
+## Downstream Impact Awareness
 
-Many observability overlays need OTEL instrumentation. Instead of duplicating these environment variables:
+A single change to a shared fragment affects every overlay that imports it. Before editing a shared fragment:
 
-**Create:** `overlays/.shared/otel/instrumentation.env`
-
-```bash
-# OpenTelemetry SDK Configuration
-OTEL_SERVICE_NAME=my-service
-OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development
-OTEL_TRACES_SAMPLER=always_on
-OTEL_TRACES_EXPORTER=otlp
-OTEL_METRICS_EXPORTER=otlp
-OTEL_LOGS_EXPORTER=otlp
-```
-
-**Import in overlays:**
-
-```yaml
-# overlays/prometheus/overlay.yml
-imports:
-    - .shared/otel/instrumentation.env
-
-# overlays/jaeger/overlay.yml
-imports:
-    - .shared/otel/instrumentation.env
-```
-
-Now all OTEL-compatible overlays share the same instrumentation configuration!
+- Check `.shared/README.md` to see which overlays import it
+- Use `grep -r "fragment-name" overlays/*/overlay.yml` to find all importers
+- Run the full test suite after any shared fragment change
 
 ## Best Practices
 
-1. **Keep shared files focused** - One concern per file
-2. **Use descriptive paths** - `.shared/otel/instrumentation.env` not `.shared/env1.env`
-3. **Document shared files** - Add comments explaining purpose and usage
-4. **Version carefully** - Changes to shared files affect all importing overlays
-5. **Test imports** - Verify overlay composition works after adding imports
+1. **One concern per file** — `instrumentation.env` not `all-the-things.env`
+2. **Descriptive category paths** — `.shared/otel/` not `.shared/misc/`
+3. **Comment your fragments** — explain purpose and usage at the top of each file
+4. **Keep fragments small** — big shared files create tight coupling
+5. **Overlay-specific overrides are fine** — an overlay's own patch always wins; diverging from a shared baseline is expected and supported
 
 ## See Also
 
 - [Creating Overlays](creating-overlays.md)
-- [Overlay Metadata](overlay-metadata-archive.md)
-- [Doctor Command](../README.md#doctor-command)
+- `overlays/.shared/README.md` — shared fragment catalogue with usage details
+- CONTRIBUTING.md — overlay authoring guide

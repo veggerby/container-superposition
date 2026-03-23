@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Shared overlay imports** — Overlays can now declare `imports:` in their `overlay.yml` to reuse fragments from `overlays/.shared/`, reducing copy-paste duplication across the overlay catalogue
+    - Supported types: `.json` and `.yaml`/`.yml` fragments are deep-merged into the devcontainer patch; `.env` fragments are appended to `.env.example` with a `# from .shared/…` comment
+    - Imports are applied in declaration order, followed by the overlay's own `devcontainer.patch.json`; the overlay's own patch always wins on key conflict
+    - Path traversal prevention: any import path that does not begin with `.shared/` or resolves outside `overlays/.shared/` is rejected before generation starts
+    - Missing files, unsupported types, and traversal attempts all fail with an error that names the overlay and the bad reference
+    - `explain <overlay>` now shows the overlay's `imports` list under a **Shared Imports** section
+    - `doctor` validates import paths (existence, type, and path traversal) for every overlay
+- **`otel-collector`, `prometheus`, and `jaeger` overlays converted** — These three overlays now import `.shared/otel/instrumentation.env`, so their generated `.env.example` includes the OTEL SDK environment variables without duplication
+- **`overlays/.shared/vscode/recommended-extensions.json` reformatted** — Now a valid devcontainer patch (`customizations.vscode.extensions` array) that can be merged directly when imported
+
 - **`doctor --fix`** — Interactive repair flow for common environment problems
     - Can fix stale manifests, missing devcontainer regeneration, Node.js version mismatches, and Docker daemon issues
     - Re-runs checks after remediation and reports a structured outcome summary; use `--fix --json` for machine-readable output

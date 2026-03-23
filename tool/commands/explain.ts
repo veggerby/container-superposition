@@ -317,6 +317,16 @@ function formatAsText(
         }
     }
 
+    // Shared imports
+    if (overlay.imports && overlay.imports.length > 0) {
+        lines.push('');
+        lines.push(chalk.bold('Shared Imports:'));
+        lines.push(chalk.dim('  (Fragments from overlays/.shared/ applied before this overlay)'));
+        for (const importPath of overlay.imports) {
+            lines.push(`  📎 ${importPath}`);
+        }
+    }
+
     return lines.join('\n');
 }
 
