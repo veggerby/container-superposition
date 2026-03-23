@@ -23,6 +23,7 @@
 - **Conflicts are bidirectional**: if overlay A lists B in `conflicts`, B must also list A
 - **Docker Compose networks**: never use `external: true`; always declare the network inline with `name: devnet`
 - **Spec-first**: before writing implementation code for a new feature, commit a spec under `docs/specs/`
+- **Changelog required**: add an appropriate `CHANGELOG.md` entry for user-visible changes
 
 **Key Technologies:**
 
