@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-03-23
+
 ### Added
 
 - **Shared overlay imports** — Overlays can now declare `imports:` in their `overlay.yml` to reuse fragments from `overlays/.shared/`, reducing copy-paste duplication across the overlay catalogue
@@ -422,7 +424,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/veggerby/container-superposition/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/veggerby/container-superposition/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/veggerby/container-superposition/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/veggerby/container-superposition/compare/v0.1.3...v0.1.4
