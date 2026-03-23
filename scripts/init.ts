@@ -49,7 +49,10 @@ import { printSummary } from '../tool/utils/summary.js';
 import { appendGitignoreSection } from '../tool/utils/gitignore.js';
 import {
     buildAnswersFromProjectConfig,
+    buildProjectConfigSelectionFromAnswers,
+    findProjectConfig,
     loadProjectConfig,
+    writeProjectConfig,
     writeProjectConfigCustomizations,
 } from '../tool/schema/project-config.js';
 import {
@@ -1286,6 +1289,7 @@ async function parseCliArgs(): Promise<{
     yes?: boolean;
     noInteractive?: boolean;
     writeManifestOnly?: boolean;
+    projectFile?: boolean;
 } | null> {
     const program = new Command();
 
@@ -1353,6 +1357,10 @@ async function parseCliArgs(): Promise<{
         .option(
             '--write-manifest-only',
             'Generate only superposition.json manifest without creating .devcontainer/ files'
+        )
+        .option(
+            '--project-file',
+            'Also write a repository-root project config (.superposition.yml or existing project file)'
         )
         .option('--preset <id>', 'Start from a preset (e.g., web-api, microservice)')
         .option(
@@ -1693,6 +1701,7 @@ async function parseCliArgs(): Promise<{
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
         writeManifestOnly: initOptions.writeManifestOnly === true,
+        projectFile: initOptions.projectFile === true,
     };
 }
 
@@ -1717,6 +1726,22 @@ async function main() {
             }
 
             process.chdir(resolvedProjectRoot);
+        }
+
+        let projectFileOutputPath: string | undefined;
+        if (cliArgs?.projectFile) {
+            const discoveredProjectFiles = findProjectConfig(process.cwd());
+            if (discoveredProjectFiles.length > 1) {
+                console.error(
+                    chalk.red(
+                        '✗ Found both supported project config files in the repository root. Keep only one before using --project-file.'
+                    )
+                );
+                process.exit(1);
+            }
+
+            projectFileOutputPath =
+                discoveredProjectFiles[0]?.path ?? path.join(process.cwd(), '.superposition.yml');
         }
 
         let projectConfig = undefined;
@@ -2077,6 +2102,26 @@ async function main() {
                 )
             );
             throw error;
+        }
+
+        // Write project config separately so that a failure here does not mask a
+        // successful devcontainer/manifest generation above.
+        if (projectFileOutputPath) {
+            try {
+                const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
+                writeProjectConfig(projectFileOutputPath, projectSelection);
+                console.log(
+                    chalk.green(
+                        `✓ Project config written: ${path.relative(process.cwd(), projectFileOutputPath)}`
+                    )
+                );
+            } catch (projectFileError) {
+                console.error(
+                    chalk.yellow(
+                        `⚠ Failed to write project config: ${projectFileError instanceof Error ? projectFileError.message : String(projectFileError)}`
+                    )
+                );
+            }
         }
     } catch (error) {
         console.error(

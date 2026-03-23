@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+<<<<<<< copilot/feat-target-aware-generation
 - **Target-aware generation** — `--target` now produces workspace artifacts and setup guidance tailored to the selected deployment environment, not just compatibility warnings
     - `--target codespaces` → extends `devcontainer.json` with `hostRequirements` (machine-size recommendation based on service count) and writes `CODESPACES.md` with Codespaces-specific setup guidance
     - `--target gitpod` → generates `.gitpod.yml` at the project root (with tasks and port exposures from selected overlays) and writes `GITPOD.md` with Gitpod badge and usage notes
@@ -16,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `--target local` (explicit or default) → no change to existing behaviour; no extra files written
     - **Stale artifact cleanup** — when switching target between runs (e.g. gitpod → codespaces), artifacts from the previous target (`.gitpod.yml`) are removed automatically before new ones are written
     - **Manifest records target** — `superposition.json` now includes a `target` field; regeneration reproduces the correct target-aware output without re-prompting
+=======
+- **`init --project-file`** — `init` can now write a repository-root project config alongside the normal generated output
+    - Reuses an existing `.superposition.yml` or `superposition.yml` when present; otherwise writes `.superposition.yml`
+    - Persists the final selected init configuration, including stack, base image, overlays, output path, target, minimal/editor settings, preset, and preset choices
+>>>>>>> main
 
 ## [0.1.7] - 2026-03-23
 
