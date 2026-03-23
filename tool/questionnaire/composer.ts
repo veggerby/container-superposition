@@ -397,6 +397,27 @@ function generateManifest(
 }
 
 /**
+ * Validate that an import path is within the allowed .shared/ directory (path traversal prevention).
+ * Returns an error message if invalid, or null if the path is safe.
+ */
+function validateImportPath(importPath: string, overlaysDir: string): string | null {
+    // FR-006: All imports must start with '.shared/'
+    if (!importPath.startsWith('.shared/')) {
+        return `Import path must begin with '.shared/': ${importPath}`;
+    }
+
+    // Normalize both the resolved path and the allowed base to detect traversal
+    const sharedBase = path.resolve(overlaysDir, '.shared');
+    const resolved = path.resolve(overlaysDir, importPath);
+
+    if (!resolved.startsWith(sharedBase + path.sep) && resolved !== sharedBase) {
+        return `Import path resolves outside '.shared/' directory (path traversal rejected): ${importPath}`;
+    }
+
+    return null;
+}
+
+/**
  * Load and resolve imports from shared files for an overlay
  */
 function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevContainer {
@@ -422,17 +443,23 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
             return importedConfig;
         }
 
-        // Process each import
+        // Process each import in declaration order
         for (const importPath of manifest.imports) {
+            // FR-006: Reject path traversal attempts
+            const traversalError = validateImportPath(importPath, overlaysDir);
+            if (traversalError) {
+                throw new Error(
+                    `Path traversal rejected in overlay '${overlayName}': ${traversalError}`
+                );
+            }
+
             const fullImportPath = path.join(overlaysDir, importPath);
 
             if (!fs.existsSync(fullImportPath)) {
-                console.warn(
-                    chalk.yellow(
-                        `⚠️  Import not found: ${importPath} (for overlay: ${overlayName})`
-                    )
+                // FR-007: Missing imports are errors, not warnings
+                throw new Error(
+                    `Import not found: '${importPath}' (referenced by overlay: ${overlayName})`
                 );
-                continue;
             }
 
             // Determine file type and merge appropriately
@@ -440,23 +467,39 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
 
             if (ext === '.json') {
                 // JSON files are merged as devcontainer patches
+                console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
                 const importedPatch = loadJson<DevContainer>(fullImportPath);
                 importedConfig = deepMerge(importedConfig, importedPatch);
             } else if (ext === '.yaml' || ext === '.yml') {
                 // YAML files are loaded and merged as devcontainer patches
                 try {
+                    console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
                     const yamlContent = fs.readFileSync(fullImportPath, 'utf8');
                     const importedPatch = yaml.load(yamlContent) as DevContainer;
                     if (importedPatch && typeof importedPatch === 'object') {
                         importedConfig = deepMerge(importedConfig, importedPatch);
                     }
                 } catch (error) {
-                    console.warn(chalk.yellow(`⚠️  Failed to parse YAML import: ${importPath}`));
+                    throw new Error(
+                        `Failed to parse YAML import '${importPath}' (overlay: ${overlayName}): ${error instanceof Error ? error.message : String(error)}`
+                    );
                 }
+            } else if (ext === '.env') {
+                // .env files are handled separately during env merging — skip here
+                console.log(chalk.dim(`   📎 Shared .env import noted: ${importPath}`));
+            } else {
+                // FR-007: Unsupported file types are errors
+                throw new Error(
+                    `Unsupported import type '${ext}' for '${importPath}' (overlay: ${overlayName}). Supported types: .json, .yaml, .yml, .env`
+                );
             }
-            // .env files are handled separately during env merging
         }
     } catch (error) {
+        if (error instanceof Error) {
+            // Fail fast on any error while loading imports so configuration issues are not silently ignored
+            throw error;
+        }
+        // Non-Error throwables are unexpected; log a warning but continue
         console.warn(chalk.yellow(`⚠️  Failed to load imports for overlay: ${overlayName}`));
     }
 
@@ -698,20 +741,38 @@ function mergeEnvExamples(
 
                 if (manifest.imports && Array.isArray(manifest.imports)) {
                     for (const importPath of manifest.imports) {
+                        // FR-006: Reject path traversal
+                        const traversalError = validateImportPath(importPath, overlaysDir);
+                        if (traversalError) {
+                            throw new Error(
+                                `Path traversal rejected in overlay '${overlay}': ${traversalError}`
+                            );
+                        }
+
                         const ext = path.extname(importPath).toLowerCase();
                         if (ext === '.env') {
                             const fullImportPath = path.join(overlaysDir, importPath);
                             if (fs.existsSync(fullImportPath)) {
+                                console.log(
+                                    chalk.dim(`   📎 Merging shared .env import: ${importPath}`)
+                                );
                                 const content = fs.readFileSync(fullImportPath, 'utf-8').trim();
                                 if (content) {
-                                    envSections.push(`# Imported from ${importPath}\n${content}`);
+                                    envSections.push(`# from ${importPath}\n${content}`);
                                 }
+                            } else {
+                                throw new Error(
+                                    `Import not found: '${importPath}' (referenced by overlay: ${overlay})`
+                                );
                             }
                         }
                     }
                 }
             } catch (error) {
-                // Ignore errors reading manifest
+                if (error instanceof Error) {
+                    // Fail fast on import errors so .env import violations are not silently ignored
+                    throw error;
+                }
             }
         }
 
