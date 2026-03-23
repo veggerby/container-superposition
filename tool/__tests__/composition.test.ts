@@ -239,6 +239,44 @@ describe('Golden Tests - Composition', () => {
         fs.rmSync(outputPath, { recursive: true });
     });
 
+    it('should include bubblewrap when codex overlay is selected', async () => {
+        const outputPath = path.join(TEST_OUTPUT_DIR, 'test-codex-overlay');
+
+        if (fs.existsSync(outputPath)) {
+            fs.rmSync(outputPath, { recursive: true });
+        }
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: [],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: ['codex'],
+            observability: [],
+            outputPath,
+        };
+
+        await composeDevContainer(answers);
+
+        const devcontainer = JSON.parse(
+            fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf-8')
+        );
+        expect(devcontainer.features?.['./features/cross-distro-packages']?.apt).toContain(
+            'bubblewrap'
+        );
+        expect(devcontainer.features?.['./features/cross-distro-packages']?.apk).toContain(
+            'bubblewrap'
+        );
+        expect(devcontainer.postCreateCommand?.['setup-codex']).toBe(
+            'bash .devcontainer/scripts/setup-codex.sh'
+        );
+
+        fs.rmSync(outputPath, { recursive: true });
+    });
+
     it('should preserve custom image and container name parity when project-config customizations are present', async () => {
         const outputPath = path.join(TEST_OUTPUT_DIR, 'test-project-config-custom-image');
 

@@ -16,8 +16,8 @@
       "ppa": true
     },
     "./features/cross-distro-packages": {
-      "apt": "bash-completion curl wget vim less build-essential jq ripgrep fd-find bat",
-      "apk": "bash-completion curl wget vim less build-base jq ripgrep fd bat"
+      "apt": "bash-completion curl wget vim less build-essential bubblewrap jq ripgrep fd-find bat",
+      "apk": "bash-completion curl wget vim less build-base bubblewrap jq ripgrep fd bat"
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts",
