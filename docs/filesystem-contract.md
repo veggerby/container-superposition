@@ -11,6 +11,9 @@ your-project/
 │   ├── docker-compose.yml       # Services (compose stack only)
 │   ├── .env.example             # Environment variable templates
 │   ├── ports.json               # Port documentation and connection strings
+│   ├── CODESPACES.md            # Codespaces setup guidance (--target codespaces only)
+│   ├── GITPOD.md                # Gitpod setup guidance (--target gitpod only)
+│   ├── DEVPOD.md                # DevPod setup guidance (--target devpod only)
 │   ├── scripts/                 # Setup and verification scripts
 │   │   ├── post-create.sh       # Runs once when container is created
 │   │   └── post-start.sh        # Runs every time container starts
@@ -18,6 +21,8 @@ your-project/
 │       ├── devcontainer.patch.json
 │       └── docker-compose.patch.yml
 ├── superposition.json           # Manifest file (enables regeneration)
+├── .gitpod.yml                  # Gitpod workspace config (--target gitpod only)
+├── devpod.yaml                  # DevPod workspace descriptor (--target devpod only)
 └── .devcontainer.backup-*/      # Automatic backups (gitignored)
 ```
 

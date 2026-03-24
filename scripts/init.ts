@@ -1348,7 +1348,7 @@ async function parseCliArgs(): Promise<{
         )
         .option(
             '--target <environment>',
-            'Deployment target: local, codespaces, gitpod, devpod (optimizes for environment)',
+            'Deployment target: local (default), codespaces (adds hostRequirements + CODESPACES.md), gitpod (adds .gitpod.yml + GITPOD.md), devpod (adds devpod.yaml + DEVPOD.md)',
             'local'
         )
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
