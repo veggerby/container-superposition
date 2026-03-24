@@ -659,13 +659,13 @@ Secure tunneling for webhook testing and external access
 
 Local LLM inference server with OpenAI-compatible API
 
-| Property     | Value                           |
-| ------------ | ------------------------------- |
-| **Category** | dev                             |
-| **Supports** | compose                         |
-| **Suggests** | `codex`, `claude-code`, `amp`   |
-| **Tags**     | `dev`, `ai`, `llm`, `inference` |
-| **Ports**    | 11434                           |
+| Property     | Value                                     |
+| ------------ | ----------------------------------------- |
+| **Category** | dev                                       |
+| **Supports** | compose                                   |
+| **Suggests** | `codex`, `claude-code`, `amp`             |
+| **Tags**     | `dev`, `ai`, `llm`, `inference`, `ollama` |
+| **Ports**    | 11434                                     |
 
 ### OpenAPI Tools (`openapi-tools`)
 

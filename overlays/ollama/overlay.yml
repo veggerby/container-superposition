@@ -15,5 +15,6 @@ tags:
     - ai
     - llm
     - inference
+    - ollama
 ports:
     - 11434
