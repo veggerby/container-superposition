@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
+    - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
+    - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild
+    - `OLLAMA_MODELS_PATH` env var overrides the host model path (useful for external drives or Windows users)
+    - `verify.sh` smoke-tests the REST API and lists available models
+    - Suggests `codex`, `claude-code`, and `amp` overlays for AI-assisted workflows
+    - README documents GPU acceleration via the `cuda`/`rocm` overlays
 - **Target-aware generation** — `--target` now produces workspace artifacts and setup guidance tailored to the selected deployment environment, not just compatibility warnings
     - `--target codespaces` → extends `devcontainer.json` with `hostRequirements` (machine-size recommendation based on service count) and writes `CODESPACES.md` with Codespaces-specific setup guidance
     - `--target gitpod` → generates `.gitpod.yml` at the project root (with tasks and port exposures from selected overlays) and writes `GITPOD.md` with Gitpod badge and usage notes
