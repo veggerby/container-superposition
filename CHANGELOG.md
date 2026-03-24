@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `verify.sh` smoke-tests the REST API and lists available models
     - Suggests `codex`, `claude-code`, and `amp` overlays for AI-assisted workflows
     - README documents GPU acceleration via the `cuda`/`rocm` overlays
+- **Target-aware generation** — `--target` now produces workspace artifacts and setup guidance tailored to the selected deployment environment, not just compatibility warnings
+    - `--target codespaces` → extends `devcontainer.json` with `hostRequirements` (machine-size recommendation based on service count) and writes `CODESPACES.md` with Codespaces-specific setup guidance
+    - `--target gitpod` → generates `.gitpod.yml` at the project root (with tasks and port exposures from selected overlays) and writes `GITPOD.md` with Gitpod badge and usage notes
+    - `--target devpod` → generates `devpod.yaml` at the project root (referencing the devcontainer) and writes `DEVPOD.md` with `devpod up` instructions
+    - `--target local` (explicit or default) → no change to existing behavior; no extra files written
+    - **Stale artifact cleanup** — when switching target between runs (e.g. gitpod → codespaces), artifacts from the previous target (`.gitpod.yml`) are removed automatically before new ones are written
+    - **Manifest records target** — `superposition.json` now includes a `target` field; regeneration reproduces the correct target-aware output without re-prompting
+    - Regen without `--target` inherits the target recorded in the existing manifest, so the correct artifacts are always reproduced
 - **`init --project-file`** — `init` can now write a repository-root project config alongside the normal generated output
     - Reuses an existing `.superposition.yml` or `superposition.yml` when present; otherwise writes `.superposition.yml`
     - Persists the final selected init configuration, including stack, base image, overlays, output path, target, minimal/editor settings, preset, and preset choices
