@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["ollama"],
+    "forwardPorts": [11434],
+    "portsAttributes": {
+        "11434": {
+            "label": "Ollama API",
+            "onAutoForward": "ignore"
+        }
+    },
+    "remoteEnv": {
+        "OLLAMA_HOST": "http://ollama:11434"
+    }
+}

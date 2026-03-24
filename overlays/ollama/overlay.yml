@@ -1,0 +1,19 @@
+id: ollama
+name: Ollama
+description: Local LLM inference server with OpenAI-compatible API
+category: dev
+supports:
+    - compose
+requires: []
+suggests:
+    - codex
+    - claude-code
+    - amp
+conflicts: []
+tags:
+    - dev
+    - ai
+    - llm
+    - inference
+ports:
+    - 11434

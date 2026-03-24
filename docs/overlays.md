@@ -655,6 +655,18 @@ Secure tunneling for webhook testing and external access
 | **Tags**      | `dev`, `tunneling`, `webhooks` |
 | **Ports**     | 4040                           |
 
+### Ollama (`ollama`)
+
+Local LLM inference server with OpenAI-compatible API
+
+| Property     | Value                           |
+| ------------ | ------------------------------- |
+| **Category** | dev                             |
+| **Supports** | compose                         |
+| **Suggests** | `codex`, `claude-code`, `amp`   |
+| **Tags**     | `dev`, `ai`, `llm`, `inference` |
+| **Ports**    | 11434                           |
+
 ### OpenAPI Tools (`openapi-tools`)
 
 OpenAPI/Swagger tooling for API development and documentation

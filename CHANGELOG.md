@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
+    - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
+    - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild
+    - `OLLAMA_MODELS_PATH` env var overrides the host model path (useful for external drives or Windows users)
+    - `verify.sh` smoke-tests the REST API and lists available models
+    - Suggests `codex`, `claude-code`, and `amp` overlays for AI-assisted workflows
+    - README documents GPU acceleration via the `cuda`/`rocm` overlays
 - **`init --project-file`** — `init` can now write a repository-root project config alongside the normal generated output
     - Reuses an existing `.superposition.yml` or `superposition.yml` when present; otherwise writes `.superposition.yml`
     - Persists the final selected init configuration, including stack, base image, overlays, output path, target, minimal/editor settings, preset, and preset choices
