@@ -186,6 +186,9 @@ export interface DevContainer {
             extensions?: string[];
             settings?: Record<string, any>;
         };
+        jetbrains?: {
+            backend: string;
+        };
     };
     forwardPorts?: number[];
     portsAttributes?: Record<string, PortAttributes>;
@@ -360,6 +363,8 @@ export interface SuperpositionManifest {
     };
     containerName?: string; // Container/project name from devcontainer.json
     target?: DeploymentTarget; // Deployment target used during generation
+    minimal?: boolean; // Whether minimal mode was used during generation
+    editor?: EditorProfile; // Editor profile used during generation
     customizations?: {
         enabled: boolean;
         location: string;

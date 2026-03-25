@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **JetBrains IDE support (`--editor jetbrains`)** — Generates JetBrains project artifacts alongside the devcontainer configuration
+    - Adds `customizations.jetbrains.backend` to `devcontainer.json`, selecting the IDE automatically from the primary language overlay (WebStorm for Node.js/Bun, PyCharm for Python, GoLand for Go, Rider for .NET, RustRover for Rust, IntelliJIdea for Java or generic)
+    - Generates `.idea/.gitignore` at the project root, marking shared settings as VCS-tracked and excluding user-local entries
+    - Generates `.idea/runConfigurations/<lang>.xml` for each recognised language overlay (e.g. `npm run dev` for Node.js, `python main.py` for Python, `go run ./...` for Go, `dotnet run` for .NET, `cargo run` for Rust)
+    - Existing `.idea/` files are **never overwritten** — only missing files are written, preserving any user customisations
+    - Falls back to a minimal `.idea/` scaffold with `IntelliJIdea` backend when no language overlay is selected
+    - Editor profile question added to the interactive questionnaire (`? Editor profile: VS Code / JetBrains / None`)
+    - `editor` field persisted to `superposition.json` manifest for reproducible regen
 - **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
     - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
     - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild
