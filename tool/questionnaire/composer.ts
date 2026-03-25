@@ -70,6 +70,313 @@ const REPO_ROOT =
 
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
 
+// ─── JetBrains support ────────────────────────────────────────────────────
+
+/**
+ * Language overlays that have a defined JetBrains backend mapping.
+ * Used both in getJetBrainsBackend() and in the language filter for
+ * generateJetBrainsArtifacts() — kept in one place for consistency.
+ */
+const JETBRAINS_SUPPORTED_LANGUAGES = new Set([
+    'nodejs',
+    'bun',
+    'python',
+    'mkdocs',
+    'go',
+    'dotnet',
+    'java',
+    'rust',
+]);
+
+/**
+ * Map a language overlay ID to the appropriate JetBrains backend identifier.
+ * Falls back to 'IntelliJIdea' when the language is unknown or unspecified.
+ *
+ * When multiple language overlays are selected, the first match in the
+ * provided array determines the backend; the array order reflects the user's
+ * selection order.
+ */
+function getJetBrainsBackend(languageOverlays: string[]): string {
+    for (const lang of languageOverlays) {
+        switch (lang) {
+            case 'nodejs':
+            case 'bun':
+                return 'WebStorm';
+            case 'python':
+            case 'mkdocs':
+                return 'PyCharm';
+            case 'go':
+                return 'GoLand';
+            case 'dotnet':
+                return 'Rider';
+            case 'rust':
+                return 'RustRover';
+            case 'java':
+                return 'IntelliJIdea';
+        }
+    }
+    return 'IntelliJIdea';
+}
+
+/**
+ * Generate the content of .idea/.gitignore for a JetBrains project.
+ * Marks shared settings (run configurations, code style) as tracked and
+ * excludes user-local entries (workspace.xml, shelf/).
+ */
+function generateIdeaGitignore(): string {
+    return `# Default ignored files
+/shelf/
+/workspace.xml
+
+# Editor-based HTTP Client requests
+/httpRequests/
+
+# Datasource local storage
+/dataSources/
+/dataSources.local.xml
+`;
+}
+
+/**
+ * Generate a JetBrains run configuration XML for the given language overlay.
+ * Returns an object with the filename and XML content, or null when no
+ * configuration is defined for the supplied language.
+ */
+function generateRunConfiguration(lang: string): { filename: string; content: string } | null {
+    switch (lang) {
+        case 'nodejs':
+        case 'bun': {
+            const manager = lang === 'bun' ? 'bun' : 'npm';
+            const runScript = lang === 'bun' ? 'bun run dev' : 'npm run dev';
+            return {
+                filename: `${manager}_dev.xml`,
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="${runScript}" type="js.build_tools.npm" factoryName="npm">
+    <package-json value="$PROJECT_DIR$/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="dev" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'mkdocs': {
+            return {
+                filename: 'mkdocs_serve.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MkDocs: mkdocs serve" type="PythonConfigurationType" factoryName="Python">
+    <module name="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+    </envs>
+    <option name="SDK_HOME" value="" />
+    <option name="SDK_NAME" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="-m" />
+    <option name="MODULE_MODE" value="true" />
+    <option name="PARAMETERS" value="mkdocs serve" />
+    <option name="SHOW_COMMAND_LINE" value="false" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'python': {
+            return {
+                filename: 'python_main.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Python: main.py" type="PythonConfigurationType" factoryName="Python">
+    <module name="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+    </envs>
+    <option name="SDK_HOME" value="" />
+    <option name="SDK_NAME" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+    <option name="PARAMETERS" value="" />
+    <option name="SHOW_COMMAND_LINE" value="false" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="MODULE_MODE" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'go': {
+            return {
+                filename: 'go_run.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Go: run ./..." type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="" />
+    <kind value="PACKAGE" />
+    <package value="./..." />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'dotnet': {
+            return {
+                filename: 'dotnet_run.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name=".NET: dotnet run" type="DotNetRunConfiguration" factoryName="Run">
+    <option name="EXE_PATH" value="" />
+    <option name="PROGRAM_PARAMETERS" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="PASS_PARENT_ENVS" value="1" />
+    <option name="USE_EXTERNAL_CONSOLE" value="0" />
+    <option name="RUNTIME_ARGUMENTS" value="" />
+    <option name="PROJECT_PATH" value="$PROJECT_DIR$" />
+    <option name="TARGET_FRAMEWORK_ID" value="" />
+    <option name="RUNTIME_ID" value="" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'java': {
+            return {
+                filename: 'java_run.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Java: Application" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="Main" />
+    <module name="" />
+    <option name="VM_PARAMETERS" value="" />
+    <option name="PROGRAM_PARAMETERS" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+    <option name="ENABLE_SWING_INSPECTOR" value="false" />
+    <option name="ENV_VARIABLES" />
+    <option name="PASS_PARENT_ENVS" value="true" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'rust': {
+            return {
+                filename: 'rust_run.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Rust: cargo run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="run" />
+    <option name="workingDirectory" value="$PROJECT_DIR$" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        default:
+            return null;
+    }
+}
+
+/**
+ * Generate JetBrains IDE artifacts (.idea/.gitignore and run configurations)
+ * into the project root directory (parent of outputPath).
+ *
+ * Returns a list of project-root-relative paths that were written so the
+ * caller can register them and report what was generated.
+ */
+function generateJetBrainsArtifacts(projectRoot: string, languageOverlays: string[]): string[] {
+    const ideaDir = path.join(projectRoot, '.idea');
+    const runConfigsDir = path.join(ideaDir, 'runConfigurations');
+
+    const written: string[] = [];
+
+    // Ensure directories exist
+    if (!fs.existsSync(ideaDir)) {
+        fs.mkdirSync(ideaDir, { recursive: true });
+    }
+    if (!fs.existsSync(runConfigsDir)) {
+        fs.mkdirSync(runConfigsDir, { recursive: true });
+    }
+
+    // Write .idea/.gitignore (only if not already present)
+    const gitignorePath = path.join(ideaDir, '.gitignore');
+    if (!fs.existsSync(gitignorePath)) {
+        fs.writeFileSync(gitignorePath, generateIdeaGitignore());
+        written.push('.idea/.gitignore');
+    }
+
+    // Write run configurations for each recognised language overlay
+    const generated: string[] = [];
+    const skipped: string[] = [];
+
+    for (const lang of languageOverlays) {
+        const runConfig = generateRunConfiguration(lang);
+        if (!runConfig) continue;
+
+        const xmlPath = path.join(runConfigsDir, runConfig.filename);
+        if (!fs.existsSync(xmlPath)) {
+            fs.writeFileSync(xmlPath, runConfig.content);
+            written.push(`.idea/runConfigurations/${runConfig.filename}`);
+            generated.push(lang);
+        } else {
+            skipped.push(runConfig.filename);
+        }
+    }
+
+    if (generated.length > 0) {
+        console.log(
+            chalk.dim(`   💡 Generated JetBrains run configuration(s) for: ${generated.join(', ')}`)
+        );
+    }
+    if (skipped.length > 0) {
+        console.log(
+            chalk.dim(
+                `   ⏭️  Skipped existing JetBrains run configuration(s): ${skipped.join(', ')}`
+            )
+        );
+    }
+    if (languageOverlays.length === 0) {
+        console.log(
+            chalk.dim(
+                `   ℹ️  No language overlays selected — no JetBrains run configurations generated`
+            )
+        );
+    }
+
+    return written;
+}
+
+// ─── End JetBrains support ────────────────────────────────────────────────
+
 /**
  * Merge packages from apt-get-packages feature
  */
@@ -375,6 +682,13 @@ function generateManifest(
         containerName,
         target: effectiveTarget ?? answers.target ?? 'local',
     };
+
+    if (answers.minimal) {
+        manifest.minimal = true;
+    }
+    if (answers.editor && answers.editor !== 'vscode') {
+        manifest.editor = answers.editor;
+    }
 
     if (autoResolved.added.length > 0) {
         manifest.autoResolved = autoResolved;
@@ -1729,23 +2043,49 @@ export async function composeDevContainer(
     if (answers.editor === 'none' || answers.editor === 'jetbrains') {
         // Remove VS Code customizations
         if (config.customizations?.vscode) {
-            if (answers.editor === 'none') {
-                delete config.customizations.vscode;
-                console.log(
-                    chalk.dim(`   🎨 Editor profile 'none': Removed VS Code customizations`)
-                );
-            } else if (answers.editor === 'jetbrains') {
-                // For JetBrains, remove VS Code customizations (future: could add JetBrains-specific settings)
-                delete config.customizations.vscode;
-                console.log(
-                    chalk.dim(`   🎨 Editor profile 'jetbrains': Removed VS Code customizations`)
-                );
-            }
+            delete config.customizations.vscode;
+            const profileLabel = answers.editor === 'none' ? 'none' : 'jetbrains';
+            console.log(
+                chalk.dim(`   🎨 Editor profile '${profileLabel}': Removed VS Code customizations`)
+            );
 
             // Clean up empty customizations object
             if (config.customizations && Object.keys(config.customizations).length === 0) {
                 delete config.customizations;
             }
+        }
+    }
+
+    // Add JetBrains-specific devcontainer.json customizations and generate .idea/ artifacts
+    if (answers.editor === 'jetbrains') {
+        const selectedLanguages = answers.language ?? [];
+        const languageOverlays = selectedLanguages.filter((lang) =>
+            JETBRAINS_SUPPORTED_LANGUAGES.has(lang)
+        );
+
+        if (languageOverlays.length === 0 && selectedLanguages.length > 0) {
+            const selectedLabel = selectedLanguages.join(', ');
+            console.log(
+                chalk.yellow(
+                    `   ⚠️  No supported JetBrains language overlays selected (selected: ${selectedLabel})`
+                )
+            );
+        }
+
+        const backend = getJetBrainsBackend(languageOverlays);
+
+        // Add customizations.jetbrains block to devcontainer.json
+        if (!config.customizations) {
+            config.customizations = {};
+        }
+        config.customizations.jetbrains = { backend };
+        console.log(chalk.dim(`   🧠 Editor profile 'jetbrains': Set backend to '${backend}'`));
+
+        // Generate .idea/ artifacts in the project root
+        console.log(chalk.cyan('\n💡 Generating JetBrains project artifacts...'));
+        const jetbrainsFiles = generateJetBrainsArtifacts(projectRoot, languageOverlays);
+        for (const relPath of jetbrainsFiles) {
+            console.log(chalk.dim(`   📄 Created ${relPath} at project root`));
         }
     }
 

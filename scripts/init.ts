@@ -23,6 +23,7 @@ import type {
     OverlaysConfig,
     OverlayMetadata,
     DeploymentTarget,
+    EditorProfile,
     PresetParameter,
     PresetParameterOption,
     PresetGlueConfig,
@@ -988,6 +989,31 @@ async function runQuestionnaire(
         });
         const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
 
+        // Question 7: Editor profile
+        const defaultEditor: EditorProfile = manifest?.editor || defaultAnswers?.editor || 'vscode';
+        const editorChoice = (await select({
+            message: 'Editor profile:',
+            choices: [
+                {
+                    name: 'VS Code (default)',
+                    value: 'vscode',
+                    description: 'Include VS Code extensions and settings',
+                },
+                {
+                    name: 'JetBrains (IntelliJ IDEA, GoLand, PyCharm, Rider…)',
+                    value: 'jetbrains',
+                    description:
+                        'Generate .idea/ project settings and run configurations, skip VS Code customizations',
+                },
+                {
+                    name: 'None (editor-agnostic)',
+                    value: 'none',
+                    description: 'Remove all editor-specific customizations',
+                },
+            ],
+            default: defaultEditor,
+        })) as EditorProfile;
+
         // Parse selected overlays into categories
         const overlayMap = new Map(config.overlays.map((o) => [o.id, o]));
 
@@ -1114,7 +1140,7 @@ async function runQuestionnaire(
             portOffset,
             target: target ?? defaultAnswers?.target,
             minimal: defaultAnswers?.minimal,
-            editor: defaultAnswers?.editor,
+            editor: editorChoice,
             customizations: defaultAnswers?.customizations,
         };
     } catch (error) {
