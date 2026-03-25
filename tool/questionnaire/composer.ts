@@ -165,6 +165,37 @@ function generateRunConfiguration(lang: string): { filename: string; content: st
 `,
             };
         }
+        case 'mkdocs': {
+            return {
+                filename: 'mkdocs_serve.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MkDocs: mkdocs serve" type="PythonConfigurationType" factoryName="Python">
+    <module name="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+    </envs>
+    <option name="SDK_HOME" value="" />
+    <option name="SDK_NAME" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="-m" />
+    <option name="MODULE_MODE" value="true" />
+    <option name="PARAMETERS" value="mkdocs serve" />
+    <option name="SHOW_COMMAND_LINE" value="false" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
         case 'python': {
             return {
                 filename: 'python_main.xml',
@@ -2027,9 +2058,20 @@ export async function composeDevContainer(
 
     // Add JetBrains-specific devcontainer.json customizations and generate .idea/ artifacts
     if (answers.editor === 'jetbrains') {
-        const languageOverlays = (answers.language ?? []).filter((lang) =>
+        const selectedLanguages = answers.language ?? [];
+        const languageOverlays = selectedLanguages.filter((lang) =>
             JETBRAINS_SUPPORTED_LANGUAGES.has(lang)
         );
+
+        if (languageOverlays.length === 0 && selectedLanguages.length > 0) {
+            const selectedLabel = selectedLanguages.join(', ');
+            console.log(
+                chalk.yellow(
+                    `   ⚠️  No supported JetBrains language overlays selected (selected: ${selectedLabel})`
+                )
+            );
+        }
+
         const backend = getJetBrainsBackend(languageOverlays);
 
         // Add customizations.jetbrains block to devcontainer.json

@@ -990,8 +990,7 @@ async function runQuestionnaire(
         const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
 
         // Question 7: Editor profile
-        const defaultEditor: EditorProfile =
-            (manifest as any)?.editor || defaultAnswers?.editor || 'vscode';
+        const defaultEditor: EditorProfile = manifest?.editor || defaultAnswers?.editor || 'vscode';
         const editorChoice = (await select({
             message: 'Editor profile:',
             choices: [
