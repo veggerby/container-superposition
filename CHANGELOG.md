@@ -27,6 +27,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `overlay-context.ts` — `buildOverlayContextString()` serialises the overlay catalog for LLM context
     - `agent.ts` — Mastra agent wrappers for `extractIntent()` and `extractDiff()`
 - **`@mastra/core` and `zod` dependencies** — added as production dependencies
+- **JetBrains IDE support (`--editor jetbrains`)** — Generates JetBrains project artifacts alongside the devcontainer configuration
+    - Adds `customizations.jetbrains.backend` to `devcontainer.json`, selecting the IDE automatically from the primary language overlay (WebStorm for Node.js/Bun, PyCharm for Python, GoLand for Go, Rider for .NET, RustRover for Rust, IntelliJIdea for Java or generic)
+    - Generates `.idea/.gitignore` at the project root, marking shared settings as VCS-tracked and excluding user-local entries
+    - Generates language-specific run configuration XML files under `.idea/runConfigurations/` (`npm_dev.xml` for `npm run dev` / Node.js, `bun_dev.xml` for Bun, `mkdocs_serve.xml` for `mkdocs serve`, `python_main.xml` for `python main.py`, `go_run.xml` for `go run ./...`, `dotnet_run.xml` for `dotnet run`, `java_run.xml` for a Java Application, `rust_run.xml` for `cargo run`)
+    - Existing `.idea/` files are **never overwritten** — only missing files are written, preserving any user customisations
+    - Falls back to a minimal `.idea/` scaffold with `IntelliJIdea` backend when no language overlay is selected
+    - Editor profile question added to the interactive questionnaire (`? Editor profile: VS Code / JetBrains / None`)
+    - `editor` field persisted to `superposition.json` manifest for reproducible regen
+- **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
+    - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
+    - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly in the devcontainer (client-only, `OLLAMA_SKIP_SERVICE_INSTALL=1`); no need to `docker exec` into the sidecar
+    - **`OLLAMA_HOST` pre-configured** — Set as a `containerEnv` variable to `http://ollama:11434` so `ollama pull / run / list / rm` target the sidecar automatically with no manual setup
+    - **GPU passthrough built-in** — Both the `ollama` sidecar and the `devcontainer` service receive all NVIDIA GPUs via `deploy.resources.reservations.devices`; enables GPU-accelerated tooling (`torch`, `tensorflow`, CUDA CLIs) directly in the dev environment
+    - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild; models pulled inside the devcontainer are also persisted to the host
+    - `OLLAMA_MODELS_PATH` env var overrides the host model path (useful for external drives or Windows users)
+    - `verify.sh` checks CLI is installed, `OLLAMA_HOST` is set, smoke-tests the REST API, and lists available models via the CLI
+    - Suggests `codex`, `claude-code`, and `amp` overlays for AI-assisted workflows
+    - README documents the Ollama CLI UX, GPU prerequisites (NVIDIA Container Toolkit), and links to the `cuda` overlay
+- **Target-aware generation** — `--target` now produces workspace artifacts and setup guidance tailored to the selected deployment environment, not just compatibility warnings
+    - `--target codespaces` → extends `devcontainer.json` with `hostRequirements` (machine-size recommendation based on service count) and writes `CODESPACES.md` with Codespaces-specific setup guidance
+    - `--target gitpod` → generates `.gitpod.yml` at the project root (with tasks and port exposures from selected overlays) and writes `GITPOD.md` with Gitpod badge and usage notes
+    - `--target devpod` → generates `devpod.yaml` at the project root (referencing the devcontainer) and writes `DEVPOD.md` with `devpod up` instructions
+    - `--target local` (explicit or default) → no change to existing behavior; no extra files written
+    - **Stale artifact cleanup** — when switching target between runs (e.g. gitpod → codespaces), artifacts from the previous target (`.gitpod.yml`) are removed automatically before new ones are written
+    - **Manifest records target** — `superposition.json` now includes a `target` field; regeneration reproduces the correct target-aware output without re-prompting
+    - Regen without `--target` inherits the target recorded in the existing manifest, so the correct artifacts are always reproduced
+- **`comfyui` overlay** — ComfyUI node-based image/video generation UI running as a Docker Compose sidecar
+    - Serves the ComfyUI web UI and REST/WebSocket API on port `8188`; auto-forwarded and opened in the browser
+    - Per-subdirectory volume mounts (`checkpoints`, `loras`, `vae`, `controlnet`, `embeddings`, `upscale_models`) share multi-GB model files from the host without re-downloading on rebuild
+    - `COMFYUI_MODELS_PATH` env var overrides the host model root (supports pointing at an existing `~/ComfyUI/models` directory)
+    - `COMFYUI_OUTPUT_PATH` persists generated images/videos to the host across container rebuilds
+    - `verify.sh` HTTP health check on the ComfyUI web UI endpoint
+    - README documents GPU acceleration (NVIDIA CUDA, AMD ROCm), CPU-only fallback, custom node persistence, and the ComfyUI REST/WebSocket API
+    - Suggests `cuda`, `python`, and `ollama` overlays for GPU-accelerated and AI-integrated workflows
+- **`init --project-file`** — `init` can now write a repository-root project config alongside the normal generated output
+    - Reuses an existing `.superposition.yml` or `superposition.yml` when present; otherwise writes `.superposition.yml`
+    - Persists the final selected init configuration, including stack, base image, overlays, output path, target, minimal/editor settings, preset, and preset choices
+
+## [0.1.7] - 2026-03-23
+
+### Added
+
+- **Shared overlay imports** — Overlays can now declare `imports:` in their `overlay.yml` to reuse fragments from `overlays/.shared/`, reducing copy-paste duplication across the overlay catalogue
+    - Supported types: `.json` and `.yaml`/`.yml` fragments are deep-merged into the devcontainer patch; `.env` fragments are appended to `.env.example` with a `# from .shared/…` comment
+    - Imports are applied in declaration order, followed by the overlay's own `devcontainer.patch.json`; the overlay's own patch always wins on key conflict
+    - Path traversal prevention: any import path that does not begin with `.shared/` or resolves outside `overlays/.shared/` is rejected before generation starts
+    - Missing files, unsupported types, and traversal attempts all fail with an error that names the overlay and the bad reference
+    - `explain <overlay>` now shows the overlay's `imports` list under a **Shared Imports** section
+    - `doctor` validates import paths (existence, type, and path traversal) for every overlay
+- **`otel-collector`, `prometheus`, and `jaeger` overlays converted** — These three overlays now import `.shared/otel/instrumentation.env`, so their generated `.env.example` includes the OTEL SDK environment variables without duplication
+- **`overlays/.shared/vscode/recommended-extensions.json` reformatted** — Now a valid devcontainer patch (`customizations.vscode.extensions` array) that can be merged directly when imported
 
 - **`doctor --fix`** — Interactive repair flow for common environment problems
     - Can fix stale manifests, missing devcontainer regeneration, Node.js version mismatches, and Docker daemon issues
@@ -35,6 +86,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Centralises apt locking, architecture detection, binary installation helpers, npm environment setup, and quieter script output
     - Eliminates apt-lock races between parallel `postCreateCommand` scripts and reduces boilerplate across overlay setup scripts
 - **`all` overlay** — Meta-overlay that expands to all non-preset overlays; useful for integration testing; hidden from the interactive questionnaire
+- **`cuda` overlay** — NVIDIA CUDA GPU passthrough for containerized ML/inference workloads
+    - Injects `"runArgs": ["--gpus=all"]` and `"hostRequirements": {"gpu": true}` into devcontainer.json
+    - `setup.sh` probes `nvidia-smi` on container start and prints step-by-step remediation guidance when GPU access is unavailable
+    - `verify.sh` asserts `nvidia-smi` exits 0 for `doctor` checks
+    - Conflicts with `rocm` (the companion AMD GPU overlay)
+- **`rocm` overlay** — AMD ROCm GPU passthrough for containerized ML/inference workloads
+    - Injects `--device=/dev/kfd`, `--device=/dev/dri`, `--group-add=video`, and `--group-add=render` into `runArgs`
+    - `setup.sh` probes `rocm-smi` / `rocminfo` on container start and prints actionable host-setup guidance when GPU access is unavailable
+    - `verify.sh` asserts `rocm-smi` exits 0 for `doctor` checks
+    - Conflicts with `cuda` (bidirectional); treated as a separate supported profile, not a CUDA drop-in replacement
 - **`devcontainer-cli` overlay** — Installs `@devcontainers/cli` globally for building and managing devcontainers from the terminal
 - **Port conflict auto-resolution** — `init` and `regen` now detect host-port collisions across selected overlays and remap conflicting ports automatically, with a before/after warning in the output
 
@@ -422,7 +483,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/veggerby/container-superposition/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/veggerby/container-superposition/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/veggerby/container-superposition/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/veggerby/container-superposition/compare/v0.1.3...v0.1.4

@@ -186,6 +186,9 @@ export interface DevContainer {
             extensions?: string[];
             settings?: Record<string, any>;
         };
+        jetbrains?: {
+            backend: string;
+        };
     };
     forwardPorts?: number[];
     portsAttributes?: Record<string, PortAttributes>;
@@ -245,6 +248,7 @@ export interface OverlayMetadata {
     ports?: (number | PortMetadata)[]; // Support both legacy and rich format
     order?: number;
     imports?: string[]; // Shared files to import from overlays/.shared/
+    compose_imports?: string[]; // Shared docker-compose fragments to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
     hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
 }
@@ -359,6 +363,9 @@ export interface SuperpositionManifest {
         reason: string;
     };
     containerName?: string; // Container/project name from devcontainer.json
+    target?: DeploymentTarget; // Deployment target used during generation
+    minimal?: boolean; // Whether minimal mode was used during generation
+    editor?: EditorProfile; // Editor profile used during generation
     customizations?: {
         enabled: boolean;
         location: string;
@@ -379,6 +386,8 @@ export interface CustomizationConfig {
     files?: Array<{
         source: string;
         destination: string;
+        /** Pre-loaded file content; avoids re-reading from disk when available (e.g. when materialized from a project config). */
+        content?: string;
     }>;
 }
 

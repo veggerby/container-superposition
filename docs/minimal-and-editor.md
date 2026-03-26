@@ -86,7 +86,7 @@ container-superposition init --editor vscode
 # None - CLI-only, no editor customizations
 container-superposition init --editor none
 
-# JetBrains - Skip VS Code customizations (reserved for future JetBrains support)
+# JetBrains - Generate .idea/ project settings and run configurations
 container-superposition init --editor jetbrains
 ```
 
@@ -126,14 +126,60 @@ Removes all editor customizations. Useful for:
 
 #### jetbrains
 
-Removes VS Code customizations. Reserved for future JetBrains-specific settings (Gateway, Fleet, etc.).
+Generates JetBrains IDE project artifacts and sets the appropriate IDE backend in
+`devcontainer.json`. VS Code customizations are removed.
 
 ```json
 {
-    // No vscode customizations
-    // Future: JetBrains-specific settings could be added here
+    "customizations": {
+        "jetbrains": {
+            "backend": "WebStorm"
+        }
+    }
 }
 ```
+
+The `backend` value is automatically selected based on the primary language overlay:
+
+| Language overlay          | JetBrains IDE                     |
+| ------------------------- | --------------------------------- |
+| `nodejs` / `bun`          | `WebStorm`                        |
+| `python` / `mkdocs`       | `PyCharm`                         |
+| `go`                      | `GoLand`                          |
+| `dotnet`                  | `Rider`                           |
+| `java`                    | `IntelliJIdea`                    |
+| `rust`                    | `RustRover`                       |
+| none / multiple / unknown | `IntelliJIdea` (generic fallback) |
+
+##### Generated artifacts
+
+In addition to the `devcontainer.json` update, enabling JetBrains support generates the
+following files in the **project root** (the parent of `.devcontainer/`):
+
+```
+.idea/
+  .gitignore                        # shared workspace entries committed to VCS
+  runConfigurations/
+    npm_dev.xml                     # Node.js — npm run dev
+    python_main.xml                 # Python — python main.py
+    go_run.xml                      # Go — go run ./...
+    dotnet_run.xml                  # .NET — dotnet run
+    java_run.xml                    # Java — Application run
+    rust_run.xml                    # Rust — cargo run
+```
+
+Only run configuration files matching the selected language overlays are created.
+
+##### Existing `.idea/` directory
+
+If `.idea/` already exists (e.g., from a previous generation or user customisation),
+existing files are **never overwritten**. Only files that are missing are written.
+
+##### Regenerating with a different editor profile
+
+If you later regenerate with `--editor vscode` after a JetBrains generation, the `.idea/`
+directory is **not removed** — it may contain user-created configurations. Switch back
+to `--editor jetbrains` if you want to add new run configurations.
 
 ### When to Use Editor Profiles
 
@@ -187,7 +233,7 @@ container-superposition regen --minimal
 
 # Step 3: Or regenerate for a different editor
 container-superposition regen --editor jetbrains
-# Removes VS Code customizations
+# Adds JetBrains customizations and generates .idea/ artifacts
 
 # Step 4: Or both together
 container-superposition regen --minimal --editor none
@@ -236,6 +282,20 @@ container-superposition init \
 ```
 
 **Result:** Lean Codespaces environment with essential tools and VS Code extensions.
+
+### JetBrains IDE Setup
+
+```bash
+container-superposition init \
+  --editor jetbrains \
+  --stack compose \
+  --language nodejs \
+  --database postgres
+```
+
+**Result:** Node.js + PostgreSQL workspace with `.idea/` project settings, a `WebStorm`
+backend in `devcontainer.json`, and an `npm run dev` run configuration ready to use. No
+VS Code extensions included.
 
 ## Manifest Support
 

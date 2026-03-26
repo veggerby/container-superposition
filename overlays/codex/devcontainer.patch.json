@@ -1,3 +1,9 @@
 {
-    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "bubblewrap",
+            "apk": "bubblewrap"
+        }
+    }
 }

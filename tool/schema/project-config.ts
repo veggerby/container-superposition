@@ -509,6 +509,75 @@ export function buildAnswersFromProjectConfig(
     };
 }
 
+function buildProjectConfigCustomizationsFromAnswers(
+    customizations?: CustomizationConfig
+): ProjectConfigCustomizationsInput | undefined {
+    if (!customizations) {
+        return undefined;
+    }
+
+    const files = customizations.files?.map((entry) => {
+        // Prefer already-available content (e.g. when materialized from an existing project config)
+        // to avoid re-reading from disk via a path that may not exist on the current filesystem.
+        const content =
+            entry.content !== undefined ? entry.content : fs.readFileSync(entry.source, 'utf8');
+
+        return {
+            path: entry.destination,
+            content,
+        };
+    });
+
+    const input: ProjectConfigCustomizationsInput = {
+        devcontainerPatch: customizations.devcontainerPatch,
+        dockerComposePatch: customizations.dockerComposePatch,
+        environment: customizations.environmentVars,
+        scripts: customizations.scripts,
+        files,
+    };
+
+    const hasValues = Object.values(input).some(
+        (entry) =>
+            entry !== undefined &&
+            (!Array.isArray(entry) || entry.length > 0) &&
+            (!(typeof entry === 'object' && !Array.isArray(entry)) || Object.keys(entry).length > 0)
+    );
+
+    return hasValues ? input : undefined;
+}
+
+export function buildProjectConfigSelectionFromAnswers(
+    answers: QuestionnaireAnswers
+): ProjectConfigSelection {
+    const overlays = [
+        ...(answers.language ?? []),
+        ...(answers.database ?? []),
+        ...(answers.observability ?? []),
+        ...(answers.cloudTools ?? []),
+        ...(answers.devTools ?? []),
+    ] as OverlayId[];
+
+    if (answers.playwright && !overlays.includes('playwright')) {
+        overlays.push('playwright');
+    }
+
+    return {
+        stack: answers.stack,
+        baseImage: answers.baseImage,
+        customImage: answers.customImage,
+        containerName: answers.containerName,
+        preset: answers.preset,
+        presetChoices: answers.presetChoices,
+        overlays: overlays.length > 0 ? [...new Set(overlays)] : undefined,
+        outputPath: answers.outputPath,
+        portOffset: answers.portOffset,
+        target: answers.target,
+        minimal: answers.minimal,
+        editor: answers.editor,
+        customizations: buildProjectConfigCustomizationsFromAnswers(answers.customizations),
+    };
+}
+
 function materializeCustomizationConfig(
     input: ProjectConfigCustomizationsInput
 ): CustomizationConfig {
@@ -520,6 +589,7 @@ function materializeCustomizationConfig(
         files: input.files?.map((entry) => ({
             source: entry.path,
             destination: entry.path,
+            content: entry.content,
         })),
     };
 }

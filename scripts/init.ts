@@ -23,6 +23,7 @@ import type {
     OverlaysConfig,
     OverlayMetadata,
     DeploymentTarget,
+    EditorProfile,
     PresetParameter,
     PresetParameterOption,
     PresetGlueConfig,
@@ -50,7 +51,10 @@ import { printSummary } from '../tool/utils/summary.js';
 import { appendGitignoreSection } from '../tool/utils/gitignore.js';
 import {
     buildAnswersFromProjectConfig,
+    buildProjectConfigSelectionFromAnswers,
+    findProjectConfig,
     loadProjectConfig,
+    writeProjectConfig,
     writeProjectConfigCustomizations,
 } from '../tool/schema/project-config.js';
 import {
@@ -986,6 +990,31 @@ async function runQuestionnaire(
         });
         const portOffset = portOffsetInput ? parseInt(portOffsetInput, 10) : undefined;
 
+        // Question 7: Editor profile
+        const defaultEditor: EditorProfile = manifest?.editor || defaultAnswers?.editor || 'vscode';
+        const editorChoice = (await select({
+            message: 'Editor profile:',
+            choices: [
+                {
+                    name: 'VS Code (default)',
+                    value: 'vscode',
+                    description: 'Include VS Code extensions and settings',
+                },
+                {
+                    name: 'JetBrains (IntelliJ IDEA, GoLand, PyCharm, Rider…)',
+                    value: 'jetbrains',
+                    description:
+                        'Generate .idea/ project settings and run configurations, skip VS Code customizations',
+                },
+                {
+                    name: 'None (editor-agnostic)',
+                    value: 'none',
+                    description: 'Remove all editor-specific customizations',
+                },
+            ],
+            default: defaultEditor,
+        })) as EditorProfile;
+
         // Parse selected overlays into categories
         const overlayMap = new Map(config.overlays.map((o) => [o.id, o]));
 
@@ -1112,7 +1141,7 @@ async function runQuestionnaire(
             portOffset,
             target: target ?? defaultAnswers?.target,
             minimal: defaultAnswers?.minimal,
-            editor: defaultAnswers?.editor,
+            editor: editorChoice,
             customizations: defaultAnswers?.customizations,
         };
     } catch (error) {
@@ -1287,6 +1316,7 @@ async function parseCliArgs(): Promise<{
     yes?: boolean;
     noInteractive?: boolean;
     writeManifestOnly?: boolean;
+    projectFile?: boolean;
 } | null> {
     const program = new Command();
 
@@ -1345,7 +1375,7 @@ async function parseCliArgs(): Promise<{
         )
         .option(
             '--target <environment>',
-            'Deployment target: local, codespaces, gitpod, devpod (optimizes for environment)',
+            'Deployment target: local (default), codespaces (adds hostRequirements + CODESPACES.md), gitpod (adds .gitpod.yml + GITPOD.md), devpod (adds devpod.yaml + DEVPOD.md)',
             'local'
         )
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
@@ -1354,6 +1384,10 @@ async function parseCliArgs(): Promise<{
         .option(
             '--write-manifest-only',
             'Generate only superposition.json manifest without creating .devcontainer/ files'
+        )
+        .option(
+            '--project-file',
+            'Also write a repository-root project config (.superposition.yml or existing project file)'
         )
         .option('--preset <id>', 'Start from a preset (e.g., web-api, microservice)')
         .option(
@@ -1732,6 +1766,7 @@ async function parseCliArgs(): Promise<{
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
         writeManifestOnly: initOptions.writeManifestOnly === true,
+        projectFile: initOptions.projectFile === true,
     };
 }
 
@@ -1756,6 +1791,22 @@ async function main() {
             }
 
             process.chdir(resolvedProjectRoot);
+        }
+
+        let projectFileOutputPath: string | undefined;
+        if (cliArgs?.projectFile) {
+            const discoveredProjectFiles = findProjectConfig(process.cwd());
+            if (discoveredProjectFiles.length > 1) {
+                console.error(
+                    chalk.red(
+                        '✗ Found both supported project config files in the repository root. Keep only one before using --project-file.'
+                    )
+                );
+                process.exit(1);
+            }
+
+            projectFileOutputPath =
+                discoveredProjectFiles[0]?.path ?? path.join(process.cwd(), '.superposition.yml');
         }
 
         let projectConfig = undefined;
@@ -2116,6 +2167,26 @@ async function main() {
                 )
             );
             throw error;
+        }
+
+        // Write project config separately so that a failure here does not mask a
+        // successful devcontainer/manifest generation above.
+        if (projectFileOutputPath) {
+            try {
+                const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
+                writeProjectConfig(projectFileOutputPath, projectSelection);
+                console.log(
+                    chalk.green(
+                        `✓ Project config written: ${path.relative(process.cwd(), projectFileOutputPath)}`
+                    )
+                );
+            } catch (projectFileError) {
+                console.error(
+                    chalk.yellow(
+                        `⚠ Failed to write project config: ${projectFileError instanceof Error ? projectFileError.message : String(projectFileError)}`
+                    )
+                );
+            }
         }
     } catch (error) {
         console.error(

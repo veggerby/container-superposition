@@ -20,3 +20,5 @@ ports:
       path: /
       onAutoForward: openBrowser
 order: 1
+imports:
+    - .shared/otel/instrumentation.env

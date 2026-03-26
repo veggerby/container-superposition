@@ -13,6 +13,7 @@ import type {
     PresetGlueConfig,
     CustomizationConfig,
     PortsDocumentation,
+    DeploymentTarget,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import {
@@ -35,6 +36,12 @@ import { generatePortsDocumentation } from '../utils/port-utils.js';
 import { generateServicesMarkdown, generateEnvLocalExample } from '../utils/services-export.js';
 import type { GenerationSummary } from '../utils/summary.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
+import {
+    getTargetRule,
+    resolveTargetFilePath,
+    removeStaleTargetArtifacts,
+} from '../schema/target-rules.js';
+import type { TargetRuleContext } from '../schema/target-rules.js';
 import {
     detectWarnings,
     generateTips,
@@ -62,6 +69,313 @@ const REPO_ROOT =
     ) ?? REPO_ROOT_CANDIDATES[0];
 
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
+
+// ─── JetBrains support ────────────────────────────────────────────────────
+
+/**
+ * Language overlays that have a defined JetBrains backend mapping.
+ * Used both in getJetBrainsBackend() and in the language filter for
+ * generateJetBrainsArtifacts() — kept in one place for consistency.
+ */
+const JETBRAINS_SUPPORTED_LANGUAGES = new Set([
+    'nodejs',
+    'bun',
+    'python',
+    'mkdocs',
+    'go',
+    'dotnet',
+    'java',
+    'rust',
+]);
+
+/**
+ * Map a language overlay ID to the appropriate JetBrains backend identifier.
+ * Falls back to 'IntelliJIdea' when the language is unknown or unspecified.
+ *
+ * When multiple language overlays are selected, the first match in the
+ * provided array determines the backend; the array order reflects the user's
+ * selection order.
+ */
+function getJetBrainsBackend(languageOverlays: string[]): string {
+    for (const lang of languageOverlays) {
+        switch (lang) {
+            case 'nodejs':
+            case 'bun':
+                return 'WebStorm';
+            case 'python':
+            case 'mkdocs':
+                return 'PyCharm';
+            case 'go':
+                return 'GoLand';
+            case 'dotnet':
+                return 'Rider';
+            case 'rust':
+                return 'RustRover';
+            case 'java':
+                return 'IntelliJIdea';
+        }
+    }
+    return 'IntelliJIdea';
+}
+
+/**
+ * Generate the content of .idea/.gitignore for a JetBrains project.
+ * Marks shared settings (run configurations, code style) as tracked and
+ * excludes user-local entries (workspace.xml, shelf/).
+ */
+function generateIdeaGitignore(): string {
+    return `# Default ignored files
+/shelf/
+/workspace.xml
+
+# Editor-based HTTP Client requests
+/httpRequests/
+
+# Datasource local storage
+/dataSources/
+/dataSources.local.xml
+`;
+}
+
+/**
+ * Generate a JetBrains run configuration XML for the given language overlay.
+ * Returns an object with the filename and XML content, or null when no
+ * configuration is defined for the supplied language.
+ */
+function generateRunConfiguration(lang: string): { filename: string; content: string } | null {
+    switch (lang) {
+        case 'nodejs':
+        case 'bun': {
+            const manager = lang === 'bun' ? 'bun' : 'npm';
+            const runScript = lang === 'bun' ? 'bun run dev' : 'npm run dev';
+            return {
+                filename: `${manager}_dev.xml`,
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="${runScript}" type="js.build_tools.npm" factoryName="npm">
+    <package-json value="$PROJECT_DIR$/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="dev" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'mkdocs': {
+            return {
+                filename: 'mkdocs_serve.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MkDocs: mkdocs serve" type="PythonConfigurationType" factoryName="Python">
+    <module name="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+    </envs>
+    <option name="SDK_HOME" value="" />
+    <option name="SDK_NAME" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="-m" />
+    <option name="MODULE_MODE" value="true" />
+    <option name="PARAMETERS" value="mkdocs serve" />
+    <option name="SHOW_COMMAND_LINE" value="false" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'python': {
+            return {
+                filename: 'python_main.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Python: main.py" type="PythonConfigurationType" factoryName="Python">
+    <module name="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+    </envs>
+    <option name="SDK_HOME" value="" />
+    <option name="SDK_NAME" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+    <option name="PARAMETERS" value="" />
+    <option name="SHOW_COMMAND_LINE" value="false" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="MODULE_MODE" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'go': {
+            return {
+                filename: 'go_run.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Go: run ./..." type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="" />
+    <kind value="PACKAGE" />
+    <package value="./..." />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'dotnet': {
+            return {
+                filename: 'dotnet_run.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name=".NET: dotnet run" type="DotNetRunConfiguration" factoryName="Run">
+    <option name="EXE_PATH" value="" />
+    <option name="PROGRAM_PARAMETERS" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="PASS_PARENT_ENVS" value="1" />
+    <option name="USE_EXTERNAL_CONSOLE" value="0" />
+    <option name="RUNTIME_ARGUMENTS" value="" />
+    <option name="PROJECT_PATH" value="$PROJECT_DIR$" />
+    <option name="TARGET_FRAMEWORK_ID" value="" />
+    <option name="RUNTIME_ID" value="" />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'java': {
+            return {
+                filename: 'java_run.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Java: Application" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="Main" />
+    <module name="" />
+    <option name="VM_PARAMETERS" value="" />
+    <option name="PROGRAM_PARAMETERS" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+    <option name="ENABLE_SWING_INSPECTOR" value="false" />
+    <option name="ENV_VARIABLES" />
+    <option name="PASS_PARENT_ENVS" value="true" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
+`,
+            };
+        }
+        case 'rust': {
+            return {
+                filename: 'rust_run.xml',
+                content: `<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Rust: cargo run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="run" />
+    <option name="workingDirectory" value="$PROJECT_DIR$" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>
+`,
+            };
+        }
+        default:
+            return null;
+    }
+}
+
+/**
+ * Generate JetBrains IDE artifacts (.idea/.gitignore and run configurations)
+ * into the project root directory (parent of outputPath).
+ *
+ * Returns a list of project-root-relative paths that were written so the
+ * caller can register them and report what was generated.
+ */
+function generateJetBrainsArtifacts(projectRoot: string, languageOverlays: string[]): string[] {
+    const ideaDir = path.join(projectRoot, '.idea');
+    const runConfigsDir = path.join(ideaDir, 'runConfigurations');
+
+    const written: string[] = [];
+
+    // Ensure directories exist
+    if (!fs.existsSync(ideaDir)) {
+        fs.mkdirSync(ideaDir, { recursive: true });
+    }
+    if (!fs.existsSync(runConfigsDir)) {
+        fs.mkdirSync(runConfigsDir, { recursive: true });
+    }
+
+    // Write .idea/.gitignore (only if not already present)
+    const gitignorePath = path.join(ideaDir, '.gitignore');
+    if (!fs.existsSync(gitignorePath)) {
+        fs.writeFileSync(gitignorePath, generateIdeaGitignore());
+        written.push('.idea/.gitignore');
+    }
+
+    // Write run configurations for each recognised language overlay
+    const generated: string[] = [];
+    const skipped: string[] = [];
+
+    for (const lang of languageOverlays) {
+        const runConfig = generateRunConfiguration(lang);
+        if (!runConfig) continue;
+
+        const xmlPath = path.join(runConfigsDir, runConfig.filename);
+        if (!fs.existsSync(xmlPath)) {
+            fs.writeFileSync(xmlPath, runConfig.content);
+            written.push(`.idea/runConfigurations/${runConfig.filename}`);
+            generated.push(lang);
+        } else {
+            skipped.push(runConfig.filename);
+        }
+    }
+
+    if (generated.length > 0) {
+        console.log(
+            chalk.dim(`   💡 Generated JetBrains run configuration(s) for: ${generated.join(', ')}`)
+        );
+    }
+    if (skipped.length > 0) {
+        console.log(
+            chalk.dim(
+                `   ⏭️  Skipped existing JetBrains run configuration(s): ${skipped.join(', ')}`
+            )
+        );
+    }
+    if (languageOverlays.length === 0) {
+        console.log(
+            chalk.dim(
+                `   ℹ️  No language overlays selected — no JetBrains run configurations generated`
+            )
+        );
+    }
+
+    return written;
+}
+
+// ─── End JetBrains support ────────────────────────────────────────────────
 
 /**
  * Merge packages from apt-get-packages feature
@@ -346,7 +660,8 @@ function generateManifest(
     answers: QuestionnaireAnswers,
     overlays: string[],
     autoResolved: { added: string[]; reason: string },
-    containerName?: string
+    containerName?: string,
+    effectiveTarget?: DeploymentTarget
 ): void {
     const toolVersion = getToolVersion();
 
@@ -365,7 +680,15 @@ function generateManifest(
         preset: answers.preset,
         presetChoices: answers.presetChoices,
         containerName,
+        target: effectiveTarget ?? answers.target ?? 'local',
     };
+
+    if (answers.minimal) {
+        manifest.minimal = true;
+    }
+    if (answers.editor && answers.editor !== 'vscode') {
+        manifest.editor = answers.editor;
+    }
 
     if (autoResolved.added.length > 0) {
         manifest.autoResolved = autoResolved;
@@ -397,6 +720,27 @@ function generateManifest(
 }
 
 /**
+ * Validate that an import path is within the allowed .shared/ directory (path traversal prevention).
+ * Returns an error message if invalid, or null if the path is safe.
+ */
+function validateImportPath(importPath: string, overlaysDir: string): string | null {
+    // FR-006: All imports must start with '.shared/'
+    if (!importPath.startsWith('.shared/')) {
+        return `Import path must begin with '.shared/': ${importPath}`;
+    }
+
+    // Normalize both the resolved path and the allowed base to detect traversal
+    const sharedBase = path.resolve(overlaysDir, '.shared');
+    const resolved = path.resolve(overlaysDir, importPath);
+
+    if (!resolved.startsWith(sharedBase + path.sep) && resolved !== sharedBase) {
+        return `Import path resolves outside '.shared/' directory (path traversal rejected): ${importPath}`;
+    }
+
+    return null;
+}
+
+/**
  * Load and resolve imports from shared files for an overlay
  */
 function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevContainer {
@@ -422,17 +766,23 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
             return importedConfig;
         }
 
-        // Process each import
+        // Process each import in declaration order
         for (const importPath of manifest.imports) {
+            // FR-006: Reject path traversal attempts
+            const traversalError = validateImportPath(importPath, overlaysDir);
+            if (traversalError) {
+                throw new Error(
+                    `Path traversal rejected in overlay '${overlayName}': ${traversalError}`
+                );
+            }
+
             const fullImportPath = path.join(overlaysDir, importPath);
 
             if (!fs.existsSync(fullImportPath)) {
-                console.warn(
-                    chalk.yellow(
-                        `⚠️  Import not found: ${importPath} (for overlay: ${overlayName})`
-                    )
+                // FR-007: Missing imports are errors, not warnings
+                throw new Error(
+                    `Import not found: '${importPath}' (referenced by overlay: ${overlayName})`
                 );
-                continue;
             }
 
             // Determine file type and merge appropriately
@@ -440,23 +790,39 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
 
             if (ext === '.json') {
                 // JSON files are merged as devcontainer patches
+                console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
                 const importedPatch = loadJson<DevContainer>(fullImportPath);
                 importedConfig = deepMerge(importedConfig, importedPatch);
             } else if (ext === '.yaml' || ext === '.yml') {
                 // YAML files are loaded and merged as devcontainer patches
                 try {
+                    console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
                     const yamlContent = fs.readFileSync(fullImportPath, 'utf8');
                     const importedPatch = yaml.load(yamlContent) as DevContainer;
                     if (importedPatch && typeof importedPatch === 'object') {
                         importedConfig = deepMerge(importedConfig, importedPatch);
                     }
                 } catch (error) {
-                    console.warn(chalk.yellow(`⚠️  Failed to parse YAML import: ${importPath}`));
+                    throw new Error(
+                        `Failed to parse YAML import '${importPath}' (overlay: ${overlayName}): ${error instanceof Error ? error.message : String(error)}`
+                    );
                 }
+            } else if (ext === '.env') {
+                // .env files are handled separately during env merging — skip here
+                console.log(chalk.dim(`   📎 Shared .env import noted: ${importPath}`));
+            } else {
+                // FR-007: Unsupported file types are errors
+                throw new Error(
+                    `Unsupported import type '${ext}' for '${importPath}' (overlay: ${overlayName}). Supported types: .json, .yaml, .yml, .env`
+                );
             }
-            // .env files are handled separately during env merging
         }
     } catch (error) {
+        if (error instanceof Error) {
+            // Fail fast on any error while loading imports so configuration issues are not silently ignored
+            throw error;
+        }
+        // Non-Error throwables are unexpected; log a warning but continue
         console.warn(chalk.yellow(`⚠️  Failed to load imports for overlay: ${overlayName}`));
     }
 
@@ -698,20 +1064,38 @@ function mergeEnvExamples(
 
                 if (manifest.imports && Array.isArray(manifest.imports)) {
                     for (const importPath of manifest.imports) {
+                        // FR-006: Reject path traversal
+                        const traversalError = validateImportPath(importPath, overlaysDir);
+                        if (traversalError) {
+                            throw new Error(
+                                `Path traversal rejected in overlay '${overlay}': ${traversalError}`
+                            );
+                        }
+
                         const ext = path.extname(importPath).toLowerCase();
                         if (ext === '.env') {
                             const fullImportPath = path.join(overlaysDir, importPath);
                             if (fs.existsSync(fullImportPath)) {
+                                console.log(
+                                    chalk.dim(`   📎 Merging shared .env import: ${importPath}`)
+                                );
                                 const content = fs.readFileSync(fullImportPath, 'utf-8').trim();
                                 if (content) {
-                                    envSections.push(`# Imported from ${importPath}\n${content}`);
+                                    envSections.push(`# from ${importPath}\n${content}`);
                                 }
+                            } else {
+                                throw new Error(
+                                    `Import not found: '${importPath}' (referenced by overlay: ${overlay})`
+                                );
                             }
                         }
                     }
                 }
             } catch (error) {
-                // Ignore errors reading manifest
+                if (error instanceof Error) {
+                    // Fail fast on import errors so .env import violations are not silently ignored
+                    throw error;
+                }
             }
         }
 
@@ -1001,8 +1385,51 @@ function mergeDockerComposeFiles(
         composeFiles.push(baseComposePath);
     }
 
-    // Add overlay docker-compose files
+    // Add overlay docker-compose files, interleaving any compose_imports before each overlay's own file
     for (const overlay of overlays) {
+        // First load any compose_imports for this overlay (shared fragments applied before own file)
+        const manifestPath = path.join(overlaysDir, overlay, 'overlay.yml');
+        if (fs.existsSync(manifestPath)) {
+            try {
+                const manifestContent = fs.readFileSync(manifestPath, 'utf8');
+                const manifest = yaml.load(manifestContent) as any;
+                if (manifest.compose_imports && Array.isArray(manifest.compose_imports)) {
+                    for (const importPath of manifest.compose_imports as string[]) {
+                        const traversalError = validateImportPath(importPath, overlaysDir);
+                        if (traversalError) {
+                            throw new Error(
+                                `compose_import path traversal rejected in overlay '${overlay}': ${traversalError}`
+                            );
+                        }
+                        const fullImportPath = path.join(overlaysDir, importPath);
+                        if (!fs.existsSync(fullImportPath)) {
+                            throw new Error(
+                                `compose_import not found: '${importPath}' (referenced by overlay: ${overlay})`
+                            );
+                        }
+                        const ext = path.extname(importPath).toLowerCase();
+                        if (ext !== '.yml' && ext !== '.yaml') {
+                            throw new Error(
+                                `compose_import must be a .yml or .yaml file: '${importPath}' (overlay: ${overlay})`
+                            );
+                        }
+                        console.log(
+                            chalk.dim(`   📎 Applying shared compose fragment: ${importPath}`)
+                        );
+                        composeFiles.push(fullImportPath);
+                    }
+                }
+            } catch (error) {
+                if (error instanceof Error) {
+                    throw error;
+                }
+                // Non-Error throwables are unexpected; wrap and re-throw so compose_imports failures always fail fast
+                throw new Error(
+                    `Unexpected error loading compose_imports for overlay '${overlay}': ${String(error)}`
+                );
+            }
+        }
+
         const overlayComposePath = path.join(overlaysDir, overlay, 'docker-compose.yml');
         if (fs.existsSync(overlayComposePath)) {
             composeFiles.push(overlayComposePath);
@@ -1524,10 +1951,39 @@ export async function composeDevContainer(
 
     // 5. Create output directory and file registry for cleanup
     const outputPath = path.resolve(answers.outputPath);
+    const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
 
     if (!fs.existsSync(outputPath)) {
         fs.mkdirSync(outputPath, { recursive: true });
+    }
+
+    // 5a. Remove stale project-root artifacts from a previous target run
+    const manifestPath_existing = path.join(outputPath, 'superposition.json');
+    let manifestTarget: DeploymentTarget | undefined;
+    if (fs.existsSync(manifestPath_existing)) {
+        try {
+            const existingManifest = JSON.parse(
+                fs.readFileSync(manifestPath_existing, 'utf-8')
+            ) as { target?: DeploymentTarget };
+            manifestTarget = existingManifest.target;
+        } catch {
+            // If manifest is unreadable, skip stale cleanup gracefully
+        }
+    }
+
+    // When answers.target is undefined (e.g. regen without --target), fall back to the
+    // target recorded in the existing manifest so the correct artifacts are reproduced.
+    const activeTarget: DeploymentTarget = answers.target ?? manifestTarget ?? 'local';
+    const previousTarget: DeploymentTarget = manifestTarget ?? 'local';
+
+    if (previousTarget !== activeTarget) {
+        removeStaleTargetArtifacts(previousTarget, activeTarget, projectRoot);
+        console.log(
+            chalk.dim(
+                `   🧹 Removed stale target artifacts for previous target '${previousTarget}'`
+            )
+        );
     }
 
     // 6. Apply overlays
@@ -1630,24 +2086,69 @@ export async function composeDevContainer(
     if (answers.editor === 'none' || answers.editor === 'jetbrains') {
         // Remove VS Code customizations
         if (config.customizations?.vscode) {
-            if (answers.editor === 'none') {
-                delete config.customizations.vscode;
-                console.log(
-                    chalk.dim(`   🎨 Editor profile 'none': Removed VS Code customizations`)
-                );
-            } else if (answers.editor === 'jetbrains') {
-                // For JetBrains, remove VS Code customizations (future: could add JetBrains-specific settings)
-                delete config.customizations.vscode;
-                console.log(
-                    chalk.dim(`   🎨 Editor profile 'jetbrains': Removed VS Code customizations`)
-                );
-            }
+            delete config.customizations.vscode;
+            const profileLabel = answers.editor === 'none' ? 'none' : 'jetbrains';
+            console.log(
+                chalk.dim(`   🎨 Editor profile '${profileLabel}': Removed VS Code customizations`)
+            );
 
             // Clean up empty customizations object
             if (config.customizations && Object.keys(config.customizations).length === 0) {
                 delete config.customizations;
             }
         }
+    }
+
+    // Add JetBrains-specific devcontainer.json customizations and generate .idea/ artifacts
+    if (answers.editor === 'jetbrains') {
+        const selectedLanguages = answers.language ?? [];
+        const languageOverlays = selectedLanguages.filter((lang) =>
+            JETBRAINS_SUPPORTED_LANGUAGES.has(lang)
+        );
+
+        if (languageOverlays.length === 0 && selectedLanguages.length > 0) {
+            const selectedLabel = selectedLanguages.join(', ');
+            console.log(
+                chalk.yellow(
+                    `   ⚠️  No supported JetBrains language overlays selected (selected: ${selectedLabel})`
+                )
+            );
+        }
+
+        const backend = getJetBrainsBackend(languageOverlays);
+
+        // Add customizations.jetbrains block to devcontainer.json
+        if (!config.customizations) {
+            config.customizations = {};
+        }
+        config.customizations.jetbrains = { backend };
+        console.log(chalk.dim(`   🧠 Editor profile 'jetbrains': Set backend to '${backend}'`));
+
+        // Generate .idea/ artifacts in the project root
+        console.log(chalk.cyan('\n💡 Generating JetBrains project artifacts...'));
+        const jetbrainsFiles = generateJetBrainsArtifacts(projectRoot, languageOverlays);
+        for (const relPath of jetbrainsFiles) {
+            console.log(chalk.dim(`   📄 Created ${relPath} at project root`));
+        }
+    }
+
+    // 11b. Apply target-specific devcontainer.json patch
+    const targetRule = getTargetRule(activeTarget);
+    const overlayMetadataMapForTarget = new Map<string, OverlayMetadata>(
+        allOverlayDefs.map((o) => [o.id, o])
+    );
+    const targetCtx: TargetRuleContext = {
+        overlays,
+        overlayMetadata: overlayMetadataMapForTarget,
+        portOffset: answers.portOffset ?? 0,
+        stack: answers.stack,
+        outputPath,
+        projectRoot,
+    };
+    const targetPatch = targetRule.devcontainerPatch(targetCtx);
+    if (Object.keys(targetPatch).length > 0) {
+        config = deepMerge(config, targetPatch) as DevContainer;
+        console.log(chalk.dim(`   🎯 Applied ${activeTarget} target patch to devcontainer.json`));
     }
 
     // 12. Write merged devcontainer.json
@@ -1667,7 +2168,8 @@ export async function composeDevContainer(
         answers,
         overlays,
         autoResolved,
-        answers.containerName || config.name
+        answers.containerName || config.name,
+        activeTarget
     );
     fileRegistry.addFile('superposition.json');
 
@@ -1802,6 +2304,24 @@ export async function composeDevContainer(
         fs.writeFileSync(envLocalPath, envLocalContent);
         fileRegistry.addFile('env.local.example');
         console.log(chalk.dim(`   📄 Created env.local.example with optional overrides`));
+    }
+
+    // 17d. Generate target-specific workspace artifacts and guidance
+    if (activeTarget !== 'local') {
+        console.log(chalk.cyan(`\n🎯 Generating ${activeTarget} target artifacts...`));
+        const targetFiles = targetRule.generateFiles(targetCtx);
+        for (const [key, content] of targetFiles) {
+            const absPath = resolveTargetFilePath(key, outputPath, projectRoot);
+            fs.writeFileSync(absPath, content);
+            if (key.startsWith('../')) {
+                // Project-root file: log but do NOT add to fileRegistry
+                // (fileRegistry only tracks outputPath-relative files)
+                console.log(chalk.dim(`   📄 Created ${path.basename(absPath)} at project root`));
+            } else {
+                fileRegistry.addFile(key);
+                console.log(chalk.dim(`   📄 Created ${key} in .devcontainer/`));
+            }
+        }
     }
 
     // 18. Clean up stale files from previous runs (preserves superposition.json and .env)

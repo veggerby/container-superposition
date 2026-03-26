@@ -5,6 +5,7 @@ Adds OpenAI Codex CLI with a persistent `.codex` folder for configurations.
 ## Features
 
 - **OpenAI Codex CLI** - AI-powered code generation and assistance from the command line
+- **Bubblewrap** - Linux sandbox dependency installed as `bwrap` for Codex
 - **Codex directory** - Creates `$HOME/.codex` for persistent configurations
 
 ## What is OpenAI Codex CLI?
@@ -26,8 +27,9 @@ The OpenAI Codex CLI (`@openai/codex`) provides command-line access to OpenAI's 
 
 This overlay:
 
-1. Installs OpenAI Codex CLI globally via npm (`npm install -g @openai/codex`)
-2. Creates the `$HOME/.codex` directory for persistent configurations
+1. Installs the Linux `bubblewrap` package so `bwrap` is available for Codex sandboxing
+2. Installs OpenAI Codex CLI globally via npm (`npm install -g @openai/codex`)
+3. Creates the `$HOME/.codex` directory for persistent configurations
 
 **After setup:**
 
@@ -39,12 +41,13 @@ This overlay:
 After setup, run the verification script to ensure proper installation:
 
 ```bash
-bash .devcontainer/verify-codex.sh
+bash .devcontainer/scripts/verify-codex.sh
 ```
 
 This will check:
 
 - Codex CLI is installed and in PATH
+- `bwrap` is installed and in PATH
 - `.codex` directory exists
 
 ## Troubleshooting
@@ -90,7 +93,7 @@ codex explain "what does this regex do: /^[a-zA-Z0-9]+$/"
 codex complete "function fibonacci(n) {"
 ```
 
-For full documentation, visit: [OpenAI Codex CLI Documentation](https://github.com/openai/openai-codex-cli)
+For full documentation, visit: [OpenAI Codex CLI Documentation](https://github.com/openai/codex)
 
 ## Optional: Persistent .codex Mount
 
@@ -124,5 +127,5 @@ This allows you to:
 
 ## Additional Resources
 
-- [OpenAI Codex CLI](https://github.com/openai/openai-codex-cli)
+- [OpenAI Codex CLI](https://github.com/openai/codex)
 - [OpenAI Platform](https://platform.openai.com/)

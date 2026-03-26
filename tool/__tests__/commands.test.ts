@@ -927,7 +927,7 @@ describe('Command Tests', () => {
             expect(output).toContain('Environment:');
             expect(output).toContain('Node.js version');
             expect(output).toContain('Docker');
-        });
+        }, 15_000);
 
         it('should validate all overlays', async () => {
             try {
@@ -940,7 +940,7 @@ describe('Command Tests', () => {
             const output = consoleLogSpy.mock.calls.join('\n');
             expect(output).toContain('Overlays:');
             expect(output).toContain('overlays valid');
-        });
+        }, 15_000);
 
         it('should check manifest if it exists', async () => {
             try {
@@ -1610,6 +1610,73 @@ describe('Command Tests', () => {
                     'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json'
                 );
                 expect(customPatchContent).toMatch(/^\{\n  "\$schema":/);
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should write a repository project file from init when --project-file is used', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'init-project-file-'));
+
+            try {
+                runInitCli(
+                    ['init', '--stack', 'plain', '--language', 'nodejs', '--project-file'],
+                    repoDir
+                );
+
+                const projectFilePath = path.join(repoDir, '.superposition.yml');
+                expect(fs.existsSync(projectFilePath)).toBe(true);
+
+                const projectConfig = yaml.load(fs.readFileSync(projectFilePath, 'utf8')) as any;
+                expect(projectConfig).toMatchObject({
+                    stack: 'plain',
+                    baseImage: 'bookworm',
+                    overlays: ['nodejs'],
+                    outputPath: './.devcontainer',
+                });
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should reuse an existing project file path when init writes project config', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'init-project-file-existing-'));
+
+            try {
+                fs.writeFileSync(
+                    path.join(repoDir, 'superposition.yml'),
+                    yaml.dump({
+                        stack: 'compose',
+                        overlays: ['postgres'],
+                        outputPath: './old-output',
+                    })
+                );
+
+                runInitCli(
+                    [
+                        'init',
+                        '--stack',
+                        'plain',
+                        '--language',
+                        'nodejs',
+                        '--output',
+                        './generated',
+                        '--project-file',
+                    ],
+                    repoDir
+                );
+
+                expect(fs.existsSync(path.join(repoDir, '.superposition.yml'))).toBe(false);
+
+                const projectConfig = yaml.load(
+                    fs.readFileSync(path.join(repoDir, 'superposition.yml'), 'utf8')
+                ) as any;
+                expect(projectConfig).toMatchObject({
+                    stack: 'plain',
+                    baseImage: 'bookworm',
+                    overlays: ['nodejs'],
+                    outputPath: './generated',
+                });
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }

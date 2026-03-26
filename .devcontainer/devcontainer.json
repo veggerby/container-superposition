@@ -16,8 +16,8 @@
             "ppa": true
         },
         "./features/cross-distro-packages": {
-            "apt": "bash-completion curl wget vim less build-essential",
-            "apk": "bash-completion curl wget vim less build-base"
+            "apt": "bash-completion curl wget vim less build-essential bubblewrap jq ripgrep fd-find bat",
+            "apk": "bash-completion curl wget vim less build-base bubblewrap jq ripgrep fd bat"
         },
         "ghcr.io/devcontainers/features/node:1": {
             "version": "lts",
@@ -29,7 +29,8 @@
             "moby": false
         },
         "ghcr.io/devcontainers/features/git-lfs:1": {
-            "version": "latest"
+            "version": "latest",
+            "autoPull": false
         },
         "ghcr.io/devcontainers/features/github-cli:1": {
             "version": "latest"
@@ -90,11 +91,13 @@
     "postStartCommand": {
         "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}",
         "verify-nodejs": "bash .devcontainer/scripts/verify-nodejs.sh",
-        "verify-codex": "bash .devcontainer/scripts/verify-codex.sh"
+        "verify-codex": "bash .devcontainer/scripts/verify-codex.sh",
+        "verify-claude-code": "bash .devcontainer/scripts/verify-claude-code.sh"
     },
     "postCreateCommand": {
         "setup-nodejs": "bash .devcontainer/scripts/setup-nodejs.sh",
         "setup-codex": "bash .devcontainer/scripts/setup-codex.sh",
+        "setup-claude-code": "bash .devcontainer/scripts/setup-claude-code.sh",
         "setup-git-helpers": "bash .devcontainer/scripts/setup-git-helpers.sh",
         "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh",
         "setup-devcontainer-cli": "bash .devcontainer/scripts/setup-devcontainer-cli.sh"

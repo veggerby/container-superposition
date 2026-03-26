@@ -503,6 +503,18 @@ OpenAI Codex CLI for AI-powered code generation and assistance
 | **Requires** | `nodejs`                       |
 | **Tags**     | `dev`, `ai`, `code-generation` |
 
+### ComfyUI (`comfyui`)
+
+Node-based image/video generation UI for Stable Diffusion and generative AI workflows
+
+| Property     | Value                                                          |
+| ------------ | -------------------------------------------------------------- |
+| **Category** | dev                                                            |
+| **Supports** | compose                                                        |
+| **Suggests** | `cuda`, `python`, `ollama`                                     |
+| **Tags**     | `dev`, `ai`, `image-generation`, `stable-diffusion`, `comfyui` |
+| **Ports**    | 8188                                                           |
+
 ### Commitlint (`commitlint`)
 
 Conventional commits validation for automated releases
@@ -513,6 +525,16 @@ Conventional commits validation for automated releases
 | **Requires** | `nodejs`                                    |
 | **Suggests** | `pre-commit`                                |
 | **Tags**     | `dev`, `git`, `commits`, `semantic-release` |
+
+### CUDA (NVIDIA GPU) (`cuda`)
+
+NVIDIA CUDA libraries and GPU passthrough for containerized ML/inference workloads
+
+| Property      | Value                                             |
+| ------------- | ------------------------------------------------- |
+| **Category**  | dev                                               |
+| **Conflicts** | `rocm`                                            |
+| **Tags**      | `dev`, `gpu`, `cuda`, `nvidia`, `ml`, `inference` |
 
 ### Dev Container CLI (`devcontainer-cli`)
 
@@ -645,6 +667,18 @@ Secure tunneling for webhook testing and external access
 | **Tags**      | `dev`, `tunneling`, `webhooks` |
 | **Ports**     | 4040                           |
 
+### Ollama (`ollama`)
+
+Local LLM inference server with OpenAI-compatible API
+
+| Property     | Value                                     |
+| ------------ | ----------------------------------------- |
+| **Category** | dev                                       |
+| **Supports** | compose                                   |
+| **Suggests** | `codex`, `claude-code`, `amp`             |
+| **Tags**     | `dev`, `ai`, `llm`, `inference`, `ollama` |
+| **Ports**    | 11434                                     |
+
 ### OpenAPI Tools (`openapi-tools`)
 
 OpenAPI/Swagger tooling for API development and documentation
@@ -684,6 +718,16 @@ Automated code quality gates with pre-commit hooks
 | **Requires** | `python`                         |
 | **Suggests** | `commitlint`                     |
 | **Tags**     | `dev`, `git`, `quality`, `hooks` |
+
+### ROCm (AMD GPU) (`rocm`)
+
+AMD ROCm libraries and GPU passthrough for containerized ML/inference workloads
+
+| Property      | Value                                          |
+| ------------- | ---------------------------------------------- |
+| **Category**  | dev                                            |
+| **Conflicts** | `cuda`                                         |
+| **Tags**      | `dev`, `gpu`, `rocm`, `amd`, `ml`, `inference` |
 
 ### Tilt (`tilt`)
 

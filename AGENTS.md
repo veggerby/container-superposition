@@ -3,6 +3,7 @@
 ## Commands
 
 - `npm run lint` — TypeScript type-check + Prettier (CI-enforced; run before committing)
+- `npm run lint:fix` — auto-fix Prettier formatting issues (run after adding/changing files)
 - `npm test` — Vitest unit tests
 - `npm run build` — compile TypeScript to `dist/`
 - `npm run docs:generate` — regenerate `docs/overlays.md` (run after adding/changing overlays)
@@ -23,6 +24,9 @@
 - **Conflicts are bidirectional**: if overlay A lists B in `conflicts`, B must also list A
 - **Docker Compose networks**: never use `external: true`; always declare the network inline with `name: devnet`
 - **Spec-first**: before writing implementation code for a new feature, commit a spec under `docs/specs/`
+- **Changelog required**: add an appropriate `CHANGELOG.md` entry for user-visible changes
+- **Docs required**: run `npm run docs:generate` after adding or changing overlays, then commit the updated `docs/overlays.md`
+- **Lint:fix before committing**: run `npm run lint:fix` to auto-fix formatting issues, then verify with `npm run lint`
 
 **Key Technologies:**
 
