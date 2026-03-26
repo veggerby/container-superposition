@@ -1036,12 +1036,17 @@ function checkProjectFileDrift(
         return [];
     }
 
-    // Compare overlay sets (order-independent)
+    // Compare overlay sets (order-independent).
+    // Exclude auto-resolved dependencies from the manifest side — the project file only
+    // stores user-selected overlays; auto-resolved ones are re-calculated at generation time.
+    const autoResolvedAdded = new Set<string>(manifest.autoResolved?.added ?? []);
     const projectOverlays = new Set<string>(projectConfig.selection.overlays ?? []);
-    const manifestOverlays = new Set<string>(manifest.overlays ?? []);
+    const manifestBaseOverlays = new Set<string>(
+        (manifest.overlays ?? []).filter((o) => !autoResolvedAdded.has(o))
+    );
 
-    const inProjectNotManifest = [...projectOverlays].filter((o) => !manifestOverlays.has(o));
-    const inManifestNotProject = [...manifestOverlays].filter((o) => !projectOverlays.has(o));
+    const inProjectNotManifest = [...projectOverlays].filter((o) => !manifestBaseOverlays.has(o));
+    const inManifestNotProject = [...manifestBaseOverlays].filter((o) => !projectOverlays.has(o));
 
     if (inProjectNotManifest.length === 0 && inManifestNotProject.length === 0) {
         return [

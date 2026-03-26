@@ -1650,8 +1650,14 @@ async function parseCliArgs(): Promise<{
                 process.exit(1);
             }
 
-            // Convert manifest to project config
-            const manifestAnswers = buildAnswersFromManifest(loadedManifest, manifestDir);
+            // Convert manifest to project config.
+            // Derive a repo-root-relative outputPath so the project file is portable
+            // (avoids embedding an absolute tmp/CI path that breaks on other machines).
+            const relativeManifestDir = path.relative(process.cwd(), manifestDir);
+            const portableManifestDir = relativeManifestDir.startsWith('.')
+                ? relativeManifestDir
+                : `./${relativeManifestDir}`;
+            const manifestAnswers = buildAnswersFromManifest(loadedManifest, portableManifestDir);
             const answers = mergeAnswers(manifestAnswers);
             const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
 
@@ -2256,11 +2262,21 @@ async function main() {
                     isManifestOnly ? 'Failed to create manifest' : 'Failed to create devcontainer'
                 )
             );
+            // Write the project config before re-throwing so the user's selections are
+            // persisted even when generation fails (e.g. a permissions error partway through).
+            if (projectFileOutputPath) {
+                try {
+                    const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
+                    writeProjectConfig(projectFileOutputPath, projectSelection);
+                } catch {
+                    // Swallow — the primary error below is more important.
+                }
+            }
             throw error;
         }
 
-        // Write project config separately so that a failure here does not mask a
-        // successful devcontainer/manifest generation above.
+        // Write project config after successful generation. The composer may have filtered
+        // incompatible overlays from `answers`, so writing here captures the final, clean state.
         if (projectFileOutputPath) {
             try {
                 const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
