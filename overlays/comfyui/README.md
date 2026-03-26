@@ -139,13 +139,12 @@ COMFYUI_VERSION=latest-rocm
 
 ## Custom Nodes
 
-Custom nodes extend ComfyUI with new model types, loaders, and processing steps. To persist custom nodes across container rebuilds, add a named volume for the custom nodes directory in `.devcontainer/docker-compose.yml`:
+Custom nodes extend ComfyUI with new model types, loaders, and processing steps. To persist custom nodes across container rebuilds, add a named volume for the custom nodes directory via a custom Docker Compose patch in `.devcontainer/custom/docker-compose.patch.yml`:
 
 ```yaml
 services:
     comfyui:
         volumes:
-            # ... existing model mounts ...
             - comfyui-custom-nodes:/opt/ComfyUI/custom_nodes
 
 volumes:

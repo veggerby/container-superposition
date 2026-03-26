@@ -2,6 +2,8 @@
 # Verification script for ComfyUI overlay
 # Confirms ComfyUI service is running and accessible via HTTP
 
+set -e
+
 echo "🔍 Verifying ComfyUI overlay..."
 echo ""
 
@@ -59,5 +61,5 @@ fi
 echo ""
 echo "✅ ComfyUI overlay verification complete"
 echo "   Web UI: ${COMFYUI_URL}"
-echo "   API: ${COMFYUI_URL}/api"
+echo "   API (example): ${COMFYUI_URL}/system_stats"
 echo "   Docs: https://github.com/comfyanonymous/ComfyUI"
