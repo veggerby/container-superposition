@@ -18,3 +18,5 @@ tags:
     - ollama
 ports:
     - 11434
+compose_imports:
+    - .shared/compose/nvidia-gpu-devcontainer.yml

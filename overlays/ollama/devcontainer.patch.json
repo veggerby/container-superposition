@@ -8,7 +8,7 @@
             "onAutoForward": "ignore"
         }
     },
-    "remoteEnv": {
+    "containerEnv": {
         "OLLAMA_HOST": "http://ollama:11434"
     }
 }

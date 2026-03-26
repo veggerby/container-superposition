@@ -327,6 +327,20 @@ function formatAsText(
         }
     }
 
+    // Shared compose imports
+    if (overlay.compose_imports && overlay.compose_imports.length > 0) {
+        lines.push('');
+        lines.push(chalk.bold('Shared Compose Imports:'));
+        lines.push(
+            chalk.dim(
+                '  (docker-compose fragments from overlays/.shared/ merged before this overlay)'
+            )
+        );
+        for (const importPath of overlay.compose_imports) {
+            lines.push(`  🐳 ${importPath}`);
+        }
+    }
+
     return lines.join('\n');
 }
 

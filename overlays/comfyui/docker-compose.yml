@@ -19,6 +19,13 @@ services:
             - CLI_ARGS=${CLI_ARGS:---listen 0.0.0.0}
         ports:
             - '${COMFYUI_PORT:-8188}:8188'
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities: [gpu]
         networks:
             - devnet
 

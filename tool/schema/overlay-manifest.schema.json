@@ -136,6 +136,14 @@
             },
             "default": []
         },
+        "compose_imports": {
+            "type": "array",
+            "description": "Shared docker-compose fragments to import from overlays/.shared/compose/ (merged before the overlay's own docker-compose.yml)",
+            "items": {
+                "type": "string"
+            },
+            "default": []
+        },
         "minimal": {
             "type": "boolean",
             "description": "Whether this overlay is excluded in minimal mode (true = extra/optional)",

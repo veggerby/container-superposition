@@ -10,6 +10,7 @@ This directory contains reusable configuration fragments that can be imported by
 │   ├── instrumentation.env            # OTEL SDK env vars for instrumentation
 │   └── otel-base-config.yaml          # Base OTEL collector pipeline config
 ├── compose/                           # Docker Compose patterns
+│   ├── nvidia-gpu-devcontainer.yml    # NVIDIA GPU passthrough for the devcontainer service
 │   └── common-healthchecks.md         # Standard healthcheck patterns (reference — not importable)
 └── vscode/                            # VS Code extension sets
     └── recommended-extensions.json    # Commonly recommended extensions (devcontainer patch)
@@ -44,6 +45,20 @@ This directory contains reusable configuration fragments that can be imported by
 
 ---
 
+### `compose/nvidia-gpu-devcontainer.yml`
+
+**Purpose:** Adds the `deploy.resources.reservations.devices` block to the `devcontainer` service, giving the devcontainer itself direct NVIDIA GPU access. This enables GPU-accelerated tooling (`torch`, `tensorflow`, CUDA CLIs, `nvidia-smi`) to work directly in the dev environment.
+
+**Format:** Docker Compose service fragment (services.devcontainer only).
+
+**Merge type:** `compose_imports:` — deep-merged into the final `docker-compose.yml` before the overlay's own `docker-compose.yml`.
+
+**Imported by:** `ollama`
+
+**Prerequisites:** NVIDIA Container Toolkit must be installed on the host.
+
+---
+
 ### `compose/common-healthchecks.md`
 
 **Purpose:** Reference library of standard Docker Compose healthcheck patterns for common services (HTTP, PostgreSQL, Redis, MongoDB, MySQL).
@@ -64,7 +79,7 @@ This directory contains reusable configuration fragments that can be imported by
 
 ## Usage
 
-Reference shared fragments in `overlay.yml` via the `imports` field:
+Reference shared devcontainer fragments in `overlay.yml` via the `imports` field:
 
 ```yaml
 id: my-overlay
@@ -73,11 +88,21 @@ imports:
     - .shared/vscode/recommended-extensions.json
 ```
 
+Reference shared docker-compose fragments via the `compose_imports` field:
+
+```yaml
+id: my-overlay
+compose_imports:
+    - .shared/compose/nvidia-gpu-devcontainer.yml
+```
+
 **Rules:**
 
 - All paths must begin with `.shared/`
 - Paths are relative to `overlays/`
-- Imports are applied in declaration order, then the overlay's own `devcontainer.patch.json` (overlay wins on conflict)
+- `imports` fragments are applied in declaration order, then the overlay's own `devcontainer.patch.json` (overlay wins on conflict)
+- `compose_imports` fragments are deep-merged into `docker-compose.yml` before the overlay's own `docker-compose.yml` (overlay wins on conflict)
+- `compose_imports` files must be `.yml` or `.yaml`
 
 ## Creating New Fragments
 
