@@ -101,7 +101,7 @@ Generated images appear in `~/.cache/comfyui/output` on the host (or the path co
 
 ## GPU Acceleration
 
-By default the image tag `latest-cuda` requires an NVIDIA GPU. To enable GPU passthrough, add a `deploy` block to the `comfyui` service in `.devcontainer/docker-compose.yml` (after generation, in the `.devcontainer/custom/` directory or by patching directly):
+By default the image tag `latest-cuda` requires an NVIDIA GPU. To enable GPU passthrough, add a `deploy` block via a custom Docker Compose patch in `.devcontainer/custom/docker-compose.patch.yml`:
 
 ```yaml
 services:

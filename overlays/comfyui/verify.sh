@@ -2,8 +2,6 @@
 # Verification script for ComfyUI overlay
 # Confirms ComfyUI service is running and accessible via HTTP
 
-set -e
-
 echo "🔍 Verifying ComfyUI overlay..."
 echo ""
 
