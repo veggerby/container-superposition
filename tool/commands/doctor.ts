@@ -1005,9 +1005,6 @@ function checkMergeStrategy(outputPath: string): CheckResult[] {
 }
 
 /**
- * Generate doctor report
- */
-/**
  * Check for drift between the project config file and the last generated manifest.
  * Reports a warning when the overlay lists differ so users know to run `regen`.
  */

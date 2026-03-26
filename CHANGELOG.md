@@ -51,9 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`superposition.yml` is now the canonical input** — `init` always writes a project config file alongside the devcontainer. The `--project-file` flag has been removed; project file writing is now the default behavior.
+- **BREAKING: `superposition.yml` is now the canonical input** — `init` always writes a project config file alongside the devcontainer. The `--project-file` flag has been removed; project file writing is now the default behavior.
     - **Migration:** Remove `--project-file` from any scripts using `cs init`. The project file is now always written automatically.
-- **`regen` requires a project file** — `regen` now reads only `superposition.yml` / `.superposition.yml`. It no longer falls back to `superposition.json` as an input source.
+- **BREAKING: `regen` requires a project file** — `regen` now reads only `superposition.yml` / `.superposition.yml`. It no longer falls back to `superposition.json` as an input source.
     - If `superposition.json` exists but no project file is present, `regen` errors with a clear message: `Run 'cs migrate' to create a project file from your existing manifest.`
     - **Migration for manifest-only repos:** Run `cs migrate` once to create `superposition.yml`, then use `regen` as normal.
     - **Migration for CI scripts using `--from-manifest`:** The flag still works but emits a deprecation warning. Switch to `cs migrate` + `regen` to remove the warning.

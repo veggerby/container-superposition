@@ -1861,7 +1861,12 @@ async function main() {
             if (discoveredProjectFiles.length > 1) {
                 console.error(
                     chalk.red(
-                        '✗ Found both supported project config files (.superposition.yml and superposition.yml) in the repository root. Keep only one.'
+                        '✗ Found both .superposition.yml and superposition.yml in the repository root. Keep only one.'
+                    )
+                );
+                console.error(
+                    chalk.gray(
+                        '  Recommended: keep .superposition.yml (dotfile) to keep the root tidy; delete superposition.yml.'
                     )
                 );
                 process.exit(1);
