@@ -19,11 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `editor` field persisted to `superposition.json` manifest for reproducible regen
 - **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
     - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
-    - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild
+    - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly in the devcontainer (client-only, `OLLAMA_SKIP_SERVICE_INSTALL=1`); no need to `docker exec` into the sidecar
+    - **`OLLAMA_HOST` pre-configured** — Set as a `containerEnv` variable to `http://ollama:11434` so `ollama pull / run / list / rm` target the sidecar automatically with no manual setup
+    - **GPU passthrough built-in** — Both the `ollama` sidecar and the `devcontainer` service receive all NVIDIA GPUs via `deploy.resources.reservations.devices`; enables GPU-accelerated tooling (`torch`, `tensorflow`, CUDA CLIs) directly in the dev environment
+    - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild; models pulled inside the devcontainer are also persisted to the host
     - `OLLAMA_MODELS_PATH` env var overrides the host model path (useful for external drives or Windows users)
-    - `verify.sh` smoke-tests the REST API and lists available models
+    - `verify.sh` checks CLI is installed, `OLLAMA_HOST` is set, smoke-tests the REST API, and lists available models via the CLI
     - Suggests `codex`, `claude-code`, and `amp` overlays for AI-assisted workflows
-    - README documents GPU acceleration via the `cuda`/`rocm` overlays
+    - README documents the Ollama CLI UX, GPU prerequisites (NVIDIA Container Toolkit), and links to the `cuda` overlay
 - **Target-aware generation** — `--target` now produces workspace artifacts and setup guidance tailored to the selected deployment environment, not just compatibility warnings
     - `--target codespaces` → extends `devcontainer.json` with `hostRequirements` (machine-size recommendation based on service count) and writes `CODESPACES.md` with Codespaces-specific setup guidance
     - `--target gitpod` → generates `.gitpod.yml` at the project root (with tasks and port exposures from selected overlays) and writes `GITPOD.md` with Gitpod badge and usage notes

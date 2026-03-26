@@ -1,6 +1,15 @@
 version: '3.8'
 
 services:
+    devcontainer:
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities: [gpu]
+
     ollama:
         image: ollama/ollama:${OLLAMA_VERSION:-latest}
         restart: unless-stopped
@@ -10,6 +19,13 @@ services:
             - OLLAMA_HOST=0.0.0.0
         ports:
             - '${OLLAMA_PORT:-11434}:11434'
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities: [gpu]
         networks:
             - devnet
 

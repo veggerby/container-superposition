@@ -101,19 +101,31 @@ Generated images appear in `~/.cache/comfyui/output` on the host (or the path co
 
 ## GPU Acceleration
 
-By default the image tag `latest-cuda` requires an NVIDIA GPU. To enable GPU passthrough, add a `deploy` block via a custom Docker Compose patch in `.devcontainer/custom/docker-compose.patch.yml`:
+GPU passthrough is enabled out of the box. The `comfyui` service receives `gpus: all` via the `deploy.resources.reservations.devices` block in the overlay's `docker-compose.yml`:
 
 ```yaml
-services:
-    comfyui:
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - driver: nvidia
-                          count: 1
-                          capabilities: [gpu]
+deploy:
+    resources:
+        reservations:
+            devices:
+                - driver: nvidia
+                  count: 1
+                  capabilities: [gpu]
 ```
+
+### Prerequisites
+
+GPU passthrough requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed and configured on the host:
+
+```bash
+# Verify NVIDIA driver is installed on the host
+nvidia-smi
+
+# Verify NVIDIA Container Toolkit
+docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
+```
+
+> **Note:** On machines without an NVIDIA GPU or without the NVIDIA Container Toolkit, Docker Compose may warn about unresolvable device requests. Use `COMFYUI_VERSION=latest-cpu` to switch to CPU-only mode (see below).
 
 **See also:** The [`cuda`](../cuda/README.md) overlay installs NVIDIA CUDA toolkit support in the devcontainer itself.
 

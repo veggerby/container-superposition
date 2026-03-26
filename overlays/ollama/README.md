@@ -1,13 +1,15 @@
 # Ollama Overlay
 
-Runs [Ollama](https://ollama.com) as a Docker Compose service inside the devcontainer, enabling local LLM inference without leaving the dev environment.
+Runs [Ollama](https://ollama.com) as a Docker Compose service inside the devcontainer, enabling local LLM inference without leaving the dev environment. The Ollama CLI is also installed directly in the devcontainer for ergonomic model management and inference from the terminal.
 
 ## Features
 
 - **Ollama inference server** — Run large language models locally with a simple REST API
+- **Ollama CLI in devcontainer** — Manage models and run inference with `ollama pull / run / list / rm` from the terminal without SSH-ing into the sidecar
 - **OpenAI-compatible endpoint** — Drop-in replacement for many OpenAI API integrations
-- **Model management CLI** — Pull, list, and run models with `ollama` commands
+- **Pre-configured `OLLAMA_HOST`** — Points automatically at the sidecar; no manual setup required
 - **Host model reuse** — Mounts your host's `~/.ollama` directory so models are shared without re-downloading
+- **GPU passthrough** — Both the `ollama` sidecar and the devcontainer itself get access to all NVIDIA GPUs via the `deploy.resources.reservations.devices` block
 - **Port 11434** — Standard Ollama API port, accessible from the devcontainer as `http://ollama:11434`
 
 ## How It Works
@@ -21,7 +23,9 @@ Ollama runs as a long-lived Docker Compose service (`ollama`) alongside your dev
 - Port: `11434` (REST API)
 - Volume: `${OLLAMA_MODELS_PATH:-~/.ollama}:/root/.ollama` — mounts the host Ollama data directory
 
-The `OLLAMA_HOST` environment variable is set to `http://ollama:11434` in the devcontainer, so tools that respect this variable (e.g. `ollama` CLI, custom scripts) will connect automatically.
+The `OLLAMA_HOST` environment variable is set to `http://ollama:11434` in the devcontainer, so the Ollama CLI and any tools that respect this variable will connect to the sidecar automatically.
+
+The `setup.sh` script installs the Ollama CLI binary directly in the devcontainer at container creation time, providing the full `ollama` UX from the terminal. The CLI is client-only — it does not start a daemon (`OLLAMA_SKIP_SERVICE_INSTALL=1` is passed to the installer).
 
 ## Mapping Host Models into the Container
 
@@ -51,6 +55,53 @@ OLLAMA_MODELS_PATH=C:/Users/you/.ollama
 ### Read-Write Mount
 
 The mount is read-write by default, so `ollama pull` inside the container also saves models to the host directory. This means models downloaded inside the devcontainer are available on the host and in future container rebuilds.
+
+## Using the Ollama CLI
+
+The Ollama CLI is installed directly in the devcontainer by `setup.sh`. The `OLLAMA_HOST` environment variable is pre-configured to `http://ollama:11434`, so all commands automatically target the sidecar — no manual configuration required.
+
+```bash
+# From the main devcontainer terminal — talks to the sidecar
+ollama pull llama3.2
+ollama list
+ollama run mistral "explain this function"
+```
+
+> **Note:** Do **not** run `ollama serve` inside the devcontainer. The sidecar IS the server. Running `ollama serve` would start a second daemon that conflicts with the sidecar.
+
+> **Note:** `ollama pull` inside the devcontainer writes models to the host-mounted `OLLAMA_MODELS_PATH` directory (default `~/.ollama`). Models are persisted across container rebuilds.
+
+### Model Management
+
+```bash
+# Pull a model (saved to the host-mounted ~/.ollama directory)
+ollama pull llama3.2
+
+# List available models
+ollama list
+
+# Show detailed model information
+ollama show llama3.2
+
+# Remove a model
+ollama rm llama3.2
+
+# Copy a model under a new name
+ollama cp llama3.2 my-custom-llama
+```
+
+### Running Models
+
+```bash
+# Interactive chat session
+ollama run llama3.2
+
+# One-shot inference
+ollama run llama3.2 "explain this function"
+
+# Run a coding-focused model
+ollama run qwen2.5-coder "review this code"
+```
 
 ## Common Commands
 
@@ -116,29 +167,41 @@ curl http://localhost:11434/api/tags
 
 ## GPU Acceleration
 
-For faster inference, you can enable GPU passthrough. This requires the `cuda` overlay (for NVIDIA GPUs) or `rocm` overlay (for AMD GPUs).
-
-### NVIDIA GPU (cuda overlay)
-
-Add the `cuda` overlay alongside `ollama`, then extend the Ollama service in your `docker-compose.override.yml` (or a custom compose file) to enable GPU access:
+GPU passthrough is enabled out of the box. Both the `ollama` sidecar and the `devcontainer` service receive `gpus: all` via the `deploy.resources.reservations.devices` block in the overlay's `docker-compose.yml`:
 
 ```yaml
-# .devcontainer/docker-compose.override.yml
-services:
-    ollama:
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - driver: nvidia
-                          count: all
-                          capabilities: [gpu]
+deploy:
+    resources:
+        reservations:
+            devices:
+                - driver: nvidia
+                  count: all
+                  capabilities: [gpu]
 ```
 
-Verify GPU access inside the container:
+This means:
+
+- The `ollama` sidecar uses the GPU for fast inference
+- The `devcontainer` has direct GPU access for GPU-accelerated tooling such as `torch`, `tensorflow`, and CUDA CLI tools
+
+### Prerequisites
+
+GPU passthrough requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed and configured on the host:
 
 ```bash
-# Check NVIDIA GPU is detected
+# Verify NVIDIA driver is installed on the host
+nvidia-smi
+
+# Verify NVIDIA Container Toolkit
+docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
+```
+
+> **Note:** On machines without an NVIDIA GPU or without the NVIDIA Container Toolkit, Docker Compose may warn about unresolvable device requests. Install the toolkit or remove the `deploy` block via a custom compose override if GPU support is not needed.
+
+### Verify GPU Access
+
+```bash
+# Check NVIDIA GPU is detected inside the devcontainer
 nvidia-smi
 
 # Confirm Ollama is using GPU
@@ -146,7 +209,7 @@ ollama run llama3.2 "hello"
 # GPU usage should appear in nvidia-smi output
 ```
 
-> **Note:** GPU passthrough requires the NVIDIA Container Toolkit installed on the host. See the [cuda overlay](../cuda/README.md) for setup instructions.
+**See also:** The [`cuda`](../cuda/README.md) overlay for additional CUDA development tooling (CUDA libraries, `nvcc`, etc.) in the devcontainer.
 
 ## Use Cases
 
@@ -179,9 +242,9 @@ cp .env.example .env
 | `OLLAMA_VERSION`     | `latest`    | Ollama Docker image version                            |
 | `OLLAMA_PORT`        | `11434`     | Host port for the Ollama API                           |
 
-### Remote Env in Devcontainer
+### Container Env in Devcontainer
 
-The following environment variable is set in the devcontainer:
+The following environment variable is set in the container environment (available to all processes, including setup scripts and terminals):
 
 | Variable      | Value                 | Description                                   |
 | ------------- | --------------------- | --------------------------------------------- |
