@@ -1315,7 +1315,7 @@ async function parseCliArgs(): Promise<{
     yes?: boolean;
     noInteractive?: boolean;
     writeManifestOnly?: boolean;
-    projectFile?: boolean;
+    noScaffold?: boolean;
 } | null> {
     const program = new Command();
 
@@ -1384,10 +1384,7 @@ async function parseCliArgs(): Promise<{
             '--write-manifest-only',
             'Generate only superposition.json manifest without creating .devcontainer/ files'
         )
-        .option(
-            '--project-file',
-            'Also write a repository-root project config (.superposition.yml or existing project file)'
-        )
+        .option('--no-scaffold', 'Write only superposition.yml; skip .devcontainer/ generation')
         .option('--preset <id>', 'Start from a preset (e.g., web-api, microservice)')
         .option(
             '--preset-param <value>',
@@ -1418,7 +1415,7 @@ async function parseCliArgs(): Promise<{
         )
         .option(
             '--from-manifest <path>',
-            'Load configuration from existing superposition.json manifest'
+            '(Deprecated) Load from superposition.json; use `cs migrate` to create a project file first'
         )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .option(
@@ -1436,8 +1433,6 @@ async function parseCliArgs(): Promise<{
                 _editorSource: command.getOptionValueSource('editor'),
             };
         });
-
-    // List command
     program
         .command('list')
         .description('List available overlays and presets')
@@ -1566,6 +1561,107 @@ async function parseCliArgs(): Promise<{
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
             await hashCommand(overlaysConfig, OVERLAYS_DIR, options);
+            process.exit(0);
+        });
+
+    // Migrate command
+    program
+        .command('migrate')
+        .description('Create a superposition.yml project file from an existing superposition.json manifest')
+        .option(
+            '--from-manifest <path>',
+            'Path to superposition.json (default: auto-discover in .devcontainer/ or repository root)'
+        )
+        .option(
+            '--output <path>',
+            'Output path for project file (default: .superposition.yml or existing file path)'
+        )
+        .option('--force', 'Overwrite existing project file if present')
+        .action(async (options) => {
+            // Find manifest
+            const manifestSearchPaths = options.fromManifest
+                ? [options.fromManifest]
+                : [
+                      'superposition.json',
+                      '.devcontainer/superposition.json',
+                      path.join(process.cwd(), 'superposition.json'),
+                      path.join(process.cwd(), '.devcontainer', 'superposition.json'),
+                  ];
+
+            let manifestPath: string | null = null;
+            for (const searchPath of manifestSearchPaths) {
+                const resolvedPath = path.resolve(searchPath);
+                if (fs.existsSync(resolvedPath)) {
+                    manifestPath = resolvedPath;
+                    break;
+                }
+            }
+
+            if (!manifestPath) {
+                console.error(chalk.red('✗ Error: No superposition.json manifest found'));
+                console.error(
+                    chalk.gray(
+                        '  Searched in: superposition.json, .devcontainer/superposition.json'
+                    )
+                );
+                console.error(
+                    chalk.dim(
+                        '  Use --from-manifest <path> to specify the manifest location explicitly.'
+                    )
+                );
+                process.exit(1);
+            }
+
+            // Load manifest
+            const manifestDir = path.dirname(manifestPath);
+            const loadedManifest = loadManifest(manifestPath);
+            if (!loadedManifest) {
+                process.exit(1);
+            }
+
+            // Determine output path for project file
+            let projectFilePath: string;
+            if (options.output) {
+                projectFilePath = path.resolve(options.output);
+            } else {
+                const discovered = findProjectConfig(process.cwd());
+                if (discovered.length > 1) {
+                    console.error(
+                        chalk.red(
+                            '✗ Found both supported project config files (.superposition.yml and superposition.yml) in the repository root. Keep only one, or use --output to specify the target path.'
+                        )
+                    );
+                    process.exit(1);
+                }
+                projectFilePath = discovered[0]?.path ?? path.join(process.cwd(), '.superposition.yml');
+            }
+
+            // Check for existing project file
+            if (fs.existsSync(projectFilePath) && !options.force) {
+                console.error(
+                    chalk.red(`✗ Project file already exists: ${path.relative(process.cwd(), projectFilePath)}`)
+                );
+                console.error(chalk.gray('  Use --force to overwrite the existing project file.'));
+                process.exit(1);
+            }
+
+            // Convert manifest to project config
+            const manifestAnswers = buildAnswersFromManifest(loadedManifest, manifestDir);
+            const answers = mergeAnswers(manifestAnswers);
+            const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
+
+            writeProjectConfig(projectFilePath, projectSelection);
+
+            console.log(
+                chalk.green(
+                    `✓ Project file created: ${path.relative(process.cwd(), projectFilePath)}`
+                )
+            );
+            console.log(
+                chalk.dim(
+                    '  Run `cs regen` (or `npx container-superposition regen`) to regenerate your devcontainer.'
+                )
+            );
             process.exit(0);
         });
 
@@ -1727,7 +1823,7 @@ async function parseCliArgs(): Promise<{
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
         writeManifestOnly: initOptions.writeManifestOnly === true,
-        projectFile: initOptions.projectFile === true,
+        noScaffold: initOptions.noScaffold === true,
     };
 }
 
@@ -1755,17 +1851,16 @@ async function main() {
         }
 
         let projectFileOutputPath: string | undefined;
-        if (cliArgs?.projectFile) {
+        if (cliArgs?.commandName === 'init' || cliArgs?.commandName === undefined) {
             const discoveredProjectFiles = findProjectConfig(process.cwd());
             if (discoveredProjectFiles.length > 1) {
                 console.error(
                     chalk.red(
-                        '✗ Found both supported project config files in the repository root. Keep only one before using --project-file.'
+                        '✗ Found both supported project config files (.superposition.yml and superposition.yml) in the repository root. Keep only one.'
                     )
                 );
                 process.exit(1);
             }
-
             projectFileOutputPath =
                 discoveredProjectFiles[0]?.path ?? path.join(process.cwd(), '.superposition.yml');
         }
@@ -1793,20 +1888,46 @@ async function main() {
             if (projectConfigAnswers) {
                 useProjectOnly = true;
             } else {
+                // Project file is now required for regen. Check if a manifest exists to guide migration.
                 const discoveredManifestPath = findDefaultRegenManifest(
                     cliArgs?.config?.outputPath || './.devcontainer'
                 );
-                if (!discoveredManifestPath) {
-                    console.error(chalk.red('✗ Error: No project file or manifest found'));
+                if (discoveredManifestPath) {
+                    console.error(chalk.red('✗ Error: No project file found'));
                     console.error(
-                        chalk.gray(
-                            '  Looked for .superposition.yml or superposition.yml in the repository root, and superposition.json in common manifest locations.'
+                        chalk.cyan(
+                            '  Found superposition.json but no superposition.yml project file.'
                         )
                     );
-                    process.exit(1);
+                    console.error(
+                        chalk.gray(
+                            '  Run `cs migrate` to create a project file from your existing manifest, then run `regen` again.'
+                        )
+                    );
+                } else {
+                    console.error(chalk.red('✗ Error: No project file found'));
+                    console.error(
+                        chalk.gray(
+                            '  Create .superposition.yml or superposition.yml in your repository root.'
+                        )
+                    );
+                    console.error(
+                        chalk.dim(
+                            '  Or run `cs init` to create a new configuration interactively.'
+                        )
+                    );
                 }
-                cliArgs.manifestPath = discoveredManifestPath;
+                process.exit(1);
             }
+        }
+
+        // Emit deprecation warning when --from-manifest is used with regen
+        if (cliArgs?.commandName === 'regen' && cliArgs?.manifestPath) {
+            console.warn(
+                chalk.yellow(
+                    '⚠️  --from-manifest is deprecated for regen. Run `cs migrate` to create a project file, then use `regen` without this flag.'
+                )
+            );
         }
 
         // Handle manifest loading
@@ -2092,7 +2213,7 @@ async function main() {
         );
 
         // Check if we're in manifest-only mode
-        const isManifestOnly = cliArgs?.writeManifestOnly === true;
+        const isManifestOnly = cliArgs?.writeManifestOnly === true || cliArgs?.noScaffold === true;
 
         // Generate with spinner
         const spinner = ora({

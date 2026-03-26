@@ -1615,12 +1615,12 @@ describe('Command Tests', () => {
             }
         });
 
-        it('should write a repository project file from init when --project-file is used', () => {
+        it('should write a repository project file from init when running init', () => {
             const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'init-project-file-'));
 
             try {
                 runInitCli(
-                    ['init', '--stack', 'plain', '--language', 'nodejs', '--project-file'],
+                    ['init', '--stack', 'plain', '--language', 'nodejs'],
                     repoDir
                 );
 
@@ -1661,7 +1661,6 @@ describe('Command Tests', () => {
                         'nodejs',
                         '--output',
                         './generated',
-                        '--project-file',
                     ],
                     repoDir
                 );
