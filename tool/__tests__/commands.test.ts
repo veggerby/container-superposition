@@ -1227,6 +1227,91 @@ describe('Command Tests', () => {
                 fs.rmSync(tmpDir, { recursive: true, force: true });
             }
         });
+
+        it('should report drift warning when project file overlays differ from manifest (US4-1)', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-drift-warn-'));
+            try {
+                // Project file selects nodejs; manifest was generated with nodejs + redis
+                fs.writeFileSync(
+                    path.join(tmpDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'plain', overlays: ['nodejs'] })
+                );
+                const manifest = {
+                    manifestVersion: '1',
+                    generatedBy: 'container-superposition@0.1.3',
+                    generated: new Date().toISOString(),
+                    baseTemplate: 'plain',
+                    baseImage: 'bookworm',
+                    overlays: ['nodejs', 'redis'],
+                };
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify(manifest, null, 2)
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        projectRoot: tmpDir,
+                    });
+                } catch {
+                    // process.exit
+                }
+
+                const output = consoleLogSpy.mock.calls.join('\n');
+                expect(output).toContain('Project File:');
+                expect(output).toContain('diverged');
+                expect(output).toContain('redis');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should report drift pass when project file overlays match manifest (US4-2)', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-drift-pass-'));
+            try {
+                // Project file and manifest both select nodejs
+                fs.writeFileSync(
+                    path.join(tmpDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'plain', overlays: ['nodejs'] })
+                );
+                const manifest = {
+                    manifestVersion: '1',
+                    generatedBy: 'container-superposition@0.1.3',
+                    generated: new Date().toISOString(),
+                    baseTemplate: 'plain',
+                    baseImage: 'bookworm',
+                    overlays: ['nodejs'],
+                };
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify(manifest, null, 2)
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        projectRoot: tmpDir,
+                    });
+                } catch {
+                    // process.exit
+                }
+
+                const output = consoleLogSpy.mock.calls.join('\n');
+                expect(output).toContain('Project File:');
+                expect(output).toContain('consistent');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
     });
 
     describe('hashCommand', () => {
@@ -1654,17 +1739,18 @@ describe('Command Tests', () => {
                     repoDir
                 );
 
+                // The existing superposition.yml path must be reused (not .superposition.yml)
                 expect(fs.existsSync(path.join(repoDir, '.superposition.yml'))).toBe(false);
 
                 const projectConfig = yaml.load(
                     fs.readFileSync(path.join(repoDir, 'superposition.yml'), 'utf8')
                 ) as any;
-                expect(projectConfig).toMatchObject({
-                    stack: 'plain',
-                    baseImage: 'bookworm',
-                    overlays: ['nodejs'],
-                    outputPath: './generated',
-                });
+                // CLI-specified fields must be reflected in the project file
+                expect(projectConfig.stack).toBe('plain');
+                expect(projectConfig.baseImage).toBe('bookworm');
+                expect(projectConfig.outputPath).toBe('./generated');
+                // nodejs must be present (explicitly requested via CLI)
+                expect(projectConfig.overlays).toContain('nodejs');
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }

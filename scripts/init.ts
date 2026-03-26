@@ -1537,10 +1537,17 @@ async function parseCliArgs(): Promise<{
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option(
             '--project-file',
-            'Also write a repository-root project config (.superposition.yml or existing project file)'
+            '(deprecated) Write a repository-root project config. Project file output is now standard; this flag is a no-op.'
         )
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
+            if (options.projectFile) {
+                console.warn(
+                    chalk.yellow(
+                        '⚠ --project-file is deprecated on `adopt`: project file output is now the standard output model. The flag has no additional effect and will be removed in a future version.'
+                    )
+                );
+            }
             const overlaysConfig = loadOverlaysConfigWrapper();
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, options);
             process.exit(0);
@@ -1862,6 +1869,7 @@ async function main() {
         }
 
         let projectFileOutputPath: string | undefined;
+        let existingProjectFileDetected = false;
         if (cliArgs?.commandName === 'init' || cliArgs?.commandName === undefined) {
             const discoveredProjectFiles = findProjectConfig(process.cwd());
             if (discoveredProjectFiles.length > 1) {
@@ -1876,6 +1884,9 @@ async function main() {
                     )
                 );
                 process.exit(1);
+            }
+            if (discoveredProjectFiles.length === 1) {
+                existingProjectFileDetected = true;
             }
             projectFileOutputPath =
                 discoveredProjectFiles[0]?.path ?? path.join(process.cwd(), '.superposition.yml');
@@ -1984,7 +1995,7 @@ async function main() {
             console.error(chalk.red('✗ Error: --no-interactive requires persisted input'));
             console.error(
                 chalk.dim(
-                    '  Use --from-project, --from-manifest <path>, or run from a repository with .superposition.yml or superposition.yml'
+                    '  Use --from-project or run from a repository with .superposition.yml or superposition.yml'
                 )
             );
             process.exit(1);
@@ -2226,6 +2237,38 @@ async function main() {
                 })
         );
 
+        // FR-018: Warn when an existing project file will be overwritten.
+        // Running `init` against a directory that already has a project file rewrites it with the
+        // current selections. Users who only want to regenerate should use `regen` instead.
+        if (existingProjectFileDetected && projectFileOutputPath) {
+            const relPath = path.relative(process.cwd(), projectFileOutputPath);
+            console.log(
+                chalk.yellow(
+                    `⚠ Existing project file will be updated: ${relPath}\n  Run \`cs regen\` instead to replay the existing configuration without changes.`
+                )
+            );
+        }
+
+        // Write project config BEFORE scaffolding (FR-012).
+        // This ensures the project file is persisted even if the scaffold step fails.
+        if (projectFileOutputPath) {
+            try {
+                const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
+                writeProjectConfig(projectFileOutputPath, projectSelection);
+                console.log(
+                    chalk.green(
+                        `✓ Project config written: ${path.relative(process.cwd(), projectFileOutputPath)}`
+                    )
+                );
+            } catch (projectFileError) {
+                console.error(
+                    chalk.yellow(
+                        `⚠ Failed to write project config: ${projectFileError instanceof Error ? projectFileError.message : String(projectFileError)}`
+                    )
+                );
+            }
+        }
+
         // Check if we're in manifest-only mode
         const isManifestOnly = cliArgs?.writeManifestOnly === true || cliArgs?.noScaffold === true;
 
@@ -2262,37 +2305,7 @@ async function main() {
                     isManifestOnly ? 'Failed to create manifest' : 'Failed to create devcontainer'
                 )
             );
-            // Write the project config before re-throwing so the user's selections are
-            // persisted even when generation fails (e.g. a permissions error partway through).
-            if (projectFileOutputPath) {
-                try {
-                    const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
-                    writeProjectConfig(projectFileOutputPath, projectSelection);
-                } catch {
-                    // Swallow — the primary error below is more important.
-                }
-            }
             throw error;
-        }
-
-        // Write project config after successful generation. The composer may have filtered
-        // incompatible overlays from `answers`, so writing here captures the final, clean state.
-        if (projectFileOutputPath) {
-            try {
-                const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
-                writeProjectConfig(projectFileOutputPath, projectSelection);
-                console.log(
-                    chalk.green(
-                        `✓ Project config written: ${path.relative(process.cwd(), projectFileOutputPath)}`
-                    )
-                );
-            } catch (projectFileError) {
-                console.error(
-                    chalk.yellow(
-                        `⚠ Failed to write project config: ${projectFileError instanceof Error ? projectFileError.message : String(projectFileError)}`
-                    )
-                );
-            }
         }
     } catch (error) {
         console.error(

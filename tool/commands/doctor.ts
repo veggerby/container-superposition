@@ -1024,9 +1024,17 @@ function checkProjectFileDrift(
         return [];
     }
 
-    // Load manifest — skip silently if not present
+    // Load manifest — if not present while the project file exists, report it informatively
     if (!fs.existsSync(manifestPath)) {
-        return [];
+        return [
+            {
+                name: 'Project file drift',
+                status: 'warn',
+                message:
+                    'Project file found but no generated manifest — run `cs regen` to generate',
+                fixEligibility: 'not-applicable',
+            },
+        ];
     }
     let manifest: SuperpositionManifest;
     try {
