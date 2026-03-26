@@ -503,6 +503,18 @@ OpenAI Codex CLI for AI-powered code generation and assistance
 | **Requires** | `nodejs`                       |
 | **Tags**     | `dev`, `ai`, `code-generation` |
 
+### ComfyUI (`comfyui`)
+
+Node-based image/video generation UI for Stable Diffusion and generative AI workflows
+
+| Property     | Value                                                          |
+| ------------ | -------------------------------------------------------------- |
+| **Category** | dev                                                            |
+| **Supports** | compose                                                        |
+| **Suggests** | `cuda`, `python`, `ollama`                                     |
+| **Tags**     | `dev`, `ai`, `image-generation`, `stable-diffusion`, `comfyui` |
+| **Ports**    | 8188                                                           |
+
 ### Commitlint (`commitlint`)
 
 Conventional commits validation for automated releases

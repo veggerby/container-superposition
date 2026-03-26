@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["comfyui"],
+    "forwardPorts": [8188],
+    "portsAttributes": {
+        "8188": {
+            "label": "ComfyUI",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "remoteEnv": {
+        "COMFYUI_URL": "http://comfyui:8188"
+    }
+}

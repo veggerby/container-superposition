@@ -32,6 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Stale artifact cleanup** — when switching target between runs (e.g. gitpod → codespaces), artifacts from the previous target (`.gitpod.yml`) are removed automatically before new ones are written
     - **Manifest records target** — `superposition.json` now includes a `target` field; regeneration reproduces the correct target-aware output without re-prompting
     - Regen without `--target` inherits the target recorded in the existing manifest, so the correct artifacts are always reproduced
+- **`comfyui` overlay** — ComfyUI node-based image/video generation UI running as a Docker Compose sidecar
+    - Serves the ComfyUI web UI and REST/WebSocket API on port `8188`; auto-forwarded and opened in the browser
+    - Per-subdirectory volume mounts (`checkpoints`, `loras`, `vae`, `controlnet`, `embeddings`, `upscale_models`) share multi-GB model files from the host without re-downloading on rebuild
+    - `COMFYUI_MODELS_PATH` env var overrides the host model root (supports pointing at an existing `~/ComfyUI/models` directory)
+    - `COMFYUI_OUTPUT_PATH` persists generated images/videos to the host across container rebuilds
+    - `verify.sh` HTTP health check on the ComfyUI web UI endpoint
+    - README documents GPU acceleration (NVIDIA CUDA, AMD ROCm), CPU-only fallback, custom node persistence, and the ComfyUI REST/WebSocket API
+    - Suggests `cuda`, `python`, and `ollama` overlays for GPU-accelerated and AI-integrated workflows
 - **`init --project-file`** — `init` can now write a repository-root project config alongside the normal generated output
     - Reuses an existing `.superposition.yml` or `superposition.yml` when present; otherwise writes `.superposition.yml`
     - Persists the final selected init configuration, including stack, base image, overlays, output path, target, minimal/editor settings, preset, and preset choices

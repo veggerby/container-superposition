@@ -1,0 +1,20 @@
+id: comfyui
+name: ComfyUI
+description: Node-based image/video generation UI for Stable Diffusion and generative AI workflows
+category: dev
+supports:
+    - compose
+requires: []
+suggests:
+    - cuda
+    - python
+    - ollama
+conflicts: []
+tags:
+    - dev
+    - ai
+    - image-generation
+    - stable-diffusion
+    - comfyui
+ports:
+    - 8188

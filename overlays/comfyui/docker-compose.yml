@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+    comfyui:
+        image: ghcr.io/ai-dock/comfyui:${COMFYUI_VERSION:-latest-cuda}
+        restart: unless-stopped
+        volumes:
+            # Mount host model directories — avoids re-downloading GBs on every rebuild.
+            # Each subdirectory maps to a specific model type ComfyUI expects.
+            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/checkpoints:/opt/ComfyUI/models/checkpoints
+            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/loras:/opt/ComfyUI/models/loras
+            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/vae:/opt/ComfyUI/models/vae
+            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/controlnet:/opt/ComfyUI/models/controlnet
+            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/embeddings:/opt/ComfyUI/models/embeddings
+            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/upscale_models:/opt/ComfyUI/models/upscale_models
+            # Persist generated outputs to host
+            - ${COMFYUI_OUTPUT_PATH:-~/.cache/comfyui/output}:/opt/ComfyUI/output
+        environment:
+            - CLI_ARGS=${CLI_ARGS:---listen 0.0.0.0}
+        ports:
+            - '${COMFYUI_PORT:-8188}:8188'
+        networks:
+            - devnet
+
+networks:
+    devnet:
