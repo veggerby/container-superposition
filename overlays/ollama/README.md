@@ -62,8 +62,12 @@ The Ollama CLI is installed directly in the devcontainer by `setup.sh`. The `OLL
 
 ```bash
 # From the main devcontainer terminal — talks to the sidecar
+
+# Pull a model and list available models
 ollama pull llama3.2
 ollama list
+
+# Run a different model for inference
 ollama run mistral "explain this function"
 ```
 
