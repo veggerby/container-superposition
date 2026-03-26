@@ -248,6 +248,7 @@ export interface OverlayMetadata {
     ports?: (number | PortMetadata)[]; // Support both legacy and rich format
     order?: number;
     imports?: string[]; // Shared files to import from overlays/.shared/
+    compose_imports?: string[]; // Shared docker-compose fragments to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
     hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
 }

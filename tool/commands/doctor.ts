@@ -515,6 +515,59 @@ function validateOverlayManifest(overlayDir: string, overlayId: string): CheckRe
         }
     }
 
+    // Validate compose_imports if present
+    if (manifest.compose_imports && manifest.compose_imports.length > 0) {
+        const overlaysDir = path.dirname(overlayDir);
+        const sharedBase = path.resolve(overlaysDir, '.shared');
+        const missingImports: string[] = [];
+        const invalidImports: string[] = [];
+        const traversalImports: string[] = [];
+
+        for (const importPath of manifest.compose_imports) {
+            if (!importPath.startsWith('.shared/')) {
+                traversalImports.push(`${importPath} (must begin with '.shared/')`);
+                continue;
+            }
+            const resolved = path.resolve(overlaysDir, importPath);
+            if (!resolved.startsWith(sharedBase + path.sep) && resolved !== sharedBase) {
+                traversalImports.push(`${importPath} (resolves outside '.shared/' directory)`);
+                continue;
+            }
+
+            const fullImportPath = path.join(overlaysDir, importPath);
+
+            if (!fs.existsSync(fullImportPath)) {
+                missingImports.push(importPath);
+                continue;
+            }
+
+            const ext = path.extname(importPath).toLowerCase();
+            if (!['.yaml', '.yml'].includes(ext)) {
+                invalidImports.push(`${importPath} (must be .yml or .yaml for compose_imports)`);
+            }
+        }
+
+        if (traversalImports.length > 0 || missingImports.length > 0 || invalidImports.length > 0) {
+            const details: string[] = [];
+            if (traversalImports.length > 0) {
+                details.push(`Path traversal rejected: ${traversalImports.join(', ')}`);
+            }
+            if (missingImports.length > 0) {
+                details.push(`Missing compose_imports: ${missingImports.join(', ')}`);
+            }
+            if (invalidImports.length > 0) {
+                details.push(`Invalid compose_imports: ${invalidImports.join(', ')}`);
+            }
+
+            return {
+                name: `Overlay: ${overlayId}`,
+                status: 'warn',
+                message: 'compose_import validation issues',
+                details,
+            };
+        }
+    }
+
     return {
         name: `Overlay: ${overlayId}`,
         status: 'pass',

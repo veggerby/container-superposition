@@ -6,7 +6,10 @@ Overlays can import shared configuration fragments from `overlays/.shared/` to r
 
 The import mechanism allows overlays to reference common configuration files instead of duplicating them. This promotes DRY principles and makes it easier to maintain consistent patterns.
 
-Imports are declared in the overlay's `overlay.yml` manifest and applied **before** the overlay's own `devcontainer.patch.json`, so each overlay can specialize on top of a shared baseline.
+Two import fields are supported in `overlay.yml`:
+
+- **`imports:`** — shared devcontainer patch fragments (`.json`, `.yaml`, `.env`) applied before the overlay's own `devcontainer.patch.json`
+- **`compose_imports:`** — shared docker-compose YAML fragments (`.yml`, `.yaml`) deep-merged into `docker-compose.yml` before the overlay's own `docker-compose.yml`
 
 ## Shared Directory Structure
 
@@ -15,21 +18,25 @@ overlays/
 ├── .shared/
 │   ├── README.md
 │   ├── otel/
-│   │   ├── instrumentation.env        # OTEL SDK env vars — imported by otel-collector, prometheus, jaeger
-│   │   └── otel-base-config.yaml      # Base OTEL collector pipeline config
+│   │   ├── instrumentation.env              # OTEL SDK env vars — imported by otel-collector, prometheus, jaeger
+│   │   └── otel-base-config.yaml            # Base OTEL collector pipeline config
 │   ├── compose/
-│   │   └── common-healthchecks.yml    # Standard Docker Compose healthcheck patterns
+│   │   ├── nvidia-gpu-devcontainer.yml      # NVIDIA GPU passthrough for the devcontainer service
+│   │   └── common-healthchecks.yml          # Standard Docker Compose healthcheck patterns (reference only)
 │   └── vscode/
-│       └── recommended-extensions.json # Commonly recommended VS Code extensions (devcontainer patch format)
+│       └── recommended-extensions.json      # Commonly recommended VS Code extensions (devcontainer patch format)
 ├── prometheus/
-│   ├── overlay.yml                    # imports: [.shared/otel/instrumentation.env]
+│   ├── overlay.yml                          # imports: [.shared/otel/instrumentation.env]
 │   └── devcontainer.patch.json
-└── jaeger/
-    ├── overlay.yml                    # imports: [.shared/otel/instrumentation.env]
-    └── devcontainer.patch.json
+├── jaeger/
+│   ├── overlay.yml                          # imports: [.shared/otel/instrumentation.env]
+│   └── devcontainer.patch.json
+└── ollama/
+    ├── overlay.yml                          # compose_imports: [.shared/compose/nvidia-gpu-devcontainer.yml]
+    └── docker-compose.yml
 ```
 
-## Using Imports
+## Using `imports` (devcontainer patch fragments)
 
 Add the `imports` field to your `overlay.yml` manifest:
 
@@ -60,7 +67,28 @@ imports:
 - Order is significant — fragments are applied in declaration order, then the overlay's own `devcontainer.patch.json`
 - Missing files, unsupported types, or path traversal attempts cause generation to fail with a message identifying the overlay and the broken reference
 
-## Supported File Types and Merge Behavior
+## Using `compose_imports` (docker-compose fragments)
+
+Add the `compose_imports` field to your `overlay.yml` manifest to merge shared docker-compose YAML fragments into the generated `docker-compose.yml`:
+
+```yaml
+id: ollama
+name: Ollama
+# ... other fields ...
+compose_imports:
+    - .shared/compose/nvidia-gpu-devcontainer.yml
+```
+
+**Rules:**
+
+- All paths **must** begin with `.shared/` (same path traversal rules as `imports`)
+- Files must be `.yml` or `.yaml`
+- Fragments are deep-merged in declaration order, then the overlay's own `docker-compose.yml` is merged last (overlay wins on conflict)
+- Missing files, wrong types, or traversal attempts cause generation to fail
+
+## Supported File Types
+
+### `imports:` — devcontainer patch fragments
 
 | Extension        | How it is merged                                                               |
 | ---------------- | ------------------------------------------------------------------------------ |
@@ -68,6 +96,13 @@ imports:
 | `.yaml` / `.yml` | Loaded and deep-merged into `devcontainer.json` patch                          |
 | `.env`           | Concatenated into `.env.example` with a `# from .shared/…` comment header      |
 | Anything else    | Rejected with a clear unsupported-type error                                   |
+
+### `compose_imports:` — docker-compose fragments
+
+| Extension        | How it is merged                                                            |
+| ---------------- | --------------------------------------------------------------------------- |
+| `.yaml` / `.yml` | Deep-merged into `docker-compose.yml` before the overlay's own compose file |
+| Anything else    | Rejected with a clear unsupported-type error                                |
 
 ### JSON import example
 
@@ -87,7 +122,7 @@ imports:
 }
 ```
 
-### YAML import example
+### YAML devcontainer import example
 
 ```yaml
 # overlays/.shared/otel/otel-base-config.yaml
@@ -119,7 +154,26 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 ...
 ```
 
+### YAML compose_import example
+
+```yaml
+# overlays/.shared/compose/nvidia-gpu-devcontainer.yml
+services:
+    devcontainer:
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities: [gpu]
+```
+
+When this fragment is imported via `compose_imports`, the generated `docker-compose.yml` will include the `deploy` block on the `devcontainer` service merged with contributions from all other overlays.
+
 ## Import Ordering and Conflict Resolution
+
+### `imports` ordering
 
 Imports are applied in declaration order, then the overlay's own `devcontainer.patch.json` is applied last:
 
@@ -131,6 +185,17 @@ Imports are applied in declaration order, then the overlay's own `devcontainer.p
 - The **overlay's own patch always wins** over any shared fragment
 
 This means overlays can intentionally override shared defaults by setting the same key in their `devcontainer.patch.json`.
+
+### `compose_imports` ordering
+
+For each overlay, compose fragments are merged before the overlay's own `docker-compose.yml`, in this order:
+
+```
+[base template compose] → [overlay 1 compose_imports] → [overlay 1 docker-compose.yml] → [overlay 2 compose_imports] → [overlay 2 docker-compose.yml] → …
+```
+
+- Each overlay's `docker-compose.yml` wins over its own `compose_imports`
+- Later overlays win over earlier overlays on key conflict
 
 ## Worked Example: OTEL Instrumentation
 
@@ -183,7 +248,8 @@ Checks performed:
 - Import path starts with `.shared/` (path traversal check)
 - Import path resolves within `overlays/.shared/` (traversal check)
 - Import file exists on disk
-- File type is one of `.json`, `.yaml`, `.yml`, `.env`
+- File type is one of `.json`, `.yaml`, `.yml`, `.env` (for `imports:`)
+- File type is one of `.yaml`, `.yml` (for `compose_imports:`)
 
 Broken references are reported with the overlay ID and the bad path so maintainers can fix them quickly.
 
@@ -201,11 +267,23 @@ Shared Imports:
   📎 .shared/otel/instrumentation.env
 ```
 
+When an overlay has compose_imports, they are also shown:
+
+```bash
+container-superposition explain ollama
+```
+
+```
+Shared Compose Imports:
+  (docker-compose fragments from overlays/.shared/ merged before this overlay)
+  🐳 .shared/compose/nvidia-gpu-devcontainer.yml
+```
+
 ## Creating Shared Configurations
 
 1. **Identify common patterns** across multiple overlays
 2. **Create `overlays/.shared/<category>/<name>.<ext>`** — use descriptive paths, one concern per file
-3. **Update overlays** to reference the fragment via `imports:` in their `overlay.yml`
+3. **Update overlays** to reference the fragment via `imports:` or `compose_imports:` in their `overlay.yml`
 4. **Update `.shared/README.md`** to document the fragment's purpose and which overlays use it
 5. **Test** with `npm test` and `container-superposition doctor` to verify
 

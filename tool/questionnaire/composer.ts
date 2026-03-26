@@ -1385,8 +1385,47 @@ function mergeDockerComposeFiles(
         composeFiles.push(baseComposePath);
     }
 
-    // Add overlay docker-compose files
+    // Add overlay docker-compose files, interleaving any compose_imports before each overlay's own file
     for (const overlay of overlays) {
+        // First load any compose_imports for this overlay (shared fragments applied before own file)
+        const manifestPath = path.join(overlaysDir, overlay, 'overlay.yml');
+        if (fs.existsSync(manifestPath)) {
+            try {
+                const manifestContent = fs.readFileSync(manifestPath, 'utf8');
+                const manifest = yaml.load(manifestContent) as any;
+                if (manifest.compose_imports && Array.isArray(manifest.compose_imports)) {
+                    for (const importPath of manifest.compose_imports as string[]) {
+                        const traversalError = validateImportPath(importPath, overlaysDir);
+                        if (traversalError) {
+                            throw new Error(
+                                `compose_import path traversal rejected in overlay '${overlay}': ${traversalError}`
+                            );
+                        }
+                        const fullImportPath = path.join(overlaysDir, importPath);
+                        if (!fs.existsSync(fullImportPath)) {
+                            throw new Error(
+                                `compose_import not found: '${importPath}' (referenced by overlay: ${overlay})`
+                            );
+                        }
+                        const ext = path.extname(importPath).toLowerCase();
+                        if (ext !== '.yml' && ext !== '.yaml') {
+                            throw new Error(
+                                `compose_import must be a .yml or .yaml file: '${importPath}' (overlay: ${overlay})`
+                            );
+                        }
+                        console.log(
+                            chalk.dim(`   📎 Applying shared compose fragment: ${importPath}`)
+                        );
+                        composeFiles.push(fullImportPath);
+                    }
+                }
+            } catch (error) {
+                if (error instanceof Error) {
+                    throw error;
+                }
+            }
+        }
+
         const overlayComposePath = path.join(overlaysDir, overlay, 'docker-compose.yml');
         if (fs.existsSync(overlayComposePath)) {
             composeFiles.push(overlayComposePath);

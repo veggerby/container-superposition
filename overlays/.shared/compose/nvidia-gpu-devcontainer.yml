@@ -1,0 +1,22 @@
+# Shared Docker Compose fragment: NVIDIA GPU passthrough for the devcontainer service.
+#
+# Adds the deploy.resources.reservations.devices block to the devcontainer service so
+# GPU-accelerated tooling (torch, tensorflow, CUDA CLIs, etc.) works directly in the
+# dev environment alongside any GPU-enabled sidecar services.
+#
+# Requirements: NVIDIA Container Toolkit must be installed on the host.
+#   https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+#
+# Used by: ollama
+# Import via compose_imports in overlay.yml:
+#   compose_imports:
+#     - .shared/compose/nvidia-gpu-devcontainer.yml
+services:
+    devcontainer:
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities: [gpu]

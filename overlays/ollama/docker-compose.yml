@@ -1,15 +1,6 @@
 version: '3.8'
 
 services:
-    devcontainer:
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - driver: nvidia
-                          count: all
-                          capabilities: [gpu]
-
     ollama:
         image: ollama/ollama:${OLLAMA_VERSION:-latest}
         restart: unless-stopped
