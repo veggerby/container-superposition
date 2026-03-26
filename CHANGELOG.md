@@ -43,9 +43,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `verify.sh` HTTP health check on the ComfyUI web UI endpoint
     - README documents GPU acceleration (NVIDIA CUDA, AMD ROCm), CPU-only fallback, custom node persistence, and the ComfyUI REST/WebSocket API
     - Suggests `cuda`, `python`, and `ollama` overlays for GPU-accelerated and AI-integrated workflows
-- **`init --project-file`** — `init` can now write a repository-root project config alongside the normal generated output
-    - Reuses an existing `.superposition.yml` or `superposition.yml` when present; otherwise writes `.superposition.yml`
-    - Persists the final selected init configuration, including stack, base image, overlays, output path, target, minimal/editor settings, preset, and preset choices
+- **`cs migrate` command** — One-time migration from manifest-only repositories
+    - Reads `superposition.json`, converts the manifest to a `superposition.yml` project file
+    - Auto-discovers the manifest in common locations; `--from-manifest <path>` for explicit path
+    - Fails with a clear error if a project file already exists (use `--force` to overwrite)
+    - Prints next-step guidance pointing toward `cs regen`
+
+### Changed
+
+- **BREAKING: `superposition.yml` is now the canonical input** — `init` always writes a project config file alongside the devcontainer. The `--project-file` flag has been removed; project file writing is now the default behavior.
+    - **Migration:** Remove `--project-file` from any scripts using `cs init`. The project file is now always written automatically.
+- **BREAKING: `regen` requires a project file** — `regen` now reads only `superposition.yml` / `.superposition.yml`. It no longer falls back to `superposition.json` as an input source.
+    - If `superposition.json` exists but no project file is present, `regen` errors with a clear message: `Run 'cs migrate' to create a project file from your existing manifest.`
+    - **Migration for manifest-only repos:** Run `cs migrate` once to create `superposition.yml`, then use `regen` as normal.
+    - **Migration for CI scripts using `--from-manifest`:** The flag still works but emits a deprecation warning. Switch to `cs migrate` + `regen` to remove the warning.
+- **`--from-manifest` deprecated in `regen`** — Emits a deprecation warning pointing toward `cs migrate`. The flag is retained for backward compatibility.
+- **`init --no-scaffold`** — New flag to write `superposition.yml` only, without generating `.devcontainer/`. Equivalent to the old `--write-manifest-only` but conceptually cleaner.
+- **`doctor` drift detection** — `cs doctor` now compares the project file overlay list against the last-generated manifest and reports a warning when they have diverged. Suggests `regen` to reconcile.
 
 ## [0.1.7] - 2026-03-23
 
