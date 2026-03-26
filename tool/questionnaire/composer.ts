@@ -1423,6 +1423,10 @@ function mergeDockerComposeFiles(
                 if (error instanceof Error) {
                     throw error;
                 }
+                // Non-Error throwables are unexpected; wrap and re-throw so compose_imports failures always fail fast
+                throw new Error(
+                    `Unexpected error loading compose_imports for overlay '${overlay}': ${String(error)}`
+                );
             }
         }
 

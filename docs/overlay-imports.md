@@ -22,7 +22,7 @@ overlays/
 │   │   └── otel-base-config.yaml            # Base OTEL collector pipeline config
 │   ├── compose/
 │   │   ├── nvidia-gpu-devcontainer.yml      # NVIDIA GPU passthrough for the devcontainer service
-│   │   └── common-healthchecks.yml          # Standard Docker Compose healthcheck patterns (reference only)
+│   │   └── common-healthchecks.md           # Standard Docker Compose healthcheck patterns (reference only)
 │   └── vscode/
 │       └── recommended-extensions.json      # Commonly recommended VS Code extensions (devcontainer patch format)
 ├── prometheus/
