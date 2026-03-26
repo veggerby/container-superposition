@@ -70,12 +70,12 @@ Once the project file is canonical, `doctor` can compare the two files:
 
 ## Migration Considerations
 
-| Repo state | Impact | Action |
-|---|---|---|
-| Has `superposition.yml` only | None — already correct | — |
-| Has `superposition.json` only | `regen` errors | Run `cs migrate` once |
-| Has both (consistent) | None — regen prefers project file | — |
-| CI using `--from-manifest` | Warning on each run | Switch to `cs migrate` + `regen` |
+| Repo state                    | Impact                            | Action                           |
+| ----------------------------- | --------------------------------- | -------------------------------- |
+| Has `superposition.yml` only  | None — already correct            | —                                |
+| Has `superposition.json` only | `regen` errors                    | Run `cs migrate` once            |
+| Has both (consistent)         | None — regen prefers project file | —                                |
+| CI using `--from-manifest`    | Warning on each run               | Switch to `cs migrate` + `regen` |
 
 ## Review & Approval Gate
 

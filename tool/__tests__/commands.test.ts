@@ -1619,10 +1619,7 @@ describe('Command Tests', () => {
             const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'init-project-file-'));
 
             try {
-                runInitCli(
-                    ['init', '--stack', 'plain', '--language', 'nodejs'],
-                    repoDir
-                );
+                runInitCli(['init', '--stack', 'plain', '--language', 'nodejs'], repoDir);
 
                 const projectFilePath = path.join(repoDir, '.superposition.yml');
                 expect(fs.existsSync(projectFilePath)).toBe(true);
@@ -1653,15 +1650,7 @@ describe('Command Tests', () => {
                 );
 
                 runInitCli(
-                    [
-                        'init',
-                        '--stack',
-                        'plain',
-                        '--language',
-                        'nodejs',
-                        '--output',
-                        './generated',
-                    ],
+                    ['init', '--stack', 'plain', '--language', 'nodejs', '--output', './generated'],
                     repoDir
                 );
 
@@ -1923,6 +1912,125 @@ describe('Command Tests', () => {
                 expect(() => runInitCli(['init', '--no-interactive'], repoDir)).toThrow(
                     /--no-interactive requires persisted input/
                 );
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should error when regen finds only a manifest and no project file', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'regen-manifest-only-'));
+
+            try {
+                // Write only a manifest — no superposition.yml
+                fs.mkdirSync(path.join(repoDir, '.devcontainer'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(repoDir, '.devcontainer', 'superposition.json'),
+                    JSON.stringify(
+                        {
+                            manifestVersion: '1',
+                            generatedBy: 'test',
+                            generated: new Date().toISOString(),
+                            baseTemplate: 'plain',
+                            baseImage: 'bookworm',
+                            overlays: ['nodejs'],
+                        },
+                        null,
+                        2
+                    )
+                );
+
+                expect(() => runInitCli(['regen'], repoDir)).toThrow(/No project file found/);
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should create a project file from a manifest using migrate command', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'migrate-'));
+
+            try {
+                fs.mkdirSync(path.join(repoDir, '.devcontainer'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(repoDir, '.devcontainer', 'superposition.json'),
+                    JSON.stringify(
+                        {
+                            manifestVersion: '1',
+                            generatedBy: 'test',
+                            generated: new Date().toISOString(),
+                            baseTemplate: 'plain',
+                            baseImage: 'bookworm',
+                            overlays: ['nodejs'],
+                        },
+                        null,
+                        2
+                    )
+                );
+
+                runInitCli(['migrate'], repoDir);
+
+                const projectFilePath = path.join(repoDir, '.superposition.yml');
+                expect(fs.existsSync(projectFilePath)).toBe(true);
+
+                const projectConfig = yaml.load(fs.readFileSync(projectFilePath, 'utf8')) as any;
+                expect(projectConfig.stack).toBe('plain');
+                expect(projectConfig.overlays).toContain('nodejs');
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should refuse to overwrite existing project file without --force in migrate', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'migrate-force-'));
+
+            try {
+                // Write existing project file
+                fs.writeFileSync(
+                    path.join(repoDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'plain', overlays: ['python'] })
+                );
+                // Write manifest
+                fs.mkdirSync(path.join(repoDir, '.devcontainer'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(repoDir, '.devcontainer', 'superposition.json'),
+                    JSON.stringify(
+                        {
+                            manifestVersion: '1',
+                            generatedBy: 'test',
+                            generated: new Date().toISOString(),
+                            baseTemplate: 'plain',
+                            baseImage: 'bookworm',
+                            overlays: ['nodejs'],
+                        },
+                        null,
+                        2
+                    )
+                );
+
+                expect(() => runInitCli(['migrate'], repoDir)).toThrow(
+                    /Project file already exists/
+                );
+            } finally {
+                fs.rmSync(repoDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should write project file with --no-scaffold without creating .devcontainer', () => {
+            const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-scaffold-'));
+
+            try {
+                runInitCli(
+                    ['init', '--stack', 'plain', '--language', 'nodejs', '--no-scaffold'],
+                    repoDir
+                );
+
+                // Project file should be written
+                const projectFilePath = path.join(repoDir, '.superposition.yml');
+                expect(fs.existsSync(projectFilePath)).toBe(true);
+
+                // devcontainer.json should NOT be written (scaffold was skipped)
+                expect(
+                    fs.existsSync(path.join(repoDir, '.devcontainer', 'devcontainer.json'))
+                ).toBe(false);
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }

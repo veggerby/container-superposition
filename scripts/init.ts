@@ -1567,7 +1567,9 @@ async function parseCliArgs(): Promise<{
     // Migrate command
     program
         .command('migrate')
-        .description('Create a superposition.yml project file from an existing superposition.json manifest')
+        .description(
+            'Create a superposition.yml project file from an existing superposition.json manifest'
+        )
         .option(
             '--from-manifest <path>',
             'Path to superposition.json (default: auto-discover in .devcontainer/ or repository root)'
@@ -1633,13 +1635,16 @@ async function parseCliArgs(): Promise<{
                     );
                     process.exit(1);
                 }
-                projectFilePath = discovered[0]?.path ?? path.join(process.cwd(), '.superposition.yml');
+                projectFilePath =
+                    discovered[0]?.path ?? path.join(process.cwd(), '.superposition.yml');
             }
 
             // Check for existing project file
             if (fs.existsSync(projectFilePath) && !options.force) {
                 console.error(
-                    chalk.red(`✗ Project file already exists: ${path.relative(process.cwd(), projectFilePath)}`)
+                    chalk.red(
+                        `✗ Project file already exists: ${path.relative(process.cwd(), projectFilePath)}`
+                    )
                 );
                 console.error(chalk.gray('  Use --force to overwrite the existing project file.'));
                 process.exit(1);
@@ -1823,7 +1828,7 @@ async function parseCliArgs(): Promise<{
         backupDir: initOptions.backupDir,
         noInteractive: initOptions.interactive === false, // Commander creates options.interactive = false for --no-interactive
         writeManifestOnly: initOptions.writeManifestOnly === true,
-        noScaffold: initOptions.noScaffold === true,
+        noScaffold: initOptions.scaffold === false,
     };
 }
 
@@ -1912,9 +1917,7 @@ async function main() {
                         )
                     );
                     console.error(
-                        chalk.dim(
-                            '  Or run `cs init` to create a new configuration interactively.'
-                        )
+                        chalk.dim('  Or run `cs init` to create a new configuration interactively.')
                     );
                 }
                 process.exit(1);
