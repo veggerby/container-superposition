@@ -43,6 +43,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `verify.sh` HTTP health check on the ComfyUI web UI endpoint
     - README documents GPU acceleration (NVIDIA CUDA, AMD ROCm), CPU-only fallback, custom node persistence, and the ComfyUI REST/WebSocket API
     - Suggests `cuda`, `python`, and `ollama` overlays for GPU-accelerated and AI-integrated workflows
+
+### Changed
+
+- **`comfyui` overlay — shared models directory** — Models are now shared between the devcontainer and the ComfyUI sidecar via a single volume root, replacing the previous per-subdirectory bind mounts
+    - Single root mount at `/opt/comfyui-models` (devcontainer) and `/opt/ComfyUI/models` (comfyui sidecar) via `${COMFYUI_MODELS_HOST_PATH:-comfyui-models}`; ComfyUI discovers `checkpoints/`, `loras/`, etc. natively without per-subdirectory configuration
+    - Named Docker volume `comfyui-models` used by default — no host-side setup required; models persist across container rebuilds and work on all platforms
+    - Setting `COMFYUI_MODELS_HOST_PATH` in `.env` switches to a bind mount without any structural change, enabling host tool access and reuse of existing local ComfyUI installations
+    - `COMFYUI_MODELS_DIR=/opt/comfyui-models` set in `devcontainer.patch.json` as a container-side constant; scripts and tools in the devcontainer use this variable to locate the models root
+    - `setup.sh` added — pre-creates all 7 expected subdirectories (`checkpoints`, `loras`, `controlnet`, `clip_vision`, `vae`, `embeddings`, `upscale_models`) on first run
+    - `verify.sh` extended — checks `$COMFYUI_MODELS_DIR` exists, is writable, and all expected subdirectories are present, in addition to the existing HTTP health check
+    - `.env.example` updated — documents `COMFYUI_MODELS_HOST_PATH` with examples for named volume (default), bind mount (macOS/Linux/Windows), and reuse of existing local ComfyUI install; removes `COMFYUI_MODELS_PATH` (replaced by `COMFYUI_MODELS_HOST_PATH`)
+    - **Migration:** Remove `COMFYUI_MODELS_PATH` from `.devcontainer/.env` and set `COMFYUI_MODELS_HOST_PATH` to the same value if you were using a host bind mount; if using the default `~/.cache/comfyui/models`, switch to leaving `COMFYUI_MODELS_HOST_PATH` unset to use the named volume
 - **`cs migrate` command** — One-time migration from manifest-only repositories
     - Reads `superposition.json`, converts the manifest to a `superposition.yml` project file
     - Auto-discovers the manifest in common locations; `--from-manifest <path>` for explicit path

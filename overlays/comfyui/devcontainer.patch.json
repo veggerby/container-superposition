@@ -9,6 +9,7 @@
         }
     },
     "remoteEnv": {
-        "COMFYUI_URL": "http://comfyui:8188"
+        "COMFYUI_URL": "http://comfyui:8188",
+        "COMFYUI_MODELS_DIR": "/opt/comfyui-models"
     }
 }
