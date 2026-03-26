@@ -18,6 +18,18 @@ import type {
 } from '../schema/types.js';
 import type { EnvironmentIntent, ManifestDiff } from './intent.js';
 
+// ─── Rationale types ───────────────────────────────────────────────────────────
+
+/** Identifies where a particular overlay selection came from. */
+export type RationaleSource = 'prompt-intent' | 'repo-signal' | 'diff-add' | 'diff-remove';
+
+/** One entry explaining why a single overlay was included or excluded. */
+export interface SelectionRationale {
+    overlayId: string;
+    source: RationaleSource;
+    reason: string;
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
@@ -104,7 +116,7 @@ export function mapIntentToAnswers(
     intent: EnvironmentIntent,
     overlaysConfig: OverlaysConfig,
     outputPath = '.'
-): { answers: QuestionnaireAnswers; unknownIds: string[] } {
+): { answers: QuestionnaireAnswers; unknownIds: string[]; rationale: SelectionRationale[] } {
     // Collect all overlay IDs from all intent categories.
     const allIds = [
         ...(intent.language ?? []),
@@ -131,7 +143,15 @@ export function mapIntentToAnswers(
         outputPath,
     };
 
-    return { answers, unknownIds };
+    const rationale: SelectionRationale[] = allIds
+        .filter((id) => !unknownIds.includes(id))
+        .map((id) => ({
+            overlayId: id,
+            source: 'prompt-intent' as const,
+            reason: 'Selected from intent extracted from prompt',
+        }));
+
+    return { answers, unknownIds, rationale };
 }
 
 // ─── applyDiffToAnswers ────────────────────────────────────────────────────────
@@ -142,12 +162,20 @@ export function mapIntentToAnswers(
  *
  * Unknown overlay IDs in `addOverlays` are captured and returned so the caller
  * can surface them in the "not matched" section of the explainer.
+ *
+ * Warnings are returned for destructive changes that may have unintended
+ * consequences (removing the last language overlay, orphaning required deps).
  */
 export function applyDiffToAnswers(
     current: QuestionnaireAnswers,
     diff: ManifestDiff,
     overlaysConfig: OverlaysConfig
-): { answers: QuestionnaireAnswers; unknownIds: string[] } {
+): {
+    answers: QuestionnaireAnswers;
+    unknownIds: string[];
+    warnings: string[];
+    rationale: SelectionRationale[];
+} {
     // Categorise the overlays to add.
     const { language, database, devTools, cloudTools, observability, playwright, unknownIds } =
         categoriseOverlays(diff.addOverlays, overlaysConfig);
@@ -187,7 +215,52 @@ export function applyDiffToAnswers(
         (d) => d === 'docker-sock' || d === 'docker-in-docker'
     );
 
-    return { answers, unknownIds };
+    // ── Destructive-change warnings ────────────────────────────────────────────
+    const warnings: string[] = [];
+
+    // Warn if the last language overlay is removed with no replacement.
+    const removedLanguage = diff.removeOverlays.filter((id) =>
+        (current.language ?? []).includes(id as LanguageOverlay)
+    );
+    if (removedLanguage.length > 0 && (answers.language ?? []).length === 0) {
+        warnings.push(
+            `Removing all language overlays (${removedLanguage.join(', ')}) with no replacement. ` +
+                `The environment will have no language runtime.`
+        );
+    }
+
+    // Warn if removing an overlay that is required by another overlay still present.
+    const catalogMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
+    const remainingIds = collectCurrentOverlayIds(answers);
+    for (const removedId of diff.removeOverlays) {
+        for (const remainingId of remainingIds) {
+            const meta = catalogMap.get(remainingId);
+            if (meta?.requires?.includes(removedId)) {
+                warnings.push(
+                    `Removing ${removedId}, but ${remainingId} lists it as a required dependency. ` +
+                        `Consider also removing ${remainingId} or adding a replacement.`
+                );
+            }
+        }
+    }
+
+    // ── Build rationale ────────────────────────────────────────────────────────
+    const rationale: SelectionRationale[] = [
+        ...diff.addOverlays
+            .filter((id) => !unknownIds.includes(id))
+            .map((id) => ({
+                overlayId: id,
+                source: 'diff-add' as const,
+                reason: 'Added per request',
+            })),
+        ...diff.removeOverlays.map((id) => ({
+            overlayId: id,
+            source: 'diff-remove' as const,
+            reason: 'Removed per request',
+        })),
+    ];
+
+    return { answers, unknownIds, warnings, rationale };
 }
 
 // ─── collectCurrentOverlayIds ──────────────────────────────────────────────────

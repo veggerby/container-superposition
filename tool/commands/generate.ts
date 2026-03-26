@@ -30,6 +30,7 @@ import { buildOverlayContextString, buildOverlayLookup } from '../ai/overlay-con
 import { extractIntent, extractDiff, MissingApiKeyError, AgentError } from '../ai/agent.js';
 import { mapIntentToAnswers, applyDiffToAnswers, collectCurrentOverlayIds } from '../ai/mapper.js';
 import type { EnvironmentIntent, ManifestDiff } from '../ai/intent.js';
+import type { SelectionRationale } from '../ai/mapper.js';
 
 // ─── Path resolution (works in both source and dist) ─────────────────────────
 
@@ -55,6 +56,8 @@ interface GenerateResult {
     diff?: ManifestDiff;
     answers: QuestionnaireAnswers;
     unknownIds: string[];
+    /** Structured explanation of why each overlay was selected or removed. */
+    rationale: SelectionRationale[];
     manifestPath: string;
     scaffolded: boolean;
 }
@@ -302,6 +305,8 @@ export async function generateCommand(
     let diff: ManifestDiff | undefined;
     let answers: QuestionnaireAnswers;
     let unknownIds: string[] = [];
+    let rationale: SelectionRationale[] = [];
+    let modifyWarnings: string[] = [];
 
     const spinner = ora('Asking AI to interpret your prompt...').start();
 
@@ -317,6 +322,18 @@ export async function generateCommand(
             const result = mapIntentToAnswers(intent, overlaysConfig, outputPath);
             answers = result.answers;
             unknownIds = result.unknownIds;
+            rationale = result.rationale;
+
+            // Repo signals get their own rationale entries.
+            if (adoptSignals.length > 0) {
+                for (const sig of adoptSignals) {
+                    rationale.push({
+                        overlayId: sig,
+                        source: 'repo-signal',
+                        reason: `Inferred from repository file signals (package.json, go.mod, etc.)`,
+                    });
+                }
+            }
         } else {
             // Modify mode — read existing manifest.
             const existing = await readExistingManifestAsync(projectRoot, overlaysConfig);
@@ -335,6 +352,8 @@ export async function generateCommand(
             const result = applyDiffToAnswers(existing.answers, diff, overlaysConfig);
             answers = result.answers;
             unknownIds = result.unknownIds;
+            rationale = result.rationale;
+            modifyWarnings = result.warnings;
         }
     } catch (err) {
         spinner.fail('AI request failed');
@@ -357,6 +376,14 @@ export async function generateCommand(
 
     console.log('\n' + formatExplainerOutput(mode, intent, diff, unknownIds, overlaysConfig));
 
+    // Surface destructive-change warnings before the confirmation prompt.
+    if (modifyWarnings.length > 0) {
+        console.log('');
+        for (const w of modifyWarnings) {
+            console.log(chalk.yellow(`  ⚠  ${w}`));
+        }
+    }
+
     // ── Step 6: Confirmation (interactive) ───────────────────────────────────
 
     if (!options.noInteractive && !options.json) {
@@ -364,7 +391,7 @@ export async function generateCommand(
         try {
             confirmed = await confirm({
                 message: `Write${options.scaffold ? ' and scaffold' : ''} with these settings?`,
-                default: true,
+                default: modifyWarnings.length === 0, // default to No when there are warnings
             });
         } catch {
             confirmed = false;
@@ -432,6 +459,7 @@ export async function generateCommand(
             diff,
             answers,
             unknownIds,
+            rationale,
             manifestPath,
             scaffolded: !!options.scaffold,
         };

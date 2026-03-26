@@ -1,6 +1,11 @@
 /**
  * Tests for the AI mapper pure functions.
  * No LLM calls — purely testing mapIntentToAnswers and applyDiffToAnswers.
+ *
+ * Includes:
+ *  - Unit tests for individual mapping rules
+ *  - Contract/scenario tests for representative intent classes
+ *    (validates the full intent → answers contract without any LLM interaction)
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -153,6 +158,31 @@ describe('mapIntentToAnswers', () => {
         const { answers } = mapIntentToAnswers(intent, overlaysConfig, '/some/path');
         expect(answers.outputPath).toBe('/some/path');
     });
+
+    it('returns rationale entries for each valid overlay', () => {
+        const intent: EnvironmentIntent = {
+            stack: 'compose',
+            language: ['nodejs'],
+            services: ['postgres'],
+        };
+        const { rationale } = mapIntentToAnswers(intent, overlaysConfig);
+        const ids = rationale.map((r) => r.overlayId);
+        expect(ids).toContain('nodejs');
+        expect(ids).toContain('postgres');
+        for (const r of rationale) {
+            expect(r.source).toBe('prompt-intent');
+        }
+    });
+
+    it('does not return rationale entries for unknown IDs', () => {
+        const intent: EnvironmentIntent = {
+            stack: 'plain',
+            language: ['nodejs', 'fake-thing'],
+        };
+        const { rationale, unknownIds } = mapIntentToAnswers(intent, overlaysConfig);
+        expect(unknownIds).toContain('fake-thing');
+        expect(rationale.map((r) => r.overlayId)).not.toContain('fake-thing');
+    });
 });
 
 // ─── applyDiffToAnswers ────────────────────────────────────────────────────────
@@ -273,6 +303,66 @@ describe('applyDiffToAnswers', () => {
         const nodejsCount = answers.language?.filter((id) => id === 'nodejs').length ?? 0;
         expect(nodejsCount).toBe(1);
     });
+
+    it('returns rationale with diff-add source for added overlays', () => {
+        const diff: ManifestDiff = { addOverlays: ['jaeger'], removeOverlays: [] };
+        const { rationale } = applyDiffToAnswers(makeBaseAnswers(), diff, overlaysConfig);
+        const entry = rationale.find((r) => r.overlayId === 'jaeger');
+        expect(entry?.source).toBe('diff-add');
+    });
+
+    it('returns rationale with diff-remove source for removed overlays', () => {
+        const current: QuestionnaireAnswers = {
+            ...makeBaseAnswers(),
+            observability: ['otel-collector'],
+        };
+        const diff: ManifestDiff = { addOverlays: [], removeOverlays: ['otel-collector'] };
+        const { rationale } = applyDiffToAnswers(current, diff, overlaysConfig);
+        const entry = rationale.find((r) => r.overlayId === 'otel-collector');
+        expect(entry?.source).toBe('diff-remove');
+    });
+
+    // ── Destructive-change warnings ───────────────────────────────────────────
+
+    it('warns when removing the last language overlay with no replacement', () => {
+        const current: QuestionnaireAnswers = { ...makeBaseAnswers(), language: ['nodejs'] };
+        const diff: ManifestDiff = { addOverlays: [], removeOverlays: ['nodejs'] };
+        const { warnings } = applyDiffToAnswers(current, diff, overlaysConfig);
+        expect(warnings.length).toBeGreaterThan(0);
+        expect(warnings[0]).toMatch(/language overlay/i);
+    });
+
+    it('does not warn when replacing a language overlay', () => {
+        const current: QuestionnaireAnswers = { ...makeBaseAnswers(), language: ['nodejs'] };
+        const diff: ManifestDiff = { addOverlays: ['python'], removeOverlays: ['nodejs'] };
+        const { warnings } = applyDiffToAnswers(current, diff, overlaysConfig);
+        // python is added as a replacement — no "no language runtime" warning expected
+        const languageWarnings = warnings.filter((w) => /no language runtime/i.test(w));
+        expect(languageWarnings).toHaveLength(0);
+    });
+
+    it('warns when removing an overlay required by another overlay still present', () => {
+        // grafana requires prometheus; remove prometheus while grafana stays
+        const current: QuestionnaireAnswers = {
+            ...makeBaseAnswers(),
+            observability: ['prometheus', 'grafana'],
+        };
+        const diff: ManifestDiff = { addOverlays: [], removeOverlays: ['prometheus'] };
+        const { warnings } = applyDiffToAnswers(current, diff, overlaysConfig);
+        expect(warnings.length).toBeGreaterThan(0);
+        expect(warnings[0]).toMatch(/grafana/);
+    });
+
+    it('does not warn for non-destructive removals', () => {
+        const current: QuestionnaireAnswers = {
+            ...makeBaseAnswers(),
+            observability: ['otel-collector'],
+        };
+        const diff: ManifestDiff = { addOverlays: ['jaeger'], removeOverlays: ['otel-collector'] };
+        const { warnings } = applyDiffToAnswers(current, diff, overlaysConfig);
+        // otel-collector has no overlay depending on it in the current manifest
+        expect(warnings).toHaveLength(0);
+    });
 });
 
 // ─── collectCurrentOverlayIds ─────────────────────────────────────────────────
@@ -365,5 +455,162 @@ describe('buildOverlayLookup', () => {
         expect(nodejs?.name).toBeTruthy();
         expect(nodejs?.description).toBeTruthy();
         expect(nodejs?.category).toBe('language');
+    });
+});
+
+// ─── Contract / scenario tests ────────────────────────────────────────────────
+//
+// These tests validate that the intent → answers mapping behaves correctly for
+// representative environment classes. They use fixed (mocked) EnvironmentIntent
+// objects rather than calling the LLM, so they run without an API key and serve
+// as regression protection against mapper behaviour changes.
+
+describe('Scenario: from-scratch web app (Node.js + postgres + redis)', () => {
+    let overlaysConfig: OverlaysConfig;
+
+    beforeEach(() => {
+        overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+    });
+
+    it('produces compose stack with expected overlays', () => {
+        const intent: EnvironmentIntent = {
+            stack: 'compose',
+            language: ['nodejs'],
+            services: ['postgres', 'redis'],
+            goals: ['Build a REST API with a database and cache'],
+        };
+        const { answers, unknownIds } = mapIntentToAnswers(intent, overlaysConfig);
+        expect(answers.stack).toBe('compose');
+        expect(answers.language).toContain('nodejs');
+        expect(answers.database).toContain('postgres');
+        expect(answers.database).toContain('redis');
+        expect(unknownIds).toHaveLength(0);
+    });
+});
+
+describe('Scenario: from-scratch observability stack', () => {
+    let overlaysConfig: OverlaysConfig;
+
+    beforeEach(() => {
+        overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+    });
+
+    it('maps full observability triad', () => {
+        const intent: EnvironmentIntent = {
+            stack: 'compose',
+            language: ['nodejs'],
+            observability: ['otel-collector', 'jaeger', 'prometheus'],
+            goals: ['Distributed tracing and metrics'],
+        };
+        const { answers, unknownIds } = mapIntentToAnswers(intent, overlaysConfig);
+        expect(answers.observability).toContain('otel-collector');
+        expect(answers.observability).toContain('jaeger');
+        expect(answers.observability).toContain('prometheus');
+        expect(unknownIds).toHaveLength(0);
+    });
+});
+
+describe('Scenario: from-scratch documentation site (MkDocs)', () => {
+    let overlaysConfig: OverlaysConfig;
+
+    beforeEach(() => {
+        overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+    });
+
+    it('uses plain stack with mkdocs language overlay', () => {
+        const intent: EnvironmentIntent = {
+            stack: 'plain',
+            language: ['mkdocs', 'python'],
+            goals: ['Write and preview documentation'],
+        };
+        const { answers, unknownIds } = mapIntentToAnswers(intent, overlaysConfig);
+        expect(answers.stack).toBe('plain');
+        expect(answers.language).toContain('mkdocs');
+        expect(answers.language).toContain('python');
+        expect(unknownIds).toHaveLength(0);
+    });
+});
+
+describe('Scenario: from-scratch Kubernetes / cloud tooling', () => {
+    let overlaysConfig: OverlaysConfig;
+
+    beforeEach(() => {
+        overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+    });
+
+    it('maps kubectl+helm and terraform as cloud tools', () => {
+        const intent: EnvironmentIntent = {
+            stack: 'plain',
+            cloudTools: ['kubectl-helm', 'terraform'],
+            goals: ['Deploy services to Kubernetes using Terraform'],
+        };
+        const { answers, unknownIds } = mapIntentToAnswers(intent, overlaysConfig);
+        expect(answers.cloudTools).toContain('kubectl-helm');
+        expect(answers.cloudTools).toContain('terraform');
+        expect(unknownIds).toHaveLength(0);
+    });
+});
+
+describe('Scenario: diff — add Jaeger, remove otel-collector', () => {
+    let overlaysConfig: OverlaysConfig;
+
+    beforeEach(() => {
+        overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+    });
+
+    it('applies the canonical observability swap', () => {
+        const current: QuestionnaireAnswers = {
+            ...makeBaseAnswers(),
+            observability: ['otel-collector'],
+        };
+        const diff: ManifestDiff = {
+            addOverlays: ['jaeger'],
+            removeOverlays: ['otel-collector'],
+        };
+        const { answers, unknownIds, warnings } = applyDiffToAnswers(current, diff, overlaysConfig);
+        expect(answers.observability).toContain('jaeger');
+        expect(answers.observability).not.toContain('otel-collector');
+        expect(unknownIds).toHaveLength(0);
+        expect(warnings).toHaveLength(0);
+    });
+});
+
+describe('Scenario: diff — switch stack to plain', () => {
+    let overlaysConfig: OverlaysConfig;
+
+    beforeEach(() => {
+        overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+    });
+
+    it('changes stack without touching overlays', () => {
+        const current = makeBaseAnswers(); // stack: compose
+        const diff: ManifestDiff = {
+            addOverlays: [],
+            removeOverlays: [],
+            changeStack: 'plain',
+        };
+        const { answers } = applyDiffToAnswers(current, diff, overlaysConfig);
+        expect(answers.stack).toBe('plain');
+        expect(answers.language).toEqual(current.language);
+        expect(answers.database).toEqual(current.database);
+    });
+});
+
+describe('Scenario: diff — remove required dependency (destructive)', () => {
+    let overlaysConfig: OverlaysConfig;
+
+    beforeEach(() => {
+        overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+    });
+
+    it('warns when removing python while mkdocs is still selected', () => {
+        const current: QuestionnaireAnswers = {
+            ...makeBaseAnswers(),
+            language: ['python', 'mkdocs'],
+        };
+        const diff: ManifestDiff = { addOverlays: [], removeOverlays: ['python'] };
+        const { warnings } = applyDiffToAnswers(current, diff, overlaysConfig);
+        expect(warnings.length).toBeGreaterThan(0);
+        expect(warnings[0]).toMatch(/mkdocs/);
     });
 });

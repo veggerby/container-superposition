@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`generate` command** — AI-powered intent-driven environment scaffolding
     - `cs generate --prompt "Python app with postgres and redis"` — generates a `superposition.yml` manifest from a natural-language description
-    - Modify mode: when a `superposition.yml` is already present, applies an incremental diff (`add jaeger`, `remove otel-collector`, `switch to compose`) rather than regenerating from scratch
+    - Modify mode: when a `superposition.yml` is already present, applies an incremental diff (`add jaeger`, `remove otel-collector`, `switch to compose`) rather than regenerating from scratch; original manifest backed up to `.bak` before overwrite
     - `--scaffold` — also runs `composeDevContainer` to emit a full `.devcontainer/` folder
     - `--adopt` — scans the repository for language/framework signals (`package.json`, `go.mod`, `Cargo.toml`, etc.) and combines them with the prompt for richer intent detection
     - `--from-scratch` — forces from-scratch mode even if a `superposition.yml` exists
@@ -19,10 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Backed by [Mastra](https://mastra.ai) with structured Zod-validated output; model configurable via `CS_AI_MODEL` env var (default: `openai/gpt-4o-mini`)
     - The LLM can only select from the live overlay catalog — it cannot invent IDs
     - Fails clearly when no API key is configured (`OPENAI_API_KEY` for the default provider)
-    - Original manifest is backed up to `superposition.yml.bak` before modify-mode overwrites
+    - `--json` output includes a structured `rationale` array explaining why each overlay was selected or removed (source: `prompt-intent`, `repo-signal`, `diff-add`, `diff-remove`)
+    - Modify mode warns before applying destructive changes: removing the only language overlay, or removing an overlay required by another overlay still in the manifest
 - **`tool/ai/` module** — new AI utilities
     - `intent.ts` — `EnvironmentIntent` + `ManifestDiff` types with Zod schemas
-    - `mapper.ts` — `mapIntentToAnswers()` + `applyDiffToAnswers()` pure functions (LLM-free, fully testable)
+    - `mapper.ts` — `mapIntentToAnswers()` + `applyDiffToAnswers()` pure functions (LLM-free, fully testable); `SelectionRationale` type for machine-readable overlay selection explanations
     - `overlay-context.ts` — `buildOverlayContextString()` serialises the overlay catalog for LLM context
     - `agent.ts` — Mastra agent wrappers for `extractIntent()` and `extractDiff()`
 - **`@mastra/core` and `zod` dependencies** — added as production dependencies
@@ -39,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Minimum Node.js version raised to 22.13.0** — The `@mastra/core` dependency (introduced by the `generate` command) requires Node.js 22.13.0+. This is a meaningful platform change: contributors, CI pipelines, and users on Node 20 or 21 must upgrade before using the `generate` command. All other commands continue to work as before if you are running a newer Node.js version; the engine field in `package.json` is updated to reflect the new minimum.
 - **Flat `overlays` field in project config** — Project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, etc.); old category keys are still accepted for backward compatibility
 - **`doctor` command** — `--from-manifest`, `--from-project`, and `--project-root` flags added, bringing `doctor` into parity with `init` and `regen` for project-file and manifest selection
 - **`direnv` overlay** — Package installation moved to `cross-distro-packages` devcontainer feature (runs at image-build time); `setup.sh` now handles only shell hook configuration
