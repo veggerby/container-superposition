@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`ollama` overlay** — Replaced the devcontainer CLI install path that piped `ollama.com/install.sh`
     - `setup.sh` now installs the CLI directly from the Linux release tarball instead of invoking the full host-oriented installer
     - Avoids silent failures when the installer expects host-level prerequisites such as `zstd`
-    - Removes the mismatch where the docs referenced `OLLAMA_SKIP_SERVICE_INSTALL=1` even though Ollama's Linux installer does not support that flag
+    - Aligns the overlay implementation with the documented `OLLAMA_SKIP_SERVICE_INSTALL=1` environment variable so service installation behavior now matches the docs
 
 ## [0.1.7] - 2026-03-23
 

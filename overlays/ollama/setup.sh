@@ -16,12 +16,13 @@ if command_exists ollama; then
 fi
 
 echo "📦 Installing Ollama CLI..."
-# Install the CLI payload directly from the Linux release archive instead of
-# invoking the full install.sh flow, which expects host-level dependencies such
-# as zstd/systemd handling that are irrelevant inside the devcontainer.
-run_spinner "Downloading and installing Ollama CLI..." \
-    bash -c 'curl -fsSL "$1" | sudo tar -xzf - -C /usr/local' _ \
-    "https://ollama.com/download/ollama-linux-${CS_ARCH}.tgz"
+# Install the CLI binary from the Linux release archive instead of invoking the
+# full install.sh flow, which expects host-level dependencies such as
+# zstd/systemd handling that are irrelevant inside the devcontainer.
+install_binary_from_tar \
+    "https://ollama.com/download/ollama-linux-${CS_ARCH}.tgz" \
+    "bin/ollama" \
+    "ollama"
 
 export PATH="/usr/local/bin:/usr/bin:/bin:${PATH}"
 
