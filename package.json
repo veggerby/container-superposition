@@ -5,7 +5,8 @@
     "type": "module",
     "main": "dist/scripts/init.js",
     "bin": {
-        "container-superposition": "./dist/scripts/init.js"
+        "container-superposition": "./dist/scripts/init.js",
+        "cs": "./dist/scripts/init.js"
     },
     "scripts": {
         "build": "tsc",
