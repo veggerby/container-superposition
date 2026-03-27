@@ -1,14 +1,14 @@
 # ComfyUI Overlay
 
-Runs [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as a Docker Compose service, providing a reproducible, containerised node-based image and video generation environment with host model directories mounted into the container.
+Runs [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as a Docker Compose service, providing a reproducible, containerised node-based image and video generation environment with a shared models directory accessible from both the devcontainer and the ComfyUI sidecar.
 
 ## Features
 
 - **Node-based workflow UI** — Visual node editor for building Stable Diffusion and generative AI pipelines, accessible at `http://localhost:8188`
 - **REST and WebSocket API** — Programmatically submit workflows and receive results via ComfyUI's built-in API
 - **Custom node support** — Install community custom nodes to extend workflows with new models and operations
-- **Host model reuse** — Per-subdirectory volume mounts mean multi-GB checkpoints, LoRAs, VAEs, and ControlNets are shared from the host without re-downloading on every container rebuild
-- **Output persistence** — Generated images and videos are saved to the host so they survive container restarts
+- **Shared models directory** — Single volume root (`/opt/comfyui-models`) mounted into both the devcontainer and the ComfyUI sidecar; model files are accessible by scripts running in the devcontainer without going through the HTTP API
+- **Output persistence** — Generated images and videos are saved to a named volume (or host path) so they survive container restarts
 - **Port 8188** — Standard ComfyUI web UI port, auto-forwarded and opened in the browser
 
 ## How It Works
@@ -20,59 +20,97 @@ ComfyUI runs as a long-lived Docker Compose service (`comfyui`) alongside your d
 - Image: `ghcr.io/ai-dock/comfyui:latest-cuda` (configurable via `COMFYUI_VERSION`)
 - Network: `devnet` (shared with the dev container)
 - Port: `8188` (ComfyUI web UI and REST API)
-- Volumes: per-subdirectory mounts from `COMFYUI_MODELS_PATH` on the host
+- Volumes: single models root shared between devcontainer and ComfyUI sidecar
 
 The `COMFYUI_URL` environment variable is set to `http://comfyui:8188` in the devcontainer so scripts and tools can connect without hard-coding the address.
 
-## Mapping Host Models into the Container
+The `COMFYUI_MODELS_DIR` environment variable is set to `/opt/comfyui-models` in the devcontainer — the fixed path where the shared models volume is mounted.
 
-This is the most important feature for day-to-day use. ComfyUI model directories are typically 10s–100s of GB spread across multiple subdirectories. Re-downloading on every container rebuild is not feasible.
+## Shared Models Directory
 
-### Default Layout
+`/opt/comfyui-models` is the single models root visible to **both** the devcontainer and the ComfyUI sidecar. Files written to this directory from any side are immediately visible to the other — no restart required.
 
-`COMFYUI_MODELS_PATH` defaults to `~/.cache/comfyui/models` on the host. Each subdirectory is independently mounted so ComfyUI discovers each model type correctly:
+### Subdirectory Layout
 
-| Host path (relative to `COMFYUI_MODELS_PATH`) | Container path                        | Purpose                                                |
-| --------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
-| `checkpoints/`                                | `/opt/ComfyUI/models/checkpoints/`    | Stable Diffusion base models (`.safetensors`, `.ckpt`) |
-| `loras/`                                      | `/opt/ComfyUI/models/loras/`          | LoRA fine-tuning weights                               |
-| `vae/`                                        | `/opt/ComfyUI/models/vae/`            | VAE decoder models                                     |
-| `controlnet/`                                 | `/opt/ComfyUI/models/controlnet/`     | ControlNet guidance models                             |
-| `embeddings/`                                 | `/opt/ComfyUI/models/embeddings/`     | Textual inversion embeddings                           |
-| `upscale_models/`                             | `/opt/ComfyUI/models/upscale_models/` | Image upscaling models (ESRGAN, etc.)                  |
+`setup.sh` pre-creates all expected subdirectories on first run:
 
-### Reusing an Existing ComfyUI Installation
+```
+/opt/comfyui-models/
+├── checkpoints/      — Stable Diffusion base models (.safetensors, .ckpt)
+├── loras/            — LoRA fine-tuning weights
+├── controlnet/       — ControlNet guidance models
+├── clip_vision/      — CLIP Vision models
+├── vae/              — VAE decoder models
+├── embeddings/       — Textual inversion embeddings
+└── upscale_models/   — Image upscaling models (ESRGAN, etc.)
+```
 
-If you already have ComfyUI installed locally, point `COMFYUI_MODELS_PATH` at your existing models directory to reuse downloaded models without copying them:
+### Tier 1 (default): Named Docker Volume
+
+When `COMFYUI_MODELS_HOST_PATH` is **not** set (the default), a named Docker Compose volume `comfyui-models` is used. Models persist across container rebuilds without any host-side setup and work on all platforms.
+
+```yaml
+# docker-compose.yml (simplified)
+volumes:
+    comfyui-models:
+        name: comfyui-models
+```
+
+### Tier 2 (opt-in): Bind Mount to Host Path
+
+Set `COMFYUI_MODELS_HOST_PATH` in `.devcontainer/.env` to switch to a bind mount — the same Compose config handles both cases with no structural change:
 
 ```bash
 # .devcontainer/.env
-COMFYUI_MODELS_PATH=~/ComfyUI/models
+# Note: Docker Compose does not expand '~' in .env files; always use full absolute paths.
+
+# macOS / Linux
+COMFYUI_MODELS_HOST_PATH=/home/you/.cache/comfyui/models
+
+# Windows (Docker Desktop — use absolute path, no tilde)
+COMFYUI_MODELS_HOST_PATH=C:/Users/you/.cache/comfyui/models
+
+# Reuse an existing local ComfyUI install
+COMFYUI_MODELS_HOST_PATH=/home/you/ComfyUI/models
 ```
 
-### Downloading New Models (Civitai / HuggingFace)
+### Reusing an Existing Local ComfyUI Install
 
-Downloaded `.safetensors` files placed into the appropriate subdirectory on the **host** are immediately visible inside the container — no restart required:
+Point `COMFYUI_MODELS_HOST_PATH` at your existing models directory to avoid re-downloading multi-GB files:
 
 ```bash
-# Example: download a checkpoint directly into the host models directory
-mkdir -p ~/.cache/comfyui/models/checkpoints
-curl -L -o ~/.cache/comfyui/models/checkpoints/my-model.safetensors \
-     "https://huggingface.co/.../resolve/main/my-model.safetensors"
+# Use the full absolute path — Docker Compose does not expand '~' in .env files
+COMFYUI_MODELS_HOST_PATH=/home/you/ComfyUI/models
 ```
+
+### Downloading Models from the Devcontainer
+
+Use `curl`, `wget`, or `huggingface-cli` inside the devcontainer to download models directly into the shared directory — they are immediately visible in ComfyUI's model browser:
+
+```bash
+# Download a checkpoint
+curl -L -o "${COMFYUI_MODELS_DIR}/checkpoints/my-model.safetensors" \
+     "https://huggingface.co/.../resolve/main/my-model.safetensors"
+
+# Download with wget
+wget -P "${COMFYUI_MODELS_DIR}/checkpoints/" \
+     "https://huggingface.co/.../resolve/main/my-model.safetensors"
+
+# Download with huggingface-cli (requires huggingface_hub)
+huggingface-cli download org/repo my-model.safetensors \
+    --local-dir "${COMFYUI_MODELS_DIR}/checkpoints/"
+```
+
+Files written to `$COMFYUI_MODELS_DIR` are **immediately visible in ComfyUI** — no restart is needed because the volume is live-mounted.
 
 ### Windows Note
 
-On Windows, `~` expansion may be unreliable with Docker Desktop. Set `COMFYUI_MODELS_PATH` explicitly in `.devcontainer/.env`:
+Docker Compose does not expand `~` in `.env` files on any platform. Always use full absolute paths for `COMFYUI_MODELS_HOST_PATH`:
 
 ```bash
-COMFYUI_MODELS_PATH=C:/Users/you/ComfyUI/models
-COMFYUI_OUTPUT_PATH=C:/Users/you/ComfyUI/output
+# Windows — use absolute path with forward slashes
+COMFYUI_MODELS_HOST_PATH=C:/Users/you/.cache/comfyui/models
 ```
-
-### Output Persistence
-
-`COMFYUI_OUTPUT_PATH` (defaults to `~/.cache/comfyui/output`) is mounted to `/opt/ComfyUI/output` inside the container. Generated images and videos are written here and survive container rebuilds.
 
 ## Common Workflows
 
@@ -97,7 +135,7 @@ curl -X POST http://comfyui:8188/prompt \
 
 ### Save Outputs
 
-Generated images appear in `~/.cache/comfyui/output` on the host (or the path configured in `COMFYUI_OUTPUT_PATH`).
+Generated images appear in the `comfyui-output` named volume by default, or at the path configured in `COMFYUI_OUTPUT_PATH`.
 
 ## GPU Acceleration
 
@@ -217,25 +255,29 @@ while True:
 
 Set these in `.devcontainer/.env` (copy from `.devcontainer/.env.example`):
 
-| Variable              | Default                   | Description                                                   |
-| --------------------- | ------------------------- | ------------------------------------------------------------- |
-| `COMFYUI_MODELS_PATH` | `~/.cache/comfyui/models` | Root host path for model subdirectories                       |
-| `COMFYUI_OUTPUT_PATH` | `~/.cache/comfyui/output` | Host path for generated outputs                               |
-| `COMFYUI_VERSION`     | `latest-cuda`             | Docker image tag (`latest-cuda`, `latest-cpu`, `latest-rocm`) |
-| `COMFYUI_PORT`        | `8188`                    | Host port for the web UI                                      |
-| `CLI_ARGS`            | `--listen 0.0.0.0`        | Extra CLI arguments passed to ComfyUI at startup              |
+| Variable                   | Default               | Description                                                                                          |
+| -------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------- |
+| `COMFYUI_MODELS_DIR`       | `/opt/comfyui-models` | Path inside devcontainer where models are accessible (set in devcontainer.patch.json; do not change) |
+| `COMFYUI_MODELS_HOST_PATH` | _(unset)_             | Host-side bind mount source; when unset the named volume `comfyui-models` is used                    |
+| `COMFYUI_OUTPUT_PATH`      | _(unset)_             | Host path for generated outputs; when unset the named volume `comfyui-output` is used                |
+| `COMFYUI_VERSION`          | `latest-cuda`         | Docker image tag (`latest-cuda`, `latest-cpu`, `latest-rocm`)                                        |
+| `COMFYUI_PORT`             | `8188`                | Host port for the web UI                                                                             |
+| `CLI_ARGS`                 | `--listen 0.0.0.0`    | Extra CLI arguments passed to ComfyUI at startup                                                     |
 
 ### Example `.env`
 
 ```bash
-# Root path for ComfyUI model files on the host.
-# Subdirectories (checkpoints, loras, vae, etc.) are mounted individually.
-# Point this at an existing ComfyUI models dir to reuse downloaded models.
-# COMFYUI_MODELS_PATH=~/ComfyUI/models
-COMFYUI_MODELS_PATH=~/.cache/comfyui/models
+# Option A (default) — named Docker volume, no host path needed:
+# Leave COMFYUI_MODELS_HOST_PATH unset.
 
-# Where generated outputs are saved on the host.
-COMFYUI_OUTPUT_PATH=~/.cache/comfyui/output
+# Option B — bind mount to host directory:
+# macOS/Linux:
+# COMFYUI_MODELS_HOST_PATH=~/.cache/comfyui/models
+# Windows (Docker Desktop):
+# COMFYUI_MODELS_HOST_PATH=C:/Users/you/.cache/comfyui/models
+
+# Where generated outputs are saved (named volume by default):
+# COMFYUI_OUTPUT_PATH=~/.cache/comfyui/output
 ```
 
 ## Troubleshooting
@@ -244,13 +286,13 @@ COMFYUI_OUTPUT_PATH=~/.cache/comfyui/output
 
 **Symptom:** ComfyUI loads but shows "model not found" errors when running a workflow.
 
-**Solution:** Ensure model files exist in the correct subdirectory on the host:
+**Solution:** Ensure model files exist in the correct subdirectory inside the shared models root:
 
 ```bash
-ls ~/.cache/comfyui/models/checkpoints/   # Should list .safetensors files
+ls "${COMFYUI_MODELS_DIR}/checkpoints/"   # Should list .safetensors files
 ```
 
-If using a custom path, verify `COMFYUI_MODELS_PATH` is set correctly in `.devcontainer/.env`.
+If `COMFYUI_MODELS_HOST_PATH` is set, verify the host directory contains the expected subdirectories.
 
 ### CUDA / GPU Not Detected
 

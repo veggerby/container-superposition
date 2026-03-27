@@ -1,14 +1,51 @@
 #!/bin/bash
 # Verification script for ComfyUI overlay
-# Confirms ComfyUI service is running and accessible via HTTP
+# Confirms the shared models directory is set up correctly and the ComfyUI service is accessible
 
 set -e
 
 echo "🔍 Verifying ComfyUI overlay..."
 echo ""
 
+# Check shared models directory
+echo "1️⃣ Checking shared models directory..."
+MODELS_DIR="${COMFYUI_MODELS_DIR:-/opt/comfyui-models}"
+
+if [ ! -d "${MODELS_DIR}" ]; then
+    echo "   ❌ Models directory not found: ${MODELS_DIR}"
+    echo ""
+    echo "❌ ComfyUI overlay verification failed"
+    exit 1
+fi
+echo "   ✅ Models directory exists: ${MODELS_DIR}"
+
+if [ ! -w "${MODELS_DIR}" ]; then
+    echo "   ❌ Models directory is not writable: ${MODELS_DIR}"
+    echo ""
+    echo "❌ ComfyUI overlay verification failed"
+    exit 1
+fi
+echo "   ✅ Models directory is writable"
+
+EXPECTED_SUBDIRS=(checkpoints loras controlnet clip_vision vae embeddings upscale_models)
+MISSING_SUBDIRS=()
+for subdir in "${EXPECTED_SUBDIRS[@]}"; do
+    if [ ! -d "${MODELS_DIR}/${subdir}" ]; then
+        MISSING_SUBDIRS+=("${subdir}")
+    fi
+done
+
+if [ ${#MISSING_SUBDIRS[@]} -gt 0 ]; then
+    echo "   ❌ Missing model subdirectories: ${MISSING_SUBDIRS[*]}"
+    echo ""
+    echo "❌ ComfyUI overlay verification failed"
+    exit 1
+fi
+echo "   ✅ All expected model subdirectories present"
+
 # Check if curl is available
-echo "1️⃣ Checking curl availability..."
+echo ""
+echo "2️⃣ Checking curl availability..."
 if ! command -v curl &> /dev/null; then
     echo "   ❌ curl not found"
     echo ""
@@ -19,7 +56,7 @@ echo "   ✅ curl found"
 
 # Check ComfyUI web UI
 echo ""
-echo "2️⃣ Checking ComfyUI service..."
+echo "3️⃣ Checking ComfyUI service..."
 COMFYUI_URL="${COMFYUI_URL:-http://comfyui:8188}"
 COMFYUI_READY=false
 
@@ -46,7 +83,7 @@ fi
 
 # Check system stats endpoint
 echo ""
-echo "3️⃣ Checking ComfyUI system stats..."
+echo "4️⃣ Checking ComfyUI system stats..."
 set +e
 STATS_JSON=$(curl -sf "${COMFYUI_URL}/system_stats")
 CURL_STATUS=$?
@@ -60,6 +97,7 @@ fi
 
 echo ""
 echo "✅ ComfyUI overlay verification complete"
+echo "   Models directory: ${MODELS_DIR}"
 echo "   Web UI: ${COMFYUI_URL}"
 echo "   API (example): ${COMFYUI_URL}/system_stats"
 echo "   Docs: https://github.com/comfyanonymous/ComfyUI"

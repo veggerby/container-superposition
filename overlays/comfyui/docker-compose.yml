@@ -1,20 +1,22 @@
 version: '3.8'
 
 services:
+    devcontainer:
+        volumes:
+            # Mount shared models root into devcontainer for direct filesystem access.
+            # When COMFYUI_MODELS_HOST_PATH is set this becomes a bind mount to that path;
+            # otherwise the named volume comfyui-models is used.
+            - ${COMFYUI_MODELS_HOST_PATH:-comfyui-models}:/opt/comfyui-models
+
     comfyui:
         image: ghcr.io/ai-dock/comfyui:${COMFYUI_VERSION:-latest-cuda}
         restart: unless-stopped
         volumes:
-            # Mount host model directories — avoids re-downloading GBs on every rebuild.
-            # Each subdirectory maps to a specific model type ComfyUI expects.
-            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/checkpoints:/opt/ComfyUI/models/checkpoints
-            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/loras:/opt/ComfyUI/models/loras
-            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/vae:/opt/ComfyUI/models/vae
-            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/controlnet:/opt/ComfyUI/models/controlnet
-            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/embeddings:/opt/ComfyUI/models/embeddings
-            - ${COMFYUI_MODELS_PATH:-~/.cache/comfyui/models}/upscale_models:/opt/ComfyUI/models/upscale_models
-            # Persist generated outputs to host
-            - ${COMFYUI_OUTPUT_PATH:-~/.cache/comfyui/output}:/opt/ComfyUI/output
+            # Single root mount — ComfyUI discovers checkpoints/, loras/, etc. natively.
+            # Same source as the devcontainer mount above so both services share one copy.
+            - ${COMFYUI_MODELS_HOST_PATH:-comfyui-models}:/opt/ComfyUI/models
+            # Persist generated outputs (named volume by default, host path when COMFYUI_OUTPUT_PATH is set)
+            - ${COMFYUI_OUTPUT_PATH:-comfyui-output}:/opt/ComfyUI/output
         environment:
             - CLI_ARGS=${CLI_ARGS:---listen 0.0.0.0}
         ports:
@@ -28,6 +30,10 @@ services:
                           capabilities: [gpu]
         networks:
             - devnet
+
+volumes:
+    comfyui-models:
+    comfyui-output:
 
 networks:
     devnet:
