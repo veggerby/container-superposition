@@ -37,10 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Regen without `--target` inherits the target recorded in the existing manifest, so the correct artifacts are always reproduced
 - **`comfyui` overlay** — ComfyUI node-based image/video generation UI running as a Docker Compose sidecar
     - Serves the ComfyUI web UI and REST/WebSocket API on port `8188`; auto-forwarded and opened in the browser
-    - Per-subdirectory volume mounts (`checkpoints`, `loras`, `vae`, `controlnet`, `embeddings`, `upscale_models`) share multi-GB model files from the host without re-downloading on rebuild
-    - `COMFYUI_MODELS_PATH` env var overrides the host model root (supports pointing at an existing `~/ComfyUI/models` directory)
-    - `COMFYUI_OUTPUT_PATH` persists generated images/videos to the host across container rebuilds
-    - `verify.sh` HTTP health check on the ComfyUI web UI endpoint
+    - Single shared models root (`/opt/comfyui-models`) mounted into both the devcontainer and the ComfyUI sidecar; `COMFYUI_MODELS_HOST_PATH` switches between named volume (default) and host bind mount
+    - `COMFYUI_OUTPUT_PATH` persists generated images/videos to the host across container rebuilds (named volume `comfyui-output` by default)
+    - `setup.sh` pre-creates all 7 model subdirectories (`checkpoints`, `loras`, `controlnet`, `clip_vision`, `vae`, `embeddings`, `upscale_models`)
+    - `verify.sh` checks the shared models directory and all expected subdirectories, plus HTTP health check on the ComfyUI web UI endpoint
     - README documents GPU acceleration (NVIDIA CUDA, AMD ROCm), CPU-only fallback, custom node persistence, and the ComfyUI REST/WebSocket API
     - Suggests `cuda`, `python`, and `ollama` overlays for GPU-accelerated and AI-integrated workflows
 
@@ -48,21 +48,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`comfyui` overlay — shared models directory** — Models are now shared between the devcontainer and the ComfyUI sidecar via a single volume root, replacing the previous per-subdirectory bind mounts
     - Single root mount at `/opt/comfyui-models` (devcontainer) and `/opt/ComfyUI/models` (comfyui sidecar) via `${COMFYUI_MODELS_HOST_PATH:-comfyui-models}`; ComfyUI discovers `checkpoints/`, `loras/`, etc. natively without per-subdirectory configuration
-    - Named Docker volume `comfyui-models` used by default — no host-side setup required; models persist across container rebuilds and work on all platforms
-    - Setting `COMFYUI_MODELS_HOST_PATH` in `.env` switches to a bind mount without any structural change, enabling host tool access and reuse of existing local ComfyUI installations
+    - Named Docker volume `comfyui-models` used by default (project-scoped, no explicit `name:`); models persist across container rebuilds and work on all platforms
+    - Setting `COMFYUI_MODELS_HOST_PATH` in `.env` to a full absolute path switches to a bind mount; Docker Compose does not expand `~` in `.env` files
     - `COMFYUI_MODELS_DIR=/opt/comfyui-models` set in `devcontainer.patch.json` as a container-side constant; scripts and tools in the devcontainer use this variable to locate the models root
-    - `setup.sh` added — pre-creates all 7 expected subdirectories (`checkpoints`, `loras`, `controlnet`, `clip_vision`, `vae`, `embeddings`, `upscale_models`) on first run
+    - `setup.sh` added — pre-creates all 7 expected subdirectories (`checkpoints`, `loras`, `controlnet`, `clip_vision`, `vae`, `embeddings`, `upscale_models`) on first run; handles volume permission issues with sudo fallback
     - `verify.sh` extended — checks `$COMFYUI_MODELS_DIR` exists, is writable, and all expected subdirectories are present, in addition to the existing HTTP health check
-    - `.env.example` updated — documents `COMFYUI_MODELS_HOST_PATH` with examples for named volume (default), bind mount (macOS/Linux/Windows), and reuse of existing local ComfyUI install; removes `COMFYUI_MODELS_PATH` (replaced by `COMFYUI_MODELS_HOST_PATH`)
-    - **Migration:** Remove `COMFYUI_MODELS_PATH` from `.devcontainer/.env` and set `COMFYUI_MODELS_HOST_PATH` to the same value if you were using a host bind mount; if using the default `~/.cache/comfyui/models`, switch to leaving `COMFYUI_MODELS_HOST_PATH` unset to use the named volume
+    - `.env.example` updated — documents `COMFYUI_MODELS_HOST_PATH` with examples using full absolute paths; removes `COMFYUI_MODELS_PATH` (replaced by `COMFYUI_MODELS_HOST_PATH`)
+    - **Migration:** Remove `COMFYUI_MODELS_PATH` from `.devcontainer/.env` and set `COMFYUI_MODELS_HOST_PATH` to the full absolute path if you were using a host bind mount; if using the default `~/.cache/comfyui/models`, switch to leaving `COMFYUI_MODELS_HOST_PATH` unset to use the named volume
 - **`cs migrate` command** — One-time migration from manifest-only repositories
     - Reads `superposition.json`, converts the manifest to a `superposition.yml` project file
     - Auto-discovers the manifest in common locations; `--from-manifest <path>` for explicit path
     - Fails with a clear error if a project file already exists (use `--force` to overwrite)
     - Prints next-step guidance pointing toward `cs regen`
-
-### Changed
-
 - **BREAKING: `superposition.yml` is now the canonical input** — `init` always writes a project config file alongside the devcontainer. The `--project-file` flag has been removed; project file writing is now the default behavior.
     - **Migration:** Remove `--project-file` from any scripts using `cs init`. The project file is now always written automatically.
 - **BREAKING: `regen` requires a project file** — `regen` now reads only `superposition.yml` / `.superposition.yml`. It no longer falls back to `superposition.json` as an input source.

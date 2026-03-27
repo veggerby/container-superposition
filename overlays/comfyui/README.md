@@ -62,15 +62,16 @@ Set `COMFYUI_MODELS_HOST_PATH` in `.devcontainer/.env` to switch to a bind mount
 
 ```bash
 # .devcontainer/.env
+# Note: Docker Compose does not expand '~' in .env files; always use full absolute paths.
 
 # macOS / Linux
-COMFYUI_MODELS_HOST_PATH=~/.cache/comfyui/models
+COMFYUI_MODELS_HOST_PATH=/home/you/.cache/comfyui/models
 
 # Windows (Docker Desktop — use absolute path, no tilde)
 COMFYUI_MODELS_HOST_PATH=C:/Users/you/.cache/comfyui/models
 
 # Reuse an existing local ComfyUI install
-COMFYUI_MODELS_HOST_PATH=~/ComfyUI/models
+COMFYUI_MODELS_HOST_PATH=/home/you/ComfyUI/models
 ```
 
 ### Reusing an Existing Local ComfyUI Install
@@ -78,7 +79,8 @@ COMFYUI_MODELS_HOST_PATH=~/ComfyUI/models
 Point `COMFYUI_MODELS_HOST_PATH` at your existing models directory to avoid re-downloading multi-GB files:
 
 ```bash
-COMFYUI_MODELS_HOST_PATH=~/ComfyUI/models
+# Use the full absolute path — Docker Compose does not expand '~' in .env files
+COMFYUI_MODELS_HOST_PATH=/home/you/ComfyUI/models
 ```
 
 ### Downloading Models from the Devcontainer
@@ -103,10 +105,10 @@ Files written to `$COMFYUI_MODELS_DIR` are **immediately visible in ComfyUI** �
 
 ### Windows Note
 
-On Windows with Docker Desktop, use absolute paths with forward slashes for `COMFYUI_MODELS_HOST_PATH`. Tilde (`~`) expansion is unreliable:
+Docker Compose does not expand `~` in `.env` files on any platform. Always use full absolute paths for `COMFYUI_MODELS_HOST_PATH`:
 
 ```bash
-# Windows — use absolute path
+# Windows — use absolute path with forward slashes
 COMFYUI_MODELS_HOST_PATH=C:/Users/you/.cache/comfyui/models
 ```
 

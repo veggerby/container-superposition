@@ -15,7 +15,7 @@ services:
             # Single root mount — ComfyUI discovers checkpoints/, loras/, etc. natively.
             # Same source as the devcontainer mount above so both services share one copy.
             - ${COMFYUI_MODELS_HOST_PATH:-comfyui-models}:/opt/ComfyUI/models
-            # Persist generated outputs to host
+            # Persist generated outputs (named volume by default, host path when COMFYUI_OUTPUT_PATH is set)
             - ${COMFYUI_OUTPUT_PATH:-comfyui-output}:/opt/ComfyUI/output
         environment:
             - CLI_ARGS=${CLI_ARGS:---listen 0.0.0.0}
@@ -33,9 +33,7 @@ services:
 
 volumes:
     comfyui-models:
-        name: comfyui-models
     comfyui-output:
-        name: comfyui-output
 
 networks:
     devnet:
