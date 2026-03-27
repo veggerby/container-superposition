@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `editor` field persisted to `superposition.json` manifest for reproducible regen
 - **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
     - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
-    - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly from the Linux release tarball, client-only; no need to `docker exec` into the sidecar
+    - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly from the Linux release tarball (not via `ollama.com/install.sh`), client-only; avoids silent failures when the host-oriented installer expects prerequisites such as `zstd`; no need to `docker exec` into the sidecar
     - **`OLLAMA_HOST` pre-configured** — Set as a `containerEnv` variable to `http://ollama:11434` so `ollama pull / run / list / rm` target the sidecar automatically with no manual setup
     - **GPU passthrough built-in** — Both the `ollama` sidecar and the `devcontainer` service receive all NVIDIA GPUs via `deploy.resources.reservations.devices`; enables GPU-accelerated tooling (`torch`, `tensorflow`, CUDA CLIs) directly in the dev environment
     - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild; models pulled inside the devcontainer are also persisted to the host
@@ -63,13 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`--from-manifest` deprecated in `regen`** — Emits a deprecation warning pointing toward `cs migrate`. The flag is retained for backward compatibility.
 - **`init --no-scaffold`** — New flag to write `superposition.yml` only, without generating `.devcontainer/`. Equivalent to the old `--write-manifest-only` but conceptually cleaner.
 - **`doctor` drift detection** — `cs doctor` now compares the project file overlay list against the last-generated manifest and reports a warning when they have diverged. Suggests `regen` to reconcile.
-
-### Fixed
-
-- **`ollama` overlay** — Replaced the devcontainer CLI install path that piped `ollama.com/install.sh`
-    - `setup.sh` now installs the CLI directly from the Linux release tarball instead of invoking the full host-oriented installer
-    - Avoids silent failures when the installer expects host-level prerequisites such as `zstd`
-    - Aligns the overlay implementation with the documented `OLLAMA_SKIP_SERVICE_INSTALL=1` environment variable so service installation behavior now matches the docs
 
 ## [0.1.7] - 2026-03-23
 

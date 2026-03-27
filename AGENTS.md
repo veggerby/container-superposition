@@ -24,7 +24,7 @@
 - **Conflicts are bidirectional**: if overlay A lists B in `conflicts`, B must also list A
 - **Docker Compose networks**: never use `external: true`; always declare the network inline with `name: devnet`
 - **Spec-first**: before writing implementation code for a new feature, commit a spec under `docs/specs/`
-- **Changelog required**: add an appropriate `CHANGELOG.md` entry for user-visible changes
+- **Changelog required**: add an appropriate `CHANGELOG.md` entry for user-visible changes; anything introduced **for the first time in the current release** must appear as a single consolidated entry under `Added` only — do not also list it under `Changed` or `Fixed`; if iterative work on an unreleased item is done, fold all details into the single `Added` bullet rather than adding separate `Changed` or `Fixed` bullets for the same item
 - **Docs required**: run `npm run docs:generate` after adding or changing overlays, then commit the updated `docs/overlays.md`
 - **Lint:fix before committing**: run `npm run lint:fix` to auto-fix formatting issues, then verify with `npm run lint`
 
