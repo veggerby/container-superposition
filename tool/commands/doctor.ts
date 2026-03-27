@@ -70,6 +70,7 @@ interface DoctorReport {
     manifest: CheckResult[];
     merge: CheckResult[];
     ports: CheckResult[];
+    drift: CheckResult[];
     summary: {
         passed: number;
         warnings: number;
@@ -1004,14 +1005,95 @@ function checkMergeStrategy(outputPath: string): CheckResult[] {
 }
 
 /**
- * Generate doctor report
+ * Check for drift between the project config file and the last generated manifest.
+ * Reports a warning when the overlay lists differ so users know to run `regen`.
  */
+function checkProjectFileDrift(
+    overlaysConfig: OverlaysConfig,
+    workingDir: string,
+    manifestPath: string
+): CheckResult[] {
+    // Load project config — skip silently if not present
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch {
+        return [];
+    }
+    if (!projectConfig) {
+        return [];
+    }
+
+    // Load manifest — if not present while the project file exists, report it informatively
+    if (!fs.existsSync(manifestPath)) {
+        return [
+            {
+                name: 'Project file drift',
+                status: 'warn',
+                message:
+                    'Project file found but no generated manifest — run `cs regen` to generate',
+                fixEligibility: 'not-applicable',
+            },
+        ];
+    }
+    let manifest: SuperpositionManifest;
+    try {
+        const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifest = needsMigration(raw) ? migrateManifest(raw) : (raw as SuperpositionManifest);
+    } catch {
+        return [];
+    }
+
+    // Compare overlay sets (order-independent).
+    // Exclude auto-resolved dependencies from the manifest side — the project file only
+    // stores user-selected overlays; auto-resolved ones are re-calculated at generation time.
+    const autoResolvedAdded = new Set<string>(manifest.autoResolved?.added ?? []);
+    const projectOverlays = new Set<string>(projectConfig.selection.overlays ?? []);
+    const manifestBaseOverlays = new Set<string>(
+        (manifest.overlays ?? []).filter((o) => !autoResolvedAdded.has(o))
+    );
+
+    const inProjectNotManifest = [...projectOverlays].filter((o) => !manifestBaseOverlays.has(o));
+    const inManifestNotProject = [...manifestBaseOverlays].filter((o) => !projectOverlays.has(o));
+
+    if (inProjectNotManifest.length === 0 && inManifestNotProject.length === 0) {
+        return [
+            {
+                name: 'Project file drift',
+                status: 'pass',
+                message: 'Project file and generated manifest are consistent',
+                fixEligibility: 'not-applicable',
+            },
+        ];
+    }
+
+    const details: string[] = [];
+    if (inProjectNotManifest.length > 0) {
+        details.push(`In project file but not in manifest: ${inProjectNotManifest.join(', ')}`);
+    }
+    if (inManifestNotProject.length > 0) {
+        details.push(`In manifest but not in project file: ${inManifestNotProject.join(', ')}`);
+    }
+    details.push('Run "cs regen" to regenerate with the current project file configuration');
+
+    return [
+        {
+            name: 'Project file drift',
+            status: 'warn',
+            message: 'Project file and generated manifest have diverged',
+            details,
+            fixEligibility: 'manual-only',
+        },
+    ];
+}
+
 function generateReport(
     environmentChecks: CheckResult[],
     overlayChecks: CheckResult[],
     manifestChecks: CheckResult[],
     mergeChecks: CheckResult[],
-    portChecks: CheckResult[]
+    portChecks: CheckResult[],
+    driftChecks: CheckResult[] = []
 ): DoctorReport {
     const allChecks = [
         ...environmentChecks,
@@ -1019,6 +1101,7 @@ function generateReport(
         ...manifestChecks,
         ...mergeChecks,
         ...portChecks,
+        ...driftChecks,
     ];
 
     const passed = allChecks.filter((c) => c.status === 'pass').length;
@@ -1032,6 +1115,7 @@ function generateReport(
         manifest: manifestChecks,
         merge: mergeChecks,
         ports: portChecks,
+        drift: driftChecks,
         summary: {
             passed,
             warnings,
@@ -1122,6 +1206,22 @@ function formatAsText(report: DoctorReport): string {
         }
     }
 
+    // Drift section
+    if (report.drift.length > 0) {
+        const failedDrift = report.drift.filter((c) => c.status !== 'pass');
+        if (failedDrift.length > 0) {
+            lines.push(chalk.bold('\nProject File:'));
+            for (const check of failedDrift) {
+                lines.push(formatCheckResult(check));
+            }
+        } else {
+            lines.push(chalk.bold('\nProject File:'));
+            lines.push(
+                `  ${chalk.green('✓')} ${chalk.white('Project file and manifest are consistent')}`
+            );
+        }
+    }
+
     // Summary
     lines.push(chalk.bold('\nSummary:'));
     lines.push(`  ${chalk.green('✓')} ${report.summary.passed} passed`);
@@ -1176,6 +1276,7 @@ function reportToFindings(report: DoctorReport): DiagnosticFinding[] {
         ...checksToFindings(report.manifest, 'manifest', 'manifest'),
         ...checksToFindings(report.merge, 'merge', 'devcontainer'),
         ...checksToFindings(report.ports, 'ports', 'environment'),
+        ...checksToFindings(report.drift, 'manifest', 'manifest'),
     ];
 }
 
@@ -1713,7 +1814,8 @@ async function executeFixRun(
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
     requestedJson: boolean,
-    explicitManifestPath?: string
+    explicitManifestPath?: string,
+    workingDir: string = process.cwd()
 ): Promise<FixRun> {
     const initialFindings = reportToFindings(report);
 
@@ -1797,12 +1899,14 @@ async function executeFixRun(
     const overlayChecks = checkOverlays(overlaysDir);
     const finalManifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, finalManifestPath);
+    const finalDriftChecks = checkProjectFileDrift(overlaysConfig, workingDir, finalManifestPath);
     const finalFindings = [
         ...checksToFindings(envChecks, 'environment', 'environment'),
         ...checksToFindings(manifestChecks, 'manifest', 'manifest'),
         ...checksToFindings(mergeChecks, 'merge', 'devcontainer'),
         ...checksToFindings(overlayChecks, 'overlay', 'full'),
         ...checksToFindings(portChecks, 'ports', 'environment'),
+        ...checksToFindings(finalDriftChecks, 'manifest', 'manifest'),
     ];
 
     const summary = buildOutcomeSummary(executions);
@@ -2020,6 +2124,7 @@ export async function doctorCommand(
     const mergeChecks = checkMergeStrategy(outputPath);
     const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, manifestPath);
+    const driftChecks = checkProjectFileDrift(overlaysConfig, workingDir, manifestPath);
 
     // Generate report
     const report = generateReport(
@@ -2027,7 +2132,8 @@ export async function doctorCommand(
         overlayChecks,
         manifestChecks,
         mergeChecks,
-        portChecks
+        portChecks,
+        driftChecks
     );
 
     if (options.fix) {
@@ -2043,7 +2149,8 @@ export async function doctorCommand(
             overlaysConfig,
             overlaysDir,
             options.json ?? false,
-            explicitManifestPath
+            explicitManifestPath,
+            workingDir
         );
 
         if (options.json) {
