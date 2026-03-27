@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Falls back to a minimal `.idea/` scaffold with `IntelliJIdea` backend when no language overlay is selected
     - Editor profile question added to the interactive questionnaire (`? Editor profile: VS Code / JetBrains / None`)
     - `editor` field persisted to `superposition.json` manifest for reproducible regen
+- **`cs` command alias** — `npm install -g container-superposition` now registers both `container-superposition` and the shorter `cs` command; all existing `cs <subcommand>` usage in docs and examples works without a separate install
 - **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
     - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
     - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly from the Linux release tarball (not via `ollama.com/install.sh`), client-only; avoids silent failures when the host-oriented installer expects prerequisites such as `zstd`; no need to `docker exec` into the sidecar
