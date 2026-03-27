@@ -601,6 +601,22 @@ describe('Python Overlay - venv support', () => {
     });
 });
 
+describe('Ollama Overlay', () => {
+    it('setup-ollama.sh should install the CLI from the release tarball using install_binary_from_tar', () => {
+        const repoRoot = path.join(__dirname, '..', '..');
+        const setupShPath = path.join(repoRoot, 'overlays', 'ollama', 'setup.sh');
+
+        expect(fs.existsSync(setupShPath)).toBe(true);
+
+        const content = fs.readFileSync(setupShPath, 'utf-8');
+
+        expect(content).toContain('detect_arch');
+        expect(content).toContain('ollama-linux-${CS_ARCH}.tgz');
+        expect(content).toContain('install_binary_from_tar');
+        expect(content).not.toContain('https://ollama.com/install.sh');
+    });
+});
+
 describe('Gitignore - first-class overlay support', () => {
     // Each test uses its own parent directory so .gitignore files don’t collide between tests
     const GITIGNORE_TEST_ROOT = path.join(REPO_ROOT, 'tmp', 'test-gitignore');
