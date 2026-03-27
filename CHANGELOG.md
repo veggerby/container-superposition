@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `editor` field persisted to `superposition.json` manifest for reproducible regen
 - **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
     - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
-    - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly in the devcontainer (client-only, `OLLAMA_SKIP_SERVICE_INSTALL=1`); no need to `docker exec` into the sidecar
+    - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly from the Linux release tarball, client-only; no need to `docker exec` into the sidecar
     - **`OLLAMA_HOST` pre-configured** — Set as a `containerEnv` variable to `http://ollama:11434` so `ollama pull / run / list / rm` target the sidecar automatically with no manual setup
     - **GPU passthrough built-in** — Both the `ollama` sidecar and the `devcontainer` service receive all NVIDIA GPUs via `deploy.resources.reservations.devices`; enables GPU-accelerated tooling (`torch`, `tensorflow`, CUDA CLIs) directly in the dev environment
     - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild; models pulled inside the devcontainer are also persisted to the host
@@ -46,6 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`init --project-file`** — `init` can now write a repository-root project config alongside the normal generated output
     - Reuses an existing `.superposition.yml` or `superposition.yml` when present; otherwise writes `.superposition.yml`
     - Persists the final selected init configuration, including stack, base image, overlays, output path, target, minimal/editor settings, preset, and preset choices
+
+### Fixed
+
+- **`ollama` overlay** — Replaced the devcontainer CLI install path that piped `ollama.com/install.sh`
+    - `setup.sh` now installs the CLI directly from the Linux release tarball instead of invoking the full host-oriented installer
+    - Avoids silent failures when the installer expects host-level prerequisites such as `zstd`
+    - Removes the mismatch where the docs referenced `OLLAMA_SKIP_SERVICE_INSTALL=1` even though Ollama's Linux installer does not support that flag
 
 ## [0.1.7] - 2026-03-23
 

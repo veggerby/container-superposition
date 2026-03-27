@@ -584,6 +584,20 @@ describe('Python Overlay - venv support', () => {
         expect(content).not.toContain('GITIGNORE_FILE');
     });
 
+    it('setup-ollama.sh should install the CLI from the release tarball', () => {
+        const repoRoot = path.join(__dirname, '..', '..');
+        const setupShPath = path.join(repoRoot, 'overlays', 'ollama', 'setup.sh');
+
+        expect(fs.existsSync(setupShPath)).toBe(true);
+
+        const content = fs.readFileSync(setupShPath, 'utf-8');
+
+        expect(content).toContain('detect_arch');
+        expect(content).toContain('ollama-linux-${CS_ARCH}.tgz');
+        expect(content).toContain('sudo tar -xzf - -C /usr/local');
+        expect(content).not.toContain('https://ollama.com/install.sh');
+    });
+
     it('devcontainer.patch.json should reference .venv interpreter path', () => {
         const repoRoot = path.join(__dirname, '..', '..');
         const patchPath = path.join(repoRoot, 'overlays', 'python', 'devcontainer.patch.json');
