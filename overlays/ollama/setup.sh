@@ -22,14 +22,16 @@ echo "📦 Installing Ollama CLI..."
 OLLAMA_IMAGE="ollama/ollama:${OLLAMA_VERSION:-latest}"
 if command_exists docker && docker info >/dev/null 2>&1; then
     tmpdir=$(mktemp -d)
-    trap 'rm -rf "${tmpdir}"' EXIT
+    docker_container_id=""
+    trap '[ -n "${docker_container_id}" ] && docker rm -f "${docker_container_id}" >/dev/null 2>&1 || true; rm -rf "${tmpdir}"' EXIT
 
-    container_id="$(docker ps -q --filter "ancestor=${OLLAMA_IMAGE}" | head -n 1)"
-    created_container=false
+    # Guard Docker command substitutions with || fallback so failures here are
+    # non-fatal and the archive fallback below can still run.
+    container_id="$(docker ps -q --filter "ancestor=${OLLAMA_IMAGE}" 2>/dev/null | head -n 1)" || container_id=""
 
     if [ -z "${container_id}" ] && docker image inspect "${OLLAMA_IMAGE}" >/dev/null 2>&1; then
-        container_id="$(docker create "${OLLAMA_IMAGE}")"
-        created_container=true
+        container_id="$(docker create "${OLLAMA_IMAGE}" 2>/dev/null)" || container_id=""
+        [ -n "${container_id}" ] && docker_container_id="${container_id}"
     fi
 
     if [ -n "${container_id}" ] && docker cp "${container_id}:/usr/bin/ollama" "${tmpdir}/ollama" >/dev/null 2>&1; then
@@ -37,10 +39,8 @@ if command_exists docker && docker info >/dev/null 2>&1; then
         sudo install -m 0755 "${tmpdir}/ollama" /usr/local/bin/ollama
     fi
 
-    if [ "${created_container}" = true ]; then
-        docker rm -f "${container_id}" >/dev/null 2>&1 || true
-    fi
-
+    [ -n "${docker_container_id}" ] && docker rm -f "${docker_container_id}" >/dev/null 2>&1 || true
+    docker_container_id=""
     rm -rf "${tmpdir}"
     trap - EXIT
 fi
