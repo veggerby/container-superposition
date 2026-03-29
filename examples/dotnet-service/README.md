@@ -28,7 +28,7 @@ This is a complete reference example of a .NET microservice development environm
 
 ### 1. Generate the devcontainer
 
-This example includes a `superposition.json` manifest that you can use to generate the complete devcontainer configuration:
+This example is driven by `superposition.yml`, including a project-level `env:` section for the devcontainer:
 
 ```bash
 cd examples/dotnet-service
@@ -85,13 +85,10 @@ psql -h postgres -U postgres -d devdb
 
 ## Customizing This Example
 
-The `superposition.json` manifest defines the configuration. To modify:
+The `superposition.yml` project file defines the configuration. To modify:
 
 ```bash
-# Regenerate with changes (interactive)
-npx container-superposition init --from-manifest superposition.json
-
-# Or edit the manifest directly and regenerate
+# Edit superposition.yml directly and regenerate
 npx container-superposition regen
 ```
 

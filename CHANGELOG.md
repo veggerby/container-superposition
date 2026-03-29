@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **First-class project `env` in `superposition.yml`** — Container environment variables can now be declared once in the project file and routed automatically by stack
+    - `stack: plain` writes project `env` entries to `devcontainer.json -> remoteEnv`
+    - `stack: compose` materializes project `env` entries into `.devcontainer/.env`, writes `docker-compose.yml -> services.devcontainer.environment` as `${KEY}`, and exposes the same values to the devcontainer via `devcontainer.json -> remoteEnv.KEY = ${containerEnv:KEY}`
+    - Supports string shorthand (`FOO: bar`) and object form with explicit target override (`target: auto | remoteEnv | composeEnv`)
+    - Compose values that reference `${NAME}` or `${NAME:-default}` resolve from the repository root `.env` when available before being written to `.devcontainer/.env`
+    - `customizations.envTemplate` is now the canonical project-file field for variables written to `.env.example`; `customizations.environment` remains as a deprecated read-compatible alias, but newly written project files normalize to `envTemplate`
 - **JetBrains IDE support (`--editor jetbrains`)** — Generates JetBrains project artifacts alongside the devcontainer configuration
     - Adds `customizations.jetbrains.backend` to `devcontainer.json`, selecting the IDE automatically from the primary language overlay (WebStorm for Node.js/Bun, PyCharm for Python, GoLand for Go, Rider for .NET, RustRover for Rust, IntelliJIdea for Java or generic)
     - Generates `.idea/.gitignore` at the project root, marking shared settings as VCS-tracked and excluding user-local entries

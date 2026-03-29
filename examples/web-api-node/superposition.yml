@@ -9,3 +9,6 @@ overlays:
     - prometheus
     - grafana
     - loki
+env:
+    NODE_ENV: development
+    OTEL_SERVICE_NAME: web-api-node

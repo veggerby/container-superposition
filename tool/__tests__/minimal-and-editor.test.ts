@@ -364,7 +364,7 @@ describe('Minimal Flag and Editor Profiles', () => {
             const testOutputPath = path.join(testOutputBasePath, 'project-config-customizations');
 
             writeProjectConfigCustomizations(testOutputPath, {
-                environment: {
+                envTemplate: {
                     EXTRA_PROJECT_FLAG: 'enabled',
                 },
                 devcontainerPatch: {

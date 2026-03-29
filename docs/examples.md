@@ -19,9 +19,11 @@ language:
 database:
     - postgres
 outputPath: ./.devcontainer
+env:
+    APP_ENV: development
 customizations:
-    environment:
-        APP_ENV: development
+    envTemplate:
+        POSTGRES_PASSWORD: postgres
     devcontainerPatch:
         features:
             ghcr.io/devcontainers-extra/features/apt-get-packages:1:
@@ -171,24 +173,25 @@ All examples produce:
 
 ## Customization After Generation
 
-The output is plain JSON - edit directly:
+Prefer editing `superposition.yml` and regenerating:
 
-```jsonc
-// .devcontainer/devcontainer.json
-{
-    "name": "My Custom Name", // Change this
-    "features": {
-        // Add/remove features
-        "ghcr.io/devcontainers/features/go:1": {},
-    },
-    "forwardPorts": [3000, 8080], // Adjust ports
-    "remoteEnv": {
-        "MY_VAR": "value", // Add environment variables
-    },
-}
+```yaml
+# superposition.yml
+containerName: My Custom Name
+env:
+    MY_VAR: value
+customizations:
+    devcontainerPatch:
+        forwardPorts:
+            - 3000
+            - 8080
 ```
 
-The tool gets you started—you customize from there.
+Then regenerate:
+
+```bash
+npx container-superposition regen
+```
 
 ## Help and Documentation
 

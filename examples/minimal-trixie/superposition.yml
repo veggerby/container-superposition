@@ -3,6 +3,8 @@ stack: plain
 baseImage: trixie
 overlays:
     - codex
+env:
+    WORKSPACE_PROFILE: minimal-trixie
 customizations:
     devcontainerPatch:
         mounts:

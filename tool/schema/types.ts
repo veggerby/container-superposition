@@ -132,6 +132,11 @@ export interface DevContainerConfig {
  * Editor profile for customizations
  */
 export type EditorProfile = 'vscode' | 'jetbrains' | 'none';
+export type ProjectEnvTarget = 'auto' | 'remoteEnv' | 'composeEnv';
+export interface ProjectEnvVar {
+    value: string;
+    target?: ProjectEnvTarget;
+}
 
 /**
  * Questionnaire response interface
@@ -156,6 +161,7 @@ export interface QuestionnaireAnswers {
     target?: DeploymentTarget; // Deployment target for environment-specific optimizations
     minimal?: boolean; // Whether to use minimal mode (exclude optional/nice-to-have features)
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
+    projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
 }
 
@@ -399,7 +405,7 @@ export interface ProjectConfigFileEntry {
 export interface ProjectConfigCustomizationsInput {
     devcontainerPatch?: DevContainer;
     dockerComposePatch?: Record<string, any>;
-    environment?: Record<string, string>;
+    envTemplate?: Record<string, string>;
     scripts?: {
         postCreate?: string[];
         postStart?: string[];
@@ -510,5 +516,6 @@ export interface ProjectConfigSelection {
     target?: DeploymentTarget;
     minimal?: boolean;
     editor?: EditorProfile;
+    env?: Record<string, ProjectEnvVar>;
     customizations?: ProjectConfigCustomizationsInput;
 }
