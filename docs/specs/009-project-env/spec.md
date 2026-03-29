@@ -1,11 +1,74 @@
----
-Feature Branch: codex/project-env
-Created: 2026-03-29
-Status: Implementing
-Input: User request
+# Feature Specification: Unified Project-Level Environment Variables
+
+**Feature Branch**: `codex/project-env`
+**Created**: 2026-03-29
+**Status**: Implementing
+**Input**: User request
+
+## Review & Approval _(mandatory before implementation)_
+
+- **Spec Path**: `docs/specs/009-project-env/spec.md`
+- **Commit Status**: Committed
+- **Review Status**: Pending
+- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
+
+## User Scenarios & Testing _(mandatory)_
+
+### User Story 1 — Define environment variables once for plain stack (Priority: P1)
+
+A developer adds an `env:` block to `superposition.yml` on a `plain` stack and expects the
+variables to appear in `devcontainer.json → remoteEnv` after regeneration.
+
+**Why this priority**: The most common use case is a plain-stack project needing a handful of
+environment variables visible inside the devcontainer without manually editing JSON files.
+
+**Independent Test**: Create a `superposition.yml` with `stack: plain` and `env: {APP_NAME: my-app}`,
+run `regen`, and confirm that `devcontainer.json` contains `"remoteEnv": {"APP_NAME": "my-app"}`.
+
+**Acceptance Scenarios**:
+
+1. **Given** `superposition.yml` has `env: {APP_NAME: my-app}`, **When** generation runs with `stack: plain`, **Then** `devcontainer.json` includes `remoteEnv.APP_NAME: my-app`.
+2. **Given** `env:` uses the long form `{value: "foo", target: auto}`, **When** generation runs with `stack: plain`, **Then** the variable is written to `remoteEnv` identical to the string shorthand.
+
 ---
 
-# Spec: Unified Project-Level Environment Variables
+### User Story 2 — Define environment variables once for compose stack (Priority: P1)
+
+A developer adds an `env:` block to `superposition.yml` on a `compose` stack and expects the
+variables to appear in `docker-compose.yml → services.devcontainer.environment` after regeneration.
+
+**Why this priority**: Compose-stack users currently must split env configuration across
+`customizations.devcontainerPatch.remoteEnv` and `customizations.dockerComposePatch`, which is
+error-prone and hard to discover.
+
+**Independent Test**: Create a `superposition.yml` with `stack: compose` and
+`env: {DB_HOST: postgres}`, run `regen`, and confirm the variable appears under
+`services.devcontainer.environment` in the generated `docker-compose.yml`.
+
+**Acceptance Scenarios**:
+
+1. **Given** `superposition.yml` has `env: {DB_HOST: postgres}` on a compose stack, **When** generation runs, **Then** `docker-compose.yml` contains `services.devcontainer.environment.DB_HOST: postgres`.
+2. **Given** `target: composeEnv` is specified, **When** generation runs with `stack: plain`, **Then** generation errors with a clear message about compose-only targets.
+
+---
+
+### User Story 3 — Explicit target overrides auto-routing (Priority: P2)
+
+A developer uses `target: remoteEnv` on a compose-stack project to force a variable into
+`devcontainer.json` instead of `docker-compose.yml`.
+
+**Why this priority**: Power users occasionally need fine-grained control over where a variable
+lands, especially for VS Code-specific settings that must be in `remoteEnv`.
+
+**Independent Test**: Set `target: remoteEnv` on a variable in a compose-stack project, run
+`regen`, and confirm the variable is in `devcontainer.json → remoteEnv` (not in
+`docker-compose.yml → services.devcontainer.environment`).
+
+**Acceptance Scenarios**:
+
+1. **Given** `{value: "bar", target: remoteEnv}` in `env:` on a compose stack, **When** generation runs, **Then** the variable is written to `devcontainer.json → remoteEnv` only.
+
+---
 
 ## Overview
 
