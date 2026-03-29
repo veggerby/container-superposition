@@ -38,10 +38,11 @@ Materializing them into `.devcontainer/.env` keeps generated config template-onl
 
 ---
 
-### User Story 2 — Rename customizations.environment to customizations.envTemplate (Priority: P1)
+### User Story 2 — Configure env template entries with clearly named project-file field (Priority: P1)
 
-A developer updates their `superposition.yml` to use `customizations.envTemplate` and expects the
-generated `.env.example` content to be identical to what `customizations.environment` produced.
+A developer updates their `superposition.yml` to use `customizations.envTemplate` (instead of
+the previously named `customizations.environment`) and expects the generated `.env.example`
+content to be identical to what the old field produced.
 
 **Why this priority**: The existing `environment` key is misleading — it writes to `.env.example`
 (a template), not to the runtime container environment. Renaming it clarifies intent and prevents

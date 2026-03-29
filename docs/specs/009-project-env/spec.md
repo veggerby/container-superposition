@@ -28,7 +28,7 @@ run `regen`, and confirm that `devcontainer.json` contains `"remoteEnv": {"APP_N
 **Acceptance Scenarios**:
 
 1. **Given** `superposition.yml` has `env: {APP_NAME: my-app}`, **When** generation runs with `stack: plain`, **Then** `devcontainer.json` includes `remoteEnv.APP_NAME: my-app`.
-2. **Given** `env:` uses the long form `{value: "foo", target: auto}`, **When** generation runs with `stack: plain`, **Then** the variable is written to `remoteEnv` identical to the string shorthand.
+2. **Given** `env:` uses the long form (`{value: "foo", target: auto}` — an object with a required `value` string and optional `target` routing hint), **When** generation runs with `stack: plain`, **Then** the variable is written to `remoteEnv` identical to the string shorthand.
 
 ---
 
