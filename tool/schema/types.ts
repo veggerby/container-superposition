@@ -163,6 +163,7 @@ export interface QuestionnaireAnswers {
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
     projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
+    overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
 }
 
 /**
@@ -239,6 +240,16 @@ export interface NormalizedPort extends PortMetadata {
 }
 
 /**
+ * Declaration of a single configurable parameter for an overlay.
+ * Parameters are resolved at generation time using {{cs.PARAM_NAME}} substitution.
+ */
+export interface OverlayParameterDefinition {
+    description: string; // Human-readable explanation shown in interactive prompts
+    default?: string; // Default value; absence means the parameter is required
+    sensitive?: boolean; // Marks secrets — hidden in prompts and redacted in plan output
+}
+
+/**
  * Overlay metadata from overlays.yml
  */
 export interface OverlayMetadata {
@@ -257,6 +268,7 @@ export interface OverlayMetadata {
     compose_imports?: string[]; // Shared docker-compose fragments to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
     hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
+    parameters?: Record<string, OverlayParameterDefinition>; // Configurable parameters for this overlay
 }
 
 /**
@@ -518,4 +530,5 @@ export interface ProjectConfigSelection {
     editor?: EditorProfile;
     env?: Record<string, ProjectEnvVar>;
     customizations?: ProjectConfigCustomizationsInput;
+    parameters?: Record<string, string>; // Overlay parameter values for {{cs.KEY}} substitution
 }

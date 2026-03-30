@@ -7,7 +7,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
-import { select, checkbox, input, confirm } from '@inquirer/prompts';
+import { select, checkbox, input, confirm, password } from '@inquirer/prompts';
 import yaml from 'js-yaml';
 import type {
     QuestionnaireAnswers,
@@ -62,6 +62,7 @@ import {
     createBackup,
     ensureBackupPatternsInGitignore,
 } from '../tool/utils/backup.js';
+import { collectOverlayParameters } from '../tool/utils/parameters.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1121,6 +1122,48 @@ async function runQuestionnaire(
             }
         }
 
+        // Prompt for overlay parameters declared by selected overlays
+        const allSelectedOverlays = [
+            ...presetOverlays,
+            ...(language ?? []),
+            ...(database ?? []),
+            ...(cloudTools ?? []),
+            ...(devTools ?? []),
+            ...(observability ?? []),
+        ].filter(Boolean);
+
+        const declaredParams = collectOverlayParameters(allSelectedOverlays, config.overlays);
+
+        const overlayParameters: Record<string, string> = {
+            ...(defaultAnswers?.overlayParameters ?? {}),
+        };
+
+        if (Object.keys(declaredParams).length > 0) {
+            console.log(chalk.cyan('\n⚙️  Configure overlay parameters:\n'));
+
+            for (const [key, def] of Object.entries(declaredParams)) {
+                const preFilledValue = overlayParameters[key];
+                const defaultValue = preFilledValue ?? def.default ?? '';
+
+                let value: string;
+                if (def.sensitive) {
+                    value = await password({
+                        message: `${key} — ${def.description}${defaultValue ? ` (default: hidden)` : ' (required)'}`,
+                        mask: '*',
+                    });
+                    if (!value && def.default !== undefined) {
+                        value = def.default;
+                    }
+                } else {
+                    value = await input({
+                        message: `${key} — ${def.description}`,
+                        default: defaultValue || undefined,
+                    });
+                }
+                overlayParameters[key] = value;
+            }
+        }
+
         return {
             stack,
             baseImage,
@@ -1142,6 +1185,8 @@ async function runQuestionnaire(
             minimal: defaultAnswers?.minimal,
             editor: editorChoice,
             customizations: defaultAnswers?.customizations,
+            overlayParameters:
+                Object.keys(overlayParameters).length > 0 ? overlayParameters : undefined,
         };
     } catch (error) {
         if ((error as any).name === 'ExitPromptError') {
@@ -1284,6 +1329,9 @@ function mergeAnswers(
                     if (value.length > 0) {
                         merged[key] = value;
                     }
+                } else if (key === 'overlayParameters' && typeof value === 'object') {
+                    // Merge overlay parameter objects (later keys override earlier ones)
+                    merged[key] = { ...(merged[key] ?? {}), ...value };
                 } else {
                     merged[key] = value;
                 }
@@ -1392,6 +1440,12 @@ async function parseCliArgs(): Promise<{
             (value: string, previous: string[]) => previous.concat([value]),
             [] as string[]
         )
+        .option(
+            '--param <value>',
+            'Set an overlay parameter value (format: KEY=value, can be repeated)',
+            (value: string, previous: string[]) => previous.concat([value]),
+            [] as string[]
+        )
         .action((options, command) => {
             // Store options for main() to process
             initOptions = {
@@ -1425,6 +1479,12 @@ async function parseCliArgs(): Promise<{
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
+        .option(
+            '--param <value>',
+            'Override an overlay parameter value (format: KEY=value, can be repeated)',
+            (value: string, previous: string[]) => previous.concat([value]),
+            [] as string[]
+        )
         .action((options, command) => {
             initOptions = {
                 ...options,
@@ -1828,6 +1888,30 @@ async function parseCliArgs(): Promise<{
             if (Object.keys(presetChoices).length > 0) {
                 config.presetChoices = presetChoices;
             }
+        }
+    }
+
+    // Handle --param flags (can be repeated)
+    if (initOptions.param && (initOptions.param as string[]).length > 0) {
+        const overlayParameters: Record<string, string> = {};
+        for (const param of initOptions.param as string[]) {
+            const eqIdx = param.indexOf('=');
+            if (eqIdx > 0) {
+                const key = param.slice(0, eqIdx).trim();
+                const value = param.slice(eqIdx + 1).trim();
+                if (key) {
+                    overlayParameters[key] = value;
+                }
+            } else {
+                console.warn(
+                    chalk.yellow(
+                        `⚠️  Invalid --param format: "${param}". Expected "KEY=value" (e.g., --param POSTGRES_DB=myapp).`
+                    )
+                );
+            }
+        }
+        if (Object.keys(overlayParameters).length > 0) {
+            config.overlayParameters = overlayParameters;
         }
     }
 

@@ -100,6 +100,34 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             return false;
         };
 
+        const ensureParameters = (
+            value: unknown
+        ): import('./types.js').OverlayMetadata['parameters'] => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) {
+                return undefined;
+            }
+            const result: NonNullable<import('./types.js').OverlayMetadata['parameters']> = {};
+            for (const [key, def] of Object.entries(value as Record<string, unknown>)) {
+                if (!def || typeof def !== 'object' || Array.isArray(def)) {
+                    console.warn(`Warning: Invalid parameter definition '${key}' in ${overlayDir}`);
+                    continue;
+                }
+                const defObj = def as Record<string, unknown>;
+                if (typeof defObj.description !== 'string') {
+                    console.warn(
+                        `Warning: Parameter '${key}' missing description field in ${overlayDir}`
+                    );
+                    continue;
+                }
+                result[key] = {
+                    description: defObj.description,
+                    ...(defObj.default !== undefined && { default: String(defObj.default) }),
+                    ...(typeof defObj.sensitive === 'boolean' && { sensitive: defObj.sensitive }),
+                };
+            }
+            return Object.keys(result).length > 0 ? result : undefined;
+        };
+
         // Set defaults for optional fields with type validation
         return {
             ...manifest,
@@ -112,6 +140,7 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             imports: ensureArray(manifest.imports),
             minimal: manifest.minimal !== undefined ? ensureBoolean(manifest.minimal) : false,
             hidden: manifest.hidden !== undefined ? ensureBoolean(manifest.hidden) : false,
+            parameters: ensureParameters(manifest.parameters),
         };
     } catch (error) {
         console.warn(`Warning: Failed to parse manifest in ${overlayDir}:`, error);

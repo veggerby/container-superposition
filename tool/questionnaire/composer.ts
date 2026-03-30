@@ -44,6 +44,12 @@ import {
 } from '../schema/target-rules.js';
 import type { TargetRuleContext } from '../schema/target-rules.js';
 import {
+    collectOverlayParameters,
+    resolveParameters,
+    substituteParameters,
+    findUnresolvedTokens,
+} from '../utils/parameters.js';
+import {
     detectWarnings,
     generateTips,
     generateNextSteps,
@@ -2204,7 +2210,32 @@ export async function composeDevContainer(
 
     const overlays = orderedOverlays;
 
-    // 5. Create output directory and file registry for cleanup
+    // 5b. Resolve overlay parameters ({{cs.KEY}} substitution)
+    // Collect parameter declarations from all selected overlays
+    const declaredParams = collectOverlayParameters(overlays, allOverlayDefs);
+    const {
+        values: resolvedParams,
+        missingRequired,
+        unknownSupplied,
+    } = resolveParameters(declaredParams, answers.overlayParameters ?? {});
+
+    if (missingRequired.length > 0) {
+        throw new Error(
+            `Missing required overlay parameters: ${missingRequired.join(', ')}. ` +
+                `Provide values in superposition.yml under the parameters: section, ` +
+                `or via --param KEY=VALUE on the command line.`
+        );
+    }
+
+    if (unknownSupplied.length > 0) {
+        console.warn(
+            chalk.yellow(
+                `   ⚠️  Unknown overlay parameters (not declared by any selected overlay): ${unknownSupplied.join(', ')}`
+            )
+        );
+    }
+
+    const hasResolvedParams = Object.keys(resolvedParams).length > 0;
     const outputPath = path.resolve(answers.outputPath);
     const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
@@ -2309,6 +2340,18 @@ export async function composeDevContainer(
         if (config.dockerComposeFile) {
             config.dockerComposeFile = 'docker-compose.yml';
         }
+
+        // Apply parameter substitution to the merged docker-compose.yml
+        if (hasResolvedParams) {
+            const composePath = path.join(outputPath, 'docker-compose.yml');
+            if (fs.existsSync(composePath)) {
+                const original = fs.readFileSync(composePath, 'utf8');
+                const substituted = substituteParameters(original, resolvedParams);
+                if (substituted !== original) {
+                    fs.writeFileSync(composePath, substituted);
+                }
+            }
+        }
     }
 
     // Apply port offset to devcontainer.json if specified
@@ -2412,7 +2455,11 @@ export async function composeDevContainer(
 
     // 12. Write merged devcontainer.json
     const configPath = path.join(outputPath, 'devcontainer.json');
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+    let devcontainerContent = JSON.stringify(config, null, 2) + '\n';
+    if (hasResolvedParams) {
+        devcontainerContent = substituteParameters(devcontainerContent, resolvedParams);
+    }
+    fs.writeFileSync(configPath, devcontainerContent);
     fileRegistry.addFile('devcontainer.json');
     console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
 
@@ -2443,6 +2490,18 @@ export async function composeDevContainer(
     );
     if (envCreated) {
         fileRegistry.addFile('.env.example');
+    }
+
+    // Apply parameter substitution to .env.example
+    if (hasResolvedParams) {
+        const envExamplePath = path.join(outputPath, '.env.example');
+        if (fs.existsSync(envExamplePath)) {
+            const original = fs.readFileSync(envExamplePath, 'utf8');
+            const substituted = substituteParameters(original, resolvedParams);
+            if (substituted !== original) {
+                fs.writeFileSync(envExamplePath, substituted);
+            }
+        }
     }
 
     // Apply custom environment variables (after .env.example is created)
@@ -2587,6 +2646,30 @@ export async function composeDevContainer(
 
     // 18. Clean up stale files from previous runs (preserves superposition.json and .env)
     cleanupStaleFiles(outputPath, fileRegistry);
+
+    // 18b. Validate that no unresolved {{cs.*}} tokens remain in generated files
+    if (hasResolvedParams || Object.keys(declaredParams).length > 0) {
+        const filesToValidate = ['devcontainer.json', 'docker-compose.yml', '.env.example'];
+        const unresolvedByFile: Record<string, string[]> = {};
+        for (const relFile of filesToValidate) {
+            const absPath = path.join(outputPath, relFile);
+            if (!fs.existsSync(absPath)) continue;
+            const content = fs.readFileSync(absPath, 'utf8');
+            const unresolved = findUnresolvedTokens(content);
+            if (unresolved.length > 0) {
+                unresolvedByFile[relFile] = [...new Set(unresolved)];
+            }
+        }
+        if (Object.keys(unresolvedByFile).length > 0) {
+            const details = Object.entries(unresolvedByFile)
+                .map(([file, tokens]) => `${file}: ${tokens.join(', ')}`)
+                .join('; ');
+            throw new Error(
+                `Unresolved {{cs.*}} parameter tokens remain in generated files: ${details}. ` +
+                    `Declare these parameters in the overlay overlay.yml and provide values in superposition.yml.`
+            );
+        }
+    }
 
     // 19. Generate and return summary
     const files = Array.from(fileRegistry.getFiles());
