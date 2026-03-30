@@ -6,7 +6,8 @@ supports:
     - compose
 requires: []
 suggests: []
-conflicts: []
+conflicts:
+    - pgvector
 tags:
     - database
     - sql

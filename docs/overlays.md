@@ -170,16 +170,42 @@ Lightweight pub/sub messaging with JetStream
 | **Tags**     | `database`, `messaging`, `pubsub`, `nats`, `jetstream` |
 | **Ports**    | [object Object], [object Object]                       |
 
+### pgvector (PostgreSQL + vector) (`pgvector`)
+
+PostgreSQL 16 with the pgvector extension for vector similarity search
+
+| Property      | Value                                                             |
+| ------------- | ----------------------------------------------------------------- |
+| **Category**  | database                                                          |
+| **Supports**  | compose                                                           |
+| **Suggests**  | `ollama`, `python`, `nodejs`                                      |
+| **Conflicts** | `postgres`                                                        |
+| **Tags**      | `database`, `sql`, `vector`, `embeddings`, `postgres`, `pgvector` |
+| **Ports**     | [object Object]                                                   |
+
 ### PostgreSQL (`postgres`)
 
 PostgreSQL 16 database
 
-| Property     | Value                         |
-| ------------ | ----------------------------- |
-| **Category** | database                      |
-| **Supports** | compose                       |
-| **Tags**     | `database`, `sql`, `postgres` |
-| **Ports**    | [object Object]               |
+| Property      | Value                         |
+| ------------- | ----------------------------- |
+| **Category**  | database                      |
+| **Supports**  | compose                       |
+| **Conflicts** | `pgvector`                    |
+| **Tags**      | `database`, `sql`, `postgres` |
+| **Ports**     | [object Object]               |
+
+### Qdrant (`qdrant`)
+
+High-performance vector database for similarity search and embeddings
+
+| Property     | Value                                                  |
+| ------------ | ------------------------------------------------------ |
+| **Category** | database                                               |
+| **Supports** | compose                                                |
+| **Suggests** | `ollama`, `python`, `nodejs`                           |
+| **Tags**     | `database`, `vector`, `embeddings`, `search`, `qdrant` |
+| **Ports**    | [object Object], [object Object]                       |
 
 ### RabbitMQ (`rabbitmq`)
 
@@ -389,6 +415,18 @@ Google Cloud Platform command-line tools (gcloud, gsutil, bq)
 | ------------ | ------------------------------- |
 | **Category** | cloud                           |
 | **Tags**     | `cloud`, `gcp`, `google`, `cli` |
+
+### k3d (`k3d`)
+
+Lightweight local Kubernetes clusters using k3s in Docker
+
+| Property      | Value                                                 |
+| ------------- | ----------------------------------------------------- |
+| **Category**  | cloud                                                 |
+| **Requires**  | `docker-in-docker`                                    |
+| **Suggests**  | `kubectl-helm`                                        |
+| **Conflicts** | `kind`                                                |
+| **Tags**      | `cloud`, `kubernetes`, `k8s`, `k3d`, `k3s`, `testing` |
 
 ### kind (Kubernetes in Docker) (`kind`)
 
@@ -679,6 +717,18 @@ Local LLM inference server with OpenAI-compatible API
 | **Tags**     | `dev`, `ai`, `llm`, `inference`, `ollama` |
 | **Ports**    | 11434                                     |
 
+### Open WebUI (`open-webui`)
+
+Browser-based chat UI for Ollama and OpenAI-compatible LLM backends
+
+| Property     | Value                                         |
+| ------------ | --------------------------------------------- |
+| **Category** | dev                                           |
+| **Supports** | compose                                       |
+| **Suggests** | `ollama`                                      |
+| **Tags**     | `dev`, `ai`, `llm`, `ui`, `chat`, `openwebui` |
+| **Ports**    | [object Object]                               |
+
 ### OpenAPI Tools (`openapi-tools`)
 
 OpenAPI/Swagger tooling for API development and documentation
@@ -728,6 +778,17 @@ AMD ROCm libraries and GPU passthrough for containerized ML/inference workloads
 | **Category**  | dev                                            |
 | **Conflicts** | `cuda`                                         |
 | **Tags**      | `dev`, `gpu`, `rocm`, `amd`, `ml`, `inference` |
+
+### Skaffold (`skaffold`)
+
+Continuous development and deployment pipeline for Kubernetes applications
+
+| Property      | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Category**  | dev                                                          |
+| **Suggests**  | `kubectl-helm`, `kind`, `k3d`                                |
+| **Conflicts** | `tilt`                                                       |
+| **Tags**      | `dev`, `kubernetes`, `k8s`, `cicd`, `deployment`, `skaffold` |
 
 ### Tilt (`tilt`)
 

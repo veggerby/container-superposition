@@ -1,0 +1,33 @@
+id: open-webui
+name: Open WebUI
+description: Browser-based chat UI for Ollama and OpenAI-compatible LLM backends
+category: dev
+supports:
+    - compose
+requires: []
+suggests:
+    - ollama
+conflicts: []
+tags:
+    - dev
+    - ai
+    - llm
+    - ui
+    - chat
+    - openwebui
+ports:
+    - port: 3000
+      service: open-webui
+      protocol: tcp
+      description: Open WebUI web interface
+      onAutoForward: openBrowser
+parameters:
+    OPEN_WEBUI_VERSION:
+        description: Open WebUI Docker image tag
+        default: main
+    OPEN_WEBUI_PORT:
+        description: Host port mapped to the Open WebUI web interface (8080 inside container)
+        default: '3000'
+    OLLAMA_BASE_URL:
+        description: Base URL of the Ollama API (leave default when using the ollama overlay)
+        default: 'http://ollama:11434'

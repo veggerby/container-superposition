@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+    open-webui:
+        image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_VERSION:-{{cs.OPEN_WEBUI_VERSION}}}
+        restart: unless-stopped
+        volumes:
+            - open-webui-data:/app/backend/data
+        environment:
+            OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-{{cs.OLLAMA_BASE_URL}}}
+            WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:-supersecret}
+        ports:
+            - '${OPEN_WEBUI_PORT:-{{cs.OPEN_WEBUI_PORT}}}:8080'
+        extra_hosts:
+            - host.docker.internal:host-gateway
+        networks:
+            - devnet
+
+volumes:
+    open-webui-data:
+
+networks:
+    devnet:

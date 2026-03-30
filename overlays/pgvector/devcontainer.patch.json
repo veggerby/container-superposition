@@ -1,0 +1,23 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["pgvector"],
+    "forwardPorts": [5432],
+    "portsAttributes": {
+        "5432": {
+            "label": "pgvector database",
+            "onAutoForward": "notify"
+        }
+    },
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "postgresql-client",
+            "apk": "postgresql-client"
+        }
+    },
+    "containerEnv": {
+        "PGHOST": "pgvector",
+        "PGPORT": "5432",
+        "PGDATABASE": "devdb",
+        "PGUSER": "postgres"
+    }
+}
