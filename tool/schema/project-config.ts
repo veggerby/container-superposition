@@ -368,7 +368,12 @@ function parseParameters(value: unknown): Record<string, string> | undefined {
         if (entry === null || entry === undefined) {
             throw new ProjectConfigError(`parameters.${key} must be a non-empty string`);
         }
-        parsed[key] = String(entry);
+        const coerced = String(entry);
+        const normalized = coerced.trim();
+        if (normalized.length === 0) {
+            throw new ProjectConfigError(`parameters.${key} must be a non-empty string`);
+        }
+        parsed[key] = normalized;
     }
 
     return Object.keys(parsed).length > 0 ? parsed : undefined;

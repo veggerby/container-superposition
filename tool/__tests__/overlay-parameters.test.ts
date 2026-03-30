@@ -7,6 +7,7 @@ import {
     collectOverlayParameters,
     resolveParameters,
     substituteParameters,
+    substituteParametersInObject,
     findUnresolvedTokens,
     redactSensitiveValues,
 } from '../utils/parameters.js';
@@ -233,5 +234,44 @@ describe('redactSensitiveValues', () => {
             KEY: { description: 'Key', sensitive: false, overlayId: 'postgres' },
         };
         expect(redactSensitiveValues(values, declared).KEY).toBe('value');
+    });
+});
+
+describe('substituteParametersInObject', () => {
+    it('substitutes {{cs.KEY}} tokens in string values', () => {
+        const obj = { remoteEnv: { POSTGRES_DB: '{{cs.POSTGRES_DB}}' } };
+        const result = substituteParametersInObject(obj, { POSTGRES_DB: 'myapp' });
+        expect((result as any).remoteEnv.POSTGRES_DB).toBe('myapp');
+    });
+
+    it('traverses nested arrays', () => {
+        const obj = { items: ['{{cs.KEY}}', 'unchanged'] };
+        const result = substituteParametersInObject(obj, { KEY: 'resolved' });
+        expect((result as any).items[0]).toBe('resolved');
+        expect((result as any).items[1]).toBe('unchanged');
+    });
+
+    it('leaves non-string values unchanged', () => {
+        const obj = { port: 5432, flag: true, nil: null };
+        const result = substituteParametersInObject(obj, { PORT: '5433' }) as any;
+        expect(result.port).toBe(5432);
+        expect(result.flag).toBe(true);
+        expect(result.nil).toBeNull();
+    });
+
+    it('does not mutate the original object', () => {
+        const obj = { key: '{{cs.KEY}}' };
+        substituteParametersInObject(obj, { KEY: 'changed' });
+        expect(obj.key).toBe('{{cs.KEY}}');
+    });
+
+    it('safely handles values with JSON-special characters', () => {
+        // A parameter value containing quotes and backslashes
+        const obj = { note: '{{cs.NOTE}}' };
+        const result = substituteParametersInObject(obj, { NOTE: 'say "hello"\\world' }) as any;
+        // The raw string is stored correctly in the object; JSON.stringify will escape it
+        expect(result.note).toBe('say "hello"\\world');
+        const json = JSON.stringify(result);
+        expect(json).toContain('\\"hello\\"');
     });
 });

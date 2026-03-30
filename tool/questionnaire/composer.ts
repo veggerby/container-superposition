@@ -47,7 +47,9 @@ import {
     collectOverlayParameters,
     resolveParameters,
     substituteParameters,
+    substituteParametersInObject,
     findUnresolvedTokens,
+    redactSensitiveValues,
 } from '../utils/parameters.js';
 import {
     detectWarnings,
@@ -2236,6 +2238,15 @@ export async function composeDevContainer(
     }
 
     const hasResolvedParams = Object.keys(resolvedParams).length > 0;
+
+    // Log resolved parameter values (sensitive values are redacted)
+    if (hasResolvedParams) {
+        const displayValues = redactSensitiveValues(resolvedParams, declaredParams);
+        console.log(chalk.dim(`   ⚙️  Overlay parameters:`));
+        for (const [k, v] of Object.entries(displayValues)) {
+            console.log(chalk.dim(`      ${k}=${v}`));
+        }
+    }
     const outputPath = path.resolve(answers.outputPath);
     const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
@@ -2454,11 +2465,13 @@ export async function composeDevContainer(
     }
 
     // 12. Write merged devcontainer.json
+    // Apply parameter substitution to the config object (before JSON.stringify) so that
+    // any JSON-special characters in parameter values are properly escaped by JSON.stringify.
     const configPath = path.join(outputPath, 'devcontainer.json');
-    let devcontainerContent = JSON.stringify(config, null, 2) + '\n';
-    if (hasResolvedParams) {
-        devcontainerContent = substituteParameters(devcontainerContent, resolvedParams);
-    }
+    const finalConfig = hasResolvedParams
+        ? (substituteParametersInObject(config, resolvedParams) as DevContainer)
+        : config;
+    const devcontainerContent = JSON.stringify(finalConfig, null, 2) + '\n';
     fs.writeFileSync(configPath, devcontainerContent);
     fileRegistry.addFile('devcontainer.json');
     console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
@@ -2493,6 +2506,11 @@ export async function composeDevContainer(
     }
 
     // Apply parameter substitution to .env.example
+    // This must happen after mergeEnvExamples but before any consumer of .env reads it,
+    // because mergeEnvExamples may have written {{cs.*}} tokens into .env.example.
+    // We also regenerate .env (the port-offset copy) from the substituted content so that
+    // applyPortOffsetToEnv can correctly match numeric port values that were previously
+    // hidden behind {{cs.POSTGRES_PORT}} tokens.
     if (hasResolvedParams) {
         const envExamplePath = path.join(outputPath, '.env.example');
         if (fs.existsSync(envExamplePath)) {
@@ -2500,6 +2518,14 @@ export async function composeDevContainer(
             const substituted = substituteParameters(original, resolvedParams);
             if (substituted !== original) {
                 fs.writeFileSync(envExamplePath, substituted);
+                // Regenerate .env from the substituted content when a port offset is active.
+                // mergeEnvExamples already wrote .env from the pre-substitution content, so
+                // the offsets would have been applied to unresolved tokens and are now wrong.
+                if (answers.portOffset) {
+                    const envPath = path.join(outputPath, '.env');
+                    const offsetContent = applyPortOffsetToEnv(substituted, answers.portOffset);
+                    fs.writeFileSync(envPath, offsetContent);
+                }
             }
         }
     }
@@ -2621,7 +2647,10 @@ export async function composeDevContainer(
     );
     if (envLocalContent) {
         const envLocalPath = path.join(outputPath, 'env.local.example');
-        fs.writeFileSync(envLocalPath, envLocalContent);
+        const finalEnvLocalContent = hasResolvedParams
+            ? substituteParameters(envLocalContent, resolvedParams)
+            : envLocalContent;
+        fs.writeFileSync(envLocalPath, finalEnvLocalContent);
         fileRegistry.addFile('env.local.example');
         console.log(chalk.dim(`   📄 Created env.local.example with optional overrides`));
     }
@@ -2647,11 +2676,18 @@ export async function composeDevContainer(
     // 18. Clean up stale files from previous runs (preserves superposition.json and .env)
     cleanupStaleFiles(outputPath, fileRegistry);
 
-    // 18b. Validate that no unresolved {{cs.*}} tokens remain in generated files
-    if (hasResolvedParams || Object.keys(declaredParams).length > 0) {
-        const filesToValidate = ['devcontainer.json', 'docker-compose.yml', '.env.example'];
+    // 18b. Validate that no unresolved {{cs.*}} tokens remain in any generated file.
+    // Run unconditionally — an overlay author could accidentally ship {{cs.*}} tokens
+    // in files that don't have a matching parameters declaration, and we must catch those
+    // regardless of whether any parameters were resolved in this run.
+    // Only text-like files (not binaries) are scanned; skip missing files gracefully.
+    const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.gif', '.ico', '.woff', '.woff2', '.ttf']);
+    {
+        const allGeneratedFiles = Array.from(fileRegistry.getFiles());
         const unresolvedByFile: Record<string, string[]> = {};
-        for (const relFile of filesToValidate) {
+        for (const relFile of allGeneratedFiles) {
+            const ext = path.extname(relFile).toLowerCase();
+            if (BINARY_EXTENSIONS.has(ext)) continue;
             const absPath = path.join(outputPath, relFile);
             if (!fs.existsSync(absPath)) continue;
             const content = fs.readFileSync(absPath, 'utf8');
@@ -2666,7 +2702,7 @@ export async function composeDevContainer(
                 .join('; ');
             throw new Error(
                 `Unresolved {{cs.*}} parameter tokens remain in generated files: ${details}. ` +
-                    `Declare these parameters in the overlay overlay.yml and provide values in superposition.yml.`
+                    `Declare these parameters in the overlay's overlay.yml and provide values in superposition.yml.`
             );
         }
     }

@@ -109,6 +109,35 @@ export function substituteParameters(content: string, resolved: Record<string, s
 }
 
 /**
+ * Recursively substitute {{cs.KEY}} tokens in all string fields of an object.
+ * This is preferred over substituting into JSON.stringify() output because it
+ * avoids producing invalid JSON when parameter values contain JSON-special
+ * characters (quotes, backslashes, newlines, etc.).
+ *
+ * Non-string values (numbers, booleans, arrays, nested objects) are traversed
+ * but their non-string leaves are returned unchanged.
+ */
+export function substituteParametersInObject(
+    obj: unknown,
+    resolved: Record<string, string>
+): unknown {
+    if (typeof obj === 'string') {
+        return substituteParameters(obj, resolved);
+    }
+    if (Array.isArray(obj)) {
+        return obj.map((item) => substituteParametersInObject(item, resolved));
+    }
+    if (obj !== null && typeof obj === 'object') {
+        const result: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+            result[k] = substituteParametersInObject(v, resolved);
+        }
+        return result;
+    }
+    return obj;
+}
+
+/**
  * Validate that no unresolved {{cs.*}} tokens remain in `content`.
  * Returns a list of unresolved token strings (empty = valid).
  */

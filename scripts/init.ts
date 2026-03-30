@@ -1160,6 +1160,13 @@ async function runQuestionnaire(
                         default: defaultValue || undefined,
                     });
                 }
+
+                // Treat empty input for required parameters (no default) as "not provided"
+                // so that resolveParameters() can correctly report them as missing.
+                if (!value && def.default === undefined) {
+                    delete overlayParameters[key];
+                    continue;
+                }
                 overlayParameters[key] = value;
             }
         }
@@ -1297,6 +1304,7 @@ function buildAnswersFromCliArgs(
     if (config.target) answers.target = config.target;
     if (config.minimal !== undefined) answers.minimal = config.minimal;
     if (config.editor) answers.editor = config.editor;
+    if (config.overlayParameters) answers.overlayParameters = config.overlayParameters;
 
     return answers;
 }
