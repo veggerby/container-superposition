@@ -2520,7 +2520,9 @@ export async function composeDevContainer(
                 fs.writeFileSync(envExamplePath, substituted);
                 // Regenerate .env from the substituted content when a port offset is active.
                 // mergeEnvExamples already wrote .env from the pre-substitution content, so
-                // the offsets would have been applied to unresolved tokens and are now wrong.
+                // the port offset was applied to unresolved tokens (e.g. {{cs.POSTGRES_PORT}})
+                // that had no numeric value to match — we must regenerate .env now that the
+                // tokens have been replaced with real numeric port values.
                 if (answers.portOffset) {
                     const envPath = path.join(outputPath, '.env');
                     const offsetContent = applyPortOffsetToEnv(substituted, answers.portOffset);
@@ -2702,7 +2704,7 @@ export async function composeDevContainer(
                 .join('; ');
             throw new Error(
                 `Unresolved {{cs.*}} parameter tokens remain in generated files: ${details}. ` +
-                    `Declare these parameters in the overlay's overlay.yml and provide values in superposition.yml.`
+                    `Declare these parameters in the overlay's overlay.yml and provide values in your project file (superposition.yml).`
             );
         }
     }
