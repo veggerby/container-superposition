@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Overlay parameters with safe `{{cs.KEY}}` substitution** — Overlays can now declare configurable parameters that are resolved at generation time without colliding with Docker Compose `${VAR}`, shell `$VAR`, VS Code `${localWorkspaceFolder}`, or GitHub Actions `${{ }}` syntax
+    - Overlays declare parameters in `overlay.yml` under a `parameters:` map, each with a `description`, optional `default`, and optional `sensitive: true` flag
+    - Users supply values in `superposition.yml` under a top-level `parameters:` section, or via `--param KEY=value` on the CLI (repeatable)
+    - Resolution order: CLI overrides → project file → overlay defaults
+    - Missing required parameters (no default, no supplied value) → hard error before generation
+    - Unresolved `{{cs.*}}` tokens in final output → hard error (catch-all safety net)
+    - Unknown parameters supplied in `superposition.yml` → warning only (generation continues)
+    - Docker Compose `${VAR:-default}`, shell, VS Code, and GitHub Actions variable expressions pass through completely untouched
+    - The `{{cs.*}}` syntax can be nested inside Docker Compose defaults: `${POSTGRES_PORT:-{{cs.POSTGRES_PORT}}}` — `cs` resolves the inner token at generation time, Docker resolves the outer at runtime
+    - Interactive questionnaire prompts for each declared parameter (sensitive parameters use masked input)
+    - `postgres` overlay converted to use parameters as proof-of-concept: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`, `POSTGRES_VERSION` are now fully configurable without forking the overlay
+    - Spec committed under `docs/specs/011-overlay-parameters/spec.md`
+
 - **First-class project `env` in `superposition.yml`** — Container environment variables can now be declared once in the project file and routed automatically by stack
     - `stack: plain` writes project `env` entries to `devcontainer.json -> remoteEnv`
     - `stack: compose` materializes project `env` entries into `.devcontainer/.env`, writes `docker-compose.yml -> services.devcontainer.environment` as `${KEY}`, and exposes the same values to the devcontainer via `devcontainer.json -> remoteEnv.KEY = ${containerEnv:KEY}`

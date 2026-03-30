@@ -44,6 +44,14 @@ import {
 } from '../schema/target-rules.js';
 import type { TargetRuleContext } from '../schema/target-rules.js';
 import {
+    collectOverlayParameters,
+    resolveParameters,
+    substituteParameters,
+    substituteParametersInObject,
+    findUnresolvedTokens,
+    redactSensitiveValues,
+} from '../utils/parameters.js';
+import {
     detectWarnings,
     generateTips,
     generateNextSteps,
@@ -2204,7 +2212,41 @@ export async function composeDevContainer(
 
     const overlays = orderedOverlays;
 
-    // 5. Create output directory and file registry for cleanup
+    // 5b. Resolve overlay parameters ({{cs.KEY}} substitution)
+    // Collect parameter declarations from all selected overlays
+    const declaredParams = collectOverlayParameters(overlays, allOverlayDefs);
+    const {
+        values: resolvedParams,
+        missingRequired,
+        unknownSupplied,
+    } = resolveParameters(declaredParams, answers.overlayParameters ?? {});
+
+    if (missingRequired.length > 0) {
+        throw new Error(
+            `Missing required overlay parameters: ${missingRequired.join(', ')}. ` +
+                `Provide values in superposition.yml under the parameters: section, ` +
+                `or via --param KEY=VALUE on the command line.`
+        );
+    }
+
+    if (unknownSupplied.length > 0) {
+        console.warn(
+            chalk.yellow(
+                `   ⚠️  Unknown overlay parameters (not declared by any selected overlay): ${unknownSupplied.join(', ')}`
+            )
+        );
+    }
+
+    const hasResolvedParams = Object.keys(resolvedParams).length > 0;
+
+    // Log resolved parameter values (sensitive values are redacted)
+    if (hasResolvedParams) {
+        const displayValues = redactSensitiveValues(resolvedParams, declaredParams);
+        console.log(chalk.dim(`   ⚙️  Overlay parameters:`));
+        for (const [k, v] of Object.entries(displayValues)) {
+            console.log(chalk.dim(`      ${k}=${v}`));
+        }
+    }
     const outputPath = path.resolve(answers.outputPath);
     const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
@@ -2309,6 +2351,18 @@ export async function composeDevContainer(
         if (config.dockerComposeFile) {
             config.dockerComposeFile = 'docker-compose.yml';
         }
+
+        // Apply parameter substitution to the merged docker-compose.yml
+        if (hasResolvedParams) {
+            const composePath = path.join(outputPath, 'docker-compose.yml');
+            if (fs.existsSync(composePath)) {
+                const original = fs.readFileSync(composePath, 'utf8');
+                const substituted = substituteParameters(original, resolvedParams);
+                if (substituted !== original) {
+                    fs.writeFileSync(composePath, substituted);
+                }
+            }
+        }
     }
 
     // Apply port offset to devcontainer.json if specified
@@ -2411,8 +2465,14 @@ export async function composeDevContainer(
     }
 
     // 12. Write merged devcontainer.json
+    // Apply parameter substitution to the config object (before JSON.stringify) so that
+    // any JSON-special characters in parameter values are properly escaped by JSON.stringify.
     const configPath = path.join(outputPath, 'devcontainer.json');
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+    const finalConfig = hasResolvedParams
+        ? (substituteParametersInObject(config, resolvedParams) as DevContainer)
+        : config;
+    const devcontainerContent = JSON.stringify(finalConfig, null, 2) + '\n';
+    fs.writeFileSync(configPath, devcontainerContent);
     fileRegistry.addFile('devcontainer.json');
     console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
 
@@ -2443,6 +2503,33 @@ export async function composeDevContainer(
     );
     if (envCreated) {
         fileRegistry.addFile('.env.example');
+    }
+
+    // Apply parameter substitution to .env.example
+    // This must happen after mergeEnvExamples but before any consumer of .env reads it,
+    // because mergeEnvExamples may have written {{cs.*}} tokens into .env.example.
+    // We also regenerate .env (the port-offset copy) from the substituted content so that
+    // applyPortOffsetToEnv can correctly match numeric port values that were previously
+    // hidden behind {{cs.POSTGRES_PORT}} tokens.
+    if (hasResolvedParams) {
+        const envExamplePath = path.join(outputPath, '.env.example');
+        if (fs.existsSync(envExamplePath)) {
+            const original = fs.readFileSync(envExamplePath, 'utf8');
+            const substituted = substituteParameters(original, resolvedParams);
+            if (substituted !== original) {
+                fs.writeFileSync(envExamplePath, substituted);
+                // Regenerate .env from the substituted content when a port offset is active.
+                // mergeEnvExamples already wrote .env from the pre-substitution content, so
+                // the port offset was applied to unresolved tokens (e.g. {{cs.POSTGRES_PORT}})
+                // that had no numeric value to match — we must regenerate .env now that the
+                // tokens have been replaced with real numeric port values.
+                if (answers.portOffset) {
+                    const envPath = path.join(outputPath, '.env');
+                    const offsetContent = applyPortOffsetToEnv(substituted, answers.portOffset);
+                    fs.writeFileSync(envPath, offsetContent);
+                }
+            }
+        }
     }
 
     // Apply custom environment variables (after .env.example is created)
@@ -2562,7 +2649,10 @@ export async function composeDevContainer(
     );
     if (envLocalContent) {
         const envLocalPath = path.join(outputPath, 'env.local.example');
-        fs.writeFileSync(envLocalPath, envLocalContent);
+        const finalEnvLocalContent = hasResolvedParams
+            ? substituteParameters(envLocalContent, resolvedParams)
+            : envLocalContent;
+        fs.writeFileSync(envLocalPath, finalEnvLocalContent);
         fileRegistry.addFile('env.local.example');
         console.log(chalk.dim(`   📄 Created env.local.example with optional overrides`));
     }
@@ -2587,6 +2677,37 @@ export async function composeDevContainer(
 
     // 18. Clean up stale files from previous runs (preserves superposition.json and .env)
     cleanupStaleFiles(outputPath, fileRegistry);
+
+    // 18b. Validate that no unresolved {{cs.*}} tokens remain in any generated file.
+    // Run unconditionally — an overlay author could accidentally ship {{cs.*}} tokens
+    // in files that don't have a matching parameters declaration, and we must catch those
+    // regardless of whether any parameters were resolved in this run.
+    // Only text-like files (not binaries) are scanned; skip missing files gracefully.
+    const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.gif', '.ico', '.woff', '.woff2', '.ttf']);
+    {
+        const allGeneratedFiles = Array.from(fileRegistry.getFiles());
+        const unresolvedByFile: Record<string, string[]> = {};
+        for (const relFile of allGeneratedFiles) {
+            const ext = path.extname(relFile).toLowerCase();
+            if (BINARY_EXTENSIONS.has(ext)) continue;
+            const absPath = path.join(outputPath, relFile);
+            if (!fs.existsSync(absPath)) continue;
+            const content = fs.readFileSync(absPath, 'utf8');
+            const unresolved = findUnresolvedTokens(content);
+            if (unresolved.length > 0) {
+                unresolvedByFile[relFile] = [...new Set(unresolved)];
+            }
+        }
+        if (Object.keys(unresolvedByFile).length > 0) {
+            const details = Object.entries(unresolvedByFile)
+                .map(([file, tokens]) => `${file}: ${tokens.join(', ')}`)
+                .join('; ');
+            throw new Error(
+                `Unresolved {{cs.*}} parameter tokens remain in generated files: ${details}. ` +
+                    `Declare these parameters in the overlay's overlay.yml and provide values in your project file (superposition.yml).`
+            );
+        }
+    }
 
     // 19. Generate and return summary
     const files = Array.from(fileRegistry.getFiles());

@@ -356,6 +356,29 @@ function parseEnvTemplate(value: unknown, fieldName: string): Record<string, str
     return Object.keys(parsed).length > 0 ? parsed : undefined;
 }
 
+function parseParameters(value: unknown): Record<string, string> | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    const record = expectPlainObject(value, 'parameters');
+    const parsed: Record<string, string> = {};
+    for (const [key, entry] of Object.entries(record)) {
+        // Coerce to string to accept numbers in YAML (e.g. POSTGRES_PORT: 5432)
+        if (entry === null || entry === undefined) {
+            throw new ProjectConfigError(`parameters.${key} must be a non-empty string`);
+        }
+        const coerced = String(entry);
+        const normalized = coerced.trim();
+        if (normalized.length === 0) {
+            throw new ProjectConfigError(`parameters.${key} must be a non-empty string`);
+        }
+        parsed[key] = normalized;
+    }
+
+    return Object.keys(parsed).length > 0 ? parsed : undefined;
+}
+
 function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefined {
     if (value === undefined || value === null) {
         return undefined;
@@ -474,6 +497,7 @@ export function loadProjectConfig(
         'editor',
         'env',
         'customizations',
+        'parameters',
     ]);
 
     const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key));
@@ -503,6 +527,7 @@ export function loadProjectConfig(
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
         env: parseProjectEnv(document.env),
         customizations: parseCustomizations(document.customizations),
+        parameters: parseParameters(document.parameters),
     };
 
     if (selection.baseImage === 'custom' && !selection.customImage) {
@@ -543,6 +568,7 @@ export function buildAnswersFromProjectConfig(
         customizations: selection.customizations
             ? materializeCustomizationConfig(selection.customizations)
             : undefined,
+        overlayParameters: selection.parameters,
     };
 }
 
@@ -613,6 +639,10 @@ export function buildProjectConfigSelectionFromAnswers(
         editor: answers.editor,
         env: answers.projectEnv,
         customizations: buildProjectConfigCustomizationsFromAnswers(answers.customizations),
+        parameters:
+            answers.overlayParameters && Object.keys(answers.overlayParameters).length > 0
+                ? answers.overlayParameters
+                : undefined,
     };
 }
 
@@ -718,6 +748,10 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
         if (Object.keys(customizations).length > 0) {
             document.customizations = customizations;
         }
+    }
+
+    if (hasKeys(selection.parameters)) {
+        document.parameters = selection.parameters;
     }
 
     return document;

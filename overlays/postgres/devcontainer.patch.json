@@ -13,9 +13,9 @@
     },
     "remoteEnv": {
         "POSTGRES_HOST": "postgres",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_DB": "devdb",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "postgres"
+        "POSTGRES_PORT": "{{cs.POSTGRES_PORT}}",
+        "POSTGRES_DB": "{{cs.POSTGRES_DB}}",
+        "POSTGRES_USER": "{{cs.POSTGRES_USER}}",
+        "POSTGRES_PASSWORD": "{{cs.POSTGRES_PASSWORD}}"
     }
 }

@@ -153,6 +153,31 @@
             "type": "boolean",
             "description": "Whether this overlay is hidden from the interactive questionnaire (code-only use)",
             "default": false
+        },
+        "parameters": {
+            "type": "object",
+            "description": "Configurable parameters declared by this overlay. Users supply values in superposition.yml or via CLI. Substituted at generation time using {{cs.PARAM_NAME}} syntax.",
+            "additionalProperties": {
+                "type": "object",
+                "description": "Definition of a single overlay parameter",
+                "required": ["description"],
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "Human-readable explanation of the parameter, shown in interactive prompts"
+                    },
+                    "default": {
+                        "type": "string",
+                        "description": "Default value used when no value is supplied. Absence makes the parameter required."
+                    },
+                    "sensitive": {
+                        "type": "boolean",
+                        "description": "When true, the parameter value is treated as a secret — masked in interactive prompts and redacted in plan output",
+                        "default": false
+                    }
+                },
+                "additionalProperties": false
+            }
         }
     },
     "additionalProperties": false
