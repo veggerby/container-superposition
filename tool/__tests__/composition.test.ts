@@ -602,7 +602,7 @@ describe('Python Overlay - venv support', () => {
 });
 
 describe('Ollama Overlay', () => {
-    it('setup-ollama.sh should install the CLI from the release tarball using install_binary_from_tar', () => {
+    it('setup-ollama.sh should prefer the local Docker image and only fall back to official release archives', () => {
         const repoRoot = path.join(__dirname, '..', '..');
         const setupShPath = path.join(repoRoot, 'overlays', 'ollama', 'setup.sh');
 
@@ -611,8 +611,13 @@ describe('Ollama Overlay', () => {
         const content = fs.readFileSync(setupShPath, 'utf-8');
 
         expect(content).toContain('detect_arch');
-        expect(content).toContain('ollama-linux-${CS_ARCH}.tgz');
-        expect(content).toContain('install_binary_from_tar');
+        expect(content).toContain('docker cp');
+        expect(content).toContain('/usr/bin/ollama');
+        expect(content).toContain('ollama/ollama:${OLLAMA_VERSION:-latest}');
+        expect(content).toContain('ollama-linux-${CS_ARCH}');
+        expect(content).toContain('.tar.zst');
+        expect(content).toContain('.tgz');
+        expect(content).toContain('apt_install zstd');
         expect(content).not.toContain('https://ollama.com/install.sh');
     });
 });

@@ -249,6 +249,29 @@
             "enum": ["vscode", "jetbrains", "none"],
             "description": "Editor customization profile"
         },
+        "env": {
+            "type": "object",
+            "description": "Project-level environment variables routed to remoteEnv or docker-compose based on stack/target",
+            "additionalProperties": {
+                "oneOf": [
+                    {
+                        "type": "string"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "value": { "type": "string" },
+                            "target": {
+                                "type": "string",
+                                "enum": ["auto", "remoteEnv", "composeEnv"]
+                            }
+                        },
+                        "required": ["value"],
+                        "additionalProperties": false
+                    }
+                ]
+            }
+        },
         "customizations": {
             "type": "object",
             "properties": {
@@ -260,12 +283,19 @@
                     "type": "object",
                     "description": "Additional docker-compose content merged during generation"
                 },
+                "envTemplate": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Variables written to .env.example; use env for runtime container environment"
+                },
                 "environment": {
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
                     },
-                    "description": "Environment variables written to custom/environment.env"
+                    "description": "Deprecated alias for envTemplate; variables written to .env.example"
                 },
                 "scripts": {
                     "type": "object",

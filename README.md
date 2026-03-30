@@ -25,9 +25,11 @@ language:
   - nodejs
 database:
   - postgres
+env:
+  APP_ENV: development
 customizations:
-  environment:
-    APP_ENV: development
+  envTemplate:
+    POSTGRES_PASSWORD: postgres
 YAML
 npx container-superposition init --no-interactive
 

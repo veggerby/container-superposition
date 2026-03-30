@@ -65,13 +65,15 @@ stack: plain
 baseImage: trixie
 overlays:
     - codex
+env:
+    WORKSPACE_PROFILE: minimal-trixie
 customizations:
     devcontainerPatch:
         mounts:
             - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached
 ```
 
-The `customizations.devcontainerPatch` section adds a bind mount that maps `~/.codex` from the host into the container, so your API keys and Codex configuration persist across container rebuilds. The target uses `/home/vscode/.codex` because `${containerEnv:HOME}` cannot be resolved at mount time.
+The `env` section writes project-level environment variables directly into `remoteEnv` for this plain-stack example. The `customizations.devcontainerPatch` section adds a bind mount that maps `~/.codex` from the host into the container, so your API keys and Codex configuration persist across container rebuilds. The target uses `/home/vscode/.codex` because `${containerEnv:HOME}` cannot be resolved at mount time.
 
 ## When to Use This
 
@@ -90,6 +92,8 @@ overlays:
     - nodejs
     - codex
     - git-helpers
+env:
+    WORKSPACE_PROFILE: minimal-trixie
 customizations:
     devcontainerPatch:
         mounts:

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **First-class project `env` in `superposition.yml`** — Container environment variables can now be declared once in the project file and routed automatically by stack
+    - `stack: plain` writes project `env` entries to `devcontainer.json -> remoteEnv`
+    - `stack: compose` materializes project `env` entries into `.devcontainer/.env`, writes `docker-compose.yml -> services.devcontainer.environment` as `${KEY}`, and exposes the same values to the devcontainer via `devcontainer.json -> remoteEnv.KEY = ${containerEnv:KEY}`
+    - Supports string shorthand (`FOO: bar`) and object form with explicit target override (`target: auto | remoteEnv | composeEnv`)
+    - Compose values that reference `${NAME}` or `${NAME:-default}` resolve from the repository root `.env` when available before being written to `.devcontainer/.env`
+    - `customizations.envTemplate` is now the canonical project-file field for variables written to `.env.example`; `customizations.environment` remains as a deprecated read-compatible alias, but newly written project files normalize to `envTemplate`
 - **JetBrains IDE support (`--editor jetbrains`)** — Generates JetBrains project artifacts alongside the devcontainer configuration
     - Adds `customizations.jetbrains.backend` to `devcontainer.json`, selecting the IDE automatically from the primary language overlay (WebStorm for Node.js/Bun, PyCharm for Python, GoLand for Go, Rider for .NET, RustRover for Rust, IntelliJIdea for Java or generic)
     - Generates `.idea/.gitignore` at the project root, marking shared settings as VCS-tracked and excluding user-local entries
@@ -20,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cs` command alias** — `npm install -g container-superposition` now registers both `container-superposition` and the shorter `cs` command; all existing `cs <subcommand>` usage in docs and examples works without a separate install
 - **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
     - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
-    - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly from the Linux release tarball (not via `ollama.com/install.sh`), client-only; avoids silent failures when the host-oriented installer expects prerequisites such as `zstd`; no need to `docker exec` into the sidecar
+    - **Ollama CLI installed in devcontainer** — `setup.sh` now prefers copying `/usr/bin/ollama` from the local `ollama/ollama` sidecar image, avoiding a second multi-gigabyte download during setup; when Docker is unavailable it falls back to the current official Linux release archives (prefers `.tar.zst`, falls back to legacy `.tgz`, and installs `zstd` when required) instead of via `ollama.com/install.sh`
     - **`OLLAMA_HOST` pre-configured** — Set as a `containerEnv` variable to `http://ollama:11434` so `ollama pull / run / list / rm` target the sidecar automatically with no manual setup
     - **GPU passthrough built-in** — Both the `ollama` sidecar and the `devcontainer` service receive all NVIDIA GPUs via `deploy.resources.reservations.devices`; enables GPU-accelerated tooling (`torch`, `tensorflow`, CUDA CLIs) directly in the dev environment
     - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild; models pulled inside the devcontainer are also persisted to the host

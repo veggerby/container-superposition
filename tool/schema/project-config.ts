@@ -14,6 +14,7 @@ import type {
     OverlayMetadata,
     ObservabilityTool,
     OverlaysConfig,
+    ProjectEnvTarget,
     ProjectConfigCustomizationsInput,
     ProjectConfigFileEntry,
     ProjectConfigSelection,
@@ -31,6 +32,7 @@ const STACK_VALUES: Stack[] = ['plain', 'compose'];
 const BASE_IMAGE_VALUES: BaseImage[] = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
 const TARGET_VALUES: DeploymentTarget[] = ['local', 'codespaces', 'gitpod', 'devpod'];
 const EDITOR_VALUES: EditorProfile[] = ['vscode', 'jetbrains', 'none'];
+const PROJECT_ENV_TARGET_VALUES: ProjectEnvTarget[] = ['auto', 'remoteEnv', 'composeEnv'];
 
 class ProjectConfigError extends Error {
     constructor(message: string) {
@@ -340,15 +342,43 @@ function parseFiles(value: unknown): ProjectConfigCustomizationsInput['files'] |
     });
 }
 
-function parseEnvironment(value: unknown): Record<string, string> | undefined {
+function parseEnvTemplate(value: unknown, fieldName: string): Record<string, string> | undefined {
     if (value === undefined || value === null) {
         return undefined;
     }
 
-    const record = expectPlainObject(value, 'customizations.environment');
+    const record = expectPlainObject(value, fieldName);
     const parsed: Record<string, string> = {};
     for (const [key, entry] of Object.entries(record)) {
-        parsed[key] = expectString(entry, `customizations.environment.${key}`);
+        parsed[key] = expectString(entry, `${fieldName}.${key}`);
+    }
+
+    return Object.keys(parsed).length > 0 ? parsed : undefined;
+}
+
+function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    const record = expectPlainObject(value, 'env');
+    const parsed: NonNullable<ProjectConfigSelection['env']> = {};
+
+    for (const [key, entry] of Object.entries(record)) {
+        if (typeof entry === 'string') {
+            parsed[key] = { value: expectString(entry, `env.${key}`) };
+            continue;
+        }
+
+        const envRecord = expectPlainObject(entry, `env.${key}`);
+        parsed[key] = {
+            value: expectString(envRecord.value, `env.${key}.value`),
+            target: expectOptionalEnum(
+                envRecord.target,
+                `env.${key}.target`,
+                PROJECT_ENV_TARGET_VALUES
+            ),
+        };
     }
 
     return Object.keys(parsed).length > 0 ? parsed : undefined;
@@ -360,6 +390,10 @@ function parseCustomizations(value: unknown): ProjectConfigCustomizationsInput |
     }
 
     const record = expectPlainObject(value, 'customizations');
+    const envTemplate = {
+        ...(parseEnvTemplate(record.environment, 'customizations.environment') ?? {}),
+        ...(parseEnvTemplate(record.envTemplate, 'customizations.envTemplate') ?? {}),
+    };
 
     const customizations: ProjectConfigCustomizationsInput = {
         devcontainerPatch:
@@ -370,7 +404,7 @@ function parseCustomizations(value: unknown): ProjectConfigCustomizationsInput |
             record.dockerComposePatch !== undefined
                 ? expectPlainObject(record.dockerComposePatch, 'customizations.dockerComposePatch')
                 : undefined,
-        environment: parseEnvironment(record.environment),
+        envTemplate: Object.keys(envTemplate).length > 0 ? envTemplate : undefined,
         scripts: parseScripts(record.scripts),
         files: parseFiles(record.files),
     };
@@ -438,6 +472,7 @@ export function loadProjectConfig(
         'target',
         'minimal',
         'editor',
+        'env',
         'customizations',
     ]);
 
@@ -466,6 +501,7 @@ export function loadProjectConfig(
         target: expectOptionalEnum(document.target, 'target', TARGET_VALUES),
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
+        env: parseProjectEnv(document.env),
         customizations: parseCustomizations(document.customizations),
     };
 
@@ -503,6 +539,7 @@ export function buildAnswersFromProjectConfig(
         target: selection.target,
         minimal: selection.minimal,
         editor: selection.editor,
+        projectEnv: selection.env,
         customizations: selection.customizations
             ? materializeCustomizationConfig(selection.customizations)
             : undefined,
@@ -531,7 +568,7 @@ function buildProjectConfigCustomizationsFromAnswers(
     const input: ProjectConfigCustomizationsInput = {
         devcontainerPatch: customizations.devcontainerPatch,
         dockerComposePatch: customizations.dockerComposePatch,
-        environment: customizations.environmentVars,
+        envTemplate: customizations.environmentVars,
         scripts: customizations.scripts,
         files,
     };
@@ -574,6 +611,7 @@ export function buildProjectConfigSelectionFromAnswers(
         target: answers.target,
         minimal: answers.minimal,
         editor: answers.editor,
+        env: answers.projectEnv,
         customizations: buildProjectConfigCustomizationsFromAnswers(answers.customizations),
     };
 }
@@ -584,7 +622,7 @@ function materializeCustomizationConfig(
     return {
         devcontainerPatch: input.devcontainerPatch,
         dockerComposePatch: input.dockerComposePatch,
-        environmentVars: input.environment,
+        environmentVars: input.envTemplate,
         scripts: input.scripts,
         files: input.files?.map((entry) => ({
             source: entry.path,
@@ -631,6 +669,16 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.target) document.target = selection.target;
     if (selection.minimal !== undefined) document.minimal = selection.minimal;
     if (selection.editor) document.editor = selection.editor;
+    if (selection.env && Object.keys(selection.env).length > 0) {
+        document.env = Object.fromEntries(
+            Object.entries(selection.env).map(([key, entry]) => [
+                key,
+                entry.target && entry.target !== 'auto'
+                    ? { value: entry.value, target: entry.target }
+                    : entry.value,
+            ])
+        );
+    }
 
     if (selection.customizations) {
         const customizations: Record<string, any> = {};
@@ -645,8 +693,8 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
             customizations.dockerComposePatch = selection.customizations.dockerComposePatch;
         }
 
-        if (hasKeys(selection.customizations.environment)) {
-            customizations.environment = selection.customizations.environment;
+        if (hasKeys(selection.customizations.envTemplate)) {
+            customizations.envTemplate = selection.customizations.envTemplate;
         }
 
         if (selection.customizations.scripts?.postCreate?.length) {
@@ -719,9 +767,9 @@ export function writeProjectConfigCustomizations(
         );
     }
 
-    if (customizations.environment && Object.keys(customizations.environment).length > 0) {
+    if (customizations.envTemplate && Object.keys(customizations.envTemplate).length > 0) {
         const content =
-            Object.entries(customizations.environment)
+            Object.entries(customizations.envTemplate)
                 .map(([key, value]) => `${key}=${value}`)
                 .join('\n') + '\n';
         fs.writeFileSync(path.join(customDir, 'environment.env'), content);
