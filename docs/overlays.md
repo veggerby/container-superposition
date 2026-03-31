@@ -146,18 +146,18 @@ MongoDB 8 with Mongo Express web UI
 | **Category** | database                                   |
 | **Supports** | compose                                    |
 | **Tags**     | `database`, `nosql`, `mongodb`, `document` |
-| **Ports**    | [object Object], [object Object]           |
+| **Ports**    | 27017/tcp, 8081/http                       |
 
 ### MySQL (`mysql`)
 
 MySQL 8 with phpMyAdmin web UI
 
-| Property     | Value                            |
-| ------------ | -------------------------------- |
-| **Category** | database                         |
-| **Supports** | compose                          |
-| **Tags**     | `database`, `sql`, `mysql`       |
-| **Ports**    | [object Object], [object Object] |
+| Property     | Value                      |
+| ------------ | -------------------------- |
+| **Category** | database                   |
+| **Supports** | compose                    |
+| **Tags**     | `database`, `sql`, `mysql` |
+| **Ports**    | 3306/tcp, 8080/http        |
 
 ### NATS (`nats`)
 
@@ -168,7 +168,7 @@ Lightweight pub/sub messaging with JetStream
 | **Category** | database                                               |
 | **Supports** | compose                                                |
 | **Tags**     | `database`, `messaging`, `pubsub`, `nats`, `jetstream` |
-| **Ports**    | [object Object], [object Object]                       |
+| **Ports**    | 4222/tcp, 8222/http                                    |
 
 ### pgvector (PostgreSQL + vector) (`pgvector`)
 
@@ -181,7 +181,7 @@ PostgreSQL 16 with the pgvector extension for vector similarity search
 | **Suggests**  | `ollama`, `python`, `nodejs`                                      |
 | **Conflicts** | `postgres`                                                        |
 | **Tags**      | `database`, `sql`, `vector`, `embeddings`, `postgres`, `pgvector` |
-| **Ports**     | [object Object]                                                   |
+| **Ports**     | 5432/tcp                                                          |
 
 ### PostgreSQL (`postgres`)
 
@@ -193,7 +193,7 @@ PostgreSQL 16 database
 | **Supports**  | compose                       |
 | **Conflicts** | `pgvector`                    |
 | **Tags**      | `database`, `sql`, `postgres` |
-| **Ports**     | [object Object]               |
+| **Ports**     | 5432/tcp                      |
 
 ### Qdrant (`qdrant`)
 
@@ -205,7 +205,7 @@ High-performance vector database for similarity search and embeddings
 | **Supports** | compose                                                |
 | **Suggests** | `ollama`, `python`, `nodejs`                           |
 | **Tags**     | `database`, `vector`, `embeddings`, `search`, `qdrant` |
-| **Ports**    | [object Object], [object Object]                       |
+| **Ports**    | 6333/http, 6334/grpc                                   |
 
 ### RabbitMQ (`rabbitmq`)
 
@@ -216,7 +216,7 @@ Message broker with AMQP protocol and management UI
 | **Category** | database                                             |
 | **Supports** | compose                                              |
 | **Tags**     | `database`, `messaging`, `queue`, `rabbitmq`, `amqp` |
-| **Ports**    | [object Object], [object Object]                     |
+| **Ports**    | 5672/tcp, 15672/http                                 |
 
 ### Redis (`redis`)
 
@@ -227,7 +227,7 @@ Redis 7 cache
 | **Category** | database                     |
 | **Supports** | compose                      |
 | **Tags**     | `database`, `cache`, `redis` |
-| **Ports**    | [object Object]              |
+| **Ports**    | 6379/tcp                     |
 
 ### Redpanda (`redpanda`)
 
@@ -268,13 +268,13 @@ SQLite with litecli and VS Code extensions
 
 Distributed tracing backend
 
-| Property      | Value                                             |
-| ------------- | ------------------------------------------------- |
-| **Category**  | observability                                     |
-| **Supports**  | compose                                           |
-| **Conflicts** | `tempo`                                           |
-| **Tags**      | `observability`, `tracing`, `jaeger`              |
-| **Ports**     | [object Object], [object Object], [object Object] |
+| Property      | Value                                |
+| ------------- | ------------------------------------ |
+| **Category**  | observability                        |
+| **Supports**  | compose                              |
+| **Conflicts** | `tempo`                              |
+| **Tags**      | `observability`, `tracing`, `jaeger` |
+| **Ports**     | 16686/http, 14250/grpc, 14268/http   |
 
 ### Loki (`loki`)
 
@@ -286,7 +286,7 @@ Log aggregation system
 | **Supports** | compose                         |
 | **Suggests** | `promtail`                      |
 | **Tags**     | `observability`, `logs`, `loki` |
-| **Ports**    | [object Object]                 |
+| **Ports**    | 3100/http                       |
 
 ### Prometheus (`prometheus`)
 
@@ -298,7 +298,7 @@ Metrics collection and monitoring
 | **Supports** | compose                                  |
 | **Suggests** | `alertmanager`                           |
 | **Tags**     | `observability`, `metrics`, `prometheus` |
-| **Ports**    | [object Object]                          |
+| **Ports**    | 9090/http                                |
 
 ### Tempo (`tempo`)
 
@@ -359,7 +359,7 @@ Observability visualization dashboard with auto-provisioning
 | **Requires** | `prometheus`                           |
 | **Suggests** | `loki`, `jaeger`, `tempo`, `promtail`  |
 | **Tags**     | `observability`, `ui`, `visualization` |
-| **Ports**    | [object Object]                        |
+| **Ports**    | 3000/http                              |
 
 ### OTel Demo (Node.js) (`otel-demo-nodejs`)
 
@@ -660,7 +660,7 @@ Open-source identity and access management (OIDC/OAuth2)
 | **Supports** | compose                                     |
 | **Requires** | `postgres`                                  |
 | **Tags**     | `dev`, `auth`, `oidc`, `oauth2`, `identity` |
-| **Ports**    | [object Object]                             |
+| **Ports**    | 8180/http                                   |
 
 ### Mailpit (`mailpit`)
 
@@ -671,7 +671,7 @@ Email testing tool with web UI and SMTP server
 | **Category** | dev                               |
 | **Supports** | compose                           |
 | **Tags**     | `dev`, `email`, `smtp`, `testing` |
-| **Ports**    | [object Object], [object Object]  |
+| **Ports**    | 8025/http, 1025/tcp               |
 
 ### MkDocs 2 (`mkdocs2`)
 
@@ -727,7 +727,7 @@ Browser-based chat UI for Ollama and OpenAI-compatible LLM backends
 | **Supports** | compose                                       |
 | **Suggests** | `ollama`                                      |
 | **Tags**     | `dev`, `ai`, `llm`, `ui`, `chat`, `openwebui` |
-| **Ports**    | [object Object]                               |
+| **Ports**    | 3000/http                                     |
 
 ### OpenAPI Tools (`openapi-tools`)
 

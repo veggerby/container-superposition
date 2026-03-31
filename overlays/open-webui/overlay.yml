@@ -18,7 +18,8 @@ tags:
 ports:
     - port: 3000
       service: open-webui
-      protocol: tcp
+      protocol: http
+      path: /
       description: Open WebUI web interface
       onAutoForward: openBrowser
 parameters:
@@ -31,3 +32,7 @@ parameters:
     OLLAMA_BASE_URL:
         description: Base URL of the Ollama API (leave default when using the ollama overlay)
         default: 'http://ollama:11434'
+    WEBUI_SECRET_KEY:
+        description: Secret key for Open WebUI session signing (change for any shared environment)
+        default: change-me-please
+        sensitive: true

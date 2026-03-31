@@ -20,16 +20,14 @@ fi
 # Check Docker is available (required for k3d)
 echo ""
 echo "2️⃣ Checking Docker availability..."
-if command -v docker &>/dev/null; then
-    docker version --format '{{.Server.Version}}' &>/dev/null
-    if [ $? -eq 0 ]; then
-        echo "   ✅ Docker is available"
-    else
-        echo "   ❌ Docker daemon not accessible"
-        exit 1
-    fi
-else
+if ! command -v docker &>/dev/null; then
     echo "   ❌ Docker CLI not found"
+    exit 1
+fi
+if docker version --format '{{.Server.Version}}' &>/dev/null; then
+    echo "   ✅ Docker is available"
+else
+    echo "   ❌ Docker daemon not accessible"
     exit 1
 fi
 

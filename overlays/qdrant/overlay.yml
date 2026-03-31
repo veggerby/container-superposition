@@ -19,13 +19,13 @@ tags:
 ports:
     - port: 6333
       service: qdrant
-      protocol: tcp
+      protocol: http
       description: Qdrant REST API
       onAutoForward: notify
       connectionStringTemplate: 'http://{host}:{port}'
     - port: 6334
       service: qdrant
-      protocol: tcp
+      protocol: grpc
       description: Qdrant gRPC API
       onAutoForward: ignore
 parameters:
