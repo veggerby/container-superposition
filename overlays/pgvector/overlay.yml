@@ -1,0 +1,44 @@
+id: pgvector
+name: pgvector (PostgreSQL + vector)
+description: PostgreSQL 16 with the pgvector extension for vector similarity search
+category: database
+supports:
+    - compose
+requires: []
+suggests:
+    - ollama
+    - python
+    - nodejs
+conflicts:
+    - postgres
+tags:
+    - database
+    - sql
+    - vector
+    - embeddings
+    - postgres
+    - pgvector
+ports:
+    - port: 5432
+      service: pgvector
+      protocol: tcp
+      description: pgvector database connection
+      onAutoForward: notify
+      connectionStringTemplate: 'postgresql://{pgvector_user}:{pgvector_password}@{host}:{port}/{pgvector_db}'
+parameters:
+    PGVECTOR_DB:
+        description: Name of the database to create
+        default: devdb
+    PGVECTOR_USER:
+        description: PostgreSQL superuser name
+        default: postgres
+    PGVECTOR_PASSWORD:
+        description: PostgreSQL superuser password
+        default: postgres
+        sensitive: true
+    PGVECTOR_PORT:
+        description: Host port mapped to pgvector (5432 inside container)
+        default: '5432'
+    PGVECTOR_VERSION:
+        description: pgvector/pgvector image tag (e.g. pg16, pg17)
+        default: pg16

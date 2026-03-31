@@ -1,0 +1,20 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["qdrant"],
+    "forwardPorts": [6333, 6334],
+    "portsAttributes": {
+        "6333": {
+            "label": "Qdrant REST API",
+            "onAutoForward": "notify"
+        },
+        "6334": {
+            "label": "Qdrant gRPC",
+            "onAutoForward": "ignore"
+        }
+    },
+    "containerEnv": {
+        "QDRANT_HOST": "qdrant",
+        "QDRANT_PORT": "6333",
+        "QDRANT_URL": "http://qdrant:6333"
+    }
+}

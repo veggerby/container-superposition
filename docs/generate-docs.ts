@@ -64,7 +64,15 @@ function formatOverlay(overlay: OverlayMetadata): string {
     }
 
     if (overlay.ports && overlay.ports.length > 0) {
-        sections.push(`| **Ports** | ${overlay.ports.join(', ')} |`);
+        const portStrings = overlay.ports.map((p) => {
+            if (typeof p === 'number') {
+                return String(p);
+            }
+            // Rich port object: format as "6333/http", "5432/tcp", etc.
+            const proto = p.protocol ? `/${p.protocol}` : '';
+            return `${p.port}${proto}`;
+        });
+        sections.push(`| **Ports** | ${portStrings.join(', ')} |`);
     }
 
     sections.push('');
