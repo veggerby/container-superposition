@@ -20,6 +20,7 @@ import type {
     ProjectConfigSelection,
     QuestionnaireAnswers,
     Stack,
+    SuperpositionManifest,
 } from './types.js';
 
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
@@ -846,6 +847,82 @@ export function writeProjectConfigCustomizations(
             fs.writeFileSync(resolvedPath, entry.content);
         }
     }
+}
+
+/**
+ * Search for manifest file in multiple locations.
+ */
+export function findManifestFile(manifestPath?: string): string | null {
+    const searchPaths: string[] = [];
+
+    if (manifestPath) {
+        searchPaths.push(manifestPath);
+    } else {
+        searchPaths.push(
+            'superposition.json',
+            '.devcontainer/superposition.json',
+            '../superposition.json',
+            path.join(process.cwd(), 'superposition.json'),
+            path.join(process.cwd(), '.devcontainer', 'superposition.json')
+        );
+    }
+
+    for (const searchPath of searchPaths) {
+        const resolvedPath = path.resolve(searchPath);
+        if (fs.existsSync(resolvedPath)) {
+            return resolvedPath;
+        }
+    }
+
+    return null;
+}
+
+export function findDefaultRegenManifest(outputPath: string = './.devcontainer'): string | null {
+    const manifestSearchPaths = ['superposition.json', path.join(outputPath, 'superposition.json')];
+
+    for (const searchPath of manifestSearchPaths) {
+        const resolvedPath = path.resolve(searchPath);
+        if (fs.existsSync(resolvedPath)) {
+            return resolvedPath;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Build partial answers from a superposition.json manifest.
+ * Note: Categories are only used for UI/questionnaire grouping.
+ * The composer works with overlay IDs regardless of category.
+ */
+export function buildAnswersFromManifest(
+    manifest: SuperpositionManifest,
+    overlaysConfig: OverlaysConfig,
+    manifestDir?: string
+): Partial<QuestionnaireAnswers> {
+    // Handle baseImage - check if it's a known ID or a custom image string
+    const knownBaseImageIds: BaseImage[] = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
+    const isKnownBaseImage = knownBaseImageIds.includes(manifest.baseImage as BaseImage);
+
+    // Output path is always the directory containing the manifest
+    const outputPath = manifestDir || './.devcontainer';
+
+    const overlayIds = manifest.overlays as OverlayId[];
+    const distributed = distributeOverlaysToAnswers(overlayIds, overlaysConfig);
+
+    return {
+        stack: manifest.baseTemplate as Stack,
+        baseImage: isKnownBaseImage ? (manifest.baseImage as BaseImage) : 'custom',
+        customImage: isKnownBaseImage ? undefined : manifest.baseImage,
+        containerName: manifest.containerName,
+        preset: manifest.preset,
+        presetChoices: manifest.presetChoices,
+        ...distributed,
+        needsDocker: manifest.baseTemplate === 'compose',
+        playwright: distributed.devTools?.includes('playwright' as DevTool) ?? false,
+        outputPath,
+        portOffset: manifest.portOffset,
+    };
 }
 
 export { ProjectConfigError };
