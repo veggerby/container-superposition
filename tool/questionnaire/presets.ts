@@ -89,6 +89,17 @@ export async function expandPreset(
         return { overlays: [], choices: {} };
     }
 
+    // Validate that the preset supports the requested stack, if constraints are defined.
+    if (preset.supports && preset.supports.length > 0 && !preset.supports.includes(stack)) {
+        console.warn(
+            chalk.yellow(
+                `⚠️  Preset '${preset.id}' does not support stack '${stack}'. ` +
+                    `Supported stacks: ${preset.supports.join(', ')}`
+            )
+        );
+        return { overlays: [], choices: {} };
+    }
+
     const overlays: string[] = [...preset.selects.required];
     const choices: Record<string, string> = {};
 

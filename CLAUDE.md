@@ -1,4 +1,7 @@
-# AGENTS.md
+# Claude agent quick reference
+
+This document summarizes key project rules and commands for the Claude-based automation agent.
+For canonical contributor guidance, see `AGENTS.md` and `CONTRIBUTING.md` in the repository root.
 
 ## Commands
 
@@ -19,7 +22,7 @@
 ## Non-obvious rules
 
 - **ESM imports**: always use `.js` extension in imports, even when importing a `.ts` file (e.g. `import { foo } from './bar.js'`)
-- **Path resolution**: any new `__dirname`-based path must use a candidate array covering both source (`scripts/`) and compiled (`dist/scripts/`) locations — see existing `OVERLAYS_DIR_CANDIDATES` pattern in `scripts/init.ts`
+- **Path resolution**: any new `__dirname`-based path must go through the shared repo-path helper so it works from both source (`scripts/`) and compiled (`dist/`) trees — see the `resolveRepoPath` usage in `tool/cli/run.ts`
 - **Adding an overlay**: create `overlays/<id>/overlay.yml` (id must match directory name exactly) + `devcontainer.patch.json` + `README.md`; if it introduces a new category, also update `tool/schema/types.ts` and the loader/composer in `tool/questionnaire/composer.ts` together in the same change
 - **Conflicts are bidirectional**: if overlay A lists B in `conflicts`, B must also list A
 - **Docker Compose networks**: never use `external: true`; always declare the network inline with `name: devnet`

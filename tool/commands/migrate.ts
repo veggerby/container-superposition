@@ -5,6 +5,7 @@ import { loadManifest } from '../schema/manifest-migrations.js';
 import { buildAnswersFromManifest } from '../schema/project-config.js';
 import { mergeAnswers } from '../questionnaire/answers.js';
 import {
+    findManifestFile,
     findProjectConfig,
     buildProjectConfigSelectionFromAnswers,
     writeProjectConfig,
@@ -18,23 +19,7 @@ export interface MigrateOptions {
 }
 
 export async function migrateCommand(options: MigrateOptions): Promise<void> {
-    const manifestSearchPaths = options.fromManifest
-        ? [options.fromManifest]
-        : [
-              'superposition.json',
-              '.devcontainer/superposition.json',
-              path.join(process.cwd(), 'superposition.json'),
-              path.join(process.cwd(), '.devcontainer', 'superposition.json'),
-          ];
-
-    let manifestPath: string | null = null;
-    for (const searchPath of manifestSearchPaths) {
-        const resolvedPath = path.resolve(searchPath);
-        if (fs.existsSync(resolvedPath)) {
-            manifestPath = resolvedPath;
-            break;
-        }
-    }
+    const manifestPath = findManifestFile(options.fromManifest);
 
     if (!manifestPath) {
         console.error(chalk.red('✗ Error: No superposition.json manifest found'));

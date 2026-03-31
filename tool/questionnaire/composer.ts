@@ -65,7 +65,21 @@ import { resolveRepoPath } from '../utils/paths.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const TEMPLATES_DIR = resolveRepoPath('templates', path.join(__dirname, '..', '..'));
+// Anchor for resolving the top-level templates directory.
+// In source layout: <repo>/tool/questionnaire -> anchor becomes <repo>/tool.
+//   path.basename('tool') === 'tool', so we go one level up to reach <repo>.
+// In compiled layout: <repo>/dist/tool/questionnaire -> anchor becomes <repo>/dist/tool.
+//   path.basename('tool') === 'tool', so we go one level up to <repo>/dist,
+//   then resolveRepoPath walks further up to find templates/ at the repo root.
+// NOTE: This check relies on the source directory being named 'tool'. If that changes,
+// update this constant accordingly.
+const TEMPLATES_ANCHOR_BASE = path.join(__dirname, '..', '..');
+const TEMPLATES_ANCHOR =
+    path.basename(TEMPLATES_ANCHOR_BASE) === 'tool'
+        ? path.dirname(TEMPLATES_ANCHOR_BASE)
+        : TEMPLATES_ANCHOR_BASE;
+
+const TEMPLATES_DIR = resolveRepoPath('templates', TEMPLATES_ANCHOR);
 const REPO_ROOT = path.dirname(TEMPLATES_DIR);
 
 // ─── JetBrains support ────────────────────────────────────────────────────

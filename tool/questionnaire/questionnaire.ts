@@ -27,7 +27,8 @@ import { type PresetDefinition, type ChoiceResolver, expandPreset } from './pres
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Anchor two levels up: tool/questionnaire/ → tool/ → repo root (source)
-// or dist/tool/questionnaire/ → dist/tool/ → dist/ (compiled, then resolveRepoPath goes ../overlays)
+// or dist/tool/questionnaire/ → dist/tool/ → ... (compiled).
+// resolveRepoPath walks up additional levels so overlays/ is found in both layouts.
 const REPO_ANCHOR = path.join(__dirname, '../..');
 
 const OVERLAYS_DIR = resolveRepoPath('overlays', REPO_ANCHOR);
@@ -779,15 +780,8 @@ export async function runQuestionnaire(
         const allOverlaysMap = new Map(config.overlays.map((o) => [o.id, o]));
         const target = await askDeploymentTargetSection(selectedOverlays, allOverlaysMap);
 
-        // 7. Overlay parameters
-        const allSelectedOverlays = [
-            ...presetOverlays,
-            ...language,
-            ...database,
-            ...cloudTools,
-            ...devTools,
-            ...observability,
-        ];
+        // 7. Overlay parameters (use the final selectedOverlays as source of truth)
+        const allSelectedOverlays = [...selectedOverlays];
         const overlayParameters = await askOverlayParametersSection(
             allSelectedOverlays,
             config,
