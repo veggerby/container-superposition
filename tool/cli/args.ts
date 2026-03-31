@@ -359,7 +359,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
                 portOffset: options.portOffset as number | undefined,
                 json: !!options.json,
             });
-            process.exit(0);
+            process.exit(typeof process.exitCode === 'number' ? process.exitCode : 0);
         });
 
     await program.parseAsync(process.argv);

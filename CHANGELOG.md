@@ -21,12 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fails clearly when no API key is configured (`OPENAI_API_KEY` for the default provider)
     - `--json` output includes a structured `rationale` array explaining why each overlay was selected or removed (source: `prompt-intent`, `repo-signal`, `diff-add`, `diff-remove`)
     - Modify mode warns before applying destructive changes: removing the only language overlay, or removing an overlay required by another overlay still in the manifest
-- **`tool/ai/` module** — new AI utilities
-    - `intent.ts` — `EnvironmentIntent` + `ManifestDiff` types with Zod schemas
-    - `mapper.ts` — `mapIntentToAnswers()` + `applyDiffToAnswers()` pure functions (LLM-free, fully testable); `SelectionRationale` type for machine-readable overlay selection explanations
-    - `overlay-context.ts` — `buildOverlayContextString()` serialises the overlay catalog for LLM context
-    - `agent.ts` — Vercel AI SDK wrappers (`generateObject`) for `extractIntent()` and `extractDiff()`; supports OpenAI and Anthropic providers
-- **`ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, and `zod` dependencies** — added as production dependencies
+- **AI intent engine** — the internal plumbing that makes `cs generate` safe and predictable
+    - Structured schema validation prevents the LLM from returning invalid overlay IDs or incomplete manifests
+    - Pure, LLM-free diff application for reliable, fully-tested modify-mode behaviour
+    - Overlay catalog injected into every prompt so the model can only choose from valid IDs in the live catalog
+    - OpenAI and Anthropic providers supported via a single `CS_AI_MODEL` env var (`provider:model-id` format)
 - **`open-webui` overlay** — Browser-based chat UI for Ollama and OpenAI-compatible LLM backends, running as a Docker Compose sidecar
     - Serves the Open WebUI at port `3000` (mapped from container port `8080`); auto-forwarded and opened in the browser
     - Pre-configured `OLLAMA_BASE_URL=http://ollama:11434` so it connects automatically when the `ollama` overlay is also selected

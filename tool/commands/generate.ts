@@ -20,13 +20,13 @@ import type {
     OverlaysConfig,
     QuestionnaireAnswers,
     CompositionInput,
-    Stack,
     BaseImage,
-    OverlayId,
-    ProjectConfigSelection,
 } from '../schema/types.js';
 import { composeDevContainer } from '../questionnaire/composer.js';
-import { writeProjectConfig } from '../schema/project-config.js';
+import {
+    writeProjectConfig,
+    buildProjectConfigSelectionFromAnswers,
+} from '../schema/project-config.js';
 import { buildOverlayContextString, buildOverlayLookup } from '../ai/overlay-context.js';
 import { extractIntent, extractDiff, MissingApiKeyError, AgentError } from '../ai/agent.js';
 import { mapIntentToAnswers, applyDiffToAnswers, collectCurrentOverlayIds } from '../ai/mapper.js';
@@ -237,14 +237,7 @@ function writeManifestYaml(
     answers: QuestionnaireAnswers,
     outputPath: string
 ): { filePath: string } {
-    const selection: ProjectConfigSelection = {
-        stack: answers.stack as Stack,
-        baseImage: answers.baseImage as BaseImage,
-        containerName: answers.containerName,
-        overlays: collectCurrentOverlayIds(answers) as OverlayId[],
-        outputPath: answers.outputPath,
-        portOffset: answers.portOffset,
-    };
+    const selection = buildProjectConfigSelectionFromAnswers(answers);
 
     const filePath = path.join(outputPath, 'superposition.yml');
     writeProjectConfig(filePath, selection);
@@ -325,14 +318,18 @@ export async function generateCommand(
             unknownIds = result.unknownIds;
             rationale = result.rationale;
 
-            // Repo signals get their own rationale entries.
+            // Repo signals get their own rationale entries, but only for overlays
+            // that were actually selected in the mapped answers.
             if (adoptSignals.length > 0) {
+                const selectedIds = new Set(collectCurrentOverlayIds(answers));
                 for (const sig of adoptSignals) {
-                    rationale.push({
-                        overlayId: sig,
-                        source: 'repo-signal',
-                        reason: `Inferred from repository file signals (package.json, go.mod, etc.)`,
-                    });
+                    if (selectedIds.has(sig)) {
+                        rationale.push({
+                            overlayId: sig,
+                            source: 'repo-signal',
+                            reason: `Inferred from repository file signals (package.json, go.mod, etc.)`,
+                        });
+                    }
                 }
             }
         } else {
@@ -372,6 +369,11 @@ export async function generateCommand(
     }
 
     spinner.succeed('AI interpretation complete');
+
+    // Apply --port-offset to answers so the manifest and scaffold both use it.
+    if (options.portOffset !== undefined) {
+        answers.portOffset = options.portOffset;
+    }
 
     // ── Step 5: Explainer output ──────────────────────────────────────────────
 
@@ -501,7 +503,11 @@ async function readExistingManifestAsync(
         };
 
         return { answers, yamlContent, filePath };
-    } catch {
+    } catch (err) {
+        // Surface the error message so users know how to fix their project file
+        // (e.g. when both superposition.yml and .superposition.yml exist).
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(chalk.red(`✗ Could not load existing manifest: ${msg}`));
         return null;
     }
 }

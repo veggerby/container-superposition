@@ -267,7 +267,8 @@ export function applyDiffToAnswers(
 
 /**
  * Flatten all overlay IDs from a `QuestionnaireAnswers` object into a single
- * sorted array. Useful for manifest diff display and serialisation.
+ * de-duplicated array preserving category concatenation order.
+ * Useful for manifest diff display and serialisation.
  */
 export function collectCurrentOverlayIds(answers: QuestionnaireAnswers): string[] {
     const ids: string[] = [
