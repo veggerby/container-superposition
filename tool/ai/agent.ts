@@ -12,10 +12,9 @@
  * API keys:  OPENAI_API_KEY or ANTHROPIC_API_KEY depending on provider.
  */
 
-import { generateObject } from 'ai';
+import { generateObject, type LanguageModel } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
-import type { LanguageModelV2 } from '@ai-sdk/provider';
 import { EnvironmentIntentSchema, ManifestDiffSchema } from './intent.js';
 import type { EnvironmentIntent, ManifestDiff } from './intent.js';
 
@@ -60,10 +59,10 @@ function parseModel(): { provider: string; modelId: string } {
 }
 
 /**
- * Build a LanguageModelV1 instance for the configured provider/model.
+ * Build a LanguageModel instance for the configured provider/model.
  * Validates that the required API key is present before constructing.
  */
-function buildModel(): LanguageModelV2 {
+function buildModel(): LanguageModel {
     const { provider, modelId } = parseModel();
 
     switch (provider) {
@@ -76,7 +75,7 @@ function buildModel(): LanguageModelV2 {
                         '  (e.g. CS_AI_MODEL=anthropic:claude-3-haiku-20240307).'
                 );
             }
-            return openai(modelId) as unknown as LanguageModelV2;
+            return openai(modelId);
         }
         case 'anthropic': {
             if (!process.env['ANTHROPIC_API_KEY']) {
@@ -87,7 +86,7 @@ function buildModel(): LanguageModelV2 {
                         '  (e.g. CS_AI_MODEL=openai:gpt-4o-mini).'
                 );
             }
-            return anthropic(modelId) as unknown as LanguageModelV2;
+            return anthropic(modelId);
         }
         default:
             throw new AgentError(

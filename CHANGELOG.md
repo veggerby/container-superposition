@@ -168,7 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Minimum Node.js version raised to 20** — The `generate` command uses the Vercel AI SDK (`ai` + `@ai-sdk/*`), which requires Node.js 18+; the engine floor is set to `>=20` to align with the project's LTS policy. All other commands are unaffected.
+- **Minimum Node.js version set to `>=20`** — The `generate` command uses the Vercel AI SDK (`ai` + `@ai-sdk/*`), which requires Node.js 18+; the engine floor is set to `>=20` to align with the project's LTS policy. (The previous `@mastra/core` dependency had forced this to `>=22.13.0`; that requirement is now removed.) All other commands are unaffected.
 - **Flat `overlays` field in project config** — Project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, etc.); old category keys are still accepted for backward compatibility
 - **`doctor` command** — `--from-manifest`, `--from-project`, and `--project-root` flags added, bringing `doctor` into parity with `init` and `regen` for project-file and manifest selection
 - **`direnv` overlay** — Package installation moved to `cross-distro-packages` devcontainer feature (runs at image-build time); `setup.sh` now handles only shell hook configuration
