@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import * as yaml from 'js-yaml';
 import type {
+    CompositionInput,
     QuestionnaireAnswers,
     DevContainer,
     CloudTool,
@@ -14,6 +15,7 @@ import type {
     CustomizationConfig,
     PortsDocumentation,
     DeploymentTarget,
+    ProjectEnvVar,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import {
@@ -43,32 +45,42 @@ import {
 } from '../schema/target-rules.js';
 import type { TargetRuleContext } from '../schema/target-rules.js';
 import {
+    collectOverlayParameters,
+    resolveParameters,
+    substituteParameters,
+    substituteParametersInObject,
+    findUnresolvedTokens,
+    redactSensitiveValues,
+} from '../utils/parameters.js';
+import {
     detectWarnings,
     generateTips,
     generateNextSteps,
     overlaysToServices,
     portsToPortInfo,
 } from '../utils/summary.js';
+import { resolveRepoPath } from '../utils/paths.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Resolve REPO_ROOT that works in both source and compiled output
-// When running from TypeScript sources (e.g. ts-node), __dirname is "<root>/tool/questionnaire"
-// When running from compiled JS in "dist/tool/questionnaire", __dirname is "<root>/dist/tool/questionnaire"
-const REPO_ROOT_CANDIDATES = [
-    path.join(__dirname, '..', '..'), // From source: tool/questionnaire -> root
-    path.join(__dirname, '..', '..', '..'), // From dist: dist/tool/questionnaire -> root
-];
-const REPO_ROOT =
-    REPO_ROOT_CANDIDATES.find(
-        (candidate) =>
-            fs.existsSync(path.join(candidate, 'templates')) &&
-            fs.existsSync(path.join(candidate, 'overlays'))
-    ) ?? REPO_ROOT_CANDIDATES[0];
+// Anchor for resolving the top-level templates directory.
+// In source layout: <repo>/tool/questionnaire -> anchor becomes <repo>/tool.
+//   path.basename('tool') === 'tool', so we go one level up to reach <repo>.
+// In compiled layout: <repo>/dist/tool/questionnaire -> anchor becomes <repo>/dist/tool.
+//   path.basename('tool') === 'tool', so we go one level up to <repo>/dist,
+//   then resolveRepoPath walks further up to find templates/ at the repo root.
+// NOTE: This check relies on the source directory being named 'tool'. If that changes,
+// update this constant accordingly.
+const TEMPLATES_ANCHOR_BASE = path.join(__dirname, '..', '..');
+const TEMPLATES_ANCHOR =
+    path.basename(TEMPLATES_ANCHOR_BASE) === 'tool'
+        ? path.dirname(TEMPLATES_ANCHOR_BASE)
+        : TEMPLATES_ANCHOR_BASE;
 
-const TEMPLATES_DIR = path.join(REPO_ROOT, 'templates');
+const TEMPLATES_DIR = resolveRepoPath('templates', TEMPLATES_ANCHOR);
+const REPO_ROOT = path.dirname(TEMPLATES_DIR);
 
 // ─── JetBrains support ────────────────────────────────────────────────────
 
@@ -539,7 +551,7 @@ function resolveDependencies(
  * This shared logic is used by both generateManifestOnly and composeDevContainer.
  */
 function prepareOverlaysForGeneration(
-    answers: QuestionnaireAnswers,
+    answers: CompositionInput,
     overlaysDir?: string
 ): {
     overlays: string[];
@@ -657,7 +669,7 @@ function prepareOverlaysForGeneration(
  */
 function generateManifest(
     outputPath: string,
-    answers: QuestionnaireAnswers,
+    answers: CompositionInput,
     overlays: string[],
     autoResolved: { added: string[]; reason: string },
     containerName?: string,
@@ -1036,6 +1048,248 @@ function copyOverlayFiles(
     }
 }
 
+type ResolvedProjectEnvTarget = 'remoteEnv' | 'composeEnv';
+
+const PROJECT_ENV_REFERENCE_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/g;
+
+function parseSimpleEnvFile(content: string): Record<string, string> {
+    const env: Record<string, string> = {};
+
+    for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) {
+            continue;
+        }
+
+        const match = trimmed.match(/^([^=]+)=(.*)$/);
+        if (!match) {
+            continue;
+        }
+
+        env[match[1].trim()] = match[2].trim();
+    }
+
+    return env;
+}
+
+function loadEnvFileIfExists(filePath: string): Record<string, string> {
+    if (!fs.existsSync(filePath)) {
+        return {};
+    }
+
+    return parseSimpleEnvFile(fs.readFileSync(filePath, 'utf8'));
+}
+
+function resolveProjectEnvTarget(
+    entry: ProjectEnvVar,
+    stack: QuestionnaireAnswers['stack']
+): ResolvedProjectEnvTarget {
+    const target = entry.target ?? 'auto';
+
+    if (target === 'remoteEnv') {
+        return 'remoteEnv';
+    }
+
+    if (target === 'composeEnv') {
+        if (stack !== 'compose') {
+            throw new Error(
+                'Project env target "composeEnv" requires stack: compose because no docker-compose.yml is generated for plain stacks'
+            );
+        }
+        return 'composeEnv';
+    }
+
+    return stack === 'compose' ? 'composeEnv' : 'remoteEnv';
+}
+
+function resolveRootEnvReferences(value: string, rootEnv: Record<string, string>): string {
+    return value.replace(PROJECT_ENV_REFERENCE_PATTERN, (match, name: string) => {
+        if (rootEnv[name] !== undefined) {
+            return rootEnv[name];
+        }
+
+        const defaultMatch = match.match(/^\$\{[A-Za-z_][A-Za-z0-9_]*:-([^}]*)\}$/);
+        return defaultMatch ? defaultMatch[1] : match;
+    });
+}
+
+function hasUnresolvedProjectEnvReference(value: string): boolean {
+    PROJECT_ENV_REFERENCE_PATTERN.lastIndex = 0;
+    const result = PROJECT_ENV_REFERENCE_PATTERN.test(value);
+    PROJECT_ENV_REFERENCE_PATTERN.lastIndex = 0;
+    return result;
+}
+
+function buildResolvedProjectRemoteEnvEntries(
+    projectEnv: QuestionnaireAnswers['projectEnv'],
+    stack: QuestionnaireAnswers['stack'],
+    rootEnv?: Record<string, string>
+): Record<string, string> {
+    const entries: Record<string, string> = {};
+
+    for (const [key, entry] of Object.entries(projectEnv ?? {})) {
+        if (resolveProjectEnvTarget(entry, stack) !== 'remoteEnv') {
+            continue;
+        }
+
+        entries[key] = resolveRootEnvReferences(entry.value, rootEnv ?? {});
+    }
+
+    return entries;
+}
+
+function buildComposeProjectEnvInterpolationEntries(
+    projectEnv: QuestionnaireAnswers['projectEnv'],
+    stack: QuestionnaireAnswers['stack']
+): Record<string, string> {
+    const entries: Record<string, string> = {};
+
+    for (const [key, entry] of Object.entries(projectEnv ?? {})) {
+        if (resolveProjectEnvTarget(entry, stack) !== 'composeEnv') {
+            continue;
+        }
+
+        entries[key] = `\${${key}}`;
+    }
+
+    return entries;
+}
+
+function buildComposeProjectRemoteEnvRefs(
+    projectEnv: QuestionnaireAnswers['projectEnv'],
+    stack: QuestionnaireAnswers['stack']
+): Record<string, string> {
+    const entries: Record<string, string> = {};
+
+    for (const [key, entry] of Object.entries(projectEnv ?? {})) {
+        if (resolveProjectEnvTarget(entry, stack) !== 'composeEnv') {
+            continue;
+        }
+
+        entries[key] = `\${containerEnv:${key}}`;
+    }
+
+    return entries;
+}
+
+function materializeComposeProjectEnvValues(
+    projectEnv: QuestionnaireAnswers['projectEnv'],
+    stack: QuestionnaireAnswers['stack'],
+    rootEnv: Record<string, string>
+): Record<string, string> {
+    const entries: Record<string, string> = {};
+
+    for (const [key, entry] of Object.entries(projectEnv ?? {})) {
+        if (resolveProjectEnvTarget(entry, stack) !== 'composeEnv') {
+            continue;
+        }
+
+        const resolvedValue = resolveRootEnvReferences(entry.value, rootEnv);
+
+        // Leave unresolved variables to shell/docker-compose fallback instead of
+        // persisting placeholder syntax into .devcontainer/.env.
+        if (hasUnresolvedProjectEnvReference(resolvedValue)) {
+            continue;
+        }
+        entries[key] = resolvedValue;
+    }
+
+    return entries;
+}
+
+function applyProjectEnvToDevcontainer(
+    config: DevContainer,
+    projectEnv: QuestionnaireAnswers['projectEnv'],
+    stack: QuestionnaireAnswers['stack'],
+    rootEnv: Record<string, string>
+): DevContainer {
+    const remoteEnv = {
+        ...buildResolvedProjectRemoteEnvEntries(projectEnv, stack, rootEnv),
+        ...buildComposeProjectRemoteEnvRefs(projectEnv, stack),
+    };
+
+    if (Object.keys(remoteEnv).length === 0) {
+        return config;
+    }
+
+    console.log(chalk.dim(`   🌱 Applying project env to remoteEnv`));
+    return deepMerge(config, { remoteEnv }) as DevContainer;
+}
+
+function mergeComposeEnvFile(outputPath: string, entries: Record<string, string>): boolean {
+    if (Object.keys(entries).length === 0) {
+        return false;
+    }
+
+    const envPath = path.join(outputPath, '.env');
+    const originalContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+    const lines = originalContent === '' ? [] : originalContent.replace(/\n$/, '').split('\n');
+    const indexByKey = new Map<string, number>();
+
+    lines.forEach((line, index) => {
+        const match = line.match(/^([^#=\s][^=]*)=(.*)$/);
+        if (match) {
+            indexByKey.set(match[1].trim(), index);
+        }
+    });
+
+    let changed = false;
+    let insertedSpacer = false;
+
+    for (const [key, value] of Object.entries(entries)) {
+        const rendered = `${key}=${value}`;
+        const existingIndex = indexByKey.get(key);
+
+        if (existingIndex !== undefined) {
+            if (lines[existingIndex] !== rendered) {
+                lines[existingIndex] = rendered;
+                changed = true;
+            }
+            continue;
+        }
+
+        if (lines.length > 0 && !insertedSpacer && lines[lines.length - 1] !== '') {
+            lines.push('');
+            insertedSpacer = true;
+        }
+
+        lines.push(rendered);
+        indexByKey.set(key, lines.length - 1);
+        changed = true;
+    }
+
+    if (!changed && originalContent !== '') {
+        return false;
+    }
+
+    fs.writeFileSync(envPath, `${lines.join('\n')}\n`);
+    return true;
+}
+
+function materializeComposeProjectEnvFile(
+    outputPath: string,
+    projectEnv: QuestionnaireAnswers['projectEnv'],
+    stack: QuestionnaireAnswers['stack'],
+    rootEnv: Record<string, string>
+): boolean {
+    if (stack !== 'compose') {
+        return false;
+    }
+
+    const materializedEntries = materializeComposeProjectEnvValues(projectEnv, stack, rootEnv);
+
+    if (!mergeComposeEnvFile(outputPath, materializedEntries)) {
+        return false;
+    }
+
+    console.log(
+        chalk.dim(
+            `   🔁 Materialized ${Object.keys(materializedEntries).length} project env value(s) into .devcontainer/.env for docker-compose`
+        )
+    );
+    return true;
+}
+
 /**
  * Merge .env.example files from all selected overlays
  */
@@ -1366,11 +1620,12 @@ function resolveDockerComposePortConflicts(
  */
 function mergeDockerComposeFiles(
     outputPath: string,
-    baseStack: string,
+    baseStack: QuestionnaireAnswers['stack'],
     overlays: string[],
     overlaysDir: string,
     portOffset?: number,
-    customImage?: string
+    customImage?: string,
+    projectEnv?: QuestionnaireAnswers['projectEnv']
 ): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
@@ -1474,6 +1729,17 @@ function mergeDockerComposeFiles(
 
     // Ensure devcontainer service has an image
     if (merged.services.devcontainer) {
+        const composeEnv = buildComposeProjectEnvInterpolationEntries(projectEnv, baseStack);
+        if (Object.keys(composeEnv).length > 0) {
+            merged.services.devcontainer.environment = deepMerge(
+                merged.services.devcontainer.environment ?? {},
+                composeEnv
+            );
+            console.log(
+                chalk.dim(`   🌱 Applying project env to docker-compose devcontainer service`)
+            );
+        }
+
         if (customImage) {
             // Apply custom base image if specified
             merged.services.devcontainer.image = customImage;
@@ -1786,7 +2052,7 @@ function copyCustomFiles(
  * Used for team collaboration workflow where manifest is committed but .devcontainer is gitignored
  */
 export async function generateManifestOnly(
-    answers: QuestionnaireAnswers,
+    answers: CompositionInput,
     overlaysDir?: string,
     options: { isRegen?: boolean } = {}
 ): Promise<GenerationSummary> {
@@ -1853,7 +2119,7 @@ export async function generateManifestOnly(
  * Main composition logic
  */
 export async function composeDevContainer(
-    answers: QuestionnaireAnswers,
+    answers: CompositionInput,
     overlaysDir?: string,
     options: { isRegen?: boolean } = {}
 ): Promise<GenerationSummary> {
@@ -1949,10 +2215,45 @@ export async function composeDevContainer(
 
     const overlays = orderedOverlays;
 
-    // 5. Create output directory and file registry for cleanup
+    // 5b. Resolve overlay parameters ({{cs.KEY}} substitution)
+    // Collect parameter declarations from all selected overlays
+    const declaredParams = collectOverlayParameters(overlays, allOverlayDefs);
+    const {
+        values: resolvedParams,
+        missingRequired,
+        unknownSupplied,
+    } = resolveParameters(declaredParams, answers.overlayParameters ?? {});
+
+    if (missingRequired.length > 0) {
+        throw new Error(
+            `Missing required overlay parameters: ${missingRequired.join(', ')}. ` +
+                `Provide values in superposition.yml under the parameters: section, ` +
+                `or via --param KEY=VALUE on the command line.`
+        );
+    }
+
+    if (unknownSupplied.length > 0) {
+        console.warn(
+            chalk.yellow(
+                `   ⚠️  Unknown overlay parameters (not declared by any selected overlay): ${unknownSupplied.join(', ')}`
+            )
+        );
+    }
+
+    const hasResolvedParams = Object.keys(resolvedParams).length > 0;
+
+    // Log resolved parameter values (sensitive values are redacted)
+    if (hasResolvedParams) {
+        const displayValues = redactSensitiveValues(resolvedParams, declaredParams);
+        console.log(chalk.dim(`   ⚙️  Overlay parameters:`));
+        for (const [k, v] of Object.entries(displayValues)) {
+            console.log(chalk.dim(`      ${k}=${v}`));
+        }
+    }
     const outputPath = path.resolve(answers.outputPath);
     const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
+    const rootEnv = loadEnvFileIfExists(path.join(projectRoot, '.env'));
 
     if (!fs.existsSync(outputPath)) {
         fs.mkdirSync(outputPath, { recursive: true });
@@ -1991,6 +2292,8 @@ export async function composeDevContainer(
         console.log(chalk.dim(`   🔧 Applying overlay: ${chalk.cyan(overlay)}`));
         config = applyOverlay(config, overlay, actualOverlaysDir);
     }
+
+    config = applyProjectEnvToDevcontainer(config, answers.projectEnv, answers.stack, rootEnv);
 
     // 7. Copy template files (docker-compose, scripts, etc.)
     const entries = fs.readdirSync(templatePath);
@@ -2044,11 +2347,24 @@ export async function composeDevContainer(
             overlays,
             actualOverlaysDir,
             answers.portOffset,
-            customImage
+            customImage,
+            answers.projectEnv
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {
             config.dockerComposeFile = 'docker-compose.yml';
+        }
+
+        // Apply parameter substitution to the merged docker-compose.yml
+        if (hasResolvedParams) {
+            const composePath = path.join(outputPath, 'docker-compose.yml');
+            if (fs.existsSync(composePath)) {
+                const original = fs.readFileSync(composePath, 'utf8');
+                const substituted = substituteParameters(original, resolvedParams);
+                if (substituted !== original) {
+                    fs.writeFileSync(composePath, substituted);
+                }
+            }
         }
     }
 
@@ -2152,8 +2468,14 @@ export async function composeDevContainer(
     }
 
     // 12. Write merged devcontainer.json
+    // Apply parameter substitution to the config object (before JSON.stringify) so that
+    // any JSON-special characters in parameter values are properly escaped by JSON.stringify.
     const configPath = path.join(outputPath, 'devcontainer.json');
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+    const finalConfig = hasResolvedParams
+        ? (substituteParametersInObject(config, resolvedParams) as DevContainer)
+        : config;
+    const devcontainerContent = JSON.stringify(finalConfig, null, 2) + '\n';
+    fs.writeFileSync(configPath, devcontainerContent);
     fileRegistry.addFile('devcontainer.json');
     console.log(chalk.dim(`   📝 Wrote devcontainer.json`));
 
@@ -2186,6 +2508,33 @@ export async function composeDevContainer(
         fileRegistry.addFile('.env.example');
     }
 
+    // Apply parameter substitution to .env.example
+    // This must happen after mergeEnvExamples but before any consumer of .env reads it,
+    // because mergeEnvExamples may have written {{cs.*}} tokens into .env.example.
+    // We also regenerate .env (the port-offset copy) from the substituted content so that
+    // applyPortOffsetToEnv can correctly match numeric port values that were previously
+    // hidden behind {{cs.POSTGRES_PORT}} tokens.
+    if (hasResolvedParams) {
+        const envExamplePath = path.join(outputPath, '.env.example');
+        if (fs.existsSync(envExamplePath)) {
+            const original = fs.readFileSync(envExamplePath, 'utf8');
+            const substituted = substituteParameters(original, resolvedParams);
+            if (substituted !== original) {
+                fs.writeFileSync(envExamplePath, substituted);
+                // Regenerate .env from the substituted content when a port offset is active.
+                // mergeEnvExamples already wrote .env from the pre-substitution content, so
+                // the port offset was applied to unresolved tokens (e.g. {{cs.POSTGRES_PORT}})
+                // that had no numeric value to match — we must regenerate .env now that the
+                // tokens have been replaced with real numeric port values.
+                if (answers.portOffset) {
+                    const envPath = path.join(outputPath, '.env');
+                    const offsetContent = applyPortOffsetToEnv(substituted, answers.portOffset);
+                    fs.writeFileSync(envPath, offsetContent);
+                }
+            }
+        }
+    }
+
     // Apply custom environment variables (after .env.example is created)
     if (customPatches) {
         const customEnvCreated = applyCustomEnvironment(outputPath, customPatches);
@@ -2194,6 +2543,8 @@ export async function composeDevContainer(
             fileRegistry.addFile('.env.example');
         }
     }
+
+    materializeComposeProjectEnvFile(outputPath, answers.projectEnv, answers.stack, rootEnv);
 
     // 14b. Merge .gitignore files from overlays into project root .gitignore
     // Note: .gitignore lives at the project root (parent of outputPath), not inside outputPath,
@@ -2301,7 +2652,10 @@ export async function composeDevContainer(
     );
     if (envLocalContent) {
         const envLocalPath = path.join(outputPath, 'env.local.example');
-        fs.writeFileSync(envLocalPath, envLocalContent);
+        const finalEnvLocalContent = hasResolvedParams
+            ? substituteParameters(envLocalContent, resolvedParams)
+            : envLocalContent;
+        fs.writeFileSync(envLocalPath, finalEnvLocalContent);
         fileRegistry.addFile('env.local.example');
         console.log(chalk.dim(`   📄 Created env.local.example with optional overrides`));
     }
@@ -2326,6 +2680,37 @@ export async function composeDevContainer(
 
     // 18. Clean up stale files from previous runs (preserves superposition.json and .env)
     cleanupStaleFiles(outputPath, fileRegistry);
+
+    // 18b. Validate that no unresolved {{cs.*}} tokens remain in any generated file.
+    // Run unconditionally — an overlay author could accidentally ship {{cs.*}} tokens
+    // in files that don't have a matching parameters declaration, and we must catch those
+    // regardless of whether any parameters were resolved in this run.
+    // Only text-like files (not binaries) are scanned; skip missing files gracefully.
+    const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.gif', '.ico', '.woff', '.woff2', '.ttf']);
+    {
+        const allGeneratedFiles = Array.from(fileRegistry.getFiles());
+        const unresolvedByFile: Record<string, string[]> = {};
+        for (const relFile of allGeneratedFiles) {
+            const ext = path.extname(relFile).toLowerCase();
+            if (BINARY_EXTENSIONS.has(ext)) continue;
+            const absPath = path.join(outputPath, relFile);
+            if (!fs.existsSync(absPath)) continue;
+            const content = fs.readFileSync(absPath, 'utf8');
+            const unresolved = findUnresolvedTokens(content);
+            if (unresolved.length > 0) {
+                unresolvedByFile[relFile] = [...new Set(unresolved)];
+            }
+        }
+        if (Object.keys(unresolvedByFile).length > 0) {
+            const details = Object.entries(unresolvedByFile)
+                .map(([file, tokens]) => `${file}: ${tokens.join(', ')}`)
+                .join('; ');
+            throw new Error(
+                `Unresolved {{cs.*}} parameter tokens remain in generated files: ${details}. ` +
+                    `Declare these parameters in the overlay's overlay.yml and provide values in your project file (superposition.yml).`
+            );
+        }
+    }
 
     // 19. Generate and return summary
     const files = Array.from(fileRegistry.getFiles());

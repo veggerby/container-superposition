@@ -14,11 +14,13 @@ import type {
     OverlayMetadata,
     ObservabilityTool,
     OverlaysConfig,
+    ProjectEnvTarget,
     ProjectConfigCustomizationsInput,
     ProjectConfigFileEntry,
     ProjectConfigSelection,
     QuestionnaireAnswers,
     Stack,
+    SuperpositionManifest,
 } from './types.js';
 
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
@@ -31,6 +33,7 @@ const STACK_VALUES: Stack[] = ['plain', 'compose'];
 const BASE_IMAGE_VALUES: BaseImage[] = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
 const TARGET_VALUES: DeploymentTarget[] = ['local', 'codespaces', 'gitpod', 'devpod'];
 const EDITOR_VALUES: EditorProfile[] = ['vscode', 'jetbrains', 'none'];
+const PROJECT_ENV_TARGET_VALUES: ProjectEnvTarget[] = ['auto', 'remoteEnv', 'composeEnv'];
 
 class ProjectConfigError extends Error {
     constructor(message: string) {
@@ -340,15 +343,66 @@ function parseFiles(value: unknown): ProjectConfigCustomizationsInput['files'] |
     });
 }
 
-function parseEnvironment(value: unknown): Record<string, string> | undefined {
+function parseEnvTemplate(value: unknown, fieldName: string): Record<string, string> | undefined {
     if (value === undefined || value === null) {
         return undefined;
     }
 
-    const record = expectPlainObject(value, 'customizations.environment');
+    const record = expectPlainObject(value, fieldName);
     const parsed: Record<string, string> = {};
     for (const [key, entry] of Object.entries(record)) {
-        parsed[key] = expectString(entry, `customizations.environment.${key}`);
+        parsed[key] = expectString(entry, `${fieldName}.${key}`);
+    }
+
+    return Object.keys(parsed).length > 0 ? parsed : undefined;
+}
+
+function parseParameters(value: unknown): Record<string, string> | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    const record = expectPlainObject(value, 'parameters');
+    const parsed: Record<string, string> = {};
+    for (const [key, entry] of Object.entries(record)) {
+        // Coerce to string to accept numbers in YAML (e.g. POSTGRES_PORT: 5432)
+        if (entry === null || entry === undefined) {
+            throw new ProjectConfigError(`parameters.${key} must be a non-empty string`);
+        }
+        const coerced = String(entry);
+        const normalized = coerced.trim();
+        if (normalized.length === 0) {
+            throw new ProjectConfigError(`parameters.${key} must be a non-empty string`);
+        }
+        parsed[key] = normalized;
+    }
+
+    return Object.keys(parsed).length > 0 ? parsed : undefined;
+}
+
+function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    const record = expectPlainObject(value, 'env');
+    const parsed: NonNullable<ProjectConfigSelection['env']> = {};
+
+    for (const [key, entry] of Object.entries(record)) {
+        if (typeof entry === 'string') {
+            parsed[key] = { value: expectString(entry, `env.${key}`) };
+            continue;
+        }
+
+        const envRecord = expectPlainObject(entry, `env.${key}`);
+        parsed[key] = {
+            value: expectString(envRecord.value, `env.${key}.value`),
+            target: expectOptionalEnum(
+                envRecord.target,
+                `env.${key}.target`,
+                PROJECT_ENV_TARGET_VALUES
+            ),
+        };
     }
 
     return Object.keys(parsed).length > 0 ? parsed : undefined;
@@ -360,6 +414,10 @@ function parseCustomizations(value: unknown): ProjectConfigCustomizationsInput |
     }
 
     const record = expectPlainObject(value, 'customizations');
+    const envTemplate = {
+        ...(parseEnvTemplate(record.environment, 'customizations.environment') ?? {}),
+        ...(parseEnvTemplate(record.envTemplate, 'customizations.envTemplate') ?? {}),
+    };
 
     const customizations: ProjectConfigCustomizationsInput = {
         devcontainerPatch:
@@ -370,7 +428,7 @@ function parseCustomizations(value: unknown): ProjectConfigCustomizationsInput |
             record.dockerComposePatch !== undefined
                 ? expectPlainObject(record.dockerComposePatch, 'customizations.dockerComposePatch')
                 : undefined,
-        environment: parseEnvironment(record.environment),
+        envTemplate: Object.keys(envTemplate).length > 0 ? envTemplate : undefined,
         scripts: parseScripts(record.scripts),
         files: parseFiles(record.files),
     };
@@ -438,7 +496,9 @@ export function loadProjectConfig(
         'target',
         'minimal',
         'editor',
+        'env',
         'customizations',
+        'parameters',
     ]);
 
     const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key));
@@ -466,7 +526,9 @@ export function loadProjectConfig(
         target: expectOptionalEnum(document.target, 'target', TARGET_VALUES),
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
+        env: parseProjectEnv(document.env),
         customizations: parseCustomizations(document.customizations),
+        parameters: parseParameters(document.parameters),
     };
 
     if (selection.baseImage === 'custom' && !selection.customImage) {
@@ -503,9 +565,11 @@ export function buildAnswersFromProjectConfig(
         target: selection.target,
         minimal: selection.minimal,
         editor: selection.editor,
+        projectEnv: selection.env,
         customizations: selection.customizations
             ? materializeCustomizationConfig(selection.customizations)
             : undefined,
+        overlayParameters: selection.parameters,
     };
 }
 
@@ -531,7 +595,7 @@ function buildProjectConfigCustomizationsFromAnswers(
     const input: ProjectConfigCustomizationsInput = {
         devcontainerPatch: customizations.devcontainerPatch,
         dockerComposePatch: customizations.dockerComposePatch,
-        environment: customizations.environmentVars,
+        envTemplate: customizations.environmentVars,
         scripts: customizations.scripts,
         files,
     };
@@ -574,7 +638,12 @@ export function buildProjectConfigSelectionFromAnswers(
         target: answers.target,
         minimal: answers.minimal,
         editor: answers.editor,
+        env: answers.projectEnv,
         customizations: buildProjectConfigCustomizationsFromAnswers(answers.customizations),
+        parameters:
+            answers.overlayParameters && Object.keys(answers.overlayParameters).length > 0
+                ? answers.overlayParameters
+                : undefined,
     };
 }
 
@@ -584,7 +653,7 @@ function materializeCustomizationConfig(
     return {
         devcontainerPatch: input.devcontainerPatch,
         dockerComposePatch: input.dockerComposePatch,
-        environmentVars: input.environment,
+        environmentVars: input.envTemplate,
         scripts: input.scripts,
         files: input.files?.map((entry) => ({
             source: entry.path,
@@ -631,6 +700,16 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.target) document.target = selection.target;
     if (selection.minimal !== undefined) document.minimal = selection.minimal;
     if (selection.editor) document.editor = selection.editor;
+    if (selection.env && Object.keys(selection.env).length > 0) {
+        document.env = Object.fromEntries(
+            Object.entries(selection.env).map(([key, entry]) => [
+                key,
+                entry.target && entry.target !== 'auto'
+                    ? { value: entry.value, target: entry.target }
+                    : entry.value,
+            ])
+        );
+    }
 
     if (selection.customizations) {
         const customizations: Record<string, any> = {};
@@ -645,8 +724,8 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
             customizations.dockerComposePatch = selection.customizations.dockerComposePatch;
         }
 
-        if (hasKeys(selection.customizations.environment)) {
-            customizations.environment = selection.customizations.environment;
+        if (hasKeys(selection.customizations.envTemplate)) {
+            customizations.envTemplate = selection.customizations.envTemplate;
         }
 
         if (selection.customizations.scripts?.postCreate?.length) {
@@ -670,6 +749,10 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
         if (Object.keys(customizations).length > 0) {
             document.customizations = customizations;
         }
+    }
+
+    if (hasKeys(selection.parameters)) {
+        document.parameters = selection.parameters;
     }
 
     return document;
@@ -719,9 +802,9 @@ export function writeProjectConfigCustomizations(
         );
     }
 
-    if (customizations.environment && Object.keys(customizations.environment).length > 0) {
+    if (customizations.envTemplate && Object.keys(customizations.envTemplate).length > 0) {
         const content =
-            Object.entries(customizations.environment)
+            Object.entries(customizations.envTemplate)
                 .map(([key, value]) => `${key}=${value}`)
                 .join('\n') + '\n';
         fs.writeFileSync(path.join(customDir, 'environment.env'), content);
@@ -764,6 +847,82 @@ export function writeProjectConfigCustomizations(
             fs.writeFileSync(resolvedPath, entry.content);
         }
     }
+}
+
+/**
+ * Search for manifest file in multiple locations.
+ */
+export function findManifestFile(manifestPath?: string): string | null {
+    const searchPaths: string[] = [];
+
+    if (manifestPath) {
+        searchPaths.push(manifestPath);
+    } else {
+        searchPaths.push(
+            'superposition.json',
+            '.devcontainer/superposition.json',
+            '../superposition.json',
+            path.join(process.cwd(), 'superposition.json'),
+            path.join(process.cwd(), '.devcontainer', 'superposition.json')
+        );
+    }
+
+    for (const searchPath of searchPaths) {
+        const resolvedPath = path.resolve(searchPath);
+        if (fs.existsSync(resolvedPath)) {
+            return resolvedPath;
+        }
+    }
+
+    return null;
+}
+
+export function findDefaultRegenManifest(outputPath: string = './.devcontainer'): string | null {
+    const manifestSearchPaths = ['superposition.json', path.join(outputPath, 'superposition.json')];
+
+    for (const searchPath of manifestSearchPaths) {
+        const resolvedPath = path.resolve(searchPath);
+        if (fs.existsSync(resolvedPath)) {
+            return resolvedPath;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Build partial answers from a superposition.json manifest.
+ * Note: Categories are only used for UI/questionnaire grouping.
+ * The composer works with overlay IDs regardless of category.
+ */
+export function buildAnswersFromManifest(
+    manifest: SuperpositionManifest,
+    overlaysConfig: OverlaysConfig,
+    manifestDir?: string
+): Partial<QuestionnaireAnswers> {
+    // Handle baseImage - check if it's a known ID or a custom image string
+    const knownBaseImageIds: BaseImage[] = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
+    const isKnownBaseImage = knownBaseImageIds.includes(manifest.baseImage as BaseImage);
+
+    // Output path is always the directory containing the manifest
+    const outputPath = manifestDir || './.devcontainer';
+
+    const overlayIds = manifest.overlays as OverlayId[];
+    const distributed = distributeOverlaysToAnswers(overlayIds, overlaysConfig);
+
+    return {
+        stack: manifest.baseTemplate as Stack,
+        baseImage: isKnownBaseImage ? (manifest.baseImage as BaseImage) : 'custom',
+        customImage: isKnownBaseImage ? undefined : manifest.baseImage,
+        containerName: manifest.containerName,
+        preset: manifest.preset,
+        presetChoices: manifest.presetChoices,
+        ...distributed,
+        needsDocker: manifest.baseTemplate === 'compose',
+        playwright: distributed.devTools?.includes('playwright' as DevTool) ?? false,
+        outputPath,
+        portOffset: manifest.portOffset,
+    };
 }
 
 export { ProjectConfigError };

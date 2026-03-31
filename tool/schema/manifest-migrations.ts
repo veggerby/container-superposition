@@ -5,6 +5,8 @@
  * Migrations are pure functions that transform manifests from one version to another.
  */
 
+import * as fs from 'fs';
+import chalk from 'chalk';
 import type { SuperpositionManifest } from './types.js';
 
 /**
@@ -172,6 +174,71 @@ export function needsMigration(manifest: any): boolean {
     }
 
     return currentVersion !== CURRENT_MANIFEST_VERSION;
+}
+
+/**
+ * Load and validate a superposition.json manifest file.
+ * Returns the (migrated) manifest or null if loading/validation fails.
+ */
+export function loadManifest(manifestPath: string): SuperpositionManifest | null {
+    try {
+        const content = fs.readFileSync(manifestPath, 'utf-8');
+        const rawManifest = JSON.parse(content);
+
+        const detectedVersion = detectManifestVersion(rawManifest);
+
+        if (!isVersionSupported(detectedVersion)) {
+            console.error(
+                chalk.red(
+                    `✗ Manifest version ${detectedVersion} is not supported.\n` +
+                        `  This tool supports versions: ${SUPPORTED_MANIFEST_VERSIONS.join(', ')}\n` +
+                        `  Please upgrade your tool or regenerate the manifest.`
+                )
+            );
+            return null;
+        }
+
+        let manifest: SuperpositionManifest;
+        if (needsMigration(rawManifest)) {
+            const oldVersion = rawManifest.manifestVersion || rawManifest.version || 'legacy';
+            console.log(
+                chalk.cyan(
+                    `ℹ️  Migrating manifest from version ${oldVersion} to ${CURRENT_MANIFEST_VERSION}...`
+                )
+            );
+            manifest = migrateManifest(rawManifest);
+        } else {
+            manifest = rawManifest as SuperpositionManifest;
+        }
+
+        if (!manifest.baseTemplate) {
+            console.error(
+                chalk.red('✗ Invalid manifest format: missing required field "baseTemplate"')
+            );
+            return null;
+        }
+
+        if (!Array.isArray(manifest.overlays)) {
+            console.error(chalk.red('✗ Invalid manifest format: "overlays" must be an array'));
+            return null;
+        }
+
+        if (!manifest.overlays.every((overlay) => typeof overlay === 'string')) {
+            console.error(
+                chalk.red('✗ Invalid manifest format: all "overlays" entries must be strings')
+            );
+            return null;
+        }
+
+        return manifest;
+    } catch (error) {
+        console.error(
+            chalk.red(
+                `✗ Failed to load manifest: ${error instanceof Error ? error.message : String(error)}`
+            )
+        );
+        return null;
+    }
 }
 
 /**

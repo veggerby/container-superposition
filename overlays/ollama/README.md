@@ -25,7 +25,7 @@ Ollama runs as a long-lived Docker Compose service (`ollama`) alongside your dev
 
 The `OLLAMA_HOST` environment variable is set to `http://ollama:11434` in the devcontainer, so the Ollama CLI and any tools that respect this variable will connect to the sidecar automatically.
 
-The `setup.sh` script installs the Ollama CLI binary directly in the devcontainer at container creation time, providing the full `ollama` UX from the terminal. The CLI is client-only — it does not start a daemon (`OLLAMA_SKIP_SERVICE_INSTALL=1` is passed to the installer).
+The `setup.sh` script installs the Ollama CLI directly in the devcontainer at container creation time, providing the full `ollama` UX from the terminal. In the normal compose-based case it copies `/usr/bin/ollama` from the already-running `ollama/ollama` sidecar image, avoiding a second multi-gigabyte download. If Docker is unavailable, it falls back to the official Linux release archives (`.tar.zst`, with legacy `.tgz` fallback). The CLI is client-only and does not start a daemon inside the devcontainer.
 
 ## Mapping Host Models into the Container
 

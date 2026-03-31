@@ -27,6 +27,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `overlay-context.ts` — `buildOverlayContextString()` serialises the overlay catalog for LLM context
     - `agent.ts` — Mastra agent wrappers for `extractIntent()` and `extractDiff()`
 - **`@mastra/core` and `zod` dependencies** — added as production dependencies
+- **`open-webui` overlay** — Browser-based chat UI for Ollama and OpenAI-compatible LLM backends, running as a Docker Compose sidecar
+    - Serves the Open WebUI at port `3000` (mapped from container port `8080`); auto-forwarded and opened in the browser
+    - Pre-configured `OLLAMA_BASE_URL=http://ollama:11434` so it connects automatically when the `ollama` overlay is also selected
+    - Persistent `open-webui-data` volume preserves conversation history and settings across container rebuilds
+    - Supports any OpenAI-compatible backend via `OLLAMA_BASE_URL`; not limited to Ollama
+    - Suggests the `ollama` overlay as its natural LLM backend
+- **`qdrant` overlay** — High-performance vector database for similarity search and embeddings, running as a Docker Compose service
+    - REST API on port `6333`, gRPC on port `6334`; both ports forwarded from the devcontainer
+    - `QDRANT_HOST`, `QDRANT_PORT`, and `QDRANT_URL` pre-set in the container environment for zero-config SDK usage
+    - Persistent `qdrant-data` volume and health check via `/readyz` endpoint
+    - Suggests `ollama`, `python`, and `nodejs` overlays for embedding-generation workflows
+- **`pgvector` overlay** — PostgreSQL 16 with the pgvector extension pre-installed, running as a Docker Compose service
+    - Uses the official `pgvector/pgvector:pg16` image; `CREATE EXTENSION vector;` works immediately with no manual setup
+    - `postgresql-client` installed in the devcontainer; `PGHOST`, `PGPORT`, `PGDATABASE`, and `PGUSER` pre-set for seamless `psql` usage
+    - Conflicts with the `postgres` overlay (both provide a PostgreSQL service on port 5432 — choose one)
+    - Fully parameterised: `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD`, `PGVECTOR_PORT`, `PGVECTOR_VERSION` configurable via `superposition.yml` or `--param`
+    - Suggests `ollama`, `python`, and `nodejs` overlays for RAG and embedding workflows
+- **`k3d` overlay** — Lightweight local Kubernetes clusters running k3s in Docker, with faster startup and lower resource usage than `kind`
+    - Installs the `k3d` binary via `setup.sh`; supports amd64 and arm64
+    - Requires `docker-in-docker` (auto-resolved dependency) to launch k3s nodes as Docker containers
+    - Conflicts with `kind` (both provision local Kubernetes clusters — choose one)
+    - Suggests `kubectl-helm` for interacting with clusters via `kubectl` and Helm
+    - README includes a `k3d` vs `kind` comparison table
+- **`skaffold` overlay** — Continuous build-test-deploy pipeline for Kubernetes applications
+    - Installs the `skaffold` binary via `setup.sh`; supports amd64 and arm64
+    - Supports multiple builders (Docker, Buildpacks, Jib) and deployers (kubectl, Helm, Kustomize) via declarative `skaffold.yaml`
+    - Conflicts with `tilt` (both serve the Kubernetes inner-loop development role — choose one)
+    - Suggests `kubectl-helm`, `kind`, and `k3d` overlays for a complete local Kubernetes workflow
+    - README includes a `skaffold` vs `tilt` comparison table
+
+- **Overlay parameters with safe `{{cs.KEY}}` substitution** — Overlays can now declare configurable parameters that are resolved at generation time without colliding with Docker Compose `${VAR}`, shell `$VAR`, VS Code `${localWorkspaceFolder}`, or GitHub Actions `${{ }}` syntax
+    - Overlays declare parameters in `overlay.yml` under a `parameters:` map, each with a `description`, optional `default`, and optional `sensitive: true` flag
+    - Users supply values in `superposition.yml` under a top-level `parameters:` section, or via `--param KEY=value` on the CLI (repeatable)
+    - Resolution order: CLI overrides → project file → overlay defaults
+    - Missing required parameters (no default, no supplied value) → hard error before generation
+    - Unresolved `{{cs.*}}` tokens in final output → hard error (catch-all safety net)
+    - Unknown parameters supplied in `superposition.yml` → warning only (generation continues)
+    - Docker Compose `${VAR:-default}`, shell, VS Code, and GitHub Actions variable expressions pass through completely untouched
+    - The `{{cs.*}}` syntax can be nested inside Docker Compose defaults: `${POSTGRES_PORT:-{{cs.POSTGRES_PORT}}}` — `cs` resolves the inner token at generation time, Docker resolves the outer at runtime
+    - Interactive questionnaire prompts for each declared parameter (sensitive parameters use masked input)
+    - `postgres` overlay converted to use parameters as proof-of-concept: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`, `POSTGRES_VERSION` are now fully configurable without forking the overlay
+    - Spec committed under `docs/specs/011-overlay-parameters/spec.md`
+
+- **First-class project `env` in `superposition.yml`** — Container environment variables can now be declared once in the project file and routed automatically by stack
+    - `stack: plain` writes project `env` entries to `devcontainer.json -> remoteEnv`
+    - `stack: compose` materializes project `env` entries into `.devcontainer/.env`, writes `docker-compose.yml -> services.devcontainer.environment` as `${KEY}`, and exposes the same values to the devcontainer via `devcontainer.json -> remoteEnv.KEY = ${containerEnv:KEY}`
+    - Supports string shorthand (`FOO: bar`) and object form with explicit target override (`target: auto | remoteEnv | composeEnv`)
+    - Compose values that reference `${NAME}` or `${NAME:-default}` resolve from the repository root `.env` when available before being written to `.devcontainer/.env`
+    - `customizations.envTemplate` is now the canonical project-file field for variables written to `.env.example`; `customizations.environment` remains as a deprecated read-compatible alias, but newly written project files normalize to `envTemplate`
 - **JetBrains IDE support (`--editor jetbrains`)** — Generates JetBrains project artifacts alongside the devcontainer configuration
     - Adds `customizations.jetbrains.backend` to `devcontainer.json`, selecting the IDE automatically from the primary language overlay (WebStorm for Node.js/Bun, PyCharm for Python, GoLand for Go, Rider for .NET, RustRover for Rust, IntelliJIdea for Java or generic)
     - Generates `.idea/.gitignore` at the project root, marking shared settings as VCS-tracked and excluding user-local entries
@@ -35,9 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Falls back to a minimal `.idea/` scaffold with `IntelliJIdea` backend when no language overlay is selected
     - Editor profile question added to the interactive questionnaire (`? Editor profile: VS Code / JetBrains / None`)
     - `editor` field persisted to `superposition.json` manifest for reproducible regen
+- **`cs` command alias** — `npm install -g container-superposition` now registers both `container-superposition` and the shorter `cs` command; all existing `cs <subcommand>` usage in docs and examples works without a separate install
 - **`ollama` overlay** — Local LLM inference server via [Ollama](https://ollama.com), running as a Docker Compose sidecar
     - Serves the Ollama REST API on port `11434`; OpenAI-compatible endpoint available at `/v1/`
-    - **Ollama CLI installed in devcontainer** — `setup.sh` installs the Ollama CLI binary directly in the devcontainer (client-only, `OLLAMA_SKIP_SERVICE_INSTALL=1`); no need to `docker exec` into the sidecar
+    - **Ollama CLI installed in devcontainer** — `setup.sh` now prefers copying `/usr/bin/ollama` from the local `ollama/ollama` sidecar image, avoiding a second multi-gigabyte download during setup; when Docker is unavailable it falls back to the current official Linux release archives (prefers `.tar.zst`, falls back to legacy `.tgz`, and installs `zstd` when required) instead of via `ollama.com/install.sh`
     - **`OLLAMA_HOST` pre-configured** — Set as a `containerEnv` variable to `http://ollama:11434` so `ollama pull / run / list / rm` target the sidecar automatically with no manual setup
     - **GPU passthrough built-in** — Both the `ollama` sidecar and the `devcontainer` service receive all NVIDIA GPUs via `deploy.resources.reservations.devices`; enables GPU-accelerated tooling (`torch`, `tensorflow`, CUDA CLIs) directly in the dev environment
     - Mounts the host's `~/.ollama` directory by default so models pulled on the host are immediately available — no re-download on rebuild; models pulled inside the devcontainer are also persisted to the host
@@ -55,15 +105,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Regen without `--target` inherits the target recorded in the existing manifest, so the correct artifacts are always reproduced
 - **`comfyui` overlay** — ComfyUI node-based image/video generation UI running as a Docker Compose sidecar
     - Serves the ComfyUI web UI and REST/WebSocket API on port `8188`; auto-forwarded and opened in the browser
-    - Per-subdirectory volume mounts (`checkpoints`, `loras`, `vae`, `controlnet`, `embeddings`, `upscale_models`) share multi-GB model files from the host without re-downloading on rebuild
-    - `COMFYUI_MODELS_PATH` env var overrides the host model root (supports pointing at an existing `~/ComfyUI/models` directory)
-    - `COMFYUI_OUTPUT_PATH` persists generated images/videos to the host across container rebuilds
-    - `verify.sh` HTTP health check on the ComfyUI web UI endpoint
+    - Single shared models root (`/opt/comfyui-models`) mounted into both the devcontainer and the ComfyUI sidecar via `${COMFYUI_MODELS_HOST_PATH:-comfyui-models}`; ComfyUI discovers `checkpoints/`, `loras/`, etc. natively without per-subdirectory configuration
+    - Named Docker volume `comfyui-models` used by default (project-scoped, no explicit `name:`); models persist across container rebuilds and work on all platforms; setting `COMFYUI_MODELS_HOST_PATH` in `.env` to a full absolute path switches to a bind mount (Docker Compose does not expand `~` in `.env` files)
+    - `COMFYUI_MODELS_DIR=/opt/comfyui-models` set in `devcontainer.patch.json` as a container-side constant; scripts and tools in the devcontainer use this variable to locate the models root
+    - `COMFYUI_OUTPUT_PATH` persists generated images/videos to the host across container rebuilds (named volume `comfyui-output` by default)
+    - `setup.sh` pre-creates all 7 model subdirectories (`checkpoints`, `loras`, `controlnet`, `clip_vision`, `vae`, `embeddings`, `upscale_models`) on first run; handles volume permission issues with sudo fallback
+    - `verify.sh` checks `$COMFYUI_MODELS_DIR` exists, is writable, and all expected subdirectories are present, plus HTTP health check on the ComfyUI web UI endpoint
+    - `.env.example` documents `COMFYUI_MODELS_HOST_PATH` with examples using full absolute paths
     - README documents GPU acceleration (NVIDIA CUDA, AMD ROCm), CPU-only fallback, custom node persistence, and the ComfyUI REST/WebSocket API
     - Suggests `cuda`, `python`, and `ollama` overlays for GPU-accelerated and AI-integrated workflows
-- **`init --project-file`** — `init` can now write a repository-root project config alongside the normal generated output
-    - Reuses an existing `.superposition.yml` or `superposition.yml` when present; otherwise writes `.superposition.yml`
-    - Persists the final selected init configuration, including stack, base image, overlays, output path, target, minimal/editor settings, preset, and preset choices
+
+### Changed
+
+- **`cs migrate` command** — One-time migration from manifest-only repositories
+    - Reads `superposition.json`, converts the manifest to a `superposition.yml` project file
+    - Auto-discovers the manifest in common locations; `--from-manifest <path>` for explicit path
+    - Fails with a clear error if a project file already exists (use `--force` to overwrite)
+    - Prints next-step guidance pointing toward `cs regen`
+- **BREAKING: `superposition.yml` is now the canonical input** — `init` always writes a project config file alongside the devcontainer. The `--project-file` flag has been removed; project file writing is now the default behavior.
+    - **Migration:** Remove `--project-file` from any scripts using `cs init`. The project file is now always written automatically.
+- **BREAKING: `regen` requires a project file** — `regen` now reads only `superposition.yml` / `.superposition.yml`. It no longer falls back to `superposition.json` as an input source.
+    - If `superposition.json` exists but no project file is present, `regen` errors with a clear message: `Run 'cs migrate' to create a project file from your existing manifest.`
+    - **Migration for manifest-only repos:** Run `cs migrate` once to create `superposition.yml`, then use `regen` as normal.
+    - **Migration for CI scripts using `--from-manifest`:** The flag still works but emits a deprecation warning. Switch to `cs migrate` + `regen` to remove the warning.
+- **`--from-manifest` deprecated in `regen`** — Emits a deprecation warning pointing toward `cs migrate`. The flag is retained for backward compatibility.
+- **`init --no-scaffold`** — New flag to write `superposition.yml` only, without generating `.devcontainer/`. Equivalent to the old `--write-manifest-only` but conceptually cleaner.
+- **`doctor` drift detection** — `cs doctor` now compares the project file overlay list against the last-generated manifest and reports a warning when they have diverged. Suggests `regen` to reconcile.
 
 ## [0.1.7] - 2026-03-23
 

@@ -19,6 +19,7 @@ import { confirm } from '@inquirer/prompts';
 import type {
     OverlaysConfig,
     QuestionnaireAnswers,
+    CompositionInput,
     Stack,
     BaseImage,
     OverlayId,
@@ -437,7 +438,7 @@ export async function generateCommand(
     if (options.scaffold) {
         console.log(chalk.dim('\n🏗  Scaffolding .devcontainer/...\n'));
         try {
-            await composeDevContainer(answers, overlaysDir);
+            await composeDevContainer(answers as CompositionInput, overlaysDir);
             console.log(chalk.green('✓ .devcontainer/ scaffold complete.'));
         } catch (err) {
             console.error(

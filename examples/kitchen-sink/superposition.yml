@@ -24,18 +24,22 @@ target: local
 minimal: false
 editor: vscode
 
+env:
+    APP_NAME: kitchen-sink
+    API_BASE_URL:
+        value: ${API_BASE_URL:-http://localhost:3000}
+        target: auto
+
 customizations:
     devcontainerPatch:
         mounts:
             - source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached
-        remoteEnv:
-            APP_NAME: kitchen-sink
     dockerComposePatch:
         services:
             app:
                 labels:
                     com.example.project: kitchen-sink
-    environment:
+    envTemplate:
         LOG_LEVEL: debug
         NODE_ENV: development
     scripts:

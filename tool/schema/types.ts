@@ -132,6 +132,11 @@ export interface DevContainerConfig {
  * Editor profile for customizations
  */
 export type EditorProfile = 'vscode' | 'jetbrains' | 'none';
+export type ProjectEnvTarget = 'auto' | 'remoteEnv' | 'composeEnv';
+export interface ProjectEnvVar {
+    value: string;
+    target?: ProjectEnvTarget;
+}
 
 /**
  * Questionnaire response interface
@@ -156,7 +161,9 @@ export interface QuestionnaireAnswers {
     target?: DeploymentTarget; // Deployment target for environment-specific optimizations
     minimal?: boolean; // Whether to use minimal mode (exclude optional/nice-to-have features)
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
+    projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
+    overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
 }
 
 /**
@@ -233,6 +240,16 @@ export interface NormalizedPort extends PortMetadata {
 }
 
 /**
+ * Declaration of a single configurable parameter for an overlay.
+ * Parameters are resolved at generation time using {{cs.PARAM_NAME}} substitution.
+ */
+export interface OverlayParameterDefinition {
+    description: string; // Human-readable explanation shown in interactive prompts
+    default?: string; // Default value; absence means the parameter is required
+    sensitive?: boolean; // Marks secrets — hidden in prompts and redacted in plan output
+}
+
+/**
  * Overlay metadata from overlays.yml
  */
 export interface OverlayMetadata {
@@ -251,6 +268,7 @@ export interface OverlayMetadata {
     compose_imports?: string[]; // Shared docker-compose fragments to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
     hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
+    parameters?: Record<string, OverlayParameterDefinition>; // Configurable parameters for this overlay
 }
 
 /**
@@ -399,7 +417,7 @@ export interface ProjectConfigFileEntry {
 export interface ProjectConfigCustomizationsInput {
     devcontainerPatch?: DevContainer;
     dockerComposePatch?: Record<string, any>;
-    environment?: Record<string, string>;
+    envTemplate?: Record<string, string>;
     scripts?: {
         postCreate?: string[];
         postStart?: string[];
@@ -497,6 +515,16 @@ export interface FixRun {
     exitDisposition: ExitDisposition;
 }
 
+/**
+ * Resolved composition input — produced by mergeAnswers() after all user input has been
+ * collected and defaults applied. Guarantees that array fields which QuestionnaireAnswers
+ * leaves optional are present (empty arrays at minimum), making downstream code type-safe.
+ */
+export interface CompositionInput extends QuestionnaireAnswers {
+    language: LanguageOverlay[];
+    database: DatabaseOverlay[];
+}
+
 export interface ProjectConfigSelection {
     stack?: Stack;
     baseImage?: BaseImage;
@@ -510,5 +538,7 @@ export interface ProjectConfigSelection {
     target?: DeploymentTarget;
     minimal?: boolean;
     editor?: EditorProfile;
+    env?: Record<string, ProjectEnvVar>;
     customizations?: ProjectConfigCustomizationsInput;
+    parameters?: Record<string, string>; // Overlay parameter values for {{cs.KEY}} substitution
 }

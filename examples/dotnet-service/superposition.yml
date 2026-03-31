@@ -7,3 +7,6 @@ overlays:
     - otel-collector
     - jaeger
     - prometheus
+env:
+    ASPNETCORE_ENVIRONMENT: Development
+    OTEL_SERVICE_NAME: dotnet-service

@@ -32,7 +32,7 @@ A comprehensive project file that exercises every configuration option supported
 **Customizations:**
 
 - Bind mount for `~/.codex` from host
-- Custom `remoteEnv` and `environment` variables
+- First-class project `env` variables plus custom `.env.example` variables
 - Docker Compose labels on the app service
 - `postCreate` and `postStart` lifecycle scripts
 - Generated `notes.md` file inside `.devcontainer/custom/`
@@ -51,13 +51,21 @@ A comprehensive project file that exercises every configuration option supported
 | `target`         | `local`                          | Deployment target                     |
 | `minimal`        | `false`                          | Include optional overlays             |
 | `editor`         | `vscode`                         | VS Code customizations                |
+| `env`            | `APP_NAME`, `API_BASE_URL`, ...  | Project-level env routed by stack     |
 | `customizations` | _(see below)_                    | Patches, env, scripts, files          |
+
+### Environment Breakdown
+
+- **`env`** — First-class environment variables for the devcontainer itself
+- `stack: plain` writes them to `devcontainer.json -> remoteEnv`
+- `stack: compose` materializes them into `.devcontainer/.env`, writes `docker-compose.yml -> services.devcontainer.environment` as `${KEY}`, and exposes them in `devcontainer.json` via `${containerEnv:KEY}`
+- Compose values like `${API_BASE_URL}` can be sourced from the project root `.env`; generation resolves them into `.devcontainer/.env` for Docker Compose expansion
 
 ### Customizations Breakdown
 
 - **`devcontainerPatch`** — Merged into `devcontainer.json` (mounts, remoteEnv, etc.)
 - **`dockerComposePatch`** — Merged into `docker-compose.yml` (labels, extra config)
-- **`environment`** — Added to `.env.example` (app-level env vars)
+- **`envTemplate`** — Added to `.env.example` (template values for user-managed `.env`)
 - **`scripts.postCreate`** — Shell commands run after container creation
 - **`scripts.postStart`** — Shell commands run on each container start
 - **`files`** — Extra files written to `.devcontainer/custom/`

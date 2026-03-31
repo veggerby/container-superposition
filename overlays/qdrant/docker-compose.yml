@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+    qdrant:
+        image: qdrant/qdrant:${QDRANT_VERSION:-{{cs.QDRANT_VERSION}}}
+        restart: unless-stopped
+        volumes:
+            - qdrant-data:/qdrant/storage
+        ports:
+            - '${QDRANT_PORT:-{{cs.QDRANT_PORT}}}:6333'
+            - '${QDRANT_GRPC_PORT:-{{cs.QDRANT_GRPC_PORT}}}:6334'
+        networks:
+            - devnet
+        healthcheck:
+            test: ['CMD-SHELL', 'curl -sf http://localhost:6333/readyz || exit 1']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+
+volumes:
+    qdrant-data:
+
+networks:
+    devnet:

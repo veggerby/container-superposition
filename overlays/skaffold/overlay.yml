@@ -1,0 +1,20 @@
+id: skaffold
+name: Skaffold
+description: Continuous development and deployment pipeline for Kubernetes applications
+category: dev
+supports: []
+requires: []
+suggests:
+    - kubectl-helm
+    - kind
+    - k3d
+conflicts:
+    - tilt
+tags:
+    - dev
+    - kubernetes
+    - k8s
+    - cicd
+    - deployment
+    - skaffold
+ports: []

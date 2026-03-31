@@ -6,7 +6,8 @@ supports:
     - compose
 requires: []
 suggests: []
-conflicts: []
+conflicts:
+    - pgvector
 tags:
     - database
     - sql
@@ -18,3 +19,20 @@ ports:
       description: PostgreSQL database connection
       onAutoForward: notify
       connectionStringTemplate: 'postgresql://{postgres_user}:{postgres_password}@{host}:{port}/{postgres_db}'
+parameters:
+    POSTGRES_DB:
+        description: Name of the database to create
+        default: devdb
+    POSTGRES_USER:
+        description: PostgreSQL superuser name
+        default: postgres
+    POSTGRES_PASSWORD:
+        description: PostgreSQL superuser password
+        default: postgres
+        sensitive: true
+    POSTGRES_PORT:
+        description: Host port mapped to PostgreSQL (5432 inside container)
+        default: '5432'
+    POSTGRES_VERSION:
+        description: PostgreSQL major version
+        default: '16'

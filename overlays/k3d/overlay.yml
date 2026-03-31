@@ -1,0 +1,19 @@
+id: k3d
+name: k3d
+description: Lightweight local Kubernetes clusters using k3s in Docker
+category: cloud
+supports: []
+requires:
+    - docker-in-docker
+suggests:
+    - kubectl-helm
+conflicts:
+    - kind
+tags:
+    - cloud
+    - kubernetes
+    - k8s
+    - k3d
+    - k3s
+    - testing
+ports: []
