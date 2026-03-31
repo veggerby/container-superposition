@@ -515,6 +515,16 @@ export interface FixRun {
     exitDisposition: ExitDisposition;
 }
 
+/**
+ * Resolved composition input — produced by mergeAnswers() after all user input has been
+ * collected and defaults applied. Guarantees that array fields which QuestionnaireAnswers
+ * leaves optional are present (empty arrays at minimum), making downstream code type-safe.
+ */
+export interface CompositionInput extends QuestionnaireAnswers {
+    language: LanguageOverlay[];
+    database: DatabaseOverlay[];
+}
+
 export interface ProjectConfigSelection {
     stack?: Stack;
     baseImage?: BaseImage;

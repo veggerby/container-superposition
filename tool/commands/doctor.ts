@@ -40,6 +40,7 @@ import {
 import { MERGE_STRATEGY } from '../utils/merge.js';
 import { extractPorts } from '../utils/port-utils.js';
 import { composeDevContainer } from '../questionnaire/composer.js';
+import { mergeAnswers } from '../questionnaire/answers.js';
 import { loadProjectConfig } from '../schema/project-config.js';
 
 interface DoctorOptions {
@@ -1542,7 +1543,7 @@ async function executeRegeneration(
         };
     }
 
-    const answers = buildAnswersFromManifest(manifest, outputPath, overlaysConfig);
+    const answers = mergeAnswers(buildAnswersFromManifest(manifest, outputPath, overlaysConfig));
 
     // Suppress console output during regeneration when in JSON mode
     const originalLog = console.log;
