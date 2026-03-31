@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `--adopt` — scans the repository for language/framework signals (`package.json`, `go.mod`, `Cargo.toml`, etc.) and combines them with the prompt for richer intent detection
     - `--from-scratch` — forces from-scratch mode even if a `superposition.yml` exists
     - `--no-interactive` / `--json` — skip confirmation and write directly (CI-friendly)
-    - Backed by [Mastra](https://mastra.ai) with structured Zod-validated output; model configurable via `CS_AI_MODEL` env var (default: `openai/gpt-4o-mini`)
+    - Backed by the [Vercel AI SDK](https://sdk.vercel.ai) (`ai` + `@ai-sdk/openai` / `@ai-sdk/anthropic`) with `generateObject()` for Zod-validated structured output; model configurable via `CS_AI_MODEL` env var (format: `provider:model-id`, default: `openai:gpt-4o-mini`)
     - The LLM can only select from the live overlay catalog — it cannot invent IDs
     - Fails clearly when no API key is configured (`OPENAI_API_KEY` for the default provider)
     - `--json` output includes a structured `rationale` array explaining why each overlay was selected or removed (source: `prompt-intent`, `repo-signal`, `diff-add`, `diff-remove`)
@@ -25,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `intent.ts` — `EnvironmentIntent` + `ManifestDiff` types with Zod schemas
     - `mapper.ts` — `mapIntentToAnswers()` + `applyDiffToAnswers()` pure functions (LLM-free, fully testable); `SelectionRationale` type for machine-readable overlay selection explanations
     - `overlay-context.ts` — `buildOverlayContextString()` serialises the overlay catalog for LLM context
-    - `agent.ts` — Mastra agent wrappers for `extractIntent()` and `extractDiff()`
-- **`@mastra/core` and `zod` dependencies** — added as production dependencies
+    - `agent.ts` — Vercel AI SDK wrappers (`generateObject`) for `extractIntent()` and `extractDiff()`; supports OpenAI and Anthropic providers
+- **`ai`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, and `zod` dependencies** — added as production dependencies
 - **`open-webui` overlay** — Browser-based chat UI for Ollama and OpenAI-compatible LLM backends, running as a Docker Compose sidecar
     - Serves the Open WebUI at port `3000` (mapped from container port `8080`); auto-forwarded and opened in the browser
     - Pre-configured `OLLAMA_BASE_URL=http://ollama:11434` so it connects automatically when the `ollama` overlay is also selected
@@ -168,7 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Minimum Node.js version raised to 22.13.0** — The `@mastra/core` dependency (introduced by the `generate` command) requires Node.js 22.13.0+. This is a meaningful platform change: contributors, CI pipelines, and users on Node 20 or 21 must upgrade before using the `generate` command. All other commands continue to work as before if you are running a newer Node.js version; the engine field in `package.json` is updated to reflect the new minimum.
+- **Minimum Node.js version raised to 20** — The `generate` command uses the Vercel AI SDK (`ai` + `@ai-sdk/*`), which requires Node.js 18+; the engine floor is set to `>=20` to align with the project's LTS policy. All other commands are unaffected.
 - **Flat `overlays` field in project config** — Project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, etc.); old category keys are still accepted for backward compatibility
 - **`doctor` command** — `--from-manifest`, `--from-project`, and `--project-root` flags added, bringing `doctor` into parity with `init` and `regen` for project-file and manifest selection
 - **`direnv` overlay** — Package installation moved to `cross-distro-packages` devcontainer feature (runs at image-build time); `setup.sh` now handles only shell hook configuration
