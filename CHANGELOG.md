@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`open-webui` overlay** — Browser-based chat UI for Ollama and OpenAI-compatible LLM backends, running as a Docker Compose sidecar
+    - Serves the Open WebUI at port `3000` (mapped from container port `8080`); auto-forwarded and opened in the browser
+    - Pre-configured `OLLAMA_BASE_URL=http://ollama:11434` so it connects automatically when the `ollama` overlay is also selected
+    - Persistent `open-webui-data` volume preserves conversation history and settings across container rebuilds
+    - Supports any OpenAI-compatible backend via `OLLAMA_BASE_URL`; not limited to Ollama
+    - Suggests the `ollama` overlay as its natural LLM backend
+- **`qdrant` overlay** — High-performance vector database for similarity search and embeddings, running as a Docker Compose service
+    - REST API on port `6333`, gRPC on port `6334`; both ports forwarded from the devcontainer
+    - `QDRANT_HOST`, `QDRANT_PORT`, and `QDRANT_URL` pre-set in the container environment for zero-config SDK usage
+    - Persistent `qdrant-data` volume and health check via `/readyz` endpoint
+    - Suggests `ollama`, `python`, and `nodejs` overlays for embedding-generation workflows
+- **`pgvector` overlay** — PostgreSQL 16 with the pgvector extension pre-installed, running as a Docker Compose service
+    - Uses the official `pgvector/pgvector:pg16` image; `CREATE EXTENSION vector;` works immediately with no manual setup
+    - `postgresql-client` installed in the devcontainer; `PGHOST`, `PGPORT`, `PGDATABASE`, and `PGUSER` pre-set for seamless `psql` usage
+    - Conflicts with the `postgres` overlay (both provide a PostgreSQL service on port 5432 — choose one)
+    - Fully parameterised: `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD`, `PGVECTOR_PORT`, `PGVECTOR_VERSION` configurable via `superposition.yml` or `--param`
+    - Suggests `ollama`, `python`, and `nodejs` overlays for RAG and embedding workflows
+- **`k3d` overlay** — Lightweight local Kubernetes clusters running k3s in Docker, with faster startup and lower resource usage than `kind`
+    - Installs the `k3d` binary via `setup.sh`; supports amd64 and arm64
+    - Requires `docker-in-docker` (auto-resolved dependency) to launch k3s nodes as Docker containers
+    - Conflicts with `kind` (both provision local Kubernetes clusters — choose one)
+    - Suggests `kubectl-helm` for interacting with clusters via `kubectl` and Helm
+    - README includes a `k3d` vs `kind` comparison table
+- **`skaffold` overlay** — Continuous build-test-deploy pipeline for Kubernetes applications
+    - Installs the `skaffold` binary via `setup.sh`; supports amd64 and arm64
+    - Supports multiple builders (Docker, Buildpacks, Jib) and deployers (kubectl, Helm, Kustomize) via declarative `skaffold.yaml`
+    - Conflicts with `tilt` (both serve the Kubernetes inner-loop development role — choose one)
+    - Suggests `kubectl-helm`, `kind`, and `k3d` overlays for a complete local Kubernetes workflow
+    - README includes a `skaffold` vs `tilt` comparison table
+
 - **Overlay parameters with safe `{{cs.KEY}}` substitution** — Overlays can now declare configurable parameters that are resolved at generation time without colliding with Docker Compose `${VAR}`, shell `$VAR`, VS Code `${localWorkspaceFolder}`, or GitHub Actions `${{ }}` syntax
     - Overlays declare parameters in `overlay.yml` under a `parameters:` map, each with a `description`, optional `default`, and optional `sensitive: true` flag
     - Users supply values in `superposition.yml` under a top-level `parameters:` section, or via `--param KEY=value` on the CLI (repeatable)

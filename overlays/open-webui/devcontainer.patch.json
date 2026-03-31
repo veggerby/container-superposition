@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["open-webui"],
+    "forwardPorts": [3000],
+    "portsAttributes": {
+        "3000": {
+            "label": "Open WebUI",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "containerEnv": {
+        "OPEN_WEBUI_PORT": "3000"
+    }
+}
