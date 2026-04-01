@@ -7,13 +7,19 @@
  * - `extractIntent(prompt, catalogContext)` — from-scratch mode
  * - `extractDiff(prompt, catalogContext, existingManifestYaml)` — modify mode
  *
- * Provider:  configurable via CS_AI_MODEL env var (default: openai:gpt-4o-mini)
+ * Provider:  configurable via CS_AI_MODEL env var
  *            Format: "<provider>:<model-id>", e.g. "anthropic:claude-3-haiku-20240307"
+ *            Supported providers: openai, anthropic, ollama
  * API keys:  OPENAI_API_KEY or ANTHROPIC_API_KEY depending on provider.
+ *            Ollama requires no API key — only OLLAMA_HOST (default: http://localhost:11434).
+ *
+ * Ollama auto-detection:
+ *   When OLLAMA_HOST is set and CS_AI_MODEL is not set, the generator
+ *   automatically uses "ollama:llama3.2" so no additional configuration is needed.
  */
 
 import { generateObject, type LanguageModel } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { openai, createOpenAI } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { EnvironmentIntentSchema, ManifestDiffSchema } from './intent.js';
 import type { EnvironmentIntent, ManifestDiff } from './intent.js';
@@ -39,16 +45,24 @@ export class AgentError extends Error {
 
 // ─── Model resolution ──────────────────────────────────────────────────────────
 
-/** Default model used when CS_AI_MODEL is not set. */
+/** Default Ollama model when OLLAMA_HOST is set but CS_AI_MODEL is not. */
+const DEFAULT_OLLAMA_MODEL = 'ollama:llama3.2';
+
+/** Default model used when neither OLLAMA_HOST nor CS_AI_MODEL is set. */
 const DEFAULT_MODEL = 'openai:gpt-4o-mini';
 
 /**
  * Parse CS_AI_MODEL into provider and model-id.
  * Format: "<provider>:<model-id>"   e.g. "openai:gpt-4o-mini"
  * Legacy format (slash-separated) is also accepted: "openai/gpt-4o-mini"
+ *
+ * When OLLAMA_HOST is set and CS_AI_MODEL is not configured, automatically
+ * defaults to "ollama:llama3.2" so no extra configuration is needed.
  */
 function parseModel(): { provider: string; modelId: string } {
-    const raw = process.env['CS_AI_MODEL'] ?? DEFAULT_MODEL;
+    const hasOllamaHost = !!process.env['OLLAMA_HOST'];
+    const raw =
+        process.env['CS_AI_MODEL'] ?? (hasOllamaHost ? DEFAULT_OLLAMA_MODEL : DEFAULT_MODEL);
     // Support both "openai:gpt-4o-mini" and legacy "openai/gpt-4o-mini"
     const separator = raw.includes(':') ? ':' : '/';
     const idx = raw.indexOf(separator);
@@ -72,7 +86,8 @@ function buildModel(): LanguageModel {
                     'OPENAI_API_KEY environment variable is not set.\n' +
                         '  Set it with: export OPENAI_API_KEY=sk-...\n' +
                         '  Or configure a different model via CS_AI_MODEL\n' +
-                        '  (e.g. CS_AI_MODEL=anthropic:claude-3-haiku-20240307).'
+                        '  (e.g. CS_AI_MODEL=anthropic:claude-3-haiku-20240307).\n' +
+                        '  Or run a local model with Ollama: set OLLAMA_HOST=http://localhost:11434.'
                 );
             }
             return openai(modelId);
@@ -83,16 +98,28 @@ function buildModel(): LanguageModel {
                     'ANTHROPIC_API_KEY environment variable is not set.\n' +
                         '  Set it with: export ANTHROPIC_API_KEY=sk-ant-...\n' +
                         '  Or configure a different model via CS_AI_MODEL\n' +
-                        '  (e.g. CS_AI_MODEL=openai:gpt-4o-mini).'
+                        '  (e.g. CS_AI_MODEL=openai:gpt-4o-mini).\n' +
+                        '  Or run a local model with Ollama: set OLLAMA_HOST=http://localhost:11434.'
                 );
             }
             return anthropic(modelId);
         }
+        case 'ollama': {
+            // Ollama exposes an OpenAI-compatible API — no API key required.
+            const ollamaHost =
+                process.env['OLLAMA_HOST']?.replace(/\/$/, '') ?? 'http://localhost:11434';
+            const ollamaClient = createOpenAI({
+                baseURL: `${ollamaHost}/v1`,
+                apiKey: 'ollama', // required by the SDK but ignored by Ollama
+            });
+            return ollamaClient(modelId);
+        }
         default:
             throw new AgentError(
                 `Unsupported AI provider: "${provider}".\n` +
-                    '  Supported providers: openai, anthropic.\n' +
-                    '  Set CS_AI_MODEL to e.g. "openai:gpt-4o-mini" or "anthropic:claude-3-haiku-20240307".'
+                    '  Supported providers: openai, anthropic, ollama.\n' +
+                    '  Set CS_AI_MODEL to e.g. "openai:gpt-4o-mini", "anthropic:claude-3-haiku-20240307",\n' +
+                    '  or "ollama:llama3.2" (requires OLLAMA_HOST to be set).'
             );
     }
 }

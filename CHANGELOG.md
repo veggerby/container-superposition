@@ -21,11 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fails clearly when no API key is configured (`OPENAI_API_KEY` for the default provider)
     - `--json` output includes a structured `rationale` array explaining why each overlay was selected or removed (source: `prompt-intent`, `repo-signal`, `diff-add`, `diff-remove`)
     - Modify mode warns before applying destructive changes: removing the only language overlay, or removing an overlay required by another overlay still in the manifest
+    - **Local Ollama support** — when `OLLAMA_HOST` is set (e.g. `OLLAMA_HOST=http://localhost:11434`), the generator automatically uses the local Ollama instance (`llama3.2` by default, overridable via `CS_AI_MODEL=ollama:<model>`); no API key required
 - **AI intent engine** — the internal plumbing that makes `cs generate` safe and predictable
     - Structured schema validation prevents the LLM from returning invalid overlay IDs or incomplete manifests
     - Pure, LLM-free diff application for reliable, fully-tested modify-mode behaviour
     - Overlay catalog injected into every prompt so the model can only choose from valid IDs in the live catalog
-    - OpenAI and Anthropic providers supported via a single `CS_AI_MODEL` env var (`provider:model-id` format)
+    - OpenAI, Anthropic, and local Ollama providers supported via a single `CS_AI_MODEL` env var (`provider:model-id` format)
 - **`open-webui` overlay** — Browser-based chat UI for Ollama and OpenAI-compatible LLM backends, running as a Docker Compose sidecar
     - Serves the Open WebUI at port `3000` (mapped from container port `8080`); auto-forwarded and opened in the browser
     - Pre-configured `OLLAMA_BASE_URL=http://ollama:11434` so it connects automatically when the `ollama` overlay is also selected
