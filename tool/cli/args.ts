@@ -345,7 +345,9 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--from-scratch', 'Force from-scratch mode even if a superposition.yml is present')
         .option('--no-interactive', 'Skip the confirmation prompt and write directly')
         .option('-o, --output <path>', 'Output directory (default: current directory)')
-        .option('--port-offset <n>', 'Port offset applied when scaffolding', parseInt)
+        .option('--port-offset <n>', 'Port offset applied when scaffolding', (val) =>
+            parseInt(val, 10)
+        )
         .option('--json', 'Output result as JSON (implies --no-interactive)')
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();

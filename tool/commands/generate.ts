@@ -217,11 +217,11 @@ function formatExplainerOutput(
 
 // ─── Manifest backup ──────────────────────────────────────────────────────────
 
-function backupManifest(manifestPath: string): void {
+function backupManifest(manifestPath: string, log: (msg: string) => void = console.log): void {
     if (!fs.existsSync(manifestPath)) return;
     const backupPath = manifestPath + '.bak';
     fs.copyFileSync(manifestPath, backupPath);
-    console.log(chalk.dim(`  📦 Backed up existing manifest to ${path.basename(backupPath)}`));
+    log(chalk.dim(`  📦 Backed up existing manifest to ${path.basename(backupPath)}`));
 }
 
 // ─── Dynamic import helper ────────────────────────────────────────────────────
@@ -253,7 +253,13 @@ export async function generateCommand(
 ): Promise<void> {
     const outputPath = options.output ?? '.';
 
-    console.log(
+    // In JSON mode, route all human-readable output to stderr so stdout stays
+    // machine-parseable. console.error already goes to stderr unconditionally.
+    const humanLog = options.json
+        ? (msg: string) => process.stderr.write(msg + '\n')
+        : (msg: string) => console.log(msg);
+
+    humanLog(
         '\n' +
             boxen(chalk.bold('🤖 AI-Powered Environment Generator'), {
                 padding: 0.5,
@@ -273,9 +279,9 @@ export async function generateCommand(
     const mode: 'from-scratch' | 'modify' = hasExistingManifest ? 'modify' : 'from-scratch';
 
     if (mode === 'modify') {
-        console.log(chalk.dim(`\n📝 Modify mode — existing superposition.yml detected.\n`));
+        humanLog(chalk.dim(`\n📝 Modify mode — existing superposition.yml detected.\n`));
     } else {
-        console.log(chalk.dim(`\n✨ From-scratch mode — generating a new manifest.\n`));
+        humanLog(chalk.dim(`\n✨ From-scratch mode — generating a new manifest.\n`));
     }
 
     // ── Step 2: Build overlay catalog context ────────────────────────────────
@@ -286,10 +292,10 @@ export async function generateCommand(
 
     let adoptSignals: string[] = [];
     if (options.adopt) {
-        console.log(chalk.dim('🔍 Scanning repository for language/framework signals...'));
+        humanLog(chalk.dim('🔍 Scanning repository for language/framework signals...'));
         adoptSignals = scanRepoSignals(projectRoot);
         if (adoptSignals.length > 0) {
-            console.log(chalk.dim(`  Detected: ${adoptSignals.join(', ')}`));
+            humanLog(chalk.dim(`  Detected: ${adoptSignals.join(', ')}`));
         }
     }
 
@@ -302,7 +308,7 @@ export async function generateCommand(
     let rationale: SelectionRationale[] = [];
     let modifyWarnings: string[] = [];
 
-    const spinner = ora('Asking AI to interpret your prompt...').start();
+    const spinner = options.json ? null : ora('Asking AI to interpret your prompt...').start();
 
     try {
         if (mode === 'from-scratch') {
@@ -336,7 +342,7 @@ export async function generateCommand(
             // Modify mode — read existing manifest.
             const existing = await readExistingManifestAsync(projectRoot, overlaysConfig);
             if (!existing) {
-                console.error(chalk.red('✗ Could not read existing superposition.yml.'));
+                // readExistingManifestAsync already printed an actionable error.
                 process.exitCode = 1;
                 return;
             }
@@ -354,7 +360,7 @@ export async function generateCommand(
             modifyWarnings = result.warnings;
         }
     } catch (err) {
-        spinner.fail('AI request failed');
+        if (spinner) spinner.fail('AI request failed');
         if (err instanceof MissingApiKeyError) {
             console.error(chalk.red(`\n✗ ${err.message}\n`));
             process.exitCode = 1;
@@ -368,7 +374,7 @@ export async function generateCommand(
         throw err;
     }
 
-    spinner.succeed('AI interpretation complete');
+    if (spinner) spinner.succeed('AI interpretation complete');
 
     // Apply --port-offset to answers so the manifest and scaffold both use it.
     if (options.portOffset !== undefined) {
@@ -377,13 +383,13 @@ export async function generateCommand(
 
     // ── Step 5: Explainer output ──────────────────────────────────────────────
 
-    console.log('\n' + formatExplainerOutput(mode, intent, diff, unknownIds, overlaysConfig));
+    humanLog('\n' + formatExplainerOutput(mode, intent, diff, unknownIds, overlaysConfig));
 
     // Surface destructive-change warnings before the confirmation prompt.
     if (modifyWarnings.length > 0) {
-        console.log('');
+        humanLog('');
         for (const w of modifyWarnings) {
-            console.log(chalk.yellow(`  ⚠  ${w}`));
+            humanLog(chalk.yellow(`  ⚠  ${w}`));
         }
     }
 
@@ -401,7 +407,7 @@ export async function generateCommand(
         }
 
         if (!confirmed) {
-            console.log(chalk.dim('\nAborted. No files written.\n'));
+            humanLog(chalk.dim('\nAborted. No files written.\n'));
             return;
         }
     }
@@ -411,7 +417,7 @@ export async function generateCommand(
     if (mode === 'modify') {
         const existing = await readExistingManifestAsync(projectRoot, overlaysConfig);
         if (existing) {
-            backupManifest(existing.filePath);
+            backupManifest(existing.filePath, humanLog);
         }
     }
 
@@ -424,7 +430,7 @@ export async function generateCommand(
         }
         const written = writeManifestYaml(answers, outputPath);
         manifestPath = written.filePath;
-        console.log(chalk.green(`\n✓ Manifest written: ${manifestPath}`));
+        humanLog(chalk.green(`\n✓ Manifest written: ${manifestPath}`));
     } catch (err) {
         console.error(
             chalk.red(
@@ -438,10 +444,17 @@ export async function generateCommand(
     // ── Step 9: Scaffold (--scaffold) ─────────────────────────────────────────
 
     if (options.scaffold) {
-        console.log(chalk.dim('\n🏗  Scaffolding .devcontainer/...\n'));
+        humanLog(chalk.dim('\n🏗  Scaffolding .devcontainer/...\n'));
         try {
-            await composeDevContainer(answers as CompositionInput, overlaysDir);
-            console.log(chalk.green('✓ .devcontainer/ scaffold complete.'));
+            // Write devcontainer files into a dedicated .devcontainer directory,
+            // not the project root (which is what answers.outputPath points to).
+            const devcontainerOutputPath = path.join(path.dirname(manifestPath), '.devcontainer');
+            const scaffoldAnswers: CompositionInput = {
+                ...(answers as CompositionInput),
+                outputPath: devcontainerOutputPath,
+            };
+            await composeDevContainer(scaffoldAnswers, overlaysDir);
+            humanLog(chalk.green('✓ .devcontainer/ scaffold complete.'));
         } catch (err) {
             console.error(
                 chalk.red(
@@ -480,7 +493,10 @@ async function readExistingManifestAsync(
 
     try {
         const loaded = loadProjectConfig(overlaysConfig, projectRoot);
-        if (!loaded) return null;
+        if (!loaded) {
+            console.error(chalk.red('✗ Could not load existing manifest: no project file found.'));
+            return null;
+        }
 
         const filePath = loaded.file.path;
         const yamlContent = fs.readFileSync(filePath, 'utf8');

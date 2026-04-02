@@ -119,7 +119,7 @@ function buildModel(): LanguageModel {
                 `Unsupported AI provider: "${provider}".\n` +
                     '  Supported providers: openai, anthropic, ollama.\n' +
                     '  Set CS_AI_MODEL to e.g. "openai:gpt-4o-mini", "anthropic:claude-3-haiku-20240307",\n' +
-                    '  or "ollama:llama3.2" (requires OLLAMA_HOST to be set).'
+                    '  or "ollama:llama3.2" (uses OLLAMA_HOST if set, otherwise http://localhost:11434).'
             );
     }
 }

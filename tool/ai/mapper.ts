@@ -94,8 +94,8 @@ function categoriseOverlays(
 }
 
 /**
- * Remove items from an array in-place (returns a new array without the excluded
- * values). Case-insensitive by convention but overlay IDs are always lowercase.
+ * Remove items from an array (returns a new array without the excluded
+ * values). Overlay IDs are always lowercase, so matching is exact.
  */
 function without<T extends string>(arr: T[], exclude: string[]): T[] {
     const set = new Set(exclude);
@@ -176,11 +176,22 @@ export function applyDiffToAnswers(
     warnings: string[];
     rationale: SelectionRationale[];
 } {
+    // Detect overlays that appear in both lists — treat as no-ops.
+    const noOpIds = diff.addOverlays.filter((id) => diff.removeOverlays.includes(id));
+    const effectiveAdd =
+        noOpIds.length > 0
+            ? diff.addOverlays.filter((id) => !diff.removeOverlays.includes(id))
+            : diff.addOverlays;
+    const effectiveRemove =
+        noOpIds.length > 0
+            ? diff.removeOverlays.filter((id) => !diff.addOverlays.includes(id))
+            : diff.removeOverlays;
+
     // Categorise the overlays to add.
     const { language, database, devTools, cloudTools, observability, playwright, unknownIds } =
-        categoriseOverlays(diff.addOverlays, overlaysConfig);
+        categoriseOverlays(effectiveAdd, overlaysConfig);
 
-    const toRemove = new Set(diff.removeOverlays);
+    const toRemove = new Set(effectiveRemove);
 
     const answers: QuestionnaireAnswers = {
         ...current,
@@ -190,22 +201,20 @@ export function applyDiffToAnswers(
 
         // Merge additions and strip removals from each category.
         language: [
-            ...new Set(without([...(current.language ?? []), ...language], diff.removeOverlays)),
+            ...new Set(without([...(current.language ?? []), ...language], effectiveRemove)),
         ],
         database: [
-            ...new Set(without([...(current.database ?? []), ...database], diff.removeOverlays)),
+            ...new Set(without([...(current.database ?? []), ...database], effectiveRemove)),
         ],
         devTools: [
-            ...new Set(without([...(current.devTools ?? []), ...devTools], diff.removeOverlays)),
+            ...new Set(without([...(current.devTools ?? []), ...devTools], effectiveRemove)),
         ],
         cloudTools: [
-            ...new Set(
-                without([...(current.cloudTools ?? []), ...cloudTools], diff.removeOverlays)
-            ),
+            ...new Set(without([...(current.cloudTools ?? []), ...cloudTools], effectiveRemove)),
         ],
         observability: without(
             [...new Set([...(current.observability ?? []), ...observability])],
-            diff.removeOverlays
+            effectiveRemove
         ),
         playwright: toRemove.has('playwright') ? false : current.playwright || playwright,
     };
@@ -218,8 +227,15 @@ export function applyDiffToAnswers(
     // ── Destructive-change warnings ────────────────────────────────────────────
     const warnings: string[] = [];
 
+    // Warn about no-op overlays (appear in both add and remove).
+    if (noOpIds.length > 0) {
+        warnings.push(
+            `Overlay(s) appear in both addOverlays and removeOverlays — treated as no-op: ${noOpIds.join(', ')}`
+        );
+    }
+
     // Warn if the last language overlay is removed with no replacement.
-    const removedLanguage = diff.removeOverlays.filter((id) =>
+    const removedLanguage = effectiveRemove.filter((id) =>
         (current.language ?? []).includes(id as LanguageOverlay)
     );
     if (removedLanguage.length > 0 && (answers.language ?? []).length === 0) {
@@ -232,7 +248,7 @@ export function applyDiffToAnswers(
     // Warn if removing an overlay that is required by another overlay still present.
     const catalogMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
     const remainingIds = collectCurrentOverlayIds(answers);
-    for (const removedId of diff.removeOverlays) {
+    for (const removedId of effectiveRemove) {
         for (const remainingId of remainingIds) {
             const meta = catalogMap.get(remainingId);
             if (meta?.requires?.includes(removedId)) {
@@ -246,14 +262,14 @@ export function applyDiffToAnswers(
 
     // ── Build rationale ────────────────────────────────────────────────────────
     const rationale: SelectionRationale[] = [
-        ...diff.addOverlays
+        ...effectiveAdd
             .filter((id) => !unknownIds.includes(id))
             .map((id) => ({
                 overlayId: id,
                 source: 'diff-add' as const,
                 reason: 'Added per request',
             })),
-        ...diff.removeOverlays.map((id) => ({
+        ...effectiveRemove.map((id) => ({
             overlayId: id,
             source: 'diff-remove' as const,
             reason: 'Removed per request',
