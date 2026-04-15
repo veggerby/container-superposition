@@ -5,5 +5,10 @@
             "apt": "bubblewrap",
             "apk": "bubblewrap"
         }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["openai.chatgpt"]
+        }
     }
 }
