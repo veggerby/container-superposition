@@ -601,10 +601,10 @@ describe('Python Overlay - venv support', () => {
     });
 });
 
-describe('Ollama Overlay', () => {
-    it('setup-ollama.sh should prefer the local Docker image and only fall back to official release archives', () => {
+describe('Ollama CLI Overlay', () => {
+    it('setup-ollama-cli.sh should prefer the local Docker image and only fall back to official release archives', () => {
         const repoRoot = path.join(__dirname, '..', '..');
-        const setupShPath = path.join(repoRoot, 'overlays', 'ollama', 'setup.sh');
+        const setupShPath = path.join(repoRoot, 'overlays', 'ollama-cli', 'setup.sh');
 
         expect(fs.existsSync(setupShPath)).toBe(true);
 

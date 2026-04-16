@@ -1,25 +1,15 @@
 #!/bin/bash
 # Verification script for Ollama overlay
-# Confirms Ollama CLI is installed and sidecar service is running and accessible
+# Confirms Ollama sidecar service is running and accessible
 
 set -e
 
 echo "🔍 Verifying Ollama overlay..."
 echo ""
 
-# Check Ollama CLI is installed
-echo "1️⃣ Checking Ollama CLI..."
-if ! command -v ollama &>/dev/null; then
-    echo "   ❌ ollama CLI not found"
-    echo ""
-    echo "❌ Ollama overlay verification failed (ollama CLI is required but not installed)"
-    exit 1
-fi
-echo "   ✅ ollama CLI found: $(ollama --version 2>/dev/null || echo 'version unavailable')"
-
 # Check OLLAMA_HOST is set
 echo ""
-echo "2️⃣ Checking OLLAMA_HOST..."
+echo "1️⃣ Checking OLLAMA_HOST..."
 if [[ -z "${OLLAMA_HOST:-}" ]]; then
     echo "   ⚠️  OLLAMA_HOST is not set — CLI will target localhost instead of the sidecar"
 else
@@ -28,7 +18,7 @@ fi
 
 # Check if curl is available
 echo ""
-echo "3️⃣ Checking curl availability..."
+echo "2️⃣ Checking curl availability..."
 if ! command -v curl &> /dev/null; then
     echo "   ❌ curl not found"
     echo ""
@@ -39,7 +29,7 @@ echo "   ✅ curl found"
 
 # Check Ollama API
 echo ""
-echo "4️⃣ Checking Ollama service..."
+echo "3️⃣ Checking Ollama service..."
 OLLAMA_HOST="${OLLAMA_HOST:-http://ollama:11434}"
 OLLAMA_READY=false
 
@@ -61,21 +51,9 @@ if [ "$OLLAMA_READY" = false ]; then
     exit 1
 fi
 
-# Smoke-test CLI against the sidecar
-echo ""
-echo "5️⃣ Listing available models via CLI..."
-set +e
-ollama list && echo "   ✅ ollama CLI can reach sidecar at ${OLLAMA_HOST}"
-CLI_STATUS=$?
-set -e
-
-if [ $CLI_STATUS -ne 0 ]; then
-    echo "   ⚠️  ollama CLI could not reach sidecar at ${OLLAMA_HOST}"
-fi
-
 # Show available models via REST API
 echo ""
-echo "6️⃣ Listing available models via API..."
+echo "4️⃣ Listing available models via API..."
 TAGS_JSON=$(curl -sf "${OLLAMA_HOST}/api/tags")
 CURL_STATUS=$?
 if [ $CURL_STATUS -ne 0 ]; then
@@ -96,4 +74,3 @@ echo ""
 echo "✅ Ollama overlay verification complete"
 echo "   API endpoint: ${OLLAMA_HOST}"
 echo "   Docs: https://ollama.com/library"
-
