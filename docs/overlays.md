@@ -713,9 +713,20 @@ Local LLM inference server with OpenAI-compatible API
 | ------------ | ----------------------------------------- |
 | **Category** | dev                                       |
 | **Supports** | compose                                   |
+| **Requires** | `ollama-cli`                              |
 | **Suggests** | `codex`, `claude-code`, `amp`             |
 | **Tags**     | `dev`, `ai`, `llm`, `inference`, `ollama` |
 | **Ports**    | 11434                                     |
+
+### Ollama CLI (`ollama-cli`)
+
+Ollama command-line client for local or remote Ollama servers
+
+| Property     | Value                                   |
+| ------------ | --------------------------------------- |
+| **Category** | dev                                     |
+| **Suggests** | `ollama`, `codex`, `claude-code`, `amp` |
+| **Tags**     | `dev`, `ai`, `llm`, `ollama`, `cli`     |
 
 ### Open WebUI (`open-webui`)
 

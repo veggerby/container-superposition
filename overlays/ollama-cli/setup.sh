@@ -1,7 +1,6 @@
 #!/bin/bash
 # Ollama CLI setup script
-# Installs the Ollama CLI in the devcontainer so developers can manage models
-# and run inference from the terminal, targeting the ollama sidecar service.
+# Installs the Ollama CLI in the devcontainer for local or remote Ollama usage.
 
 set -e
 
@@ -11,14 +10,13 @@ detect_arch
 
 if command_exists ollama; then
     echo "✓ Ollama CLI already installed: $(ollama --version)"
-    echo "ℹ️  OLLAMA_HOST is set to ${OLLAMA_HOST:-http://ollama:11434} — all commands target the sidecar."
+    echo "ℹ️  OLLAMA_HOST=${OLLAMA_HOST:-http://localhost:11434}"
     exit 0
 fi
 
 echo "📦 Installing Ollama CLI..."
-# Prefer copying the CLI binary from the already-present Ollama sidecar image.
-# Compose-based templates include docker-outside-of-docker, so this avoids
-# re-downloading the multi-GB upstream Linux release archive in normal use.
+# Prefer copying the CLI binary from a local Ollama Docker image when available.
+# This avoids downloading large release archives in Docker-enabled environments.
 OLLAMA_IMAGE="ollama/ollama:${OLLAMA_VERSION:-latest}"
 if command_exists docker && docker info >/dev/null 2>&1; then
     tmpdir=$(mktemp -d)
@@ -46,9 +44,8 @@ if command_exists docker && docker info >/dev/null 2>&1; then
 fi
 
 if ! command_exists ollama; then
-    # Fallback to official release archives without invoking the full
-    # install.sh flow, which configures a local daemon/service that the
-    # devcontainer does not need because the sidecar already provides the API.
+    # Fallback to official release archives without invoking the full install.sh
+    # flow, which configures a local daemon/service.
     OLLAMA_DOWNLOAD_BASE="https://ollama.com/download/ollama-linux-${CS_ARCH}"
 
     if curl -fsSLI "${OLLAMA_DOWNLOAD_BASE}.tar.zst" >/dev/null 2>&1; then
@@ -103,4 +100,4 @@ if ! command_exists ollama; then
 fi
 
 echo "✓ Ollama CLI installed: $(ollama --version)"
-echo "ℹ️  OLLAMA_HOST is set to ${OLLAMA_HOST:-http://ollama:11434} — all commands target the sidecar."
+echo "ℹ️  Configure OLLAMA_HOST to target your server (current: ${OLLAMA_HOST:-http://localhost:11434})"

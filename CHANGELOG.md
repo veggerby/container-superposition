@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`claude-code` overlay** — Added `anthropic.claude-code` VS Code extension
 - **`codex` overlay** — Added `openai.chatgpt` VS Code extension
+- **`ollama-cli` overlay** — Added a CLI-only Ollama overlay that installs `ollama` in plain or compose stacks without requiring a local sidecar service
+    - Supports host/remote Ollama usage by honoring `OLLAMA_HOST` when configured
+    - Keeps the existing archive + Docker-image extraction install flow (`.tar.zst` preferred, `.tgz` fallback)
+- **`ollama` overlay auto-dependency** — `ollama` now implicitly requires `ollama-cli`, preserving current UX (server + CLI) while separating service and CLI concerns
 
 ## [0.1.8] - 2026-04-11
 

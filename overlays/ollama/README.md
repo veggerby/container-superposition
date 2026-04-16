@@ -1,6 +1,6 @@
 # Ollama Overlay
 
-Runs [Ollama](https://ollama.com) as a Docker Compose service inside the devcontainer, enabling local LLM inference without leaving the dev environment. The Ollama CLI is also installed directly in the devcontainer for ergonomic model management and inference from the terminal.
+Runs [Ollama](https://ollama.com) as a Docker Compose service inside the devcontainer, enabling local LLM inference without leaving the dev environment. This overlay automatically requires `ollama-cli`, so the Ollama CLI is also available in the devcontainer terminal.
 
 ## Features
 
@@ -25,7 +25,7 @@ Ollama runs as a long-lived Docker Compose service (`ollama`) alongside your dev
 
 The `OLLAMA_HOST` environment variable is set to `http://ollama:11434` in the devcontainer, so the Ollama CLI and any tools that respect this variable will connect to the sidecar automatically.
 
-The `setup.sh` script installs the Ollama CLI directly in the devcontainer at container creation time, providing the full `ollama` UX from the terminal. In the normal compose-based case it copies `/usr/bin/ollama` from the already-running `ollama/ollama` sidecar image, avoiding a second multi-gigabyte download. If Docker is unavailable, it falls back to the official Linux release archives (`.tar.zst`, with legacy `.tgz` fallback). The CLI is client-only and does not start a daemon inside the devcontainer.
+The Ollama CLI installation is provided by the required [`ollama-cli`](../ollama-cli/README.md) overlay. This keeps service responsibilities (`ollama`) and CLI responsibilities (`ollama-cli`) separated while preserving the same day-to-day user experience.
 
 ## Mapping Host Models into the Container
 
@@ -58,7 +58,7 @@ The mount is read-write by default, so `ollama pull` inside the container also s
 
 ## Using the Ollama CLI
 
-The Ollama CLI is installed directly in the devcontainer by `setup.sh`. The `OLLAMA_HOST` environment variable is pre-configured to `http://ollama:11434`, so all commands automatically target the sidecar — no manual configuration required.
+The Ollama CLI is installed via the required `ollama-cli` overlay. The `OLLAMA_HOST` environment variable is pre-configured to `http://ollama:11434`, so all commands automatically target the sidecar — no manual configuration required.
 
 ```bash
 # From the main devcontainer terminal — talks to the sidecar
@@ -320,6 +320,7 @@ docker compose restart ollama
 
 - [`cuda`](../cuda/README.md) — NVIDIA GPU passthrough for faster inference
 - [`rocm`](../rocm/README.md) — AMD GPU passthrough for faster inference
+- [`ollama-cli`](../ollama-cli/README.md) — Ollama CLI-only overlay (works in plain stacks and is auto-required here)
 - [`codex`](../codex/README.md) — OpenAI Codex CLI (can use local endpoint)
 - [`claude-code`](../claude-code/README.md) — Anthropic Claude CLI
 - [`amp`](../amp/README.md) — Sourcegraph Amp CLI

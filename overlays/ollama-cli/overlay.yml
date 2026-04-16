@@ -1,0 +1,19 @@
+id: ollama-cli
+name: Ollama CLI
+description: Ollama command-line client for local or remote Ollama servers
+category: dev
+supports: []
+requires: []
+suggests:
+    - ollama
+    - codex
+    - claude-code
+    - amp
+conflicts: []
+tags:
+    - dev
+    - ai
+    - llm
+    - ollama
+    - cli
+ports: []
