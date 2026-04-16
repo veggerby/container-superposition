@@ -518,7 +518,6 @@ Anthropic Claude Code CLI for AI-powered development assistance
 | Property     | Value                              |
 | ------------ | ---------------------------------- |
 | **Category** | dev                                |
-| **Requires** | `nodejs`                           |
 | **Tags**     | `dev`, `ai`, `claude`, `anthropic` |
 
 ### Cloudflared (`cloudflared`)
