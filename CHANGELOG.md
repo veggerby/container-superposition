@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`claude-code` overlay** — Added `anthropic.claude-code` VS Code extension
 - **`codex` overlay** — Added `openai.chatgpt` VS Code extension
 
+### Changed
+
+- **`claude-code` overlay installation** — Switched setup from deprecated npm global install to Claude Code’s native installer (`https://claude.ai/install.sh`)
+    - Removes the `nodejs` hard dependency from the overlay
+    - Aligns generated environments with the recommended upstream install/update path
+
 ## [0.1.8] - 2026-04-11
 
 ### Added

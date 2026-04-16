@@ -3,15 +3,19 @@
 
 set -e
 
-# Source shared setup utilities (provides load_nvm)
-# shellcheck source=setup-utils.sh
-source "$(dirname "${BASH_SOURCE[0]}")/setup-utils.sh"
-load_nvm
-
 echo "📦 Installing Anthropic Claude Code CLI..."
 
-# Install @anthropic-ai/claude-code globally
-npm install -g @anthropic-ai/claude-code
+# Ensure required installer dependency exists
+if ! command -v curl &>/dev/null; then
+    echo "✗ curl is required to install Claude Code"
+    exit 1
+fi
+
+# Install Claude Code using the native installer
+curl -fsSL https://claude.ai/install.sh | bash
+
+# Ensure common user binary paths are available in this shell session
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 
 # Verify installation
 if command -v claude &>/dev/null; then
@@ -22,5 +26,5 @@ else
 fi
 
 echo "✓ claude-code setup complete"
-echo "ℹ️  Anthropic Claude Code: https://docs.anthropic.com/en/docs/claude-code"
+echo "ℹ️  Claude Code docs: https://code.claude.com/docs/en/getting-started"
 echo "ℹ️  Run 'claude --help' to get started"

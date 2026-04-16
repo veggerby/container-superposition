@@ -19,7 +19,7 @@ Claude Code is Anthropic's agentic coding tool that lives in the terminal. It un
 
 ## How It Works
 
-This overlay installs `@anthropic-ai/claude-code` globally via npm, making the `claude` command available in your devcontainer.
+This overlay installs Claude Code using Anthropic's native installer (`https://claude.ai/install.sh`), which is the recommended installation method and enables built-in update behavior.
 
 ## Common Commands
 
@@ -48,7 +48,6 @@ claude --version
 **Integrates well with:**
 
 - `spec-kit` — Use Claude Code with the SDD workflow
-- `nodejs` — Required for installation
 - `git-helpers` — Git integration for AI-generated code
 - `pre-commit` — Quality gates for AI-generated code
 
@@ -72,7 +71,8 @@ bash .devcontainer/scripts/verify-claude-code.sh
 
 ## References
 
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code)
+- [Claude Code Getting Started](https://code.claude.com/docs/en/getting-started)
+- [Claude Code Advanced Setup](https://code.claude.com/docs/en/advanced-setup)
 - [Anthropic Platform](https://console.anthropic.com/)
 
 **Related Overlays:**
@@ -80,4 +80,3 @@ bash .devcontainer/scripts/verify-claude-code.sh
 - `spec-kit` — Spec-Driven Development with Claude as the AI agent
 - `codex` — OpenAI Codex CLI (alternative AI assistant)
 - `gemini-cli` — Google Gemini CLI (alternative AI assistant)
-- `nodejs` — Required for npm-based installation

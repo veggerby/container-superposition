@@ -3,8 +3,7 @@ name: Claude Code
 description: Anthropic Claude Code CLI for AI-powered development assistance
 category: dev
 supports: []
-requires:
-    - nodejs
+requires: []
 suggests: []
 conflicts: []
 tags:
