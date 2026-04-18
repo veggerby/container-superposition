@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Keeps the existing archive + Docker-image extraction install flow (`.tar.zst` preferred, `.tgz` fallback)
 - **`ollama` overlay auto-dependency** — `ollama` now implicitly requires `ollama-cli`, preserving current UX (server + CLI) while separating service and CLI concerns
 
+### Fixed
+
+- **`pandoc` overlay** — Unicode PDF generation no longer fails on `\textfallback{}` or when `Noto Sans Symbols 2` is unavailable, including status-icon content like `✅ ⚠️ ❌`
+
 ## [0.1.8] - 2026-04-11
 
 ### Added

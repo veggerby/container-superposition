@@ -116,6 +116,16 @@ variables:
     header-includes:
         - |
             \usepackage{etoolbox}
+            \ifdefined\IfFontExistsTF
+            \IfFontExistsTF{Noto Sans Symbols 2}{%
+            \newfontfamily\textfallbackfont{Noto Sans Symbols 2}%
+            \newcommand{\textfallback}[1]{{\textfallbackfont #1}}%
+            }{%
+            \newcommand{\textfallback}[1]{#1}%
+            }
+            \else
+            \newcommand{\textfallback}[1]{#1}%
+            \fi
             \setlength{\tabcolsep}{3pt}
             \renewcommand{\arraystretch}{1.05}
             \AtBeginEnvironment{longtable}{\small}
