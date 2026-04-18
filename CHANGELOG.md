@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Keeps the existing archive + Docker-image extraction install flow (`.tar.zst` preferred, `.tgz` fallback)
 - **`ollama` overlay auto-dependency** — `ollama` now implicitly requires `ollama-cli`, preserving current UX (server + CLI) while separating service and CLI concerns
 
+### Fixed
+
+- **`pandoc` overlay** — `setup.sh` now writes LaTeX definitions for `\textfallback{}` in `~/.pandoc/pandoc.yaml` header includes with a guarded `\IfFontExistsTF` check for `Noto Sans Symbols 2`; fixes both XeLaTeX `Undefined control sequence` failures and hard failures when that fallback font is unavailable during Unicode PDF smoke tests (e.g. `Status icons: ✅ ⚠️ ❌`).
+
 ## [0.1.8] - 2026-04-11
 
 ### Added
