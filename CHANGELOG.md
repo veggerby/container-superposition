@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`jaeger` overlay** — Removed stale legacy port entries (`14250` gRPC receiver, `14268` HTTP receiver) from `overlay.yml`; these ports were never exposed in `docker-compose.yml` and are not needed for the OTLP-based deployment scenario
 - **`pandoc` overlay** — Unicode PDF generation no longer fails on `\textfallback{}` or when `Noto Sans Symbols 2` is unavailable, including status-icon content like `✅ ⚠️ ❌`
 
 ## [0.1.8] - 2026-04-11
