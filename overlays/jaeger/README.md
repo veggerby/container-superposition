@@ -107,6 +107,8 @@ http://localhost:16686
 
 Port `16686` is published by the `jaeger` Docker Compose service to your local machine, so it is accessible both from the host and from within the devcontainer via `http://jaeger:16686`.
 
+The `devcontainer` service has `depends_on: jaeger: condition: service_healthy`, so Docker Compose waits for Jaeger to pass its healthcheck before starting the devcontainer. This ensures the UI is reachable by the time VS Code opens the browser.
+
 ### UI Features
 
 **1. Search Traces**

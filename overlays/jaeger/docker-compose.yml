@@ -19,5 +19,10 @@ services:
             retries: 10
             start_period: 10s
 
+    devcontainer:
+        depends_on:
+            jaeger:
+                condition: service_healthy
+
 networks:
     devnet:

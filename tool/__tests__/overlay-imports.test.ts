@@ -389,13 +389,22 @@ describe('Overlay Imports', () => {
             expect(overlayYml).toContain('.shared/otel/instrumentation.env');
         });
 
-        it('jaeger overlay has imports defined referencing instrumentation.env', () => {
+        it('jaeger overlay does not import otel-collector-centric instrumentation.env and has its own OTEL vars in .env.example', () => {
             const overlayYml = fs.readFileSync(
                 path.join(REAL_OVERLAYS_DIR, 'jaeger', 'overlay.yml'),
                 'utf-8'
             );
-            expect(overlayYml).toContain('imports:');
-            expect(overlayYml).toContain('.shared/otel/instrumentation.env');
+            // Jaeger deliberately does not import .shared/otel/instrumentation.env because
+            // that file points OTEL_EXPORTER_OTLP_ENDPOINT at http://otel-collector:4317, which
+            // conflicts with Jaeger's remoteEnv default of http://jaeger:4317.
+            // Jaeger-specific OTEL vars live in the overlay's own .env.example instead.
+            expect(overlayYml).not.toContain('.shared/otel/instrumentation.env');
+
+            const envExample = fs.readFileSync(
+                path.join(REAL_OVERLAYS_DIR, 'jaeger', '.env.example'),
+                'utf-8'
+            );
+            expect(envExample).toContain('OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317');
         });
 
         it('instrumentation.env shared fragment exists and is non-empty', () => {
