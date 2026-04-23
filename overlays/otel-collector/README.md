@@ -45,6 +45,10 @@ graph TD
 - `8889` - Prometheus exporter endpoint (scrape target)
 - `13133` - Health check extension
 
+### Pre-configured OpenTelemetry Environment
+
+When this overlay is selected, the devcontainer's `OTEL_EXPORTER_OTLP_ENDPOINT` is automatically set to `http://otel-collector:4317` so that any properly-instrumented app sends telemetry to the collector. If the **jaeger** overlay is also selected, the collector overlay takes precedence (it is applied later) and correctly routes telemetry through the collector pipeline to Jaeger.
+
 ### Environment Variables
 
 The overlay includes a `.env.example` file. Copy it to `.env` and customize:

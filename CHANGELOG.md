@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`jaeger` overlay** — Removed stale legacy port entries (`14250` gRPC receiver, `14268` HTTP receiver) from `overlay.yml`; these ports were never exposed in `docker-compose.yml` and are not needed for the OTLP-based deployment scenario
+    - Added `remoteEnv` in `devcontainer.patch.json` so apps running inside the devcontainer have OTEL environment variables pre-configured out of the box (`OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`, `OTEL_SERVICE_NAME`, `OTEL_SERVICE_VERSION`, `OTEL_TRACES_SAMPLER=always_on`, etc.)
+    - Added a healthcheck on the Jaeger admin port (`14269`) so Docker Compose waits for Jaeger to be ready before VS Code opens the browser
+- **`otel-collector` overlay** — Added `remoteEnv` in `devcontainer.patch.json` with `OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317`; when both `jaeger` and `otel-collector` are selected, the collector overlay is applied last and correctly routes telemetry through the collector pipeline
 - **`pandoc` overlay** — Unicode PDF generation no longer fails on `\textfallback{}` or when `Noto Sans Symbols 2` is unavailable, including status-icon content like `✅ ⚠️ ❌`
 
 ## [0.1.8] - 2026-04-11

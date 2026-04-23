@@ -12,6 +12,12 @@ services:
             # Apps should send telemetry to otel-collector, which forwards to Jaeger if both are used
         networks:
             - devnet
+        healthcheck:
+            test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:14269/ || exit 1']
+            interval: 5s
+            timeout: 5s
+            retries: 10
+            start_period: 10s
 
 networks:
     devnet:
