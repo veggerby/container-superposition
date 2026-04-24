@@ -252,6 +252,7 @@ function distributeOverlaysToAnswers(
                 language.push(id as LanguageOverlay);
                 break;
             case 'database':
+            case 'messaging':
                 database.push(id as DatabaseOverlay);
                 break;
             case 'observability':

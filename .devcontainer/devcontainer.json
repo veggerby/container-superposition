@@ -45,6 +45,8 @@
                 "dbaeumer.vscode-eslint",
                 "esbenp.prettier-vscode",
                 "christian-kohler.npm-intellisense",
+                "openai.chatgpt",
+                "anthropic.claude-code",
                 "eamodio.gitlens",
                 "github.vscode-pull-request-github",
                 "mhutchie.git-graph",
@@ -53,14 +55,16 @@
             "settings": {
                 "editor.formatOnSave": true,
                 "editor.defaultFormatter": "esbenp.prettier-vscode",
-                "editor.codeActionsOnSave": {
-                    "source.fixAll.eslint": "explicit"
-                },
                 "[typescript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
                 },
                 "[javascript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
+                },
+                "editor.codeActionsOnSave": {
+                    "source.fixAll.eslint": "explicit"
                 },
                 "git.enableCommitSigning": false,
                 "git.enableSmartCommit": true,

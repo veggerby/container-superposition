@@ -7,6 +7,7 @@ requires: []
 suggests: []
 conflicts:
     - docker-in-docker
+serviceOrder: 0
 tags:
     - dev
     - docker

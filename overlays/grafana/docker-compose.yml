@@ -2,6 +2,7 @@ version: '3.8'
 services:
     grafana:
         image: grafana/grafana:${GRAFANA_VERSION:-latest}
+        restart: unless-stopped
         environment:
             - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
             - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -15,10 +16,14 @@ services:
             - '${GRAFANA_PORT:-3000}:3000'
         depends_on:
             - prometheus
-            - loki
-            - jaeger
         networks:
             - devnet
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/health']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 20s
 
 volumes:
     grafana_data:

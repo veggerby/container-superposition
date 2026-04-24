@@ -30,5 +30,6 @@ ports:
       description: Jaeger HTTP receiver
       onAutoForward: ignore
 order: 1
+serviceOrder: 1
 imports:
     - .shared/otel/instrumentation.env

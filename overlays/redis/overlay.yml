@@ -5,8 +5,11 @@ category: database
 supports:
     - compose
 requires: []
-suggests: []
+suggests:
+    - prometheus
+    - grafana
 conflicts: []
+serviceOrder: 0
 tags:
     - database
     - cache

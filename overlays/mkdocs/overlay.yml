@@ -1,7 +1,7 @@
 id: mkdocs
 name: MkDocs
 description: Material for MkDocs - professional documentation generator
-category: language
+category: dev
 supports: []
 requires:
     - python

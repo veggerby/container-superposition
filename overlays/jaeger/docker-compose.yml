@@ -2,6 +2,7 @@ version: '3.8'
 services:
     jaeger:
         image: jaegertracing/all-in-one:${JAEGER_VERSION:-latest}
+        restart: unless-stopped
         environment:
             - COLLECTOR_OTLP_ENABLED=true
         ports:
@@ -12,6 +13,12 @@ services:
             # Apps should send telemetry to otel-collector, which forwards to Jaeger if both are used
         networks:
             - devnet
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:14269/']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
 
 networks:
     devnet:

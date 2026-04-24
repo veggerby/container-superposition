@@ -9,15 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`serviceOrder` field in `overlay.yml`** — Service startup ordering is now declared as `serviceOrder: <number>` in `overlay.yml` rather than the non-standard `_serviceOrder` field in `devcontainer.patch.json`, eliminating VS Code JSON schema validation warnings; `mergeRunServices()` reads the value from the overlay manifest; convention is 0 = infrastructure, 1 = observability backends, 2 = middleware, 3 = UI tier, 4 = demo apps
+- **`messaging` overlay category** — `rabbitmq`, `nats`, and `redpanda` are now categorised as `messaging` instead of `database`; the interactive questionnaire shows a dedicated "Messaging" section; a `MessagingOverlay` type alias is exported from `tool/schema/types.ts`
+- **`.shared/vscode/js-ts-settings.json`** — New shared VS Code settings fragment providing Prettier/ESLint extensions and `formatOnSave` for TypeScript and JavaScript; imported by `nodejs` and `bun` overlays, removing duplicated configuration from their patches
+
+### Fixed
+
+- **Port conflict declarations** — Added bidirectional `conflicts:` entries for all overlays sharing host ports, preventing silent Docker bind failures at startup:
+    - Port 3000: `grafana`, `open-webui`, `nodejs`, `bun`, `rust`
+    - Port 8080: `mysql`, `redpanda`, `otel-demo-nodejs`, `nodejs`, `bun`, `go`, `java`, `dotnet`
+    - Port 8081: `mongodb`, `redpanda`, `otel-demo-python`, `go`, `java`
+- **`grafana` and `otel-collector` `depends_on`** — Removed hardcoded `depends_on` entries for services declared as `suggests` (optional); `grafana` now only depends on `prometheus` (its sole `requires`); `otel-collector`'s `depends_on` block removed entirely
+- **`minio` / `localstack` conflict** — Added bidirectional conflict between `minio` and `localstack` (both provide S3-compatible storage and inject conflicting `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`); `minio` env var unified from `AWS_REGION` to `AWS_DEFAULT_REGION`
+- **Redundant feature installs** — `pre-commit` no longer re-installs the Python devcontainer feature (already provided by `requires: [python]`); `commitlint` no longer re-installs Node (already provided by `requires: [nodejs]`); `playwright` now declares `requires: [nodejs]` and no longer installs Node independently
+- **Observability `restart: unless-stopped`** — Added restart policy to all 8 observability compose services (`prometheus`, `grafana`, `loki`, `tempo`, `jaeger`, `alertmanager`, `promtail`, `otel-collector`)
+- **Observability healthchecks** — Added HTTP healthchecks to all 8 observability services; `grafana`'s healthcheck uses `/api/health`, `prometheus` and `alertmanager` use `/-/ready`, others use `/ready` or the collector's `/` health endpoint
+- **`redis` healthcheck** — Added `redis-cli ping` healthcheck matching the pattern in `.shared/compose/common-healthchecks.md`
+- **`mysql` and `mongodb` healthcheck `start_period`** — Added `start_period: 30s` to `mysql` and `start_period: 20s` to `mongodb` to prevent spurious failures during slow storage-engine initialisation
+- **`qdrant` version pinning** — Default `QDRANT_VERSION` changed from `latest` to `v1.9.0` for reproducible builds
+- **`mkdocs` category** — Changed from `language` to `dev`, matching `mkdocs2` and reflecting that documentation generators are dev tools, not language runtimes
+- **`comfyui` GPU devcontainer support** — Added `compose_imports: [.shared/compose/nvidia-gpu-devcontainer.yml]` so Nvidia GPU tooling is available in the devcontainer shell, not only the ComfyUI sidecar
+- **`rocm` / `comfyui` cross-suggests** — `rocm` now suggests `comfyui`; `comfyui` now suggests `rocm`, giving AMD GPU users guidance equivalent to the existing `cuda` suggest
+- **`keycloak` service order** — Corrected `serviceOrder` from `10` to `2` (middleware tier)
+- **`otel-demo-nodejs` / `otel-demo-python` service order** — Corrected `serviceOrder` from `3` to `4` to match `order: 4` declared in their `overlay.yml`
+- **Observability suggests on infrastructure overlays** — `postgres`, `pgvector`, `mysql`, `mongodb`, `redis`, `rabbitmq`, `nats`, `redpanda`, `minio`, `sqlserver` now suggest `prometheus` and `grafana`; `qdrant`, `ollama`, and `open-webui` additionally suggest `otel-collector`
+- **`nodejs` and `bun` `formatOnSave`** — `editor.formatOnSave: true` is now set for `[typescript]` and `[javascript]` via the new shared `js-ts-settings.json` fragment
 - **`claude-code` overlay** — Added `anthropic.claude-code` VS Code extension
 - **`codex` overlay** — Added `openai.chatgpt` VS Code extension
 - **`ollama-cli` overlay** — Added a CLI-only Ollama overlay that installs `ollama` in plain or compose stacks without requiring a local sidecar service
     - Supports host/remote Ollama usage by honoring `OLLAMA_HOST` when configured
     - Keeps the existing archive + Docker-image extraction install flow (`.tar.zst` preferred, `.tgz` fallback)
 - **`ollama` overlay auto-dependency** — `ollama` now implicitly requires `ollama-cli`, preserving current UX (server + CLI) while separating service and CLI concerns
-
-### Fixed
-
 - **`pandoc` overlay** — Unicode PDF generation no longer fails on `\textfallback{}` or when `Noto Sans Symbols 2` is unavailable, including status-icon content like `✅ ⚠️ ❌`
 
 ## [0.1.8] - 2026-04-11

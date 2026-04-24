@@ -9,7 +9,11 @@ suggests:
     - ollama
     - python
     - nodejs
+    - prometheus
+    - grafana
+    - otel-collector
 conflicts: []
+serviceOrder: 0
 tags:
     - database
     - vector
@@ -31,7 +35,7 @@ ports:
 parameters:
     QDRANT_VERSION:
         description: Qdrant Docker image tag
-        default: latest
+        default: v1.9.0
     QDRANT_PORT:
         description: Host port mapped to Qdrant REST API (6333 inside container)
         default: '6333'

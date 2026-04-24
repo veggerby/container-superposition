@@ -5,8 +5,15 @@ category: database
 supports:
     - compose
 requires: []
-suggests: []
-conflicts: []
+suggests:
+    - prometheus
+    - grafana
+conflicts:
+    - redpanda
+    - otel-demo-python
+    - go
+    - java
+serviceOrder: 0
 tags:
     - database
     - nosql

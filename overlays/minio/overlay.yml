@@ -5,8 +5,12 @@ category: database
 supports:
     - compose
 requires: []
-suggests: []
-conflicts: []
+suggests:
+    - prometheus
+    - grafana
+conflicts:
+    - localstack
+serviceOrder: 0
 tags:
     - database
     - storage

@@ -1,12 +1,15 @@
 id: rabbitmq
 name: RabbitMQ
 description: Message broker with AMQP protocol and management UI
-category: database
+category: messaging
 supports:
     - compose
 requires: []
-suggests: []
+suggests:
+    - prometheus
+    - grafana
 conflicts: []
+serviceOrder: 0
 tags:
     - database
     - messaging

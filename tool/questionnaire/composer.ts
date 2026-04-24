@@ -2943,7 +2943,11 @@ function mergeRunServices(config: DevContainer, overlays: string[], overlaysDir:
         if (fs.existsSync(overlayPath)) {
             const overlayConfig = loadJson<any>(overlayPath);
             if (overlayConfig.runServices) {
-                const order = overlayConfig._serviceOrder || 0;
+                const manifestPath = path.join(overlaysDir, overlay, 'overlay.yml');
+                const manifest = fs.existsSync(manifestPath)
+                    ? (yaml.load(fs.readFileSync(manifestPath, 'utf8')) as OverlayMetadata)
+                    : null;
+                const order = manifest?.serviceOrder ?? 0;
                 for (const service of overlayConfig.runServices) {
                     services.push({ name: service, order });
                 }

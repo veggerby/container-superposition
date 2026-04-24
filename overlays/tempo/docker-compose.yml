@@ -2,6 +2,7 @@ version: '3.8'
 services:
     tempo:
         image: grafana/tempo:${TEMPO_VERSION:-latest}
+        restart: unless-stopped
         command: ['-config.file=/etc/tempo/tempo-config.yaml']
         volumes:
             - ./tempo-config-tempo.yaml:/etc/tempo/tempo-config.yaml
@@ -12,6 +13,12 @@ services:
             # Apps should send traces to otel-collector, which forwards to Tempo
         networks:
             - devnet
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:3200/ready']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 15s
 
 volumes:
     tempo_data:

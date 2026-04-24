@@ -276,6 +276,7 @@ async function askOverlaySection(
     const categoryList = [
         { name: 'Language', overlays: config.overlays.filter((o) => o.category === 'language') },
         { name: 'Database', overlays: config.overlays.filter((o) => o.category === 'database') },
+        { name: 'Messaging', overlays: config.overlays.filter((o) => o.category === 'messaging') },
         {
             name: 'Observability',
             overlays: config.overlays.filter((o) => o.category === 'observability'),
@@ -763,7 +764,9 @@ export async function runQuestionnaire(
             (o) => overlayMap.get(o)?.category === 'language'
         ) as LanguageOverlay[];
         const database = selectedOverlays.filter(
-            (o) => overlayMap.get(o)?.category === 'database'
+            (o) =>
+                overlayMap.get(o)?.category === 'database' ||
+                overlayMap.get(o)?.category === 'messaging'
         ) as DatabaseOverlay[];
         const observability = selectedOverlays.filter(
             (o) => overlayMap.get(o)?.category === 'observability'

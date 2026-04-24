@@ -2,6 +2,7 @@ version: '3.8'
 services:
     otel-collector:
         image: otel/opentelemetry-collector-contrib:${OTEL_COLLECTOR_VERSION:-latest}
+        restart: unless-stopped
         command: ['--config=/etc/otel-collector-config.yaml']
         volumes:
             - ./otel-collector-config-otel-collector.yaml:/etc/otel-collector-config.yaml
@@ -11,12 +12,14 @@ services:
             - '${OTEL_METRICS_PORT:-8888}:8888' # Prometheus metrics exposed by collector
             - '${OTEL_EXPORTER_PORT:-8889}:8889' # Prometheus exporter
             - '${OTEL_HEALTH_PORT:-13133}:13133' # health_check extension
-        depends_on:
-            - jaeger
-            - prometheus
-            - loki
         networks:
             - devnet
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:13133/']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
 
 networks:
     devnet:

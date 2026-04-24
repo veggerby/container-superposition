@@ -7,7 +7,9 @@ supports:
 requires: []
 suggests:
     - aws-cli
-conflicts: []
+conflicts:
+    - minio
+serviceOrder: 0
 tags:
     - cloud
     - aws

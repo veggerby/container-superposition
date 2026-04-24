@@ -5,10 +5,17 @@ category: language
 supports: []
 requires: []
 suggests: []
-conflicts: []
+conflicts:
+    - grafana
+    - open-webui
+    - mysql
+    - redpanda
+    - otel-demo-nodejs
 tags:
     - language
     - nodejs
     - javascript
     - typescript
 ports: []
+imports:
+    - .shared/vscode/js-ts-settings.json

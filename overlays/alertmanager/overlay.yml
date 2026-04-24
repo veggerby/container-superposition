@@ -15,3 +15,4 @@ tags:
 ports:
     - 9093
 order: 2
+serviceOrder: 2

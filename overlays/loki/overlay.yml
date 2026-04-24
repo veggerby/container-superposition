@@ -20,3 +20,4 @@ ports:
       path: /
       onAutoForward: notify
 order: 1
+serviceOrder: 1

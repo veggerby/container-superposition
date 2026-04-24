@@ -5,7 +5,9 @@ category: language
 supports: []
 requires: []
 suggests: []
-conflicts: []
+conflicts:
+    - grafana
+    - open-webui
 tags:
     - language
     - rust

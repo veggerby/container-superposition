@@ -11,7 +11,11 @@ suggests:
     - jaeger
     - tempo
     - promtail
-conflicts: []
+conflicts:
+    - open-webui
+    - nodejs
+    - bun
+    - rust
 tags:
     - observability
     - ui
@@ -24,3 +28,4 @@ ports:
       path: /
       onAutoForward: openBrowser
 order: 3
+serviceOrder: 3

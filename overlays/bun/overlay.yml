@@ -5,7 +5,12 @@ category: language
 supports: []
 requires: []
 suggests: []
-conflicts: []
+conflicts:
+    - grafana
+    - open-webui
+    - mysql
+    - redpanda
+    - otel-demo-nodejs
 tags:
     - language
     - bun
@@ -14,3 +19,5 @@ tags:
 ports:
     - 3000
     - 8080
+imports:
+    - .shared/vscode/js-ts-settings.json

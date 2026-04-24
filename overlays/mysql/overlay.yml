@@ -5,8 +5,18 @@ category: database
 supports:
     - compose
 requires: []
-suggests: []
-conflicts: []
+suggests:
+    - prometheus
+    - grafana
+conflicts:
+    - redpanda
+    - nodejs
+    - bun
+    - go
+    - java
+    - dotnet
+    - otel-demo-nodejs
+serviceOrder: 0
 tags:
     - database
     - sql

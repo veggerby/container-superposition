@@ -12,7 +12,11 @@ suggests:
     - prometheus
     - loki
     - grafana
-conflicts: []
+conflicts:
+    - mongodb
+    - redpanda
+    - go
+    - java
 tags:
     - observability
     - demo
@@ -21,3 +25,4 @@ tags:
 ports:
     - 8081
 order: 4
+serviceOrder: 4

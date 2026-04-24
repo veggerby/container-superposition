@@ -1,12 +1,24 @@
 id: redpanda
 name: Redpanda
 description: Kafka-compatible event streaming with web console
-category: database
+category: messaging
 supports:
     - compose
 requires: []
-suggests: []
-conflicts: []
+suggests:
+    - prometheus
+    - grafana
+conflicts:
+    - mysql
+    - mongodb
+    - nodejs
+    - bun
+    - go
+    - java
+    - dotnet
+    - otel-demo-nodejs
+    - otel-demo-python
+serviceOrder: 0
 tags:
     - database
     - messaging

@@ -22,6 +22,7 @@ export type LanguageOverlay =
     | 'bun'
     | 'jupyter'
     | 'powershell';
+export type MessagingOverlay = 'rabbitmq' | 'redpanda' | 'nats';
 export type DatabaseOverlay =
     | 'postgres'
     | 'redis'
@@ -31,9 +32,7 @@ export type DatabaseOverlay =
     | 'sqlite'
     | 'duckdb'
     | 'minio'
-    | 'rabbitmq'
-    | 'redpanda'
-    | 'nats';
+    | MessagingOverlay;
 export type CloudTool =
     | 'azure-cli'
     | 'aws-cli'
@@ -214,6 +213,7 @@ export interface DevContainer {
 export type OverlayCategory =
     | 'language'
     | 'database'
+    | 'messaging'
     | 'observability'
     | 'cloud'
     | 'dev'
@@ -264,6 +264,7 @@ export interface OverlayMetadata {
     tags?: string[];
     ports?: (number | PortMetadata)[]; // Support both legacy and rich format
     order?: number;
+    serviceOrder?: number; // Docker Compose service startup order (0=infra, 1=observability backend, 2=middleware, 3=UI)
     imports?: string[]; // Shared files to import from overlays/.shared/
     compose_imports?: string[]; // Shared docker-compose fragments to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode

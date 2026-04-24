@@ -7,7 +7,15 @@ supports:
 requires: []
 suggests:
     - ollama
-conflicts: []
+    - prometheus
+    - grafana
+    - otel-collector
+conflicts:
+    - grafana
+    - nodejs
+    - bun
+    - rust
+serviceOrder: 3
 tags:
     - dev
     - ai

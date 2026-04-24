@@ -8,6 +8,7 @@ requires:
     - postgres
 suggests: []
 conflicts: []
+serviceOrder: 2
 tags:
     - dev
     - auth

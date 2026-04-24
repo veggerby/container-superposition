@@ -18,3 +18,4 @@ tags:
 ports:
     - 3200
 order: 1
+serviceOrder: 1

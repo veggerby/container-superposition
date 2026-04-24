@@ -1,7 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
     "runServices": ["otel-collector"],
-    "_serviceOrder": 2,
     "forwardPorts": [4317, 4318, 8888, 8889, 13133],
     "portsAttributes": {
         "4317": {

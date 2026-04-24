@@ -1,5 +1,4 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-    "runServices": ["promtail"],
-    "_serviceOrder": 2
+    "runServices": ["promtail"]
 }

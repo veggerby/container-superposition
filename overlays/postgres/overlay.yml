@@ -5,9 +5,12 @@ category: database
 supports:
     - compose
 requires: []
-suggests: []
+suggests:
+    - prometheus
+    - grafana
 conflicts:
     - pgvector
+serviceOrder: 0
 tags:
     - database
     - sql
