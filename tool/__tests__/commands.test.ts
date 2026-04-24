@@ -1312,6 +1312,273 @@ describe('Command Tests', () => {
                 fs.rmSync(tmpDir, { recursive: true, force: true });
             }
         });
+
+        // ── Parameter checks ──────────────────────────────────────────────────
+
+        it('should fail when unresolved {{cs.*}} tokens remain in generated files', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-params-unresolved-'));
+            try {
+                fs.writeFileSync(
+                    path.join(tmpDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'compose', overlays: ['postgres'] })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify({
+                        manifestVersion: '1',
+                        generatedBy: 'container-superposition@0.1.3',
+                        generated: new Date().toISOString(),
+                        baseTemplate: 'compose',
+                        baseImage: 'bookworm',
+                        overlays: ['postgres'],
+                    })
+                );
+                // Inject an unresolved token into devcontainer.json
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({
+                        name: 'test',
+                        remoteEnv: { POSTGRES_PORT: '{{cs.POSTGRES_PORT}}' },
+                    })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        projectRoot: tmpDir,
+                    });
+                } catch {
+                    // process.exit
+                }
+
+                const output = consoleLogSpy.mock.calls.join('\n');
+                expect(output).toContain('Parameters:');
+                expect(output).toContain('Unresolved parameter tokens');
+                expect(output).toContain('{{cs.POSTGRES_PORT}}');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should warn when a sensitive parameter appears as plain text in remoteEnv', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-params-secret-'));
+            try {
+                fs.writeFileSync(
+                    path.join(tmpDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'plain', overlays: ['postgres'] })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify({
+                        manifestVersion: '1',
+                        generatedBy: 'container-superposition@0.1.3',
+                        generated: new Date().toISOString(),
+                        baseTemplate: 'plain',
+                        baseImage: 'bookworm',
+                        overlays: ['postgres'],
+                    })
+                );
+                // POSTGRES_PASSWORD is sensitive: true in the postgres overlay
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({
+                        name: 'test',
+                        remoteEnv: { POSTGRES_PASSWORD: 'hunter2' },
+                    })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        projectRoot: tmpDir,
+                    });
+                } catch {
+                    // process.exit
+                }
+
+                const output = consoleLogSpy.mock.calls.join('\n');
+                expect(output).toContain('Parameters:');
+                expect(output).toContain('Sensitive parameters in devcontainer');
+                expect(output).toContain('POSTGRES_PASSWORD');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should warn when compose stack with parameters has no .env.example', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-params-envexample-'));
+            try {
+                fs.writeFileSync(
+                    path.join(tmpDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'compose', overlays: ['postgres'] })
+                );
+                // superposition.json marks this as a compose stack
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify({
+                        manifestVersion: '1',
+                        generatedBy: 'container-superposition@0.1.3',
+                        generated: new Date().toISOString(),
+                        baseTemplate: 'compose',
+                        baseImage: 'bookworm',
+                        overlays: ['postgres'],
+                    })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+                // Deliberately no .env.example
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        projectRoot: tmpDir,
+                    });
+                } catch {
+                    // process.exit
+                }
+
+                const output = consoleLogSpy.mock.calls.join('\n');
+                expect(output).toContain('Parameters:');
+                expect(output).toContain('Missing .env.example');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should warn when project file contains unknown parameter keys', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-params-unknown-'));
+            try {
+                fs.writeFileSync(
+                    path.join(tmpDir, '.superposition.yml'),
+                    yaml.dump({
+                        stack: 'plain',
+                        overlays: ['nodejs'],
+                        parameters: { STALE_KEY_FROM_REMOVED_OVERLAY: 'some-value' },
+                    })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify({
+                        manifestVersion: '1',
+                        generatedBy: 'container-superposition@0.1.3',
+                        generated: new Date().toISOString(),
+                        baseTemplate: 'plain',
+                        baseImage: 'bookworm',
+                        overlays: ['nodejs'],
+                    })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        projectRoot: tmpDir,
+                    });
+                } catch {
+                    // process.exit
+                }
+
+                const output = consoleLogSpy.mock.calls.join('\n');
+                expect(output).toContain('Parameters:');
+                expect(output).toContain('Unknown parameters in project file');
+                expect(output).toContain('STALE_KEY_FROM_REMOVED_OVERLAY');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should pass parameters check when all overlay parameters are defaulted', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-params-pass-'));
+            try {
+                // postgres has parameters but all have defaults — no supplied params needed
+                fs.writeFileSync(
+                    path.join(tmpDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'compose', overlays: ['postgres'] })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify({
+                        manifestVersion: '1',
+                        generatedBy: 'container-superposition@0.1.3',
+                        generated: new Date().toISOString(),
+                        baseTemplate: 'compose',
+                        baseImage: 'bookworm',
+                        overlays: ['postgres'],
+                    })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+                // Provide the expected .env.example so that check passes too
+                fs.writeFileSync(path.join(tmpDir, '.env.example'), '# env\nPOSTGRES_PORT=5432\n');
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        projectRoot: tmpDir,
+                    });
+                } catch {
+                    // process.exit
+                }
+
+                const output = consoleLogSpy.mock.calls.join('\n');
+                expect(output).toContain('Parameters:');
+                // Should show pass message, no failures
+                expect(output).toContain('parameter(s) resolved');
+                expect(output).not.toContain('Unresolved parameter tokens');
+                expect(output).not.toContain('Missing required parameters');
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
+        it('should include parameters field in JSON output', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-params-json-'));
+            try {
+                fs.writeFileSync(
+                    path.join(tmpDir, '.superposition.yml'),
+                    yaml.dump({ stack: 'plain', overlays: ['nodejs'] })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.json'),
+                    JSON.stringify({
+                        manifestVersion: '1',
+                        generatedBy: 'container-superposition@0.1.3',
+                        generated: new Date().toISOString(),
+                        baseTemplate: 'plain',
+                        baseImage: 'bookworm',
+                        overlays: ['nodejs'],
+                    })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'devcontainer.json'),
+                    JSON.stringify({ name: 'test' })
+                );
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        output: tmpDir,
+                        projectRoot: tmpDir,
+                        json: true,
+                    });
+                } catch {
+                    // process.exit
+                }
+
+                const rawOutput = consoleLogSpy.mock.calls[0][0];
+                const parsed = JSON.parse(rawOutput);
+                expect(parsed.parameters).toBeDefined();
+                expect(Array.isArray(parsed.parameters)).toBe(true);
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
     });
 
     describe('hashCommand', () => {

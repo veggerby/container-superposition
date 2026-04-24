@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`doctor` parameter checks** — `cs doctor` now validates overlay parameter configuration against the project file and generated output. Five new checks in a dedicated "Parameters" section:
+    - **Unresolved `{{cs.*}}` tokens** — scans `devcontainer.json`, `docker-compose.yml`, and `.env.example` for substitution tokens that were never replaced; reported as a failure
+    - **Sensitive parameters in plain text** — detects `sensitive: true` parameters whose values appear as literal strings in `devcontainer.json` `remoteEnv` instead of being referenced via `${VAR:-default}`; reported as a warning
+    - **Missing `.env.example`** — warns when a compose-stack project has parameterised overlays but no `.env.example` was generated
+    - **Unknown parameter keys** — warns when the project file's `parameters:` section contains keys not declared by any selected overlay (stale entries from removed overlays)
+    - **Missing required parameters** — fails when an overlay declares a required parameter (no default value) that is absent from the project file `parameters:` section
+    - `doctor --fix` resolves the automatic checks by adding missing parameters with their overlay defaults to the project file then re-running `cs regen`
 - **`local-llm` preset** — New preset for local LLM inference: always selects `ollama` + `ollama-cli` + `open-webui`; optional `gpu` parameter adds `cuda` or `rocm` overlay; pre-sets `OLLAMA_HOST` environment variable
 - **`full-observability` preset** — New preset that bolts a complete monitoring stack onto any project: `prometheus`, `grafana`, `loki`, `otel-collector`, `alertmanager`, `promtail` always included; `tracing` parameter selects Jaeger, Tempo, both, or none; pre-sets all OTel SDK environment variables
 - **`vector-ai` preset** — New preset for RAG pipeline development: `qdrant` + `ollama` + `ollama-cli` + `python` always included; optional `gpu` and `chat_ui` (Open WebUI) parameters; pre-sets `QDRANT_URL`, `OLLAMA_HOST`, and `EMBEDDING_MODEL`

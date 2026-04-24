@@ -41,7 +41,19 @@ import { MERGE_STRATEGY } from '../utils/merge.js';
 import { extractPorts } from '../utils/port-utils.js';
 import { composeDevContainer } from '../questionnaire/composer.js';
 import { mergeAnswers } from '../questionnaire/answers.js';
-import { loadProjectConfig } from '../schema/project-config.js';
+import {
+    loadProjectConfig,
+    buildAnswersFromProjectConfig,
+    buildProjectConfigSelectionFromAnswers,
+    writeProjectConfig,
+} from '../schema/project-config.js';
+import {
+    collectOverlayParameters,
+    resolveParameters,
+    findUnresolvedTokens,
+} from '../utils/parameters.js';
+import { applyPresetSelections } from '../questionnaire/presets.js';
+import { PRESETS_DIR } from '../questionnaire/questionnaire.js';
 
 interface DoctorOptions {
     output?: string;
@@ -72,6 +84,7 @@ interface DoctorReport {
     merge: CheckResult[];
     ports: CheckResult[];
     drift: CheckResult[];
+    parameters: CheckResult[];
     summary: {
         passed: number;
         warnings: number;
@@ -142,6 +155,27 @@ const REMEDIATION_REGISTRY = new Map<string, RemediationAction>([
                 'Linux:   sudo systemctl start docker',
                 'macOS:   open -a Docker',
                 'Windows: Start Docker Desktop from the Start menu',
+            ],
+        },
+    ],
+    [
+        'parameters-regen',
+        {
+            key: 'parameters-regen',
+            findingId: 'missing-required-parameters',
+            safetyClass: 'safe-unattended',
+            executionKind: 'regeneration',
+            preconditions: [
+                'Project file (.superposition.yml) must exist',
+                'All required parameters must have overlay defaults to fall back to',
+            ],
+            plannedChanges: [
+                'Add missing parameters with overlay defaults to project file',
+                'Regenerate devcontainer configuration from updated project file',
+            ],
+            manualFallback: [
+                'Add the missing parameters to the parameters: section in your project file',
+                'Run "cs regen" to regenerate with the updated configuration',
             ],
         },
     ],
@@ -1088,13 +1122,183 @@ function checkProjectFileDrift(
     ];
 }
 
+/**
+ * Check overlay parameters: unresolved tokens, secret leakage, missing .env.example,
+ * stale project-file keys, and required parameters not supplied.
+ */
+function checkParameters(
+    overlaysConfig: OverlaysConfig,
+    outputPath: string,
+    workingDir: string
+): CheckResult[] {
+    const results: CheckResult[] = [];
+
+    // Load the project config — skip silently if none present
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch {
+        return [];
+    }
+    if (!projectConfig) {
+        return [];
+    }
+
+    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const suppliedParams = projectConfig.selection.parameters ?? {};
+
+    // Collect all parameter declarations for selected overlays
+    const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
+    const declaredCount = Object.keys(declared).length;
+
+    // ── Check 1: Unresolved {{cs.*}} tokens in generated files ────────────────
+    const filesToScan: Array<[string, string]> = [
+        ['devcontainer.json', path.join(outputPath, 'devcontainer.json')],
+        ['docker-compose.yml', path.join(outputPath, 'docker-compose.yml')],
+        ['.env.example', path.join(outputPath, '.env.example')],
+    ];
+
+    const unresolvedByFile: string[] = [];
+    for (const [label, filePath] of filesToScan) {
+        if (!fs.existsSync(filePath)) continue;
+        const content = fs.readFileSync(filePath, 'utf8');
+        const tokens = findUnresolvedTokens(content);
+        if (tokens.length > 0) {
+            unresolvedByFile.push(`${label}: ${[...new Set(tokens)].join(', ')}`);
+        }
+    }
+
+    if (unresolvedByFile.length > 0) {
+        results.push({
+            name: 'Unresolved parameter tokens',
+            status: 'fail',
+            message: `Unsubstituted {{cs.*}} tokens found in generated files`,
+            details: [
+                ...unresolvedByFile,
+                'Run "cs regen" or add the missing parameters to your project file',
+            ],
+            fixEligibility: 'automatic',
+            remediationKey: 'parameters-regen',
+            fixable: true,
+        });
+    }
+
+    // ── Check 2: Sensitive params hardcoded in devcontainer.json remoteEnv ───
+    const devcontainerPath = path.join(outputPath, 'devcontainer.json');
+    if (fs.existsSync(devcontainerPath)) {
+        try {
+            const devcontainer = JSON.parse(fs.readFileSync(devcontainerPath, 'utf8'));
+            const remoteEnv: Record<string, string> = devcontainer.remoteEnv ?? {};
+            const leakedSecrets: string[] = [];
+            for (const [key, value] of Object.entries(remoteEnv)) {
+                if (declared[key]?.sensitive && value !== '' && !value.startsWith('${')) {
+                    leakedSecrets.push(key);
+                }
+            }
+            if (leakedSecrets.length > 0) {
+                results.push({
+                    name: 'Sensitive parameters in devcontainer',
+                    status: 'warn',
+                    message: `Secret parameter(s) appear as plain text in devcontainer.json remoteEnv: ${leakedSecrets.join(', ')}`,
+                    details: [
+                        'Sensitive values should be stored in .env and referenced as ${VAR:-default}',
+                        'Run "cs regen" to regenerate with proper secret handling',
+                    ],
+                    fixEligibility: 'automatic',
+                    remediationKey: 'parameters-regen',
+                    fixable: true,
+                });
+            }
+        } catch {
+            // devcontainer.json parse errors are caught by checkManifest — skip here
+        }
+    }
+
+    // ── Check 3: Missing .env.example for compose stacks with parameters ─────
+    const manifest = (() => {
+        const mPath = path.join(outputPath, 'superposition.json');
+        if (!fs.existsSync(mPath)) return null;
+        try {
+            return JSON.parse(fs.readFileSync(mPath, 'utf8')) as { baseTemplate?: string };
+        } catch {
+            return null;
+        }
+    })();
+
+    const isCompose = manifest?.baseTemplate === 'compose';
+    if (isCompose && declaredCount > 0) {
+        const envExamplePath = path.join(outputPath, '.env.example');
+        if (!fs.existsSync(envExamplePath)) {
+            results.push({
+                name: 'Missing .env.example',
+                status: 'warn',
+                message: `Compose stack with ${declaredCount} parameter(s) has no .env.example`,
+                details: ['Run "cs regen" to generate the .env.example file'],
+                fixEligibility: 'automatic',
+                remediationKey: 'parameters-regen',
+                fixable: true,
+            });
+        }
+    }
+
+    // ── Check 4: Unknown parameters in project file ───────────────────────────
+    const unknownKeys = Object.keys(suppliedParams).filter((k) => !(k in declared));
+    if (unknownKeys.length > 0) {
+        results.push({
+            name: 'Unknown parameters in project file',
+            status: 'warn',
+            message: `parameters: contains ${unknownKeys.length} key(s) not declared by any selected overlay: ${unknownKeys.join(', ')}`,
+            details: [
+                'These may be stale entries from a removed overlay',
+                'Remove them from the parameters: section in your project file',
+            ],
+            fixEligibility: 'manual-only',
+        });
+    }
+
+    // ── Check 5: Required parameters missing from project file ───────────────
+    const { missingRequired } = resolveParameters(declared, suppliedParams);
+    if (missingRequired.length > 0) {
+        const declaringOverlays = missingRequired
+            .map((k) => `${k} (${declared[k]?.overlayId ?? 'unknown'})`)
+            .join(', ');
+        results.push({
+            name: 'Missing required parameters',
+            status: 'fail',
+            message: `${missingRequired.length} required parameter(s) have no value and no default: ${declaringOverlays}`,
+            details: [
+                'Add these to the parameters: section in your project file',
+                'Run "cs regen" (or doctor --fix) to apply defaults and regenerate',
+            ],
+            fixEligibility: 'automatic',
+            remediationKey: 'parameters-regen',
+            fixable: true,
+        });
+    }
+
+    // ── Pass: all parameters resolved ────────────────────────────────────────
+    if (results.length === 0 && declaredCount > 0) {
+        const { values } = resolveParameters(declared, suppliedParams);
+        const resolvedCount = Object.keys(values).length;
+        results.push({
+            name: 'Parameter resolution',
+            status: 'pass',
+            message: `${resolvedCount} parameter(s) resolved for ${selectedOverlays.length} overlay(s)`,
+            fixEligibility: 'not-applicable',
+        });
+    }
+
+    return results;
+}
+
 function generateReport(
     environmentChecks: CheckResult[],
     overlayChecks: CheckResult[],
     manifestChecks: CheckResult[],
     mergeChecks: CheckResult[],
     portChecks: CheckResult[],
-    driftChecks: CheckResult[] = []
+    driftChecks: CheckResult[] = [],
+    parametersChecks: CheckResult[] = []
 ): DoctorReport {
     const allChecks = [
         ...environmentChecks,
@@ -1103,6 +1307,7 @@ function generateReport(
         ...mergeChecks,
         ...portChecks,
         ...driftChecks,
+        ...parametersChecks,
     ];
 
     const passed = allChecks.filter((c) => c.status === 'pass').length;
@@ -1117,6 +1322,7 @@ function generateReport(
         merge: mergeChecks,
         ports: portChecks,
         drift: driftChecks,
+        parameters: parametersChecks,
         summary: {
             passed,
             warnings,
@@ -1223,6 +1429,22 @@ function formatAsText(report: DoctorReport): string {
         }
     }
 
+    // Parameters section
+    if (report.parameters.length > 0) {
+        const failedParams = report.parameters.filter((c) => c.status !== 'pass');
+        if (failedParams.length > 0) {
+            lines.push(chalk.bold('\nParameters:'));
+            for (const check of failedParams) {
+                lines.push(formatCheckResult(check));
+            }
+        } else {
+            lines.push(chalk.bold('\nParameters:'));
+            lines.push(
+                `  ${chalk.green('✓')} ${chalk.white(report.parameters[0]?.message ?? 'All parameters resolved')}`
+            );
+        }
+    }
+
     // Summary
     lines.push(chalk.bold('\nSummary:'));
     lines.push(`  ${chalk.green('✓')} ${report.summary.passed} passed`);
@@ -1278,6 +1500,7 @@ function reportToFindings(report: DoctorReport): DiagnosticFinding[] {
         ...checksToFindings(report.merge, 'merge', 'devcontainer'),
         ...checksToFindings(report.ports, 'ports', 'environment'),
         ...checksToFindings(report.drift, 'manifest', 'manifest'),
+        ...checksToFindings(report.parameters, 'manifest', 'full'),
     ];
 }
 
@@ -1288,8 +1511,9 @@ function orderFindingsForRemediation(findings: DiagnosticFinding[]): DiagnosticF
     const PRIORITY: Record<string, number> = {
         'manifest-migration': 1,
         'devcontainer-regeneration': 2,
-        'node-version-fix': 3,
-        'docker-repair': 4,
+        'parameters-regen': 3,
+        'node-version-fix': 4,
+        'docker-repair': 5,
     };
     return [...findings].sort((a, b) => {
         const pa = PRIORITY[a.remediationKey ?? ''] ?? 99;
@@ -1715,6 +1939,154 @@ function executeNodeVersionFix(): FixExecution {
 }
 
 /**
+ * Execute parameters-regen fix: add missing parameter defaults to the project file
+ * then regenerate the devcontainer.
+ */
+async function executeParametersRegen(
+    outputPath: string,
+    overlaysConfig: OverlaysConfig,
+    overlaysDir: string,
+    workingDir: string,
+    silent = false
+): Promise<FixExecution> {
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch (err) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: `Failed to load project file: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+    if (!projectConfig) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: 'No project file (.superposition.yml) found — run "cs init" first',
+            rechecked: false,
+        };
+    }
+
+    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
+    const supplied = { ...(projectConfig.selection.parameters ?? {}) };
+
+    // Fill in defaults for missing required parameters
+    const { missingRequired } = resolveParameters(declared, supplied);
+    const needsManual: string[] = [];
+    for (const key of missingRequired) {
+        const def = declared[key];
+        if (def?.default !== undefined) {
+            supplied[key] = def.default;
+        } else {
+            needsManual.push(key);
+        }
+    }
+
+    if (needsManual.length > 0) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: `Cannot auto-fix: ${needsManual.join(', ')} have no default value — add them manually to parameters: in your project file`,
+            rechecked: false,
+        };
+    }
+
+    // Write updated project file with filled-in parameters
+    const updatedSelection = { ...projectConfig.selection, parameters: supplied };
+    const projectFilePath = projectConfig.file.path;
+    try {
+        writeProjectConfig(projectFilePath, updatedSelection);
+    } catch (err) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to write project file: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+
+    // Rebuild answers from updated project file and regenerate
+    let answers;
+    try {
+        const reloadedConfig = loadProjectConfig(overlaysConfig, workingDir);
+        if (!reloadedConfig) throw new Error('Project file not found after write');
+        const baseAnswers = buildAnswersFromProjectConfig(reloadedConfig.selection, overlaysConfig);
+        const withPreset = await applyPresetSelections(baseAnswers, overlaysConfig, PRESETS_DIR);
+        answers = mergeAnswers(withPreset, { outputPath });
+    } catch (err) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to build answers for regeneration: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+
+    const originalLog = console.log;
+    if (silent) console.log = () => {};
+    try {
+        await composeDevContainer(answers, overlaysDir, { isRegen: true });
+    } catch (err) {
+        if (silent) console.log = originalLog;
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Regeneration failed: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    } finally {
+        if (silent) console.log = originalLog;
+    }
+
+    // Re-check: ensure no unresolved tokens remain
+    const filesToScan: Array<[string, string]> = [
+        ['devcontainer.json', path.join(outputPath, 'devcontainer.json')],
+        ['docker-compose.yml', path.join(outputPath, 'docker-compose.yml')],
+        ['.env.example', path.join(outputPath, '.env.example')],
+    ];
+    const stillUnresolved: string[] = [];
+    for (const [, filePath] of filesToScan) {
+        if (!fs.existsSync(filePath)) continue;
+        const tokens = findUnresolvedTokens(fs.readFileSync(filePath, 'utf8'));
+        stillUnresolved.push(...tokens);
+    }
+
+    const addedKeys = Object.keys(supplied).filter(
+        (k) => !(projectConfig!.selection.parameters ?? {})[k]
+    );
+
+    return {
+        findingId: 'missing-required-parameters',
+        remediationKey: 'parameters-regen',
+        attempted: true,
+        outcome: stillUnresolved.length === 0 ? 'fixed' : 'requires-manual-action',
+        reason:
+            stillUnresolved.length === 0
+                ? addedKeys.length > 0
+                    ? `Added defaults for ${addedKeys.join(', ')} and regenerated devcontainer`
+                    : 'Regenerated devcontainer from project file'
+                : `Regeneration ran but unresolved tokens remain: ${[...new Set(stillUnresolved)].join(', ')}`,
+        changedFiles: [projectFilePath],
+        rechecked: true,
+    };
+}
+
+/**
  * Execute a single remediation action and return its execution record.
  */
 async function executeSingleFix(
@@ -1723,7 +2095,8 @@ async function executeSingleFix(
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
     silent = false,
-    explicitManifestPath?: string
+    explicitManifestPath?: string,
+    workingDir: string = process.cwd()
 ): Promise<FixExecution> {
     switch (finding.remediationKey) {
         case 'manifest-migration':
@@ -1735,6 +2108,14 @@ async function executeSingleFix(
                 overlaysDir,
                 silent,
                 explicitManifestPath
+            );
+        case 'parameters-regen':
+            return executeParametersRegen(
+                outputPath,
+                overlaysConfig,
+                overlaysDir,
+                workingDir,
+                silent
             );
         case 'node-version-fix':
             return executeNodeVersionFix();
@@ -1866,7 +2247,8 @@ async function executeFixRun(
             overlaysConfig,
             overlaysDir,
             requestedJson,
-            explicitManifestPath
+            explicitManifestPath,
+            workingDir
         );
         executions.push(execution);
 
@@ -1902,6 +2284,7 @@ async function executeFixRun(
     const finalManifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, finalManifestPath);
     const finalDriftChecks = checkProjectFileDrift(overlaysConfig, workingDir, finalManifestPath);
+    const finalParamChecks = checkParameters(overlaysConfig, outputPath, workingDir);
     const finalFindings = [
         ...checksToFindings(envChecks, 'environment', 'environment'),
         ...checksToFindings(manifestChecks, 'manifest', 'manifest'),
@@ -1909,6 +2292,7 @@ async function executeFixRun(
         ...checksToFindings(overlayChecks, 'overlay', 'full'),
         ...checksToFindings(portChecks, 'ports', 'environment'),
         ...checksToFindings(finalDriftChecks, 'manifest', 'manifest'),
+        ...checksToFindings(finalParamChecks, 'manifest', 'full'),
     ];
 
     const summary = buildOutcomeSummary(executions);
@@ -2127,6 +2511,7 @@ export async function doctorCommand(
     const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, manifestPath);
     const driftChecks = checkProjectFileDrift(overlaysConfig, workingDir, manifestPath);
+    const parametersChecks = checkParameters(overlaysConfig, outputPath, workingDir);
 
     // Generate report
     const report = generateReport(
@@ -2135,7 +2520,8 @@ export async function doctorCommand(
         manifestChecks,
         mergeChecks,
         portChecks,
-        driftChecks
+        driftChecks,
+        parametersChecks
     );
 
     if (options.fix) {
