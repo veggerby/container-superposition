@@ -8,5 +8,14 @@
             "label": "Jaeger UI",
             "onAutoForward": "openBrowser"
         }
+    },
+    "remoteEnv": {
+        "OTEL_SERVICE_NAME": "my-service",
+        "OTEL_SERVICE_VERSION": "0.1.0",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://jaeger:4317",
+        "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc",
+        "OTEL_RESOURCE_ATTRIBUTES": "deployment.environment=development",
+        "OTEL_TRACES_SAMPLER": "always_on",
+        "OTEL_TRACES_EXPORTER": "otlp"
     }
 }

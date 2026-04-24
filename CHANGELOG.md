@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`jaeger` overlay** — Jaeger no longer advertises unused legacy ports, so the overlay better matches the OTLP-based setup users actually run
+    - Applications running inside the devcontainer now get OTLP tracing environment variables preconfigured out of the box for Jaeger, including `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`
+    - Jaeger now waits until it is healthy before the devcontainer starts, ensuring the UI is reachable when VS Code opens the browser
+- **`otel-collector` overlay** — Applications in the devcontainer now get OTLP export variables preconfigured for the collector, and telemetry is routed through the collector automatically when `jaeger` and `otel-collector` are used together
 - **`pandoc` overlay** — Unicode PDF generation no longer fails on `\textfallback{}` or when `Noto Sans Symbols 2` is unavailable, including status-icon content like `✅ ⚠️ ❌`
 
 ## [0.1.8] - 2026-04-11
