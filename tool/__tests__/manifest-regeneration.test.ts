@@ -147,4 +147,61 @@ describe('Manifest Regeneration', () => {
         expect(manifest.presetChoices).toBeDefined();
         expect(manifest.presetChoices?.language).toBe('nodejs');
     });
+
+    it('should remove stale scripts/setup-*.sh when an overlay with setup.sh is removed on regen', async () => {
+        const outputPath = path.join(TEST_OUTPUT_DIR, 'test-stale-scripts');
+
+        const baseAnswers: Omit<QuestionnaireAnswers, 'devTools'> = {
+            stack: 'compose',
+            baseImage: 'bookworm',
+            language: [],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            observability: [],
+            outputPath,
+        };
+
+        // Step 1: generate with both nodejs and bun (both have setup.sh)
+        await composeDevContainer({ ...baseAnswers, language: ['nodejs', 'bun'] });
+
+        const setupNodejs = path.join(outputPath, 'scripts', 'setup-nodejs.sh');
+        const setupBun = path.join(outputPath, 'scripts', 'setup-bun.sh');
+        expect(fs.existsSync(setupNodejs)).toBe(true);
+        expect(fs.existsSync(setupBun)).toBe(true);
+
+        // Step 2: regen with bun removed — setup-bun.sh must be cleaned up
+        await composeDevContainer({ ...baseAnswers, language: ['nodejs'] });
+
+        expect(fs.existsSync(setupNodejs)).toBe(true);
+        expect(fs.existsSync(setupBun)).toBe(false);
+    });
+
+    it('should remove scripts/ directory entirely when all script-bearing overlays are removed on regen', async () => {
+        const outputPath = path.join(TEST_OUTPUT_DIR, 'test-stale-scripts-dir');
+
+        const baseAnswers: Omit<QuestionnaireAnswers, 'devTools'> = {
+            stack: 'compose',
+            baseImage: 'bookworm',
+            language: [],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            observability: [],
+            outputPath,
+        };
+
+        // Step 1: generate with nodejs (has setup.sh)
+        await composeDevContainer({ ...baseAnswers, language: ['nodejs'] });
+
+        const scriptsDir = path.join(outputPath, 'scripts');
+        expect(fs.existsSync(path.join(scriptsDir, 'setup-nodejs.sh'))).toBe(true);
+
+        // Step 2: regen with no script-bearing overlays — scripts/ dir must be removed
+        await composeDevContainer({ ...baseAnswers, language: [] });
+
+        expect(fs.existsSync(scriptsDir)).toBe(false);
+    });
 });

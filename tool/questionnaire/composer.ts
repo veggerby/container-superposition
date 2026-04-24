@@ -912,8 +912,36 @@ class FileRegistry {
 }
 
 /**
- * Clean up stale files from previous runs
- * Removes anything not in the registry (except preserved files like superposition.json)
+ * Recursively remove stale files within a registered subdirectory.
+ * Called for directories that ARE in the registry but may contain files from
+ * a previous run that are no longer part of the current generation (e.g.
+ * scripts/setup-rabbitmq.sh after rabbitmq was removed from the project).
+ * Returns the number of files removed.
+ */
+function cleanupStaleDirFiles(dirPath: string, prefix: string, expectedFiles: Set<string>): number {
+    let removed = 0;
+    const entries = fs.readdirSync(dirPath);
+    for (const entry of entries) {
+        const entryPath = path.join(dirPath, entry);
+        const stat = fs.statSync(entryPath);
+        if (stat.isDirectory()) {
+            removed += cleanupStaleDirFiles(entryPath, `${prefix}${entry}/`, expectedFiles);
+        } else {
+            const registryKey = `${prefix}${entry}`;
+            if (!expectedFiles.has(registryKey)) {
+                fs.unlinkSync(entryPath);
+                removed++;
+            }
+        }
+    }
+    return removed;
+}
+
+/**
+ * Clean up stale files from previous runs.
+ * Removes anything not in the registry (except preserved files like superposition.json).
+ * Also recurses into registered subdirectories to remove individual stale files within
+ * them — e.g. scripts/setup-rabbitmq.sh after rabbitmq is removed from the project.
  */
 function cleanupStaleFiles(outputPath: string, registry: FileRegistry): void {
     if (!fs.existsSync(outputPath)) {
@@ -943,10 +971,14 @@ function cleanupStaleFiles(outputPath: string, registry: FileRegistry): void {
                 continue;
             }
 
-            // Remove directory if not in registry
             if (!expectedDirs.has(entry)) {
+                // Remove directory entirely — nothing inside belongs to this run
                 fs.rmSync(entryPath, { recursive: true, force: true });
                 removedCount++;
+            } else {
+                // Directory is still expected, but individual files inside it may be stale
+                // (e.g. scripts/setup-rabbitmq.sh after rabbitmq was removed)
+                removedCount += cleanupStaleDirFiles(entryPath, `${entry}/`, expectedFiles);
             }
         } else {
             // Remove file if not in registry
@@ -2780,19 +2812,18 @@ function mergeSetupScripts(
     const setupScripts: string[] = [];
     const verifyScripts: string[] = [];
 
-    // Create scripts subfolder
     const scriptsDir = path.join(outputPath, 'scripts');
-    if (!fs.existsSync(scriptsDir)) {
-        fs.mkdirSync(scriptsDir, { recursive: true });
-    }
 
-    // Add scripts directory to registry if any scripts will be added
+    // Only create the scripts directory (and register it) if at least one overlay needs it
     const hasScripts = overlays.some(
         (o) =>
             fs.existsSync(path.join(overlaysDir, o, 'setup.sh')) ||
             fs.existsSync(path.join(overlaysDir, o, 'verify.sh'))
     );
     if (hasScripts) {
+        if (!fs.existsSync(scriptsDir)) {
+            fs.mkdirSync(scriptsDir, { recursive: true });
+        }
         fileRegistry.addDirectory('scripts');
         // Emit shared setup utilities so overlay scripts can source them
         const setupUtilsSrc = path.join(TEMPLATES_DIR, 'scripts', 'setup-utils.sh');

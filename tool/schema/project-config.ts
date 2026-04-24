@@ -140,7 +140,10 @@ function buildCategoryLookup(overlaysConfig: OverlaysConfig) {
     return {
         overlayById,
         language: (value: string) => overlayById.get(value)?.category === 'language',
-        database: (value: string) => overlayById.get(value)?.category === 'database',
+        database: (value: string) => {
+            const cat = overlayById.get(value)?.category;
+            return cat === 'database' || cat === 'messaging';
+        },
         observability: (value: string) => overlayById.get(value)?.category === 'observability',
         cloudTools: (value: string) => overlayById.get(value)?.category === 'cloud',
         devTools: (value: string) => overlayById.get(value)?.category === 'dev',

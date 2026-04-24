@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Stale `scripts/` files not removed on regen** — When an overlay with a `setup.sh` or `verify.sh` was removed from a project and `cs regen` was run, any scripts that belonged only to the removed overlay (e.g. `scripts/setup-rabbitmq.sh`) were left behind on disk if at least one other overlay still contributed scripts. The cleanup pass now recurses into registered subdirectories and removes individual stale files within them, not just entire unregistered directories. Additionally, `scripts/` is no longer created eagerly before determining whether any overlay in the current run requires it.
+- **`messaging` overlays rejected by project file validator on regen** — After `rabbitmq`, `nats`, and `redpanda` were moved to the `messaging` category, any project file using the legacy `database:` list field to declare them caused a `ProjectConfigError` that silently aborted `cs regen` before any files were written — leaving the previous `docker-compose.yml` intact. The `database` predicate in `buildCategoryLookup` now accepts both `database` and `messaging` category overlays so existing project files continue to work without migration.
 - **Port conflict declarations** — Added bidirectional `conflicts:` entries for all overlays sharing host ports, preventing silent Docker bind failures at startup:
     - Port 3000: `grafana`, `open-webui`, `nodejs`, `bun`, `rust`
     - Port 8080: `mysql`, `redpanda`, `otel-demo-nodejs`, `nodejs`, `bun`, `go`, `java`, `dotnet`
