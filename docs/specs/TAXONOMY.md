@@ -48,12 +48,12 @@ INFRA            — Project infrastructure (tests, CI, tooling)
 
 ### OVERLAY-NEW
 
-| Spec                                                     | Title                                 | Status   |
-| -------------------------------------------------------- | ------------------------------------- | -------- |
-| [003-mkdocs2-overlay](003-mkdocs2-overlay/spec.md)       | MkDocs 2.x Overlay                    | Final    |
-| [005-cuda-overlay](005-cuda-overlay/spec.md)             | CUDA (NVIDIA GPU) Overlay             | Final    |
-| [006-rocm-overlay](006-rocm-overlay/spec.md)             | ROCm (AMD GPU) Overlay                | Final    |
-| [012-ollama-cli-overlay](012-ollama-cli-overlay/spec.md) | Split Ollama Service and CLI Overlays | Final    |
+| Spec                                                     | Title                                 | Status |
+| -------------------------------------------------------- | ------------------------------------- | ------ |
+| [003-mkdocs2-overlay](003-mkdocs2-overlay/spec.md)       | MkDocs 2.x Overlay                    | Final  |
+| [005-cuda-overlay](005-cuda-overlay/spec.md)             | CUDA (NVIDIA GPU) Overlay             | Final  |
+| [006-rocm-overlay](006-rocm-overlay/spec.md)             | ROCm (AMD GPU) Overlay                | Final  |
+| [012-ollama-cli-overlay](012-ollama-cli-overlay/spec.md) | Split Ollama Service and CLI Overlays | Final  |
 
 ### OVERLAY-ENRICH
 
@@ -81,8 +81,8 @@ _No specs yet._
 
 ### COMPOSER-FEAT
 
-| Spec                                                                       | Title                                               | Status       |
-| -------------------------------------------------------------------------- | --------------------------------------------------- | ------------ |
+| Spec                                                                       | Title                                               | Status   |
+| -------------------------------------------------------------------------- | --------------------------------------------------- | -------- |
 | [010-compose-env-materialization](010-compose-env-materialization/spec.md) | Compose Env Materialization and Env Template Naming | Approved |
 
 ### COMPOSER-FIX
@@ -115,20 +115,20 @@ _No specs yet._
 
 ### CLI-FLAG
 
-| Spec                                                               | Title                   | Status |
-| ------------------------------------------------------------------ | ----------------------- | ------ |
-| [007-target-aware-generation](007-target-aware-generation/spec.md) | Target-Aware Generation | Final  |
+| Spec                                                               | Title                         | Status |
+| ------------------------------------------------------------------ | ----------------------------- | ------ |
+| [007-target-aware-generation](007-target-aware-generation/spec.md) | Target-Aware Generation       | Final  |
 | [017-doctor-dry-run](017-doctor-dry-run/spec.md)                   | Doctor `--fix --dry-run` Flag | Draft  |
 
 ### CLI-UX
 
-| Spec                                                                                                       | Title                                           | Status |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------ |
-| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                                   | Verbose Plan Graph                              | Final  |
-| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                                         | Doctor Overlay Dependency Resolution Check      | Draft  |
-| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md)               | Doctor Compose / Port Cross-Validation          | Draft  |
-| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                                       | Doctor `.env.example` Drift Detection           | Draft  |
-| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                               | Doctor Reproducibility Check                    | Draft  |
+| Spec                                                                                         | Title                                      | Status |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------ | ------ |
+| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                     | Verbose Plan Graph                         | Final  |
+| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                           | Doctor Overlay Dependency Resolution Check | Draft  |
+| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md) | Doctor Compose / Port Cross-Validation     | Draft  |
+| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                         | Doctor `.env.example` Drift Detection      | Draft  |
+| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                 | Doctor Reproducibility Check               | Draft  |
 
 ---
 

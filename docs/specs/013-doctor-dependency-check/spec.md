@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Draft
+**Status**: Approved
 **Input**: Feature assessment — `cs doctor` does not validate that selected overlays satisfy their own dependency requirements; missing `requires:` entries are only caught at regen time.
 
 ## Problem Statement
@@ -62,8 +62,8 @@ Registered in `REMEDIATION_REGISTRY`:
 - **Safety class**: `safe-unattended`
 - **Execution kind**: `regeneration`
 - **Planned changes**:
-  - "Add missing required overlay(s) to project file"
-  - "Regenerate devcontainer configuration from updated project file"
+    - "Add missing required overlay(s) to project file"
+    - "Regenerate devcontainer configuration from updated project file"
 
 `executeDependencyFix(outputPath, overlaysConfig, overlaysDir, workingDir, silent)`:
 
@@ -88,11 +88,11 @@ suppresses the section entirely if all pass.
 
 ### Affected files
 
-| File                              | Change                                                  |
-| --------------------------------- | ------------------------------------------------------- |
+| File                              | Change                                                                                                                       |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `tool/commands/doctor.ts`         | Add `checkDependencies()`, `executeDependencyFix()`, wire into report infrastructure, `REMEDIATION_REGISTRY`, `PRIORITY` map |
-| `tool/__tests__/commands.test.ts` | Tests for unknown overlay, missing required, suggestion warn, fix action |
-| `CHANGELOG.md`                    | Entry under `### Added`                                 |
+| `tool/__tests__/commands.test.ts` | Tests for unknown overlay, missing required, suggestion warn, fix action                                                     |
+| `CHANGELOG.md`                    | Entry under `### Added`                                                                                                      |
 
 ### User-visible behaviour
 
@@ -231,13 +231,20 @@ suggestion, no failures.
 
 ## Open Questions
 
-| #   | Question                                                                         | Owner | Resolution |
-| --- | -------------------------------------------------------------------------------- | ----- | ---------- |
+| #   | Question                                                                        | Owner | Resolution                                       |
+| --- | ------------------------------------------------------------------------------- | ----- | ------------------------------------------------ |
 | 1   | Should transitive `suggests` (suggests of suggests) be surfaced or only direct? | PM    | Pending — lean toward direct only to avoid noise |
-| 2   | Should `dependency-fix` add suggested overlays when user passes `--suggest`?     | PM    | Pending    |
+| 2   | Should `dependency-fix` add suggested overlays when user passes `--suggest`?    | PM    | Pending                                          |
 
 ## Out of Scope
 
 - Changing the dependency resolver in `composer.ts`.
 - Validating that `conflicts:` declarations are bidirectional (already covered by `overlay-consistency` agent).
 - Surfacing overlay version constraints (overlays don't have versions today).
+
+## Implementation Notes
+
+- `checkDependencies` reads raw YAML as a fallback when `loadProjectConfig` throws for unknown overlay IDs, allowing the check to detect the unknown ID itself.
+- Comparison is against `projectFileSet` (the overlay IDs explicitly listed in the project file), not the resolved set — otherwise transitive auto-resolved dependencies would always appear satisfied.
+- `suggests` mismatches are surfaced as `warn`; `requires` mismatches as `fail` with `fixable: true` and remediation key `dependency-fix`.
+- The Dependencies section in `formatAsText` shows the pass summary alongside any suggestion warnings (i.e., the pass line is shown when there are no `fail` results, even if `warn` results exist).

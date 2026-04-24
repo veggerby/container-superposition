@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Draft
+**Status**: Approved
 **Input**: Feature assessment — `cs doctor` does not detect when `.env.example` is stale: missing keys for parameters added by new overlays, or keys left over from overlays that were removed.
 
 ## Problem Statement
@@ -72,7 +72,7 @@ Registered in `REMEDIATION_REGISTRY`:
 - **Safety class**: `safe-unattended`
 - **Execution kind**: `regeneration`
 - **Planned changes**:
-  - "Regenerate `.env.example` from current overlay selection"
+    - "Regenerate `.env.example` from current overlay selection"
 
 `executeEnvExampleRegen(outputPath, overlaysConfig, overlaysDir, workingDir, silent)`:
 
@@ -94,6 +94,7 @@ is safe because `.env.example` is a committed template, not a secrets file.
 `formatAsText()` gains a ".env.example Drift" section; suppressed if all pass.
 
 `reportToFindings()` adds:
+
 ```typescript
 ...checksToFindings(report.envExampleDrift, 'manifest', 'full'),
 ```
@@ -102,11 +103,11 @@ is safe because `.env.example` is a committed template, not a secrets file.
 
 ### Affected files
 
-| File                              | Change                                                                     |
-| --------------------------------- | -------------------------------------------------------------------------- |
+| File                              | Change                                                                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `tool/commands/doctor.ts`         | Add `checkEnvExampleDrift()`, `executeEnvExampleRegen()`, wire into report infrastructure, `REMEDIATION_REGISTRY`, `PRIORITY` map |
-| `tool/__tests__/commands.test.ts` | Tests for: missing key (fail), stale key (warn), in-sync (pass), fix action |
-| `CHANGELOG.md`                    | Entry under `### Added`                                                    |
+| `tool/__tests__/commands.test.ts` | Tests for: missing key (fail), stale key (warn), in-sync (pass), fix action                                                       |
+| `CHANGELOG.md`                    | Entry under `### Added`                                                                                                           |
 
 ### User-visible behaviour
 
@@ -228,14 +229,20 @@ contains `REDIS_PASSWORD`. Run `doctorCommand`. Assert `warn` finding for `REDIS
 
 ## Open Questions
 
-| #   | Question                                                                                  | Owner | Resolution |
-| --- | ----------------------------------------------------------------------------------------- | ----- | ---------- |
+| #   | Question                                                                                  | Owner | Resolution                                                                           |
+| --- | ----------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
 | 1   | Should missing `.env.example` keys be `fail` or `warn`? Missing required params are fail; | PM    | Pending — lean toward `fail` for keys with no default, `warn` for keys with defaults |
-|     | but all parameters already have defaults (required-without-default is a separate check)  |       |            |
-| 2   | Should section header comments be preserved when regenerating `.env.example`?             | PM    | The composer already handles this; not a new concern |
+|     | but all parameters already have defaults (required-without-default is a separate check)   |       |                                                                                      |
+| 2   | Should section header comments be preserved when regenerating `.env.example`?             | PM    | The composer already handles this; not a new concern                                 |
 
 ## Out of Scope
 
 - Validating values in the user's runtime `.env` file.
 - Checking whether `.env` is listed in `.gitignore`.
 - Detecting drift in `devcontainer.json` `remoteEnv` (that is covered by the parameters check).
+
+## Implementation Notes
+
+- `checkEnvExampleDrift` uses `collectOverlayParameters` to get the declared parameter set for the selected overlays, then diffs against lines parsed from the existing `.env.example`.
+- The check returns early (no findings) when `.env.example` is absent — the parameters check is responsible for detecting its absence when required.
+- `executeEnvExampleRegen` calls `composeDevContainer` with `isRegen: false` writing only to the output path, then re-reads `.env.example` to verify the file was produced.

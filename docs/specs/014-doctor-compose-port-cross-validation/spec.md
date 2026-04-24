@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Draft
+**Status**: Approved
 **Input**: Feature assessment — `cs doctor` does not cross-check that ports declared in `devcontainer.json` `forwardPorts` match ports actually exposed by Docker Compose services, nor that compose service ports are accessible through the devcontainer configuration.
 
 ## Problem Statement
@@ -62,6 +62,7 @@ Parse `docker-compose.yml` from `outputPath`. For each service, collect:
   devcontainer network).
 
 Build two sets:
+
 - `boundPorts` — ports present in `ports:` (host-forwarded)
 - `exposedPorts` — ports present in `expose:` only (container-internal)
 
@@ -95,6 +96,7 @@ the section is suppressed entirely if all checks pass (matching the conventions 
 `dependencies` and `parameters` sections).
 
 `reportToFindings()` adds:
+
 ```typescript
 ...checksToFindings(report.portCrossValidation, 'ports', 'full'),
 ```
@@ -109,25 +111,25 @@ the section is suppressed entirely if all checks pass (matching the conventions 
 The normalisation helper `parseContainerPort(entry: string | number): number | null` extracts
 the container-side port from any `ports:` or `forwardPorts:` entry format:
 
-| Input                  | Result |
-| ---------------------- | ------ |
-| `5432`                 | `5432` |
-| `"5432"`               | `5432` |
-| `"5432/tcp"`           | `5432` |
-| `"5433:5432"`          | `5432` |
-| `"5433:5432/tcp"`      | `5432` |
-| `{ target: 5432 }`     | `5432` |
-| `"0.0.0.0:5433:5432"`  | `5432` |
+| Input                 | Result |
+| --------------------- | ------ |
+| `5432`                | `5432` |
+| `"5432"`              | `5432` |
+| `"5432/tcp"`          | `5432` |
+| `"5433:5432"`         | `5432` |
+| `"5433:5432/tcp"`     | `5432` |
+| `{ target: 5432 }`    | `5432` |
+| `"0.0.0.0:5433:5432"` | `5432` |
 
 Returns `null` for unparseable entries (log a warning, skip the entry).
 
 ### Affected files
 
-| File                              | Change                                                         |
-| --------------------------------- | -------------------------------------------------------------- |
-| `tool/commands/doctor.ts`         | Add `checkPortCrossValidation()`, `parseContainerPort()`, wire into report infrastructure, `PRIORITY` map |
+| File                              | Change                                                                                                                      |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `tool/commands/doctor.ts`         | Add `checkPortCrossValidation()`, `parseContainerPort()`, wire into report infrastructure, `PRIORITY` map                   |
 | `tool/__tests__/commands.test.ts` | Tests for: no compose stack (skip), matching ports (pass), forward-only port (fail), bound-only port (warn), mixed scenario |
-| `CHANGELOG.md`                    | Entry under `### Added`                                        |
+| `CHANGELOG.md`                    | Entry under `### Added`                                                                                                     |
 
 ### User-visible behaviour
 
@@ -255,9 +257,9 @@ gracefully.
 
 ## Open Questions
 
-| #   | Question                                                                              | Owner | Resolution |
-| --- | ------------------------------------------------------------------------------------- | ----- | ---------- |
-| 1   | Should bound-but-not-forwarded ports be `warn` or `info`? Both options are defensible | PM    | Pending — lean toward `warn` to surface it visibly |
+| #   | Question                                                                              | Owner | Resolution                                              |
+| --- | ------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------- |
+| 1   | Should bound-but-not-forwarded ports be `warn` or `info`? Both options are defensible | PM    | Pending — lean toward `warn` to surface it visibly      |
 | 2   | Should `--fix` add missing `forwardPorts` entries by patching the project file?       | PM    | Pending — deferred; unclear which overlay owns the port |
 
 ## Out of Scope
@@ -266,3 +268,9 @@ gracefully.
 - Modifying how `composer.ts` generates `forwardPorts`.
 - Validating that overlay-level port declarations match compose file declarations (that is the
   overlay-reviewer agent's job).
+
+## Implementation Notes
+
+- `parseContainerPort` strips protocol suffixes (`/tcp`, `/udp`) and range notation (`8080-8090`), returning the numeric port or `null` for non-numeric values.
+- The check skips early when `docker-compose.yml` is absent in the output path (compose-only feature).
+- `js-yaml` is imported statically at the top of `doctor.ts` (was previously a dynamic import in `checkPortCrossValidation`, which caused an `await` in a synchronous function — fixed by moving to a top-level static import).

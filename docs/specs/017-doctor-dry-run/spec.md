@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-FLAG`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Draft
+**Status**: Approved
 **Input**: Feature assessment — `cs doctor --fix` applies changes immediately with no preview; users have no way to understand what would change before committing to auto-repair.
 
 ## Problem Statement
@@ -42,11 +42,13 @@ writing anything, enabling confident use of `--fix`.
 `doctor` gains a new option: `--dry-run` (boolean, default `false`).
 
 The Commander declaration:
+
 ```typescript
 .option('--dry-run', 'Show what --fix would change without writing anything')
 ```
 
 Validation: if `--dry-run` is set but `--fix` is not set, print an error and exit:
+
 ```
 Error: --dry-run requires --fix. Use: cs doctor --fix --dry-run
 ```
@@ -71,10 +73,12 @@ When `--fix --dry-run` is used:
 `executeFixRun(findings, options)` gains a `dryRun: boolean` parameter (default `false`).
 
 When `dryRun` is `true`:
+
 - Skip all `executeSingleFix()` calls.
 - Return a summary marked as `{ dryRun: true, plannedActions: RemediationPlan[] }`.
 
 `RemediationPlan` (new type):
+
 ```typescript
 interface RemediationPlan {
     findingName: string;
@@ -116,6 +120,7 @@ Findings that require manual action (not auto-fixable):
 ```
 
 When there are no auto-fixable findings:
+
 ```
 Doctor dry-run — no auto-fixable findings. Nothing to apply.
 ```
@@ -123,6 +128,7 @@ Doctor dry-run — no auto-fixable findings. Nothing to apply.
 ### JSON output (--format json)
 
 When `--format json` is used with `--fix --dry-run`, the JSON output gains a `dryRun` key:
+
 ```json
 {
   "dryRun": true,
@@ -140,20 +146,20 @@ When `--format json` is used with `--fix --dry-run`, the JSON output gains a `dr
 
 ### Exit codes
 
-| Scenario                                                 | Exit code |
-| -------------------------------------------------------- | --------- |
-| Dry-run with auto-fixable findings                       | `1`       |
-| Dry-run with only manual findings (no auto-fixable)      | `1`       |
-| Dry-run with no findings at all (everything passes)      | `0`       |
-| `--dry-run` without `--fix` (invalid combination)        | `1`       |
+| Scenario                                            | Exit code |
+| --------------------------------------------------- | --------- |
+| Dry-run with auto-fixable findings                  | `1`       |
+| Dry-run with only manual findings (no auto-fixable) | `1`       |
+| Dry-run with no findings at all (everything passes) | `0`       |
+| `--dry-run` without `--fix` (invalid combination)   | `1`       |
 
 ### Affected files
 
-| File                              | Change                                                                       |
-| --------------------------------- | ---------------------------------------------------------------------------- |
-| `tool/commands/doctor.ts`         | Add `--dry-run` option, `RemediationPlan` type, dry-run branch in `executeFixRun`, dry-run output section in `formatAsText` |
+| File                              | Change                                                                                                                                              |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tool/commands/doctor.ts`         | Add `--dry-run` option, `RemediationPlan` type, dry-run branch in `executeFixRun`, dry-run output section in `formatAsText`                         |
 | `tool/__tests__/commands.test.ts` | Tests for: dry-run output lists planned actions, no writes occur, exit code 1 with findings, exit code 0 clean, invalid `--dry-run` without `--fix` |
-| `CHANGELOG.md`                    | Entry under `### Added`                                                      |
+| `CHANGELOG.md`                    | Entry under `### Added`                                                                                                                             |
 
 ### User-visible behaviour
 
@@ -250,14 +256,21 @@ changes, forcing the developer to run `cs doctor --fix` locally before merging.
 
 ## Open Questions
 
-| #   | Question                                                                                   | Owner | Resolution |
-| --- | ------------------------------------------------------------------------------------------ | ----- | ---------- |
-| 1   | Should `--dry-run` show a file-level diff of generated output (e.g. what regen would add  | PM    | Pending — defer; full diff requires dry compose which is expensive. Leave for a follow-up |
-|     | to devcontainer.json)?                                                                     |       |            |
-| 2   | Should `--dry-run` without `--fix` be silently ignored instead of an error?                | PM    | Pending — lean toward error: the combination is meaningless and should be caught early |
+| #   | Question                                                                                 | Owner | Resolution                                                                                |
+| --- | ---------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------- |
+| 1   | Should `--dry-run` show a file-level diff of generated output (e.g. what regen would add | PM    | Pending — defer; full diff requires dry compose which is expensive. Leave for a follow-up |
+|     | to devcontainer.json)?                                                                   |       |                                                                                           |
+| 2   | Should `--dry-run` without `--fix` be silently ignored instead of an error?              | PM    | Pending — lean toward error: the combination is meaningless and should be caught early    |
 
 ## Out of Scope
 
 - File-content diffing (showing before/after for generated files).
 - Partial dry-run (dry-running only some fix actions).
 - Storing the dry-run plan to a file for later application.
+
+## Implementation Notes
+
+- `executeFixRun` gains a `dryRun: boolean` parameter (default `false`); when true it skips all `executeSingleFix` calls and returns the planned actions without writing anything.
+- The `RemediationPlan` interface is defined in `doctor.ts` with fields `findingName`, `remediationKey`, `plannedChanges`, and `safetyClass`.
+- The dry-run branch in `doctorCommand` runs before the normal fix branch; `--dry-run` without `--fix` exits immediately with code 1 and an error message.
+- Exit code for dry-run with any findings (auto-fixable or manual) is `1`; exit code `0` only when all checks pass.
