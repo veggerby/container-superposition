@@ -12,5 +12,7 @@ tags:
     - documentation
     - mkdocs
     - python
+imports:
+    - .shared/vscode/markdown-extensions.json
 ports:
     - 8000

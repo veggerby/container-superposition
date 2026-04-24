@@ -10,6 +10,17 @@ suggests:
     - grafana
 conflicts: []
 serviceOrder: 0
+parameters:
+    REDIS_VERSION:
+        description: Redis image version tag
+        default: '7'
+    REDIS_PORT:
+        description: Host port mapped to Redis (6379 inside container)
+        default: '6379'
+    REDIS_PASSWORD:
+        description: Redis password (leave empty to disable authentication)
+        default: ''
+        sensitive: true
 tags:
     - database
     - cache

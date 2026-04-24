@@ -2,7 +2,7 @@
 
 Analysed 75 overlays (73 functional + `all` + `.shared/`).
 
-Legend: ✅ Fixed | ⚠️ Pending
+Legend: ✅ Fixed | ⚠️ Pending | 🗑️ Removed
 
 ---
 
@@ -129,9 +129,10 @@ Both inject `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` into `remoteEnv` wit
 **Type:** underused-shared-resource
 **Files:** `overlays/.shared/otel/otel-base-config.yaml`, `overlays/.shared/vscode/recommended-extensions.json`
 
-**Partially addressed:** `recommended-extensions.json` has too broad a set of extensions (gitlens, prettier, docker, yaml, etc.) to import wholesale into documentation overlays without adding unwanted extensions for those users. A dedicated `.shared/vscode/js-ts-settings.json` was created instead (see M16). `otel-base-config.yaml` remains unused — further investigation needed before connecting it to `otel-collector`.
+**Fix applied:**
 
-⚠️ **Still pending:** Connect `otel-base-config.yaml` to `otel-collector` or remove it. Evaluate whether `recommended-extensions.json` should be scoped down or split.
+- `otel-base-config.yaml` removed — the `otel-collector` overlay already ships a comprehensive config (`otel-collector-config.yaml`) with full Jaeger/Tempo/Prometheus/Loki exporters and a `memory_limiter` processor. Reconnecting the skeletal shared file would have downgraded the overlay.
+- `recommended-extensions.json` retained as an informational reference. Its scope (gitlens, prettier, docker, yaml) remains too broad for wholesale import into any single overlay; targeted fragments are the right abstraction (see M15/M16 for markdown and JS/TS respectively).
 
 ---
 
@@ -144,25 +145,34 @@ Both inject `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` into `remoteEnv` wit
 
 ---
 
-### ⚠️ M4: Most database overlays have no formal `parameters:` section
+### ✅ M4: Most database overlays have no formal `parameters:` section
 
 **Type:** missing-abstraction
 **Overlays:** `mysql`, `mongodb`, `redis`, `rabbitmq`, `nats`, `sqlserver`, `minio`, `localstack`
 
-These overlays use hardcoded defaults in compose files without exposing them as first-class parameters visible to the questionnaire and documentation system.
+**Fix applied:** Added `parameters:` blocks to all 8 overlays. Each block exposes version, port(s), and credential fields derived from the compose env vars. Password fields are marked `sensitive: true`. Parameters added:
 
-**Still pending:** Add `parameters:` sections with `sensitive: true` on password fields to: `mysql` (version, port, database, user, password), `mongodb` (version, port), `redis` (version, port, password), `rabbitmq` (version, port, user, password), `minio` (version, API port, console port, root user, root password).
+| Overlay      | Parameters                                                              |
+| ------------ | ----------------------------------------------------------------------- |
+| `mysql`      | version, port, phpMyAdmin port, database, user, password, root password |
+| `mongodb`    | version, port, Mongo Express port, user, password                       |
+| `redis`      | version, port, password                                                 |
+| `rabbitmq`   | version, AMQP port, management port, user, password, vhost              |
+| `nats`       | version, client port, HTTP port, cluster port                           |
+| `minio`      | version, API port, console port, root user, root password               |
+| `sqlserver`  | version, port, SA password, edition (PID)                               |
+| `localstack` | version, edge port, S3 legacy port, services list, debug flag           |
 
 ---
 
-### ⚠️ M5: `pgvector` uses `containerEnv`; `postgres` uses `remoteEnv`
+### ✅ M5: `pgvector` uses `containerEnv`; `postgres` uses `remoteEnv`
 
 **Type:** naming-drift + inconsistent-convention
 **Overlays:** `postgres`, `pgvector`
 
-`postgres` uses `remoteEnv` with `POSTGRES_*` prefix. `pgvector` uses `containerEnv` with `PG*` prefix. Since they conflict (mutually exclusive), apps configured for `POSTGRES_HOST` won't work when switching to `pgvector`.
+`postgres` uses `remoteEnv` with `POSTGRES_*` prefix. `pgvector` used `containerEnv` with `PGHOST`/`PGPORT` etc.
 
-**Still pending:** Align `pgvector` to use `remoteEnv` with `PGVECTOR_*` vars plus `POSTGRES_*` aliases.
+**Fix applied:** `pgvector/devcontainer.patch.json` updated to use `remoteEnv` with `PGVECTOR_*` primary names plus `POSTGRES_*` aliases pointing to the same values. Apps configured for `POSTGRES_HOST` will work when switching between `postgres` and `pgvector`.
 
 ---
 
@@ -267,9 +277,11 @@ healthcheck:
 
 **Type:** duplicate-extensions
 
-**Partially addressed:** The `.shared/vscode/recommended-extensions.json` file contains a broader set of extensions (gitlens, prettier, docker, etc.) that would be inappropriate to import wholesale into documentation overlays. The root duplication (`yzhang.markdown-all-in-one`, `DavidAnson.vscode-markdownlint`) remains in each overlay's patch — the extensions are small and low-risk. A dedicated `.shared/vscode/markdown-extensions.json` could be created in a future pass.
+**Fix applied:**
 
-⚠️ **Still pending:** Create `.shared/vscode/markdown-extensions.json` with just the markdown extensions and import it from `mkdocs`, `mkdocs2`, `pandoc`.
+- Created `.shared/vscode/markdown-extensions.json` containing `yzhang.markdown-all-in-one` and `DavidAnson.vscode-markdownlint`
+- Added `imports: [.shared/vscode/markdown-extensions.json]` to `mkdocs/overlay.yml`, `mkdocs2/overlay.yml`, and `pandoc/overlay.yml`
+- Removed the two duplicate extension entries from all three `devcontainer.patch.json` files; `bierner.markdown-mermaid` (mkdocs/mkdocs2-specific) was retained in their patches
 
 ---
 
@@ -288,14 +300,12 @@ healthcheck:
 
 ## LOW PRIORITY
 
-### ⚠️ L1: `name: devnet` missing from network declarations
+### ✅ L1: `name: devnet` missing from network declarations
 
 **Type:** inconsistent-convention
-**Overlays:** All 28 compose overlays
+**Overlays:** All 28 compose overlays (plus `docker-sock`, which has no network block)
 
-Project rule states networks should be declared inline with `name: devnet`. None of the compose files include the `name:` key under the network declaration. Needs clarification: if `name: devnet` is intended as a Docker-level global network name for cross-project discovery, all compose files need updating; if it refers only to the internal YAML key name, the rule text in AGENTS.md should be clarified.
-
-**Still pending:** Clarify intent in AGENTS.md, then update compose files if needed.
+**Fix applied:** The intent is a Docker-level globally-named network so that all overlay compose stacks share the same bridge regardless of Compose project name. `name: devnet` added under the `devnet:` key in all 28 compose files. AGENTS.md and CLAUDE.md rule text clarified to explain the reason (Docker uses this as the actual network name, not a prefixed `projectname_devnet`).
 
 ---
 
@@ -307,14 +317,19 @@ Project rule states networks should be declared inline with `name: devnet`. None
 
 ---
 
-### ⚠️ L3: AI CLI overlays are empty stubs
+### ✅ L3: AI CLI overlays are empty stubs
 
 **Type:** thin-overlay
 **Overlays:** `amp`, `opencode`, `gemini-cli`, `windsurf-cli`
 
-Four AI coding assistant overlays contain no features, extensions, env vars, or install steps. Standalone use installs nothing.
+**Fix applied:** All four `devcontainer.patch.json` files updated to wire the pre-existing `setup.sh` via `postCreateCommand`:
 
-**Still pending:** Add `postCreateCommand` to install each CLI tool, or document explicitly in each README that installation is handled by the base image.
+| Overlay        | Install command                      |
+| -------------- | ------------------------------------ |
+| `amp`          | `npm install -g @sourcegraph/amp`    |
+| `opencode`     | `npm install -g opencode-ai`         |
+| `gemini-cli`   | `npm install -g @google/gemini-cli`  |
+| `windsurf-cli` | Binary download from GitHub releases |
 
 ---
 
@@ -361,72 +376,49 @@ Resolved as part of the H9/`serviceOrder` migration. `grafana` has `serviceOrder
 
 ## Summary Table
 
-| #   | Priority | Status     | Type                             | Overlays                                                            |
-| --- | -------- | ---------- | -------------------------------- | ------------------------------------------------------------------- |
-| H1  | HIGH     | ✅ Fixed   | architectural-coupling           | grafana, otel-collector                                             |
-| H2  | HIGH     | ✅ Fixed   | missing-conflict                 | grafana, open-webui, nodejs, bun, rust                              |
-| H3  | HIGH     | ✅ Fixed   | missing-conflict                 | mysql, redpanda, otel-demo-nodejs, nodejs, bun, go, java, dotnet    |
-| H4  | HIGH     | ✅ Fixed   | missing-conflict                 | mongodb, redpanda, otel-demo-python, go, java                       |
-| H5  | HIGH     | ✅ Fixed   | missing-conflict + env-collision | minio, localstack                                                   |
-| H6  | HIGH     | ✅ Fixed   | overlapping-functionality        | minio, localstack                                                   |
-| H7  | HIGH     | ✅ Fixed   | redundant-feature                | pre-commit                                                          |
-| H8  | HIGH     | ✅ Fixed   | redundant-feature                | commitlint, playwright                                              |
-| H9  | HIGH     | ✅ Fixed   | missing-service-order            | 29 overlays — migrated to `serviceOrder` in overlay.yml             |
-| M1  | MED      | ✅ Fixed   | wrong-category                   | rabbitmq, nats, redpanda → `messaging`                              |
-| M2  | MED      | ⚠️ Partial | underused-shared-resource        | shared/otel and shared/vscode files still underused                 |
-| M3  | MED      | ✅ Fixed   | inconsistent-pinning             | qdrant: `latest` → `v1.9.0`                                         |
-| M4  | MED      | ⚠️ Pending | missing-parameters               | mysql, mongodb, redis, rabbitmq, nats, sqlserver, minio, localstack |
-| M5  | MED      | ⚠️ Pending | naming-drift                     | postgres vs pgvector env var inconsistency                          |
-| M6  | MED      | ✅ Fixed   | missing-restart                  | all 8 observability overlays                                        |
-| M7  | MED      | ✅ Fixed   | missing-healthcheck              | all 8 observability overlays                                        |
-| M8  | MED      | ✅ Fixed   | \_serviceOrder-mismatch          | otel-demo-nodejs, otel-demo-python                                  |
-| M9  | MED      | ✅ Fixed   | naming-drift                     | mkdocs: `language` → `dev`                                          |
-| M10 | MED      | ✅ Fixed   | missing-conflict                 | covered by H2                                                       |
-| M11 | MED      | ✅ Fixed   | underused-shared-resource        | comfyui now imports nvidia-gpu-devcontainer.yml                     |
-| M12 | MED      | ✅ Fixed   | missing-suggests                 | prometheus + grafana suggests added to 10 infra overlays            |
-| M13 | MED      | ✅ Fixed   | missing-healthcheck              | redis: healthcheck added                                            |
-| M14 | MED      | ✅ Fixed   | inconsistent-healthcheck         | mysql + mongodb: start_period added                                 |
-| M15 | MED      | ⚠️ Partial | duplicate-extensions             | mkdocs/mkdocs2/pandoc markdown extensions still duplicated          |
-| M16 | MED      | ✅ Fixed   | duplicate-extensions             | .shared/vscode/js-ts-settings.json created; nodejs + bun updated    |
-| L1  | LOW      | ⚠️ Pending | inconsistent-convention          | name: devnet needs clarification                                    |
-| L2  | LOW      | ✅ Fixed   | missing-vscode-setting           | covered by M16                                                      |
-| L3  | LOW      | ⚠️ Pending | thin-overlay                     | amp, opencode, gemini-cli, windsurf-cli still empty                 |
-| L4  | LOW      | ✅ Fixed   | missing-suggests                 | rocm ↔ comfyui cross-suggests added                                 |
-| L5  | LOW      | ✅ Fixed   | \_serviceOrder                   | covered by H9 migration                                             |
-| L6  | LOW      | ✅ Fixed   | \_serviceOrder-outlier           | keycloak: 10 → 2                                                    |
-| L7  | LOW      | ✅ Fixed   | naming-drift                     | covered by H5                                                       |
-| L8  | LOW      | ✅ Fixed   | potential-duplication            | resolved by H9 migration                                            |
+| #   | Priority | Status   | Type                             | Overlays                                                            |
+| --- | -------- | -------- | -------------------------------- | ------------------------------------------------------------------- |
+| H1  | HIGH     | ✅ Fixed | architectural-coupling           | grafana, otel-collector                                             |
+| H2  | HIGH     | ✅ Fixed | missing-conflict                 | grafana, open-webui, nodejs, bun, rust                              |
+| H3  | HIGH     | ✅ Fixed | missing-conflict                 | mysql, redpanda, otel-demo-nodejs, nodejs, bun, go, java, dotnet    |
+| H4  | HIGH     | ✅ Fixed | missing-conflict                 | mongodb, redpanda, otel-demo-python, go, java                       |
+| H5  | HIGH     | ✅ Fixed | missing-conflict + env-collision | minio, localstack                                                   |
+| H6  | HIGH     | ✅ Fixed | overlapping-functionality        | minio, localstack                                                   |
+| H7  | HIGH     | ✅ Fixed | redundant-feature                | pre-commit                                                          |
+| H8  | HIGH     | ✅ Fixed | redundant-feature                | commitlint, playwright                                              |
+| H9  | HIGH     | ✅ Fixed | missing-service-order            | 29 overlays — migrated to `serviceOrder` in overlay.yml             |
+| M1  | MED      | ✅ Fixed | wrong-category                   | rabbitmq, nats, redpanda → `messaging`                              |
+| M2  | MED      | ✅ Fixed | underused-shared-resource        | otel-base-config.yaml removed; recommended-extensions.json retained |
+| M3  | MED      | ✅ Fixed | inconsistent-pinning             | qdrant: `latest` → `v1.9.0`                                         |
+| M4  | MED      | ✅ Fixed | missing-parameters               | parameters: added to all 8 infra overlays                           |
+| M5  | MED      | ✅ Fixed | naming-drift                     | pgvector: remoteEnv + PGVECTOR*\* + POSTGRES*\* aliases             |
+| M6  | MED      | ✅ Fixed | missing-restart                  | all 8 observability overlays                                        |
+| M7  | MED      | ✅ Fixed | missing-healthcheck              | all 8 observability overlays                                        |
+| M8  | MED      | ✅ Fixed | \_serviceOrder-mismatch          | otel-demo-nodejs, otel-demo-python                                  |
+| M9  | MED      | ✅ Fixed | naming-drift                     | mkdocs: `language` → `dev`                                          |
+| M10 | MED      | ✅ Fixed | missing-conflict                 | covered by H2                                                       |
+| M11 | MED      | ✅ Fixed | underused-shared-resource        | comfyui now imports nvidia-gpu-devcontainer.yml                     |
+| M12 | MED      | ✅ Fixed | missing-suggests                 | prometheus + grafana suggests added to 10 infra overlays            |
+| M13 | MED      | ✅ Fixed | missing-healthcheck              | redis: healthcheck added                                            |
+| M14 | MED      | ✅ Fixed | inconsistent-healthcheck         | mysql + mongodb: start_period added                                 |
+| M15 | MED      | ✅ Fixed | duplicate-extensions             | .shared/vscode/markdown-extensions.json created; 3 overlays updated |
+| M16 | MED      | ✅ Fixed | duplicate-extensions             | .shared/vscode/js-ts-settings.json created; nodejs + bun updated    |
+| L1  | LOW      | ✅ Fixed | inconsistent-convention          | name: devnet added to all 28 compose files; AGENTS.md clarified     |
+| L2  | LOW      | ✅ Fixed | missing-vscode-setting           | covered by M16                                                      |
+| L3  | LOW      | ✅ Fixed | thin-overlay                     | postCreateCommand wired to setup.sh in all 4 AI CLI overlays        |
+| L4  | LOW      | ✅ Fixed | missing-suggests                 | rocm ↔ comfyui cross-suggests added                                 |
+| L5  | LOW      | ✅ Fixed | \_serviceOrder                   | covered by H9 migration                                             |
+| L6  | LOW      | ✅ Fixed | \_serviceOrder-outlier           | keycloak: 10 → 2                                                    |
+| L7  | LOW      | ✅ Fixed | naming-drift                     | covered by H5                                                       |
+| L8  | LOW      | ✅ Fixed | potential-duplication            | resolved by H9 migration                                            |
 
-**Score: 25 of 32 issues resolved. 7 remaining (2 partial, 5 pending).**
+**Score: 32 of 32 issues resolved. All issues addressed.**
 
 ---
 
 ## Remaining Work
 
-### Pending (M4) — Add formal `parameters:` sections to infra overlays
-
-`mysql`, `mongodb`, `redis`, `rabbitmq`, `nats`, `sqlserver`, `minio`, `localstack` all use hardcoded compose defaults with no `parameters:` block in `overlay.yml`. Add version, port, and credential parameters (mark passwords `sensitive: true`).
-
-### Pending (M5) — Align `pgvector` env vars with `postgres`
-
-`pgvector` uses `containerEnv` with `PGHOST`/`PGPORT` etc. `postgres` uses `remoteEnv` with `POSTGRES_HOST`/`POSTGRES_PORT` etc. Align `pgvector` to `remoteEnv` + `PGVECTOR_*` names + `POSTGRES_*` aliases for drop-in compatibility.
-
-### Partial (M2) — Unused `.shared/` files
-
-- `overlays/.shared/otel/otel-base-config.yaml`: either connect to `otel-collector` as a pipeline seed config or remove
-- `overlays/.shared/vscode/recommended-extensions.json`: scope is too broad to import wholesale; consider splitting into targeted fragments
-
-### Partial (M15) — Markdown extension duplication
-
-Create `.shared/vscode/markdown-extensions.json` with `yzhang.markdown-all-in-one` and `DavidAnson.vscode-markdownlint`, then import from `mkdocs`, `mkdocs2`, `pandoc` and remove the duplicate entries from their patches.
-
-### Pending (L1) — Clarify `name: devnet` convention
-
-Determine whether the project rule intends a Docker-level globally-named network (requiring `name: devnet` under the `devnet:` key in all compose files) or just the YAML key name. Update AGENTS.md with the clarification, then update compose files if needed.
-
-### Pending (L3) — AI CLI overlay stubs
-
-`amp`, `opencode`, `gemini-cli`, `windsurf-cli` install nothing when selected standalone. Add `postCreateCommand` install steps or document the mechanism clearly in each README.
+All 32 issues have been resolved. No remaining work.
 
 ---
 

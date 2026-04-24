@@ -17,6 +17,30 @@ conflicts:
     - dotnet
     - otel-demo-nodejs
 serviceOrder: 0
+parameters:
+    MYSQL_VERSION:
+        description: MySQL image version tag
+        default: '8'
+    MYSQL_PORT:
+        description: Host port mapped to MySQL (3306 inside container)
+        default: '3306'
+    PHPMYADMIN_PORT:
+        description: Host port mapped to phpMyAdmin (80 inside container)
+        default: '8080'
+    MYSQL_DATABASE:
+        description: Name of the database to create
+        default: devdb
+    MYSQL_USER:
+        description: MySQL user name
+        default: devuser
+    MYSQL_PASSWORD:
+        description: MySQL user password
+        default: devpassword
+        sensitive: true
+    MYSQL_ROOT_PASSWORD:
+        description: MySQL root password
+        default: rootpassword
+        sensitive: true
 tags:
     - database
     - sql

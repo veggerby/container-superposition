@@ -14,6 +14,23 @@ conflicts:
     - go
     - java
 serviceOrder: 0
+parameters:
+    MONGODB_VERSION:
+        description: MongoDB image version tag
+        default: '8'
+    MONGODB_PORT:
+        description: Host port mapped to MongoDB (27017 inside container)
+        default: '27017'
+    MONGO_EXPRESS_PORT:
+        description: Host port mapped to Mongo Express (8081 inside container)
+        default: '8081'
+    MONGODB_USER:
+        description: MongoDB root username
+        default: root
+    MONGODB_PASSWORD:
+        description: MongoDB root password
+        default: example
+        sensitive: true
 tags:
     - database
     - nosql

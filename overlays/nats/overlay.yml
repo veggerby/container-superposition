@@ -10,6 +10,19 @@ suggests:
     - grafana
 conflicts: []
 serviceOrder: 0
+parameters:
+    NATS_VERSION:
+        description: NATS image version tag
+        default: '2'
+    NATS_CLIENT_PORT:
+        description: Host port mapped to NATS client (4222 inside container)
+        default: '4222'
+    NATS_HTTP_PORT:
+        description: Host port mapped to NATS monitoring HTTP (8222 inside container)
+        default: '8222'
+    NATS_CLUSTER_PORT:
+        description: Host port mapped to NATS cluster (6222 inside container)
+        default: '6222'
 tags:
     - database
     - messaging

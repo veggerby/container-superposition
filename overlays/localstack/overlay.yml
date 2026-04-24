@@ -10,6 +10,22 @@ suggests:
 conflicts:
     - minio
 serviceOrder: 0
+parameters:
+    LOCALSTACK_VERSION:
+        description: LocalStack image version tag
+        default: latest
+    LOCALSTACK_EDGE_PORT:
+        description: Host port mapped to LocalStack edge (4566 inside container)
+        default: '4566'
+    LOCALSTACK_S3_PORT:
+        description: Host port mapped to LocalStack S3 legacy endpoint (4571 inside container)
+        default: '4571'
+    LOCALSTACK_SERVICES:
+        description: Comma-separated list of AWS services to enable
+        default: s3,sqs,sns,dynamodb,lambda,cloudformation
+    LOCALSTACK_DEBUG:
+        description: Enable LocalStack debug logging (0 or 1)
+        default: '0'
 tags:
     - cloud
     - aws

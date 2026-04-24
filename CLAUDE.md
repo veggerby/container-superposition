@@ -25,7 +25,7 @@ For canonical contributor guidance, see `AGENTS.md` and `CONTRIBUTING.md` in the
 - **Path resolution**: any new `__dirname`-based path must go through the shared repo-path helper so it works from both source (`scripts/`) and compiled (`dist/`) trees — see the `resolveRepoPath` usage in `tool/cli/run.ts`
 - **Adding an overlay**: create `overlays/<id>/overlay.yml` (id must match directory name exactly) + `devcontainer.patch.json` + `README.md`; if it introduces a new category, also update `tool/schema/types.ts` and the loader/composer in `tool/questionnaire/composer.ts` together in the same change
 - **Conflicts are bidirectional**: if overlay A lists B in `conflicts`, B must also list A
-- **Docker Compose networks**: never use `external: true`; always declare the network inline with `name: devnet`
+- **Docker Compose networks**: never use `external: true`; always declare the network inline and set `name: devnet` so Docker uses that as the actual network name regardless of Compose project name (e.g. `networks:\n  devnet:\n    name: devnet`)
 - **Spec-first**: before writing implementation code for a new feature, commit a spec under `docs/specs/`
 - **Changelog required**: add an appropriate `CHANGELOG.md` entry for user-visible changes; anything introduced **for the first time in the current release** must appear as a single consolidated entry under `Added` only — do not also list it under `Changed` or `Fixed`; if iterative work on an unreleased item is done, fold all details into the single `Added` bullet rather than adding separate `Changed` or `Fixed` bullets for the same item
 - **Docs required**: run `npm run docs:generate` after adding or changing overlays, then commit the updated `docs/overlays.md`

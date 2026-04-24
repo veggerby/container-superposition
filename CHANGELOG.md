@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`.shared/vscode/markdown-extensions.json`** — New shared VS Code fragment containing `yzhang.markdown-all-in-one` and `DavidAnson.vscode-markdownlint`; imported by `mkdocs`, `mkdocs2`, and `pandoc` overlays, removing duplicated extension entries from their patches
+- **`parameters:` sections on infrastructure overlays** — `mysql`, `mongodb`, `redis`, `rabbitmq`, `nats`, `minio`, `sqlserver`, and `localstack` now declare all configurable values (version, port(s), credentials) as first-class parameters visible to the questionnaire and documentation system; password fields are marked `sensitive: true`
 - **`serviceOrder` field in `overlay.yml`** — Service startup ordering is now declared as `serviceOrder: <number>` in `overlay.yml` rather than the non-standard `_serviceOrder` field in `devcontainer.patch.json`, eliminating VS Code JSON schema validation warnings; `mergeRunServices()` reads the value from the overlay manifest; convention is 0 = infrastructure, 1 = observability backends, 2 = middleware, 3 = UI tier, 4 = demo apps
 - **`messaging` overlay category** — `rabbitmq`, `nats`, and `redpanda` are now categorised as `messaging` instead of `database`; the interactive questionnaire shows a dedicated "Messaging" section; a `MessagingOverlay` type alias is exported from `tool/schema/types.ts`
 - **`.shared/vscode/js-ts-settings.json`** — New shared VS Code settings fragment providing Prettier/ESLint extensions and `formatOnSave` for TypeScript and JavaScript; imported by `nodejs` and `bun` overlays, removing duplicated configuration from their patches
@@ -34,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`otel-demo-nodejs` / `otel-demo-python` service order** — Corrected `serviceOrder` from `3` to `4` to match `order: 4` declared in their `overlay.yml`
 - **Observability suggests on infrastructure overlays** — `postgres`, `pgvector`, `mysql`, `mongodb`, `redis`, `rabbitmq`, `nats`, `redpanda`, `minio`, `sqlserver` now suggest `prometheus` and `grafana`; `qdrant`, `ollama`, and `open-webui` additionally suggest `otel-collector`
 - **`nodejs` and `bun` `formatOnSave`** — `editor.formatOnSave: true` is now set for `[typescript]` and `[javascript]` via the new shared `js-ts-settings.json` fragment
+- **`pgvector` env var alignment** — `pgvector/devcontainer.patch.json` now uses `remoteEnv` (matching `postgres`) with `PGVECTOR_*` primary names and `POSTGRES_*` aliases, so apps written against the `postgres` overlay work without changes when switching to `pgvector`
+- **`name: devnet` in all compose network declarations** — Added `name: devnet` under the `devnet:` key in all 28 overlay compose files so Docker uses that as the actual network name regardless of the Compose project name, enabling cross-stack service discovery
+- **AI CLI overlay install steps** — `amp`, `opencode`, `gemini-cli`, and `windsurf-cli` now wire their pre-existing `setup.sh` scripts via `postCreateCommand`, so the CLI tool is installed when the devcontainer is built rather than requiring a manual step
+- **Removed unused `.shared/otel/otel-base-config.yaml`** — Skeletal config superseded by the full `otel-collector-config.yaml` already shipped with the `otel-collector` overlay
 - **`claude-code` overlay** — Added `anthropic.claude-code` VS Code extension
 - **`codex` overlay** — Added `openai.chatgpt` VS Code extension
 - **`ollama-cli` overlay** — Added a CLI-only Ollama overlay that installs `ollama` in plain or compose stacks without requiring a local sidecar service

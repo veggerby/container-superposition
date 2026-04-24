@@ -7,11 +7,7 @@
     },
     "customizations": {
         "vscode": {
-            "extensions": [
-                "yzhang.markdown-all-in-one",
-                "DavidAnson.vscode-markdownlint",
-                "bierner.markdown-mermaid"
-            ]
+            "extensions": ["bierner.markdown-mermaid"]
         }
     },
     "forwardPorts": [8000],

@@ -6,11 +6,6 @@
             "apk": "fontconfig noto-fonts-emoji|noto-emoji perl chromium"
         }
     },
-    "customizations": {
-        "vscode": {
-            "extensions": ["yzhang.markdown-all-in-one", "DavidAnson.vscode-markdownlint"]
-        }
-    },
     "remoteEnv": {
         "PUPPETEER_EXECUTABLE_PATH": "/usr/local/bin/chromium-no-sandbox",
         "PUPPETEER_SKIP_DOWNLOAD": "true"

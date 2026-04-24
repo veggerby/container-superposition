@@ -11,6 +11,20 @@ suggests:
     - grafana
 conflicts: []
 serviceOrder: 0
+parameters:
+    MSSQL_VERSION:
+        description: SQL Server image version tag
+        default: 2022-latest
+    MSSQL_PORT:
+        description: Host port mapped to SQL Server (1433 inside container)
+        default: '1433'
+    MSSQL_SA_PASSWORD:
+        description: SQL Server SA (system administrator) password
+        default: YourStrong@Passw0rd
+        sensitive: true
+    MSSQL_PID:
+        description: SQL Server product ID / edition (Developer, Express, Standard, Enterprise)
+        default: Developer
 tags:
     - database
     - sql

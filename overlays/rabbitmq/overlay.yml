@@ -10,6 +10,26 @@ suggests:
     - grafana
 conflicts: []
 serviceOrder: 0
+parameters:
+    RABBITMQ_VERSION:
+        description: RabbitMQ image version tag (management variant used)
+        default: 3-management
+    RABBITMQ_PORT:
+        description: Host port mapped to AMQP (5672 inside container)
+        default: '5672'
+    RABBITMQ_MANAGEMENT_PORT:
+        description: Host port mapped to management UI (15672 inside container)
+        default: '15672'
+    RABBITMQ_USER:
+        description: RabbitMQ default username
+        default: guest
+    RABBITMQ_PASSWORD:
+        description: RabbitMQ default password
+        default: guest
+        sensitive: true
+    RABBITMQ_VHOST:
+        description: RabbitMQ default virtual host
+        default: /
 tags:
     - database
     - messaging
