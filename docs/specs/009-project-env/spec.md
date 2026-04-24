@@ -1,18 +1,11 @@
 # Feature Specification: Unified Project-Level Environment Variables
 
-**Feature Branch**: `codex/project-env`
+**Spec ID**: `009-project-env`
 **Created**: 2026-03-29
-**Status**: Implementing
+**Status**: Approved
 **Input**: User request
 
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/009-project-env/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: Pending
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
-
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 — Define environment variables once for plain stack (Priority: P1)
 

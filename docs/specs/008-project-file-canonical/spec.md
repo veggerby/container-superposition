@@ -1,11 +1,10 @@
----
-Feature Branch: copilot/make-superposition-yml-canonical-input
-Created: 2026-03-26
-Status: Implementing
-Input: GitHub issue #134
----
+# Feature Specification: Make superposition.yml the Canonical Input
 
-# Spec: Make superposition.yml the Canonical Input
+**Spec ID**: `008-project-file-canonical`
+**Created**: 2026-03-26
+**Author**: PM Agent
+**Status**: Approved
+**Input**: GitHub issue #134 — make `superposition.yml` the required canonical input for all generation flows
 
 ## Overview
 
@@ -77,7 +76,7 @@ Once the project file is canonical, `doctor` can compare the two files:
 | Has both (consistent)         | None — regen prefers project file | —                                |
 | CI using `--from-manifest`    | Warning on each run               | Switch to `cs migrate` + `regen` |
 
-## Review & Approval Gate
+## Notes
 
 Implementation proceeds with this spec committed. No further approval required for the
 behavioral changes listed above.

@@ -1,18 +1,11 @@
 # Feature Specification: MkDocs 2.x Overlay
 
-**Feature Branch**: `copilot/add-mkdocs2-overlay`
+**Spec ID**: `003-mkdocs2-overlay`
 **Created**: 2026-03-16
 **Status**: Final
 **Input**: Add a new `mkdocs2` overlay that installs MkDocs 2.x with the Material theme via direct `pip` install, keeping the existing `mkdocs` (MkDocs 1.x) overlay untouched for backward compatibility.
 
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/003-mkdocs2-overlay/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: Approved
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
-
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 - Use MkDocs 2.x in a devcontainer (Priority: P1)
 

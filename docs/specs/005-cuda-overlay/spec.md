@@ -1,18 +1,11 @@
 # Feature Specification: CUDA (NVIDIA GPU) Overlay
 
-**Feature Branch**: `copilot/add-cuda-overlay-for-gpu`
+**Spec ID**: `005-cuda-overlay`
 **Created**: 2026-03-22
 **Status**: Final
 **Input**: Add a `cuda` overlay to enable NVIDIA GPU-accelerated workloads inside a dev container.
 
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/005-cuda-overlay/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: Approved
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
-
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 - GPU passthrough for ML/inference workloads (Priority: P1)
 

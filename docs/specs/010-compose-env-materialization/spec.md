@@ -1,18 +1,11 @@
 # Feature Specification: Compose Env Materialization and Env Template Naming
 
-**Feature Branch**: `codex/compose-env-materialization`
+**Spec ID**: `010-compose-env-materialization`
 **Created**: 2026-03-29
-**Status**: Implementing
+**Status**: Approved
 **Input**: User request
 
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/010-compose-env-materialization/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: Pending
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
-
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 — Compose env values materialize into .devcontainer/.env (Priority: P1)
 

@@ -1,16 +1,9 @@
 # Feature Specification: Overlay Parameters with Safe Substitution
 
-**Feature Branch**: `011-overlay-parameters`
+**Spec ID**: `011-overlay-parameters`
 **Created**: 2026-03-30
 **Status**: Final
 **Input**: Issue — Introduce overlay parameters with safe, namespaced substitution — no conflicts with Docker/shell/VS Code
-
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/011-overlay-parameters/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: APPROVED
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
 ## Summary
 
@@ -203,7 +196,7 @@ Sensitive parameters use masked input. Pre-filled with defaults.
 
 ---
 
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 — Postgres with custom database name (P1)
 

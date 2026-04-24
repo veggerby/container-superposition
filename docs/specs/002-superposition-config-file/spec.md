@@ -1,6 +1,6 @@
 # Feature Specification: Project Configuration File
 
-**Feature Branch**: `002-superposition-config-file`  
+**Spec ID**: `002-superposition-config-file`
 **Created**: 2026-03-11  
 **Status**: Final  
 **Input**: Add a repository-root project config file so teams and automation can generate the same environment from committed declarative setup instead of reconstructing long CLI commands.
@@ -8,14 +8,7 @@
 > Use repo-relative Markdown links for repository files. The root `README.md`
 > is the only exception and may use package-friendly hosted URLs.
 
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/002-superposition-config-file/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: Approved
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
-
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 - Generate from committed project config (Priority: P1)
 
@@ -77,7 +70,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 - How does the system handle `adopt --project-file` when a repository already contains a supported project config file? It reuses that file path, and it must still stop on dual-file ambiguity so the source of truth stays deterministic.
 - How does the system handle project-file or manifest discovery from outside the target repository? An explicit project-root option may redirect persisted-input discovery and relative output resolution to that repository root.
 
-## Requirements _(mandatory)_
+## Requirements
 
 ### Functional Requirements
 
@@ -110,7 +103,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 - **Customization Input**: A supported user-configurable generation setting beyond basic stack and overlay selection, such as custom container definitions, environment-related settings, or additional generated features that alter the final output.
 - **Validation Result**: The user-facing outcome of checking the project config file, including syntax problems, unsupported entries, conflict findings, ambiguity conditions, and corrective guidance.
 
-## Dependencies & Impact _(mandatory)_
+## Dependencies & Impact
 
 - **Affected Areas**: Standard initialization workflow, clean-generation parity, supported customization handling, manifest-based regeneration boundaries, project-file based regeneration boundaries, CLI usage patterns, onboarding workflow, CI/CD workflow, user documentation
 - **Compatibility Impact**: Backward compatible
@@ -124,7 +117,7 @@ A contributor receives clear guidance when the project config file is invalid, i
 - `--from-project` and `--from-manifest` are mutually exclusive persisted-input modes rather than additive sources for one run.
 - A single repository should contain at most one supported project config file so the source of truth stays deterministic and easy to explain.
 
-## Success Criteria _(mandatory)_
+## Success Criteria
 
 ### Measurable Outcomes
 
