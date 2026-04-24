@@ -42,15 +42,15 @@ graph TD
 
 The devcontainer is pre-configured with OTEL environment variables so that any properly-instrumented app running inside the devcontainer sends traces to Jaeger automatically:
 
-| Variable | Default value | Purpose |
-|---|---|---|
-| `OTEL_SERVICE_NAME` | `my-service` | Service name shown in Jaeger UI |
-| `OTEL_SERVICE_VERSION` | `0.1.0` | Service version in resource attributes |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://jaeger:4317` | OTLP gRPC endpoint (Docker network) |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | Transport protocol |
-| `OTEL_RESOURCE_ATTRIBUTES` | `deployment.environment=development` | Additional resource metadata |
-| `OTEL_TRACES_SAMPLER` | `always_on` | Capture every trace in development |
-| `OTEL_TRACES_EXPORTER` | `otlp` | Export traces via OTLP |
+| Variable                      | Default value                        | Purpose                                |
+| ----------------------------- | ------------------------------------ | -------------------------------------- |
+| `OTEL_SERVICE_NAME`           | `my-service`                         | Service name shown in Jaeger UI        |
+| `OTEL_SERVICE_VERSION`        | `0.1.0`                              | Service version in resource attributes |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://jaeger:4317`                 | OTLP gRPC endpoint (Docker network)    |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`                               | Transport protocol                     |
+| `OTEL_RESOURCE_ATTRIBUTES`    | `deployment.environment=development` | Additional resource metadata           |
+| `OTEL_TRACES_SAMPLER`         | `always_on`                          | Capture every trace in development     |
+| `OTEL_TRACES_EXPORTER`        | `otlp`                               | Export traces via OTLP                 |
 
 These values are set via `remoteEnv` in `devcontainer.json`. To override them for your project, edit `.devcontainer/devcontainer.json` after generation and update the `remoteEnv` block, then rebuild the container:
 
