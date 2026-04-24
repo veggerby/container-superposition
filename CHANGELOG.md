@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`local-llm` preset** — New preset for local LLM inference: always selects `ollama` + `ollama-cli` + `open-webui`; optional `gpu` parameter adds `cuda` or `rocm` overlay; pre-sets `OLLAMA_HOST` environment variable
+- **`full-observability` preset** — New preset that bolts a complete monitoring stack onto any project: `prometheus`, `grafana`, `loki`, `otel-collector`, `alertmanager`, `promtail` always included; `tracing` parameter selects Jaeger, Tempo, both, or none; pre-sets all OTel SDK environment variables
+- **`vector-ai` preset** — New preset for RAG pipeline development: `qdrant` + `ollama` + `ollama-cli` + `python` always included; optional `gpu` and `chat_ui` (Open WebUI) parameters; pre-sets `QDRANT_URL`, `OLLAMA_HOST`, and `EMBEDDING_MODEL`
+- **`k8s-dev` preset** — New preset for local Kubernetes development: `kubectl-helm` + `docker-in-docker` + `modern-cli-tools` always included; `cluster` parameter selects k3d (default) or kind; `devloop` parameter selects Tilt (default), Skaffold, or none
 - **`.shared/vscode/markdown-extensions.json`** — New shared VS Code fragment containing `yzhang.markdown-all-in-one` and `DavidAnson.vscode-markdownlint`; imported by `mkdocs`, `mkdocs2`, and `pandoc` overlays, removing duplicated extension entries from their patches
 - **`parameters:` sections on infrastructure overlays** — `mysql`, `mongodb`, `redis`, `rabbitmq`, `nats`, `minio`, `sqlserver`, and `localstack` now declare all configurable values (version, port(s), credentials) as first-class parameters visible to the questionnaire and documentation system; password fields are marked `sensitive: true`
 - **`serviceOrder` field in `overlay.yml`** — Service startup ordering is now declared as `serviceOrder: <number>` in `overlay.yml` rather than the non-standard `_serviceOrder` field in `devcontainer.patch.json`, eliminating VS Code JSON schema validation warnings; `mergeRunServices()` reads the value from the overlay manifest; convention is 0 = infrastructure, 1 = observability backends, 2 = middleware, 3 = UI tier, 4 = demo apps
@@ -40,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`name: devnet` in all compose network declarations** — Added `name: devnet` under the `devnet:` key in all 28 overlay compose files so Docker uses that as the actual network name regardless of the Compose project name, enabling cross-stack service discovery
 - **AI CLI overlay install steps** — `amp`, `opencode`, `gemini-cli`, and `windsurf-cli` now wire their pre-existing `setup.sh` scripts via `postCreateCommand`, so the CLI tool is installed when the devcontainer is built rather than requiring a manual step
 - **Removed unused `.shared/otel/otel-base-config.yaml`** — Skeletal config superseded by the full `otel-collector-config.yaml` already shipped with the `otel-collector` overlay
+- **`adopt --json` output no longer polluted by progress messages** — `buildExpectedDevcontainerConfig` now suppresses `console.log` progress output during analysis so `--json` mode always emits clean JSON
+- **`overlay-loader` test category allowlist** — `messaging` added to the valid overlay category set in `overlay-loader.test.ts`, fixing a pre-existing test failure introduced when the `messaging` category was added to the type system
 - **`claude-code` overlay** — Added `anthropic.claude-code` VS Code extension
 - **`codex` overlay** — Added `openai.chatgpt` VS Code extension
 - **`ollama-cli` overlay** — Added a CLI-only Ollama overlay that installs `ollama` in plain or compose stacks without requiring a local sidecar service

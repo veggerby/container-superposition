@@ -1,0 +1,113 @@
+# Full Observability Stack Preset
+# Complete metrics, logs, traces, and alerting for any project
+
+id: full-observability
+name: Full Observability Stack
+description: Prometheus, Grafana, Loki, Jaeger/Tempo, OpenTelemetry Collector, Alertmanager, and Promtail — bolt-on monitoring for any project
+type: meta
+category: preset
+supports: [compose] # Requires Docker Compose for all sidecar services
+tags: [preset, observability, monitoring, metrics, logging, tracing, prometheus, grafana, loki]
+
+selects:
+    required:
+        - prometheus
+        - grafana
+        - loki
+        - otel-collector
+        - alertmanager
+        - promtail
+
+    userChoice: {}
+
+parameters:
+    tracing:
+        description: 'Distributed tracing backend'
+        default: jaeger
+        options:
+            - id: jaeger
+              overlays: [jaeger]
+              description: 'Jaeger — battle-tested, native OTLP support, built-in UI'
+            - id: tempo
+              overlays: [tempo]
+              description: 'Grafana Tempo — stores traces in object storage, integrates with Grafana'
+            - id: both
+              overlays: [jaeger, tempo]
+              description: 'Both Jaeger and Tempo (useful for migration)'
+            - id: none
+              overlays: []
+              description: 'No tracing backend — collector still accepts spans'
+
+glueConfig:
+    environment:
+        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel-collector:4317'
+        OTEL_METRICS_EXPORTER: 'otlp'
+        OTEL_TRACES_EXPORTER: 'otlp'
+        OTEL_LOGS_EXPORTER: 'otlp'
+
+    portMappings:
+        grafana: 3000
+        prometheus: 9090
+        jaeger-ui: 16686
+        alertmanager: 9093
+        otel-grpc: 4317
+        otel-http: 4318
+
+    readme: |
+        ## Full Observability Stack
+
+        This devcontainer adds a complete observability platform alongside your existing services.
+
+        ### Services
+
+        | Service | Port | Purpose |
+        |---------|------|---------|
+        | Grafana | 3000 | Unified dashboards (metrics + logs + traces) |
+        | Prometheus | 9090 | Metrics collection and storage |
+        | Loki | 3100 | Log aggregation |
+        | Promtail | — | Log shipping agent (reads container logs) |
+        | OTel Collector | 4317 / 4318 | Telemetry pipeline (gRPC / HTTP) |
+        | Alertmanager | 9093 | Alert routing and silencing |
+        | Jaeger / Tempo | 16686 | Distributed tracing UI / backend |
+
+        ### Access
+
+        - **Grafana**: http://localhost:3000 — default login `admin` / `admin`
+        - **Prometheus**: http://localhost:9090
+        - **Alertmanager**: http://localhost:9093
+        - **Jaeger UI** _(if selected)_: http://localhost:16686
+
+        ### Instrumenting Your Application
+
+        Configure your service to send telemetry to the OTel Collector:
+
+        ```bash
+        # Already set in your environment:
+        OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector:4317"
+        OTEL_METRICS_EXPORTER="otlp"
+        OTEL_TRACES_EXPORTER="otlp"
+        OTEL_LOGS_EXPORTER="otlp"
+        ```
+
+        Install the OpenTelemetry SDK for your language, then traces and metrics
+        will flow automatically: App → OTel Collector → Jaeger / Prometheus / Loki.
+
+        ### Grafana Datasources
+
+        The following datasources are pre-configured in Grafana:
+
+        - Prometheus (metrics)
+        - Loki (logs)
+        - Jaeger or Tempo (traces, if selected)
+
+        ### Alertmanager
+
+        Add alert rules to Prometheus by creating a `prometheus-rules.yml` file
+        and mounting it into the Prometheus service, or use the Grafana alerting UI.
+
+        ### Next Steps
+
+        - Browse the Grafana Explore tab to query logs and traces
+        - Import community dashboards from grafana.com/grafana/dashboards
+        - Configure Alertmanager routes in `.devcontainer/alertmanager.yml`
+        - Add your service's metrics endpoint to `prometheus-scrape-configs.yml`

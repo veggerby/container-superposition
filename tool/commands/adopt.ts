@@ -650,8 +650,15 @@ function buildExpectedDevcontainerConfig(
     const templatePath = path.join(TEMPLATES_DIR, stack, '.devcontainer', 'devcontainer.json');
     let config = loadJsonFile<DevContainer>(templatePath, {});
 
-    for (const overlayId of overlayIds) {
-        config = applyOverlay(config, overlayId, overlaysDir);
+    // Suppress progress messages from applyOverlay — adopt is read-only analysis
+    const origLog = console.log;
+    console.log = () => {};
+    try {
+        for (const overlayId of overlayIds) {
+            config = applyOverlay(config, overlayId, overlaysDir);
+        }
+    } finally {
+        console.log = origLog;
     }
 
     return addGeneratedOverlayCommands(config, overlayIds, overlaysDir);

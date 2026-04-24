@@ -424,11 +424,16 @@ All 32 issues have been resolved. No remaining work.
 
 ## Proposed New Presets
 
-Not yet implemented — proposed for a future pass:
+✅ All four proposed presets implemented in `overlays/.presets/`:
 
-| Preset ID            | Name                     | Overlays                                                                                        | Rationale                                                       |
-| -------------------- | ------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `local-llm`          | Local LLM Stack          | `ollama`, `ollama-cli`, `open-webui`                                                            | Always used together for local inference with chat UI           |
-| `full-observability` | Full Observability Stack | `prometheus`, `grafana`, `loki`, `jaeger`/`tempo`, `otel-collector`, `alertmanager`, `promtail` | Platform teams adding monitoring to any existing project        |
-| `vector-ai`          | Vector AI Stack          | `qdrant`, `ollama`, `ollama-cli`, `python`                                                      | Full RAG pipeline: vector DB + local embeddings + Python client |
-| `k8s-dev`            | Kubernetes Development   | `kubectl-helm`, `docker-in-docker`, `kind`/`k3d`, `skaffold`/`tilt`                             | General K8s dev without assuming a language                     |
+| Preset ID            | Name                     | Status  | Key overlays / parameters                                                                                 |
+| -------------------- | ------------------------ | ------- | --------------------------------------------------------------------------------------------------------- |
+| `local-llm`          | Local LLM Stack          | ✅ Done | `ollama` + `ollama-cli` + `open-webui`; optional `cuda`/`rocm` GPU parameter                              |
+| `full-observability` | Full Observability Stack | ✅ Done | `prometheus` + `grafana` + `loki` + `otel-collector` + `alertmanager` + `promtail`; tracing backend param |
+| `vector-ai`          | Vector AI Stack          | ✅ Done | `qdrant` + `ollama` + `ollama-cli` + `python`; optional GPU + optional `open-webui` parameters            |
+| `k8s-dev`            | Kubernetes Development   | ✅ Done | `kubectl-helm` + `docker-in-docker`; `cluster` param (k3d/kind), `devloop` param (tilt/skaffold/none)     |
+
+Also fixed two pre-existing test failures uncovered during preset validation:
+
+- `overlay-loader.test.ts`: category allowlist updated to include `messaging`
+- `adopt.test.ts`: `buildExpectedDevcontainerConfig` now suppresses progress logs, fixing JSON output corruption in `--json` mode

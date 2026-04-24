@@ -1,0 +1,105 @@
+# Local LLM Stack Preset
+# Run local language models with a browser chat UI
+
+id: local-llm
+name: Local LLM Stack
+description: Local inference with Ollama and Open WebUI — pull any model and chat without an API key
+type: meta
+category: preset
+supports: [compose] # Requires Docker Compose for Ollama service
+tags: [preset, ai, llm, ollama, open-webui, local-inference]
+
+selects:
+    required:
+        - ollama
+        - ollama-cli
+        - open-webui
+
+    userChoice: {}
+
+parameters:
+    gpu:
+        description: 'GPU acceleration (optional — CPU works without it)'
+        default: none
+        options:
+            - id: none
+              overlays: []
+              description: 'CPU only — works on any machine, slower for large models'
+            - id: nvidia
+              overlays: [cuda]
+              description: 'Nvidia GPU via CUDA'
+            - id: amd
+              overlays: [rocm]
+              description: 'AMD GPU via ROCm'
+
+glueConfig:
+    environment:
+        OLLAMA_HOST: 'http://ollama:11434'
+
+    portMappings:
+        ollama-api: 11434
+        open-webui: 3000
+
+    readme: |
+        ## Local LLM Stack
+
+        This devcontainer runs a full local LLM environment — no API key required.
+
+        ### Services
+
+        - **Ollama** — LLM runtime serving models on port 11434
+        - **Open WebUI** — Browser-based chat UI at http://localhost:3000
+        - **ollama-cli** — `ollama` command available in the terminal
+
+        ### Quick Start
+
+        1. Open http://localhost:3000 in your browser
+        2. Sign up with any email (local only — no data leaves your machine)
+        3. Pull a model via the terminal or the UI:
+
+        ```bash
+        # Pull a model
+        ollama pull llama3.2
+
+        # Run interactively in the terminal
+        ollama run llama3.2
+
+        # List pulled models
+        ollama list
+        ```
+
+        ### Recommended Models
+
+        | Model | Size | Use case |
+        |-------|------|----------|
+        | `llama3.2` | 2–8 B | General purpose, fast |
+        | `mistral` | 7 B | Strong reasoning |
+        | `codellama` | 7–34 B | Code generation |
+        | `nomic-embed-text` | 137 M | Embeddings for RAG |
+        | `phi4` | 14 B | Microsoft research model |
+
+        ### Using the API
+
+        ```bash
+        # Chat completion
+        curl http://localhost:11434/api/chat -d '{
+          "model": "llama3.2",
+          "messages": [{"role": "user", "content": "Hello!"}]
+        }'
+
+        # Generate embeddings
+        curl http://localhost:11434/api/embeddings -d '{
+          "model": "nomic-embed-text",
+          "prompt": "Hello world"
+        }'
+        ```
+
+        ### GPU Acceleration
+
+        If you selected a GPU option, ensure the relevant drivers are installed on the host.
+        CPU-only mode works on any machine — expect ~10–30 tokens/sec for 7 B models.
+
+        ### Next Steps
+
+        - Add the `qdrant` overlay and `vector-ai` preset for a full RAG pipeline
+        - Add the `python` overlay to build LLM-powered apps
