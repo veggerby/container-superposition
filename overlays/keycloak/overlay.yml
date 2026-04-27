@@ -22,3 +22,17 @@ ports:
       description: Keycloak admin console and auth endpoints
       path: /
       onAutoForward: openBrowser
+parameters:
+    KEYCLOAK_VERSION:
+        description: Keycloak image version tag
+        default: '26.0'
+    KEYCLOAK_PORT:
+        description: Host port mapped to Keycloak HTTP (8180 inside container)
+        default: '8180'
+    KEYCLOAK_ADMIN:
+        description: Keycloak initial admin username
+        default: admin
+    KEYCLOAK_ADMIN_PASSWORD:
+        description: Keycloak initial admin password
+        default: admin
+        sensitive: true

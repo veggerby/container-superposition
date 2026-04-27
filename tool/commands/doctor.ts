@@ -1939,6 +1939,15 @@ async function checkReproducibility(
         const originalLog = console.log;
         console.log = () => {};
         try {
+            // Copy the existing custom/ directory to tmpDir so applyCustomPatches()
+            // inside composeDevContainer applies the same user patches that produced
+            // the current outputPath — without this, the dry-compose output would
+            // always differ whenever .devcontainer/custom/ contains any overrides.
+            const srcCustom = path.join(outputPath, 'custom');
+            if (fs.existsSync(srcCustom)) {
+                const destCustom = path.join(tmpDir!, 'custom');
+                fs.cpSync(srcCustom, destCustom, { recursive: true });
+            }
             await composeDevContainer(answers, overlaysDir, { isRegen: false });
         } catch (err) {
             return [
@@ -1983,8 +1992,24 @@ async function checkReproducibility(
             return result;
         }
 
-        function normalise(content: string): string {
-            return content.replace(/\r\n/g, '\n');
+        function normalise(content: string, rel: string): string {
+            const normalised = content.replace(/\r\n/g, '\n');
+            if (rel === 'superposition.json') {
+                // Parse the manifest as JSON and strip the fields that legitimately
+                // differ between runs (wall-clock timestamp, output-path-dependent
+                // location) before re-serialising for a structural comparison.
+                try {
+                    const obj = JSON.parse(normalised) as Record<string, unknown>;
+                    delete obj['generated'];
+                    if (obj['customizations'] && typeof obj['customizations'] === 'object') {
+                        delete (obj['customizations'] as Record<string, unknown>)['location'];
+                    }
+                    return JSON.stringify(obj, null, 4);
+                } catch {
+                    // Unparseable JSON — fall through to character comparison
+                }
+            }
+            return normalised;
         }
 
         const tmpFiles = new Set(listFiles(tmpDir));
@@ -2005,8 +2030,8 @@ async function checkReproducibility(
                     fixable: true,
                 });
             } else if (
-                normalise(fs.readFileSync(actual, 'utf8')) !==
-                normalise(fs.readFileSync(expected, 'utf8'))
+                normalise(fs.readFileSync(actual, 'utf8'), rel) !==
+                normalise(fs.readFileSync(expected, 'utf8'), rel)
             ) {
                 results.push({
                     name: `Out-of-date generated file: ${rel}`,

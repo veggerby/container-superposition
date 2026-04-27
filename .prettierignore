@@ -26,5 +26,8 @@ pnpm-lock.yaml
 tool/__tests__/output/
 test-output-regen-flags/
 
+# Generated devcontainer output (managed by cs regen; not linted)
+.devcontainer/
+
 # Local generated/example workspaces
 **/.venv/

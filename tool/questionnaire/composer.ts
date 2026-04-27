@@ -2352,8 +2352,9 @@ export async function composeDevContainer(
 
     // 8.5. Copy cross-distro-packages feature if used
     if (config.features?.['./features/cross-distro-packages']) {
-        const featuresDir = path.join(outputPath, 'features', 'cross-distro-packages');
-        const sourceFeatureDir = path.join(REPO_ROOT, 'features', 'cross-distro-packages');
+        const featureName = 'cross-distro-packages';
+        const featuresDir = path.join(outputPath, 'features', featureName);
+        const sourceFeatureDir = path.join(REPO_ROOT, 'features', featureName);
 
         if (fs.existsSync(sourceFeatureDir)) {
             copyDir(sourceFeatureDir, featuresDir);
@@ -2362,7 +2363,7 @@ export async function composeDevContainer(
             // does not remove them when it recurses into the 'features' directory.
             for (const f of fs.readdirSync(sourceFeatureDir)) {
                 if (fs.statSync(path.join(sourceFeatureDir, f)).isFile()) {
-                    fileRegistry.addFile(`features/cross-distro-packages/${f}`);
+                    fileRegistry.addFile(`features/${featureName}/${f}`);
                 }
             }
             console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));

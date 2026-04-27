@@ -1,109 +1,112 @@
 {
-    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-    "name": "Container Superposition",
-    "image": "mcr.microsoft.com/devcontainers/base:trixie",
-    "features": {
-        "ghcr.io/devcontainers/features/common-utils:2": {
-            "installZsh": true,
-            "installOhMyZsh": true,
-            "upgradePackages": true,
-            "username": "vscode",
-            "userUid": "automatic",
-            "userGid": "automatic"
-        },
-        "ghcr.io/devcontainers/features/git:1": {
-            "version": "os-provided",
-            "ppa": true
-        },
-        "./features/cross-distro-packages": {
-            "apt": "bash-completion curl wget vim less build-essential bubblewrap jq ripgrep fd-find bat",
-            "apk": "bash-completion curl wget vim less build-base bubblewrap jq ripgrep fd bat"
-        },
-        "ghcr.io/devcontainers/features/node:1": {
-            "version": "lts",
-            "nodeGypDependencies": true,
-            "installYarnUsingApt": true
-        },
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-            "version": "latest",
-            "moby": false
-        },
-        "ghcr.io/devcontainers/features/git-lfs:1": {
-            "version": "latest",
-            "autoPull": false
-        },
-        "ghcr.io/devcontainers/features/github-cli:1": {
-            "version": "latest"
-        }
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+  "name": "Container Superposition",
+  "image": "mcr.microsoft.com/devcontainers/base:trixie",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true,
+      "username": "vscode",
+      "userUid": "automatic",
+      "userGid": "automatic"
     },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "EditorConfig.EditorConfig",
-                "GitHub.copilot",
-                "GitHub.copilot-chat",
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode",
-                "christian-kohler.npm-intellisense",
-                "openai.chatgpt",
-                "anthropic.claude-code",
-                "eamodio.gitlens",
-                "github.vscode-pull-request-github",
-                "mhutchie.git-graph",
-                "ms-vscode-remote.remote-containers"
-            ],
-            "settings": {
-                "editor.formatOnSave": true,
-                "editor.defaultFormatter": "esbenp.prettier-vscode",
-                "[typescript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode",
-                    "editor.formatOnSave": true
-                },
-                "[javascript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode",
-                    "editor.formatOnSave": true
-                },
-                "editor.codeActionsOnSave": {
-                    "source.fixAll.eslint": "explicit"
-                },
-                "git.enableCommitSigning": false,
-                "git.enableSmartCommit": true,
-                "git.confirmSync": false,
-                "git.autofetch": true
-            }
-        }
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "os-provided",
+      "ppa": true
     },
-    "mounts": [
-        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
-    ],
-    "remoteEnv": {
-        "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
-        "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"
+    "./features/cross-distro-packages": {
+      "apt": "bash-completion curl wget vim less build-essential bubblewrap jq ripgrep fd-find bat",
+      "apk": "bash-completion curl wget vim less build-base bubblewrap jq ripgrep fd bat"
     },
-    "remoteUser": "vscode",
-    "forwardPorts": [3000, 8080],
-    "portsAttributes": {
-        "3000": {
-            "label": "Dev Server",
-            "onAutoForward": "openBrowser"
-        },
-        "8080": {
-            "label": "Web App",
-            "onAutoForward": "notify"
-        }
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts",
+      "nodeGypDependencies": true,
+      "installYarnUsingApt": true
     },
-    "postStartCommand": {
-        "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}",
-        "verify-nodejs": "bash .devcontainer/scripts/verify-nodejs.sh",
-        "verify-codex": "bash .devcontainer/scripts/verify-codex.sh",
-        "verify-claude-code": "bash .devcontainer/scripts/verify-claude-code.sh"
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "version": "latest",
+      "moby": false
     },
-    "postCreateCommand": {
-        "setup-nodejs": "bash .devcontainer/scripts/setup-nodejs.sh",
-        "setup-codex": "bash .devcontainer/scripts/setup-codex.sh",
-        "setup-claude-code": "bash .devcontainer/scripts/setup-claude-code.sh",
-        "setup-git-helpers": "bash .devcontainer/scripts/setup-git-helpers.sh",
-        "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh",
-        "setup-devcontainer-cli": "bash .devcontainer/scripts/setup-devcontainer-cli.sh"
+    "ghcr.io/devcontainers/features/git-lfs:1": {
+      "version": "latest",
+      "autoPull": false
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
     }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "EditorConfig.EditorConfig",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "christian-kohler.npm-intellisense",
+        "openai.chatgpt",
+        "anthropic.claude-code",
+        "eamodio.gitlens",
+        "github.vscode-pull-request-github",
+        "mhutchie.git-graph",
+        "ms-vscode-remote.remote-containers"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "git.enableCommitSigning": false,
+        "git.enableSmartCommit": true,
+        "git.confirmSync": false,
+        "git.autofetch": true
+      }
+    }
+  },
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
+  ],
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
+    "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"
+  },
+  "remoteUser": "vscode",
+  "forwardPorts": [
+    3000,
+    8080
+  ],
+  "portsAttributes": {
+    "3000": {
+      "label": "Dev Server",
+      "onAutoForward": "openBrowser"
+    },
+    "8080": {
+      "label": "Web App",
+      "onAutoForward": "notify"
+    }
+  },
+  "postStartCommand": {
+    "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    "verify-nodejs": "bash .devcontainer/scripts/verify-nodejs.sh",
+    "verify-codex": "bash .devcontainer/scripts/verify-codex.sh",
+    "verify-claude-code": "bash .devcontainer/scripts/verify-claude-code.sh"
+  },
+  "postCreateCommand": {
+    "setup-nodejs": "bash .devcontainer/scripts/setup-nodejs.sh",
+    "setup-codex": "bash .devcontainer/scripts/setup-codex.sh",
+    "setup-claude-code": "bash .devcontainer/scripts/setup-claude-code.sh",
+    "setup-git-helpers": "bash .devcontainer/scripts/setup-git-helpers.sh",
+    "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh",
+    "setup-devcontainer-cli": "bash .devcontainer/scripts/setup-devcontainer-cli.sh"
+  }
 }
