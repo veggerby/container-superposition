@@ -33,10 +33,35 @@ graph TD
 ### Ports
 
 - `16686` - Jaeger UI (web interface)
-- `4317` - OTLP gRPC receiver (when used without otel-collector)
-- `4318` - OTLP HTTP receiver (when used without otel-collector)
+- `4317` - OTLP gRPC receiver (internal Docker network only; not published to host)
+- `4318` - OTLP HTTP receiver (internal Docker network only; not published to host)
 
-⚠️ **Note:** When using with **otel-collector**, OTLP ports (4317/4318) are not exposed to avoid conflicts. Send telemetry to otel-collector, which forwards to Jaeger.
+⚠️ **Note:** When using with **otel-collector**, send telemetry to `otel-collector:4317` instead — the collector forwards to Jaeger internally.
+
+### Pre-configured OpenTelemetry Environment
+
+The devcontainer is pre-configured with OTEL environment variables so that any properly-instrumented app running inside the devcontainer sends traces to Jaeger automatically:
+
+| Variable                      | Default value                        | Purpose                                |
+| ----------------------------- | ------------------------------------ | -------------------------------------- |
+| `OTEL_SERVICE_NAME`           | `my-service`                         | Service name shown in Jaeger UI        |
+| `OTEL_SERVICE_VERSION`        | `0.1.0`                              | Service version in resource attributes |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://jaeger:4317`                 | OTLP gRPC endpoint (Docker network)    |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`                               | Transport protocol                     |
+| `OTEL_RESOURCE_ATTRIBUTES`    | `deployment.environment=development` | Additional resource metadata           |
+| `OTEL_TRACES_SAMPLER`         | `always_on`                          | Capture every trace in development     |
+| `OTEL_TRACES_EXPORTER`        | `otlp`                               | Export traces via OTLP                 |
+
+These values are set via `remoteEnv` in `devcontainer.json`. To override them for your project, edit `.devcontainer/devcontainer.json` after generation and update the `remoteEnv` block, then rebuild the container:
+
+```json
+"remoteEnv": {
+    "OTEL_SERVICE_NAME": "my-app",
+    "OTEL_SERVICE_VERSION": "1.0.0"
+}
+```
+
+When the **otel-collector** overlay is also selected, `OTEL_EXPORTER_OTLP_ENDPOINT` is automatically set to `http://otel-collector:4317` (otel-collector overlay is applied after jaeger and overrides this value).
 
 ### Environment Variables
 
@@ -74,11 +99,15 @@ container-superposition --port-offset 100
 
 ## Accessing Jaeger UI
 
-Once your devcontainer starts, open your browser to:
+Once your devcontainer starts, VS Code automatically opens <http://localhost:16686> in your browser (via `onAutoForward: openBrowser`). You can also open it manually:
 
 ```
 http://localhost:16686
 ```
+
+Port `16686` is published by the `jaeger` Docker Compose service to your local machine, so it is accessible both from the host and from within the devcontainer via `http://jaeger:16686`.
+
+The `devcontainer` service has `depends_on: jaeger: condition: service_healthy`, so Docker Compose waits for Jaeger to pass its healthcheck before starting the devcontainer. This ensures the UI is reachable by the time VS Code opens the browser.
 
 ### UI Features
 

@@ -255,7 +255,7 @@ Distributed tracing backend
 | **Supports**  | compose                              |
 | **Conflicts** | `tempo`                              |
 | **Tags**      | `observability`, `tracing`, `jaeger` |
-| **Ports**     | 16686/http, 14250/grpc, 14268/http   |
+| **Ports**     | 16686/http                           |
 
 ### Loki (`loki`)
 
