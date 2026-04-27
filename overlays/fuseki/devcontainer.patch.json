@@ -1,0 +1,18 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "runServices": ["fuseki"],
+    "forwardPorts": [3030],
+    "portsAttributes": {
+        "3030": {
+            "label": "Fuseki SPARQL Server",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "remoteEnv": {
+        "FUSEKI_HOST": "fuseki",
+        "FUSEKI_PORT": "{{cs.FUSEKI_PORT}}",
+        "FUSEKI_DATASET": "{{cs.FUSEKI_DATASET}}",
+        "FUSEKI_ADMIN_PASSWORD": "{{cs.FUSEKI_ADMIN_PASSWORD}}",
+        "FUSEKI_URL": "http://fuseki:3030"
+    }
+}

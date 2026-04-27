@@ -110,6 +110,18 @@ Rust stable with cargo, rustfmt, and clippy
 
 ## Database Overlays
 
+### Apache Jena Fuseki (`fuseki`)
+
+SPARQL 1.1 server and triplestore backed by Apache Jena TDB
+
+| Property     | Value                                                                             |
+| ------------ | --------------------------------------------------------------------------------- |
+| **Category** | database                                                                          |
+| **Supports** | compose                                                                           |
+| **Suggests** | `java`, `python`, `nodejs`                                                        |
+| **Tags**     | `database`, `rdf`, `sparql`, `triplestore`, `semantic-web`, `linked-data`, `jena` |
+| **Ports**    | 3030/http                                                                         |
+
 ### DuckDB (`duckdb`)
 
 In-process analytical database for OLAP workloads

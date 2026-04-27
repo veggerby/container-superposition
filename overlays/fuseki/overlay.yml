@@ -1,0 +1,42 @@
+id: fuseki
+name: Apache Jena Fuseki
+description: SPARQL 1.1 server and triplestore backed by Apache Jena TDB
+category: database
+supports:
+    - compose
+requires: []
+suggests:
+    - java
+    - python
+    - nodejs
+conflicts: []
+serviceOrder: 0
+tags:
+    - database
+    - rdf
+    - sparql
+    - triplestore
+    - semantic-web
+    - linked-data
+    - jena
+ports:
+    - port: 3030
+      service: fuseki
+      protocol: http
+      description: Fuseki SPARQL server and admin UI
+      path: /
+      onAutoForward: openBrowser
+parameters:
+    FUSEKI_VERSION:
+        description: Apache Jena Fuseki image version tag
+        default: latest
+    FUSEKI_PORT:
+        description: Host port mapped to Fuseki (3030 inside container)
+        default: '3030'
+    FUSEKI_ADMIN_PASSWORD:
+        description: Fuseki admin user password
+        default: admin
+        sensitive: true
+    FUSEKI_DATASET:
+        description: Name of the default dataset to create on first start
+        default: ds
