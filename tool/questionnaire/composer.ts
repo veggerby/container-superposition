@@ -2358,6 +2358,13 @@ export async function composeDevContainer(
         if (fs.existsSync(sourceFeatureDir)) {
             copyDir(sourceFeatureDir, featuresDir);
             fileRegistry.addDirectory('features');
+            // Register every file inside the feature so cleanupStaleDirFiles
+            // does not remove them when it recurses into the 'features' directory.
+            for (const f of fs.readdirSync(sourceFeatureDir)) {
+                if (fs.statSync(path.join(sourceFeatureDir, f)).isFile()) {
+                    fileRegistry.addFile(`features/cross-distro-packages/${f}`);
+                }
+            }
             console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));
         }
     }
