@@ -25,6 +25,10 @@ describe('Preset Definitions', () => {
             'data-engineering.yml',
             'k8s-operator-dev.yml',
             'sdd.yml',
+            'local-llm.yml',
+            'full-observability.yml',
+            'vector-ai.yml',
+            'k8s-dev.yml',
         ];
 
         for (const file of presetFiles) {
@@ -330,6 +334,223 @@ describe('Preset Definitions', () => {
                     validOverlayIds.has(overlayId),
                     `sdd agent option '${opt.id}': overlay '${overlayId}' must exist in the registry`
                 ).toBe(true);
+            }
+        }
+    });
+
+    it('local-llm preset should have correct structure', () => {
+        const filePath = path.join(presetsDir, 'local-llm.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('local-llm');
+        expect(preset.supports).toContain('compose');
+        expect(preset.selects.required).toContain('ollama');
+        expect(preset.selects.required).toContain('ollama-cli');
+        expect(preset.selects.required).toContain('open-webui');
+
+        expect(preset.parameters).toBeDefined();
+        expect(preset.parameters.gpu).toBeDefined();
+        expect(preset.parameters.gpu.default).toBe('none');
+        const gpuIds = preset.parameters.gpu.options.map((o: any) => o.id);
+        expect(gpuIds).toContain('none');
+        expect(gpuIds).toContain('nvidia');
+        expect(gpuIds).toContain('amd');
+
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment.OLLAMA_HOST).toBeDefined();
+    });
+
+    it('local-llm preset overlay references should be valid', () => {
+        const filePath = path.join(presetsDir, 'local-llm.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
+        const validOverlayIds = new Set(
+            overlaysConfig.overlays.filter((o) => o.category !== 'preset').map((o) => o.id)
+        );
+
+        for (const id of preset.selects.required) {
+            expect(validOverlayIds.has(id), `local-llm required overlay '${id}' must exist`).toBe(
+                true
+            );
+        }
+        for (const opt of preset.parameters.gpu.options) {
+            for (const id of opt.overlays as string[]) {
+                expect(
+                    validOverlayIds.has(id),
+                    `local-llm gpu.${opt.id}: overlay '${id}' must exist`
+                ).toBe(true);
+            }
+        }
+    });
+
+    it('full-observability preset should have correct structure', () => {
+        const filePath = path.join(presetsDir, 'full-observability.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('full-observability');
+        expect(preset.supports).toContain('compose');
+
+        const required = preset.selects.required;
+        expect(required).toContain('prometheus');
+        expect(required).toContain('grafana');
+        expect(required).toContain('loki');
+        expect(required).toContain('otel-collector');
+        expect(required).toContain('alertmanager');
+        expect(required).toContain('promtail');
+
+        expect(preset.parameters).toBeDefined();
+        expect(preset.parameters.tracing).toBeDefined();
+        expect(preset.parameters.tracing.default).toBe('jaeger');
+        const tracingIds = preset.parameters.tracing.options.map((o: any) => o.id);
+        expect(tracingIds).toContain('jaeger');
+        expect(tracingIds).toContain('tempo');
+        expect(tracingIds).toContain('both');
+        expect(tracingIds).toContain('none');
+
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment.OTEL_EXPORTER_OTLP_ENDPOINT).toBeDefined();
+    });
+
+    it('full-observability preset overlay references should be valid', () => {
+        const filePath = path.join(presetsDir, 'full-observability.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
+        const validOverlayIds = new Set(
+            overlaysConfig.overlays.filter((o) => o.category !== 'preset').map((o) => o.id)
+        );
+
+        for (const id of preset.selects.required) {
+            expect(
+                validOverlayIds.has(id),
+                `full-observability required overlay '${id}' must exist`
+            ).toBe(true);
+        }
+        for (const opt of preset.parameters.tracing.options) {
+            for (const id of opt.overlays as string[]) {
+                expect(
+                    validOverlayIds.has(id),
+                    `full-observability tracing.${opt.id}: overlay '${id}' must exist`
+                ).toBe(true);
+            }
+        }
+    });
+
+    it('vector-ai preset should have correct structure', () => {
+        const filePath = path.join(presetsDir, 'vector-ai.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('vector-ai');
+        expect(preset.supports).toContain('compose');
+
+        const required = preset.selects.required;
+        expect(required).toContain('qdrant');
+        expect(required).toContain('ollama');
+        expect(required).toContain('ollama-cli');
+        expect(required).toContain('python');
+
+        expect(preset.parameters).toBeDefined();
+        expect(preset.parameters.gpu).toBeDefined();
+        expect(preset.parameters.gpu.default).toBe('none');
+        expect(preset.parameters.chat_ui).toBeDefined();
+        expect(preset.parameters.chat_ui.default).toBe('none');
+        const chatUiIds = preset.parameters.chat_ui.options.map((o: any) => o.id);
+        expect(chatUiIds).toContain('none');
+        expect(chatUiIds).toContain('open-webui');
+
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment.QDRANT_URL).toBeDefined();
+        expect(preset.glueConfig.environment.OLLAMA_HOST).toBeDefined();
+        expect(preset.glueConfig.environment.EMBEDDING_MODEL).toBeDefined();
+    });
+
+    it('vector-ai preset overlay references should be valid', () => {
+        const filePath = path.join(presetsDir, 'vector-ai.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
+        const validOverlayIds = new Set(
+            overlaysConfig.overlays.filter((o) => o.category !== 'preset').map((o) => o.id)
+        );
+
+        for (const id of preset.selects.required) {
+            expect(validOverlayIds.has(id), `vector-ai required overlay '${id}' must exist`).toBe(
+                true
+            );
+        }
+        for (const [paramName, param] of Object.entries(preset.parameters as Record<string, any>)) {
+            for (const opt of param.options) {
+                for (const id of opt.overlays as string[]) {
+                    expect(
+                        validOverlayIds.has(id),
+                        `vector-ai ${paramName}.${opt.id}: overlay '${id}' must exist`
+                    ).toBe(true);
+                }
+            }
+        }
+    });
+
+    it('k8s-dev preset should have correct structure', () => {
+        const filePath = path.join(presetsDir, 'k8s-dev.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        expect(preset.id).toBe('k8s-dev');
+        expect(preset.supports).toEqual([]); // Works with both plain and compose
+
+        const required = preset.selects.required;
+        expect(required).toContain('kubectl-helm');
+        expect(required).toContain('docker-in-docker');
+        expect(required).toContain('modern-cli-tools');
+
+        expect(preset.parameters).toBeDefined();
+        expect(preset.parameters.cluster).toBeDefined();
+        expect(preset.parameters.cluster.default).toBe('k3d');
+        const clusterIds = preset.parameters.cluster.options.map((o: any) => o.id);
+        expect(clusterIds).toContain('k3d');
+        expect(clusterIds).toContain('kind');
+
+        expect(preset.parameters.devloop).toBeDefined();
+        expect(preset.parameters.devloop.default).toBe('tilt');
+        const devloopIds = preset.parameters.devloop.options.map((o: any) => o.id);
+        expect(devloopIds).toContain('tilt');
+        expect(devloopIds).toContain('skaffold');
+        expect(devloopIds).toContain('none');
+
+        expect(preset.glueConfig).toBeDefined();
+        expect(preset.glueConfig.environment.KUBECONFIG).toBeDefined();
+    });
+
+    it('k8s-dev preset overlay references should be valid', () => {
+        const filePath = path.join(presetsDir, 'k8s-dev.yml');
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const preset = yaml.load(content) as any;
+
+        const overlaysConfig = loadOverlaysConfig(overlaysDir, indexYmlPath);
+        const validOverlayIds = new Set(
+            overlaysConfig.overlays.filter((o) => o.category !== 'preset').map((o) => o.id)
+        );
+
+        for (const id of preset.selects.required) {
+            expect(validOverlayIds.has(id), `k8s-dev required overlay '${id}' must exist`).toBe(
+                true
+            );
+        }
+        for (const [paramName, param] of Object.entries(preset.parameters as Record<string, any>)) {
+            for (const opt of param.options) {
+                for (const id of opt.overlays as string[]) {
+                    expect(
+                        validOverlayIds.has(id),
+                        `k8s-dev ${paramName}.${opt.id}: overlay '${id}' must exist`
+                    ).toBe(true);
+                }
             }
         }
     });

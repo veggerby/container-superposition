@@ -3,7 +3,8 @@ name: Playwright
 description: Browser automation and testing framework
 category: dev
 supports: []
-requires: []
+requires:
+    - nodejs
 suggests: []
 conflicts: []
 tags:

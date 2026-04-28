@@ -17,3 +17,4 @@ services:
 
 networks:
     devnet:
+        name: devnet

@@ -1,0 +1,150 @@
+# Vector AI Stack Preset
+# Full RAG pipeline: vector DB + local embeddings + Python client
+
+id: vector-ai
+name: Vector AI Stack
+description: Full RAG pipeline — Qdrant vector database, Ollama for local embeddings, and Python for client code
+type: meta
+category: preset
+supports: [compose] # Requires Docker Compose for Qdrant and Ollama services
+tags: [preset, ai, rag, vector, embeddings, qdrant, ollama, python]
+
+selects:
+    required:
+        - qdrant
+        - ollama
+        - ollama-cli
+        - python
+
+    userChoice: {}
+
+parameters:
+    gpu:
+        description: 'GPU acceleration for embedding generation'
+        default: none
+        options:
+            - id: none
+              overlays: []
+              description: 'CPU only — adequate for embedding workloads (smaller models)'
+            - id: nvidia
+              overlays: [cuda]
+              description: 'Nvidia GPU via CUDA — significantly faster embedding throughput'
+            - id: amd
+              overlays: [rocm]
+              description: 'AMD GPU via ROCm'
+
+    chat_ui:
+        description: 'Browser chat UI (optional — useful for testing your RAG pipeline)'
+        default: none
+        options:
+            - id: none
+              overlays: []
+              description: 'No chat UI — use the API or your own frontend'
+            - id: open-webui
+              overlays: [open-webui]
+              description: 'Open WebUI — test RAG-augmented chat visually'
+
+glueConfig:
+    environment:
+        OLLAMA_HOST: 'http://ollama:11434'
+        QDRANT_HOST: 'qdrant'
+        QDRANT_PORT: '6333'
+        QDRANT_URL: 'http://qdrant:6333'
+        EMBEDDING_MODEL: 'nomic-embed-text'
+
+    portMappings:
+        qdrant-rest: 6333
+        qdrant-grpc: 6334
+        ollama-api: 11434
+
+    readme: |
+        ## Vector AI Stack
+
+        This devcontainer provides a complete local RAG (Retrieval-Augmented Generation) pipeline.
+
+        ### Services
+
+        | Service | Port | Purpose |
+        |---------|------|---------|
+        | Qdrant | 6333 (REST), 6334 (gRPC) | Vector database |
+        | Ollama | 11434 | LLM and embedding model runtime |
+        | ollama-cli | — | `ollama` command in terminal |
+
+        ### Quick Start
+
+        #### 1. Pull an embedding model
+
+        ```bash
+        ollama pull nomic-embed-text
+        ```
+
+        #### 2. Pull a chat model (for RAG generation)
+
+        ```bash
+        ollama pull llama3.2
+        ```
+
+        #### 3. Build your pipeline (Python example)
+
+        ```python
+        from qdrant_client import QdrantClient
+        import ollama
+        import os
+
+        qdrant = QdrantClient(url=os.environ["QDRANT_URL"])
+        embedding_model = os.environ["EMBEDDING_MODEL"]
+
+        # Create a collection
+        from qdrant_client.models import Distance, VectorParams
+        qdrant.create_collection(
+            collection_name="docs",
+            vectors_config=VectorParams(size=768, distance=Distance.COSINE),
+        )
+
+        # Embed and index a document
+        text = "Container Superposition makes devcontainer composition easy."
+        response = ollama.embed(model=embedding_model, input=text)
+        vector = response["embeddings"][0]
+
+        qdrant.upsert(
+            collection_name="docs",
+            points=[{"id": 1, "vector": vector, "payload": {"text": text}}],
+        )
+
+        # Search
+        query = "How does devcontainer composition work?"
+        q_vec = ollama.embed(model=embedding_model, input=query)["embeddings"][0]
+        results = qdrant.search(collection_name="docs", query_vector=q_vec, limit=3)
+        for r in results:
+            print(r.payload["text"])
+        ```
+
+        ### Environment Variables
+
+        Already set in your devcontainer:
+
+        ```bash
+        OLLAMA_HOST=http://ollama:11434
+        QDRANT_HOST=qdrant
+        QDRANT_PORT=6333
+        QDRANT_URL=http://qdrant:6333
+        EMBEDDING_MODEL=nomic-embed-text
+        ```
+
+        ### Qdrant Dashboard
+
+        Access the Qdrant web dashboard at http://localhost:6333/dashboard to inspect
+        collections, run queries, and monitor index health.
+
+        ### Recommended Python Packages
+
+        ```bash
+        pip install qdrant-client ollama openai langchain-community
+        ```
+
+        ### Next Steps
+
+        - Add the `local-llm` preset's Open WebUI to test your RAG pipeline through a chat interface
+        - Swap `nomic-embed-text` for `mxbai-embed-large` for higher-quality embeddings
+        - Use Qdrant's named vectors for hybrid dense + sparse retrieval
+        - Add `prometheus` and `grafana` overlays to monitor Qdrant query performance

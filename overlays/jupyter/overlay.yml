@@ -8,6 +8,7 @@ requires:
     - python
 suggests: []
 conflicts: []
+serviceOrder: 3
 tags:
     - language
     - jupyter

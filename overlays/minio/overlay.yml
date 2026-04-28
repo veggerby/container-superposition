@@ -5,8 +5,29 @@ category: database
 supports:
     - compose
 requires: []
-suggests: []
-conflicts: []
+suggests:
+    - prometheus
+    - grafana
+conflicts:
+    - localstack
+serviceOrder: 0
+parameters:
+    MINIO_VERSION:
+        description: MinIO image version tag
+        default: latest
+    MINIO_API_PORT:
+        description: Host port mapped to MinIO S3 API (9000 inside container)
+        default: '9000'
+    MINIO_CONSOLE_PORT:
+        description: Host port mapped to MinIO web console (9001 inside container)
+        default: '9001'
+    MINIO_ROOT_USER:
+        description: MinIO root username (access key)
+        default: minioadmin
+    MINIO_ROOT_PASSWORD:
+        description: MinIO root password (secret key)
+        default: minioadmin
+        sensitive: true
 tags:
     - database
     - storage

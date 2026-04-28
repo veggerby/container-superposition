@@ -5,7 +5,12 @@ category: language
 supports: []
 requires: []
 suggests: []
-conflicts: []
+conflicts:
+    - mysql
+    - redpanda
+    - mongodb
+    - otel-demo-nodejs
+    - otel-demo-python
 tags:
     - language
     - go

@@ -19,5 +19,6 @@ ports:
     - 8888
     - 8889
 order: 2
+serviceOrder: 2
 imports:
     - .shared/otel/instrumentation.env

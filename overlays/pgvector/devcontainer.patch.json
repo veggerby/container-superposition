@@ -14,10 +14,16 @@
             "apk": "postgresql-client"
         }
     },
-    "containerEnv": {
-        "PGHOST": "pgvector",
-        "PGPORT": "5432",
-        "PGDATABASE": "devdb",
-        "PGUSER": "postgres"
+    "remoteEnv": {
+        "PGVECTOR_HOST": "pgvector",
+        "PGVECTOR_PORT": "5432",
+        "PGVECTOR_DB": "{{cs.PGVECTOR_DB}}",
+        "PGVECTOR_USER": "{{cs.PGVECTOR_USER}}",
+        "PGVECTOR_PASSWORD": "{{cs.PGVECTOR_PASSWORD}}",
+        "POSTGRES_HOST": "pgvector",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DB": "{{cs.PGVECTOR_DB}}",
+        "POSTGRES_USER": "{{cs.PGVECTOR_USER}}",
+        "POSTGRES_PASSWORD": "{{cs.PGVECTOR_PASSWORD}}"
     }
 }

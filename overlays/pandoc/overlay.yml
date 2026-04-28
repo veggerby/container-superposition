@@ -15,5 +15,7 @@ tags:
     - markdown
     - docs
     - mermaid
+imports:
+    - .shared/vscode/markdown-extensions.json
 ports: []
 order: 25

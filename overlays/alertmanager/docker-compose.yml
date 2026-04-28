@@ -2,6 +2,7 @@ version: '3.8'
 services:
     alertmanager:
         image: prom/alertmanager:${ALERTMANAGER_VERSION:-latest}
+        restart: unless-stopped
         command:
             - '--config.file=/etc/alertmanager/alertmanager.yml'
             - '--storage.path=/alertmanager'
@@ -12,9 +13,16 @@ services:
             - '${ALERTMANAGER_PORT:-9093}:9093'
         networks:
             - devnet
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:9093/-/ready']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
 
 volumes:
     alertmanager_data:
 
 networks:
     devnet:
+        name: devnet

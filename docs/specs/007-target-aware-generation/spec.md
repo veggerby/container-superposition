@@ -1,18 +1,11 @@
 # Feature Specification: Target-Aware Generation
 
-**Feature Branch**: `copilot/feat-target-aware-generation`  
-**Created**: 2026-03-23  
-**Status**: Final  
+**Spec ID**: `007-target-aware-generation`
+**Created**: 2026-03-23
+**Status**: Final
 **Input**: Issue [feat] Target-aware generation — produce workspace artifacts and guidance for codespaces, gitpod, and devpod
 
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/007-target-aware-generation/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: APPROVED
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
-
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 — Generate codespaces artifacts (Priority: P1)
 

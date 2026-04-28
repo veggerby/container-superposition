@@ -1,7 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
     "runServices": ["keycloak"],
-    "_serviceOrder": 10,
     "forwardPorts": [8180],
     "portsAttributes": {
         "8180": {

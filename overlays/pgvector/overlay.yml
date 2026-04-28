@@ -9,8 +9,11 @@ suggests:
     - ollama
     - python
     - nodejs
+    - prometheus
+    - grafana
 conflicts:
     - postgres
+serviceOrder: 0
 tags:
     - database
     - sql

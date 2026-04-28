@@ -2,6 +2,7 @@ version: '3.8'
 services:
     prometheus:
         image: prom/prometheus:${PROMETHEUS_VERSION:-latest}
+        restart: unless-stopped
         command:
             - '--config.file=/etc/prometheus/prometheus.yml'
             - '--storage.tsdb.path=/prometheus'
@@ -14,9 +15,16 @@ services:
             - '${PROMETHEUS_PORT:-9090}:9090'
         networks:
             - devnet
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:9090/-/ready']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 15s
 
 volumes:
     prometheus_data:
 
 networks:
     devnet:
+        name: devnet

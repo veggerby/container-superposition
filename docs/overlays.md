@@ -18,40 +18,44 @@ This document provides a comprehensive reference for all available overlays in c
 
 .NET 10 SDK with C# DevKit
 
-| Property     | Value                          |
-| ------------ | ------------------------------ |
-| **Category** | language                       |
-| **Tags**     | `language`, `dotnet`, `csharp` |
+| Property      | Value                                   |
+| ------------- | --------------------------------------- |
+| **Category**  | language                                |
+| **Conflicts** | `mysql`, `redpanda`, `otel-demo-nodejs` |
+| **Tags**      | `language`, `dotnet`, `csharp`          |
 
 ### Bun (`bun`)
 
 Bun runtime - faster JavaScript runtime and package manager
 
-| Property     | Value                                         |
-| ------------ | --------------------------------------------- |
-| **Category** | language                                      |
-| **Tags**     | `language`, `bun`, `javascript`, `typescript` |
-| **Ports**    | 3000, 8080                                    |
+| Property      | Value                                                            |
+| ------------- | ---------------------------------------------------------------- |
+| **Category**  | language                                                         |
+| **Conflicts** | `grafana`, `open-webui`, `mysql`, `redpanda`, `otel-demo-nodejs` |
+| **Tags**      | `language`, `bun`, `javascript`, `typescript`                    |
+| **Ports**     | 3000, 8080                                                       |
 
 ### Go (`go`)
 
 Go latest stable with gopls and delve debugger
 
-| Property     | Value                      |
-| ------------ | -------------------------- |
-| **Category** | language                   |
-| **Tags**     | `language`, `go`, `golang` |
-| **Ports**    | 8080, 8081                 |
+| Property      | Value                                                                  |
+| ------------- | ---------------------------------------------------------------------- |
+| **Category**  | language                                                               |
+| **Conflicts** | `mysql`, `redpanda`, `mongodb`, `otel-demo-nodejs`, `otel-demo-python` |
+| **Tags**      | `language`, `go`, `golang`                                             |
+| **Ports**     | 8080, 8081                                                             |
 
 ### Java (`java`)
 
 Eclipse Temurin JDK 21 with Maven and Gradle
 
-| Property     | Value                                 |
-| ------------ | ------------------------------------- |
-| **Category** | language                              |
-| **Tags**     | `language`, `java`, `maven`, `gradle` |
-| **Ports**    | 8080, 8081                            |
+| Property      | Value                                                                  |
+| ------------- | ---------------------------------------------------------------------- |
+| **Category**  | language                                                               |
+| **Conflicts** | `mysql`, `redpanda`, `mongodb`, `otel-demo-nodejs`, `otel-demo-python` |
+| **Tags**      | `language`, `java`, `maven`, `gradle`                                  |
+| **Ports**     | 8080, 8081                                                             |
 
 ### Jupyter (`jupyter`)
 
@@ -65,26 +69,15 @@ Jupyter notebook server for interactive computing and data science
 | **Tags**     | `language`, `jupyter`, `python`, `notebook`, `data-science` |
 | **Ports**    | 8888                                                        |
 
-### MkDocs (`mkdocs`)
-
-Material for MkDocs - professional documentation generator
-
-| Property      | Value                               |
-| ------------- | ----------------------------------- |
-| **Category**  | language                            |
-| **Requires**  | `python`                            |
-| **Conflicts** | `mkdocs2`                           |
-| **Tags**      | `documentation`, `mkdocs`, `python` |
-| **Ports**     | 8000                                |
-
 ### Node.js (`nodejs`)
 
 Node.js LTS with TypeScript and tooling
 
-| Property     | Value                                            |
-| ------------ | ------------------------------------------------ |
-| **Category** | language                                         |
-| **Tags**     | `language`, `nodejs`, `javascript`, `typescript` |
+| Property      | Value                                                            |
+| ------------- | ---------------------------------------------------------------- |
+| **Category**  | language                                                         |
+| **Conflicts** | `grafana`, `open-webui`, `mysql`, `redpanda`, `otel-demo-nodejs` |
+| **Tags**      | `language`, `nodejs`, `javascript`, `typescript`                 |
 
 ### PowerShell (`powershell`)
 
@@ -108,13 +101,26 @@ Python 3.12 with linting and formatting
 
 Rust stable with cargo, rustfmt, and clippy
 
-| Property     | Value                       |
-| ------------ | --------------------------- |
-| **Category** | language                    |
-| **Tags**     | `language`, `rust`, `cargo` |
-| **Ports**    | 8080, 3000                  |
+| Property      | Value                       |
+| ------------- | --------------------------- |
+| **Category**  | language                    |
+| **Conflicts** | `grafana`, `open-webui`     |
+| **Tags**      | `language`, `rust`, `cargo` |
+| **Ports**     | 8080, 3000                  |
 
 ## Database Overlays
+
+### Apache Jena Fuseki (`fuseki`)
+
+SPARQL 1.1 server and triplestore backed by Apache Jena TDB
+
+| Property     | Value                                                                             |
+| ------------ | --------------------------------------------------------------------------------- |
+| **Category** | database                                                                          |
+| **Supports** | compose                                                                           |
+| **Suggests** | `java`, `python`, `nodejs`                                                        |
+| **Tags**     | `database`, `rdf`, `sparql`, `triplestore`, `semantic-web`, `linked-data`, `jena` |
+| **Ports**    | 3030/http                                                                         |
 
 ### DuckDB (`duckdb`)
 
@@ -130,45 +136,40 @@ In-process analytical database for OLAP workloads
 
 S3-compatible object storage with web console
 
-| Property     | Value                                                  |
-| ------------ | ------------------------------------------------------ |
-| **Category** | database                                               |
-| **Supports** | compose                                                |
-| **Tags**     | `database`, `storage`, `s3`, `object-storage`, `minio` |
-| **Ports**    | 9000, 9001                                             |
+| Property      | Value                                                  |
+| ------------- | ------------------------------------------------------ |
+| **Category**  | database                                               |
+| **Supports**  | compose                                                |
+| **Suggests**  | `prometheus`, `grafana`                                |
+| **Conflicts** | `localstack`                                           |
+| **Tags**      | `database`, `storage`, `s3`, `object-storage`, `minio` |
+| **Ports**     | 9000, 9001                                             |
 
 ### MongoDB (`mongodb`)
 
 MongoDB 8 with Mongo Express web UI
 
-| Property     | Value                                      |
-| ------------ | ------------------------------------------ |
-| **Category** | database                                   |
-| **Supports** | compose                                    |
-| **Tags**     | `database`, `nosql`, `mongodb`, `document` |
-| **Ports**    | 27017/tcp, 8081/http                       |
+| Property      | Value                                        |
+| ------------- | -------------------------------------------- |
+| **Category**  | database                                     |
+| **Supports**  | compose                                      |
+| **Suggests**  | `prometheus`, `grafana`                      |
+| **Conflicts** | `redpanda`, `otel-demo-python`, `go`, `java` |
+| **Tags**      | `database`, `nosql`, `mongodb`, `document`   |
+| **Ports**     | 27017/tcp, 8081/http                         |
 
 ### MySQL (`mysql`)
 
 MySQL 8 with phpMyAdmin web UI
 
-| Property     | Value                      |
-| ------------ | -------------------------- |
-| **Category** | database                   |
-| **Supports** | compose                    |
-| **Tags**     | `database`, `sql`, `mysql` |
-| **Ports**    | 3306/tcp, 8080/http        |
-
-### NATS (`nats`)
-
-Lightweight pub/sub messaging with JetStream
-
-| Property     | Value                                                  |
-| ------------ | ------------------------------------------------------ |
-| **Category** | database                                               |
-| **Supports** | compose                                                |
-| **Tags**     | `database`, `messaging`, `pubsub`, `nats`, `jetstream` |
-| **Ports**    | 4222/tcp, 8222/http                                    |
+| Property      | Value                                                                   |
+| ------------- | ----------------------------------------------------------------------- |
+| **Category**  | database                                                                |
+| **Supports**  | compose                                                                 |
+| **Suggests**  | `prometheus`, `grafana`                                                 |
+| **Conflicts** | `redpanda`, `nodejs`, `bun`, `go`, `java`, `dotnet`, `otel-demo-nodejs` |
+| **Tags**      | `database`, `sql`, `mysql`                                              |
+| **Ports**     | 3306/tcp, 8080/http                                                     |
 
 ### pgvector (PostgreSQL + vector) (`pgvector`)
 
@@ -178,7 +179,7 @@ PostgreSQL 16 with the pgvector extension for vector similarity search
 | ------------- | ----------------------------------------------------------------- |
 | **Category**  | database                                                          |
 | **Supports**  | compose                                                           |
-| **Suggests**  | `ollama`, `python`, `nodejs`                                      |
+| **Suggests**  | `ollama`, `python`, `nodejs`, `prometheus`, `grafana`             |
 | **Conflicts** | `postgres`                                                        |
 | **Tags**      | `database`, `sql`, `vector`, `embeddings`, `postgres`, `pgvector` |
 | **Ports**     | 5432/tcp                                                          |
@@ -191,6 +192,7 @@ PostgreSQL 16 database
 | ------------- | ----------------------------- |
 | **Category**  | database                      |
 | **Supports**  | compose                       |
+| **Suggests**  | `prometheus`, `grafana`       |
 | **Conflicts** | `pgvector`                    |
 | **Tags**      | `database`, `sql`, `postgres` |
 | **Ports**     | 5432/tcp                      |
@@ -199,24 +201,13 @@ PostgreSQL 16 database
 
 High-performance vector database for similarity search and embeddings
 
-| Property     | Value                                                  |
-| ------------ | ------------------------------------------------------ |
-| **Category** | database                                               |
-| **Supports** | compose                                                |
-| **Suggests** | `ollama`, `python`, `nodejs`                           |
-| **Tags**     | `database`, `vector`, `embeddings`, `search`, `qdrant` |
-| **Ports**    | 6333/http, 6334/grpc                                   |
-
-### RabbitMQ (`rabbitmq`)
-
-Message broker with AMQP protocol and management UI
-
-| Property     | Value                                                |
-| ------------ | ---------------------------------------------------- |
-| **Category** | database                                             |
-| **Supports** | compose                                              |
-| **Tags**     | `database`, `messaging`, `queue`, `rabbitmq`, `amqp` |
-| **Ports**    | 5672/tcp, 15672/http                                 |
+| Property     | Value                                                                   |
+| ------------ | ----------------------------------------------------------------------- |
+| **Category** | database                                                                |
+| **Supports** | compose                                                                 |
+| **Suggests** | `ollama`, `python`, `nodejs`, `prometheus`, `grafana`, `otel-collector` |
+| **Tags**     | `database`, `vector`, `embeddings`, `search`, `qdrant`                  |
+| **Ports**    | 6333/http, 6334/grpc                                                    |
 
 ### Redis (`redis`)
 
@@ -226,19 +217,9 @@ Redis 7 cache
 | ------------ | ---------------------------- |
 | **Category** | database                     |
 | **Supports** | compose                      |
+| **Suggests** | `prometheus`, `grafana`      |
 | **Tags**     | `database`, `cache`, `redis` |
 | **Ports**    | 6379/tcp                     |
-
-### Redpanda (`redpanda`)
-
-Kafka-compatible event streaming with web console
-
-| Property     | Value                                                     |
-| ------------ | --------------------------------------------------------- |
-| **Category** | database                                                  |
-| **Supports** | compose                                                   |
-| **Tags**     | `database`, `messaging`, `streaming`, `kafka`, `redpanda` |
-| **Ports**    | 9092, 8080, 8081, 8082, 9644                              |
 
 ### SQL Server (`sqlserver`)
 
@@ -248,7 +229,7 @@ SQL Server 2022 for Linux
 | ------------ | ------------------------------------------- |
 | **Category** | database                                    |
 | **Supports** | compose                                     |
-| **Suggests** | `dotnet`                                    |
+| **Suggests** | `dotnet`, `prometheus`, `grafana`           |
 | **Tags**     | `database`, `sql`, `sqlserver`, `microsoft` |
 | **Ports**    | 1433                                        |
 
@@ -352,40 +333,43 @@ Log shipping agent for Loki with Docker auto-discovery
 
 Observability visualization dashboard with auto-provisioning
 
-| Property     | Value                                  |
-| ------------ | -------------------------------------- |
-| **Category** | observability                          |
-| **Supports** | compose                                |
-| **Requires** | `prometheus`                           |
-| **Suggests** | `loki`, `jaeger`, `tempo`, `promtail`  |
-| **Tags**     | `observability`, `ui`, `visualization` |
-| **Ports**    | 3000/http                              |
+| Property      | Value                                  |
+| ------------- | -------------------------------------- |
+| **Category**  | observability                          |
+| **Supports**  | compose                                |
+| **Requires**  | `prometheus`                           |
+| **Suggests**  | `loki`, `jaeger`, `tempo`, `promtail`  |
+| **Conflicts** | `open-webui`, `nodejs`, `bun`, `rust`  |
+| **Tags**      | `observability`, `ui`, `visualization` |
+| **Ports**     | 3000/http                              |
 
 ### OTel Demo (Node.js) (`otel-demo-nodejs`)
 
 Sample Node.js app with OpenTelemetry instrumentation
 
-| Property     | Value                                              |
-| ------------ | -------------------------------------------------- |
-| **Category** | observability                                      |
-| **Supports** | compose                                            |
-| **Requires** | `otel-collector`                                   |
-| **Suggests** | `jaeger`, `tempo`, `prometheus`, `loki`, `grafana` |
-| **Tags**     | `observability`, `demo`, `nodejs`, `opentelemetry` |
-| **Ports**    | 8080                                               |
+| Property      | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Category**  | observability                                                |
+| **Supports**  | compose                                                      |
+| **Requires**  | `otel-collector`                                             |
+| **Suggests**  | `jaeger`, `tempo`, `prometheus`, `loki`, `grafana`           |
+| **Conflicts** | `mysql`, `redpanda`, `nodejs`, `bun`, `go`, `java`, `dotnet` |
+| **Tags**      | `observability`, `demo`, `nodejs`, `opentelemetry`           |
+| **Ports**     | 8080                                                         |
 
 ### OTel Demo (Python) (`otel-demo-python`)
 
 Sample Python Flask app with OpenTelemetry instrumentation
 
-| Property     | Value                                              |
-| ------------ | -------------------------------------------------- |
-| **Category** | observability                                      |
-| **Supports** | compose                                            |
-| **Requires** | `otel-collector`                                   |
-| **Suggests** | `jaeger`, `tempo`, `prometheus`, `loki`, `grafana` |
-| **Tags**     | `observability`, `demo`, `python`, `opentelemetry` |
-| **Ports**    | 8081                                               |
+| Property      | Value                                              |
+| ------------- | -------------------------------------------------- |
+| **Category**  | observability                                      |
+| **Supports**  | compose                                            |
+| **Requires**  | `otel-collector`                                   |
+| **Suggests**  | `jaeger`, `tempo`, `prometheus`, `loki`, `grafana` |
+| **Conflicts** | `mongodb`, `redpanda`, `go`, `java`                |
+| **Tags**      | `observability`, `demo`, `python`, `opentelemetry` |
+| **Ports**     | 8081                                               |
 
 ## Cloud Tool Overlays
 
@@ -453,13 +437,14 @@ Kubernetes CLI and Helm package manager
 
 Local AWS cloud stack for development and testing
 
-| Property     | Value                                   |
-| ------------ | --------------------------------------- |
-| **Category** | cloud                                   |
-| **Supports** | compose                                 |
-| **Suggests** | `aws-cli`                               |
-| **Tags**     | `cloud`, `aws`, `testing`, `localstack` |
-| **Ports**    | 4566, 4571                              |
+| Property      | Value                                   |
+| ------------- | --------------------------------------- |
+| **Category**  | cloud                                   |
+| **Supports**  | compose                                 |
+| **Suggests**  | `aws-cli`                               |
+| **Conflicts** | `minio`                                 |
+| **Tags**      | `cloud`, `aws`, `testing`, `localstack` |
+| **Ports**     | 4566, 4571                              |
 
 ### Pulumi (`pulumi`)
 
@@ -549,7 +534,7 @@ Node-based image/video generation UI for Stable Diffusion and generative AI work
 | ------------ | -------------------------------------------------------------- |
 | **Category** | dev                                                            |
 | **Supports** | compose                                                        |
-| **Suggests** | `cuda`, `python`, `ollama`                                     |
+| **Suggests** | `cuda`, `rocm`, `python`, `ollama`                             |
 | **Tags**     | `dev`, `ai`, `image-generation`, `stable-diffusion`, `comfyui` |
 | **Ports**    | 8188                                                           |
 
@@ -673,6 +658,18 @@ Email testing tool with web UI and SMTP server
 | **Tags**     | `dev`, `email`, `smtp`, `testing` |
 | **Ports**    | 8025/http, 1025/tcp               |
 
+### MkDocs (`mkdocs`)
+
+Material for MkDocs - professional documentation generator
+
+| Property      | Value                               |
+| ------------- | ----------------------------------- |
+| **Category**  | dev                                 |
+| **Requires**  | `python`                            |
+| **Conflicts** | `mkdocs2`                           |
+| **Tags**      | `documentation`, `mkdocs`, `python` |
+| **Ports**     | 8000                                |
+
 ### MkDocs 2 (`mkdocs2`)
 
 MkDocs 2.0 pre-release (encode/mkdocs) — smart, simple website design tool
@@ -709,14 +706,14 @@ Secure tunneling for webhook testing and external access
 
 Local LLM inference server with OpenAI-compatible API
 
-| Property     | Value                                     |
-| ------------ | ----------------------------------------- |
-| **Category** | dev                                       |
-| **Supports** | compose                                   |
-| **Requires** | `ollama-cli`                              |
-| **Suggests** | `codex`, `claude-code`, `amp`             |
-| **Tags**     | `dev`, `ai`, `llm`, `inference`, `ollama` |
-| **Ports**    | 11434                                     |
+| Property     | Value                                                                    |
+| ------------ | ------------------------------------------------------------------------ |
+| **Category** | dev                                                                      |
+| **Supports** | compose                                                                  |
+| **Requires** | `ollama-cli`                                                             |
+| **Suggests** | `codex`, `claude-code`, `amp`, `prometheus`, `grafana`, `otel-collector` |
+| **Tags**     | `dev`, `ai`, `llm`, `inference`, `ollama`                                |
+| **Ports**    | 11434                                                                    |
 
 ### Ollama CLI (`ollama-cli`)
 
@@ -732,13 +729,14 @@ Ollama command-line client for local or remote Ollama servers
 
 Browser-based chat UI for Ollama and OpenAI-compatible LLM backends
 
-| Property     | Value                                         |
-| ------------ | --------------------------------------------- |
-| **Category** | dev                                           |
-| **Supports** | compose                                       |
-| **Suggests** | `ollama`                                      |
-| **Tags**     | `dev`, `ai`, `llm`, `ui`, `chat`, `openwebui` |
-| **Ports**    | 3000/http                                     |
+| Property      | Value                                         |
+| ------------- | --------------------------------------------- |
+| **Category**  | dev                                           |
+| **Supports**  | compose                                       |
+| **Suggests**  | `ollama`, `prometheus`, `otel-collector`      |
+| **Conflicts** | `grafana`, `nodejs`, `bun`, `rust`            |
+| **Tags**      | `dev`, `ai`, `llm`, `ui`, `chat`, `openwebui` |
+| **Ports**     | 3000/http                                     |
 
 ### OpenAPI Tools (`openapi-tools`)
 
@@ -767,6 +765,7 @@ Browser automation and testing framework
 | Property     | Value                       |
 | ------------ | --------------------------- |
 | **Category** | dev                         |
+| **Requires** | `nodejs`                    |
 | **Tags**     | `dev`, `testing`, `browser` |
 
 ### Pre-commit Framework (`pre-commit`)
@@ -787,6 +786,7 @@ AMD ROCm libraries and GPU passthrough for containerized ML/inference workloads
 | Property      | Value                                          |
 | ------------- | ---------------------------------------------- |
 | **Category**  | dev                                            |
+| **Suggests**  | `comfyui`                                      |
 | **Conflicts** | `cuda`                                         |
 | **Tags**      | `dev`, `gpu`, `rocm`, `amd`, `ml`, `inference` |
 

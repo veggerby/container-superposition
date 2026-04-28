@@ -10,7 +10,11 @@ suggests:
     - codex
     - claude-code
     - amp
+    - prometheus
+    - grafana
+    - otel-collector
 conflicts: []
+serviceOrder: 3
 tags:
     - dev
     - ai

@@ -1,16 +1,9 @@
 # Feature Specification: `init --project-file`
 
-**Feature Branch**: `copilot/sub-pr-121`
+**Spec ID**: `018-init-project-file`
 **Created**: 2026-03-23
 **Status**: Final
 **Input**: Extend the `init` command with a `--project-file` flag that persists the chosen init configuration into a repository-root project config file (creating `.superposition.yml` by default or updating an existing supported project config), aligning init runs with the project-config workflow.
-
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/007-init-project-file/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: Approved
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
 ## Summary
 
@@ -34,7 +27,7 @@ project config path when one already exists) alongside the normal init output.
   current `init` runs do.
 - Project config write errors MUST NOT suppress devcontainer generation success; they MUST be reported separately.
 
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 - Write project config alongside devcontainer generation (Priority: P1)
 

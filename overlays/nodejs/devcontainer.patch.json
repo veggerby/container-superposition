@@ -13,21 +13,10 @@
     },
     "customizations": {
         "vscode": {
-            "extensions": [
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode",
-                "christian-kohler.npm-intellisense"
-            ],
+            "extensions": ["christian-kohler.npm-intellisense"],
             "settings": {
-                "editor.defaultFormatter": "esbenp.prettier-vscode",
                 "editor.codeActionsOnSave": {
                     "source.fixAll.eslint": "explicit"
-                },
-                "[typescript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[javascript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
                 }
             }
         }

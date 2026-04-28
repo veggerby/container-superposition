@@ -1,3 +1,6 @@
 {
-    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "postCreateCommand": {
+        "setup-windsurf-cli": "bash .devcontainer/scripts/setup-windsurf-cli.sh"
+    }
 }

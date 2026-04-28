@@ -3,11 +3,13 @@
  */
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as net from 'net';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 import boxen from 'boxen';
+import * as yaml from 'js-yaml';
 import type {
     OverlaysConfig,
     SuperpositionManifest,
@@ -28,6 +30,7 @@ import type {
     FixOutcomeSummary,
     FixRun,
     ExitDisposition,
+    OverlayId,
 } from '../schema/types.js';
 import { loadOverlayManifest } from '../schema/overlay-loader.js';
 import {
@@ -41,7 +44,19 @@ import { MERGE_STRATEGY } from '../utils/merge.js';
 import { extractPorts } from '../utils/port-utils.js';
 import { composeDevContainer } from '../questionnaire/composer.js';
 import { mergeAnswers } from '../questionnaire/answers.js';
-import { loadProjectConfig } from '../schema/project-config.js';
+import {
+    loadProjectConfig,
+    buildAnswersFromProjectConfig,
+    buildProjectConfigSelectionFromAnswers,
+    writeProjectConfig,
+} from '../schema/project-config.js';
+import {
+    collectOverlayParameters,
+    resolveParameters,
+    findUnresolvedTokens,
+} from '../utils/parameters.js';
+import { applyPresetSelections } from '../questionnaire/presets.js';
+import { PRESETS_DIR } from '../questionnaire/questionnaire.js';
 
 interface DoctorOptions {
     output?: string;
@@ -49,7 +64,15 @@ interface DoctorOptions {
     fromProject?: boolean;
     projectRoot?: string;
     fix?: boolean;
+    dryRun?: boolean;
     json?: boolean;
+}
+
+interface RemediationPlan {
+    findingName: string;
+    remediationKey: string;
+    plannedChanges: string[];
+    safetyClass: string;
 }
 
 /** Internal check result — extended with fix metadata */
@@ -72,6 +95,11 @@ interface DoctorReport {
     merge: CheckResult[];
     ports: CheckResult[];
     drift: CheckResult[];
+    parameters: CheckResult[];
+    dependencies: CheckResult[];
+    portCrossValidation: CheckResult[];
+    envExampleDrift: CheckResult[];
+    reproducibility: CheckResult[];
     summary: {
         passed: number;
         warnings: number;
@@ -143,6 +171,71 @@ const REMEDIATION_REGISTRY = new Map<string, RemediationAction>([
                 'macOS:   open -a Docker',
                 'Windows: Start Docker Desktop from the Start menu',
             ],
+        },
+    ],
+    [
+        'parameters-regen',
+        {
+            key: 'parameters-regen',
+            findingId: 'missing-required-parameters',
+            safetyClass: 'safe-unattended',
+            executionKind: 'regeneration',
+            preconditions: [
+                'Project file (.superposition.yml) must exist',
+                'All required parameters must have overlay defaults to fall back to',
+            ],
+            plannedChanges: [
+                'Add missing parameters with overlay defaults to project file',
+                'Regenerate devcontainer configuration from updated project file',
+            ],
+            manualFallback: [
+                'Add the missing parameters to the parameters: section in your project file',
+                'Run "cs regen" to regenerate with the updated configuration',
+            ],
+        },
+    ],
+    [
+        'dependency-fix',
+        {
+            key: 'dependency-fix',
+            findingId: 'missing-required-overlay',
+            safetyClass: 'safe-unattended',
+            executionKind: 'regeneration',
+            preconditions: ['Project file (.superposition.yml) must exist'],
+            plannedChanges: [
+                'Add missing required overlay(s) to project file',
+                'Regenerate devcontainer configuration from updated project file',
+            ],
+            manualFallback: [
+                'Add the missing required overlays to the overlays: list in your project file',
+                'Run "cs regen" to regenerate',
+            ],
+        },
+    ],
+    [
+        'env-example-regen',
+        {
+            key: 'env-example-regen',
+            findingId: 'env-example-drift',
+            safetyClass: 'safe-unattended',
+            executionKind: 'regeneration',
+            preconditions: ['Project file (.superposition.yml) must exist'],
+            plannedChanges: ['Regenerate .env.example from current overlay selection'],
+            manualFallback: [
+                'Run "cs regen" to regenerate .env.example from the current overlay selection',
+            ],
+        },
+    ],
+    [
+        'reproducibility-regen',
+        {
+            key: 'reproducibility-regen',
+            findingId: 'reproducibility',
+            safetyClass: 'safe-unattended',
+            executionKind: 'regeneration',
+            preconditions: ['Project file (.superposition.yml) must exist'],
+            plannedChanges: ['Regenerate devcontainer configuration from current project file'],
+            manualFallback: ['Run "cs regen" to regenerate the devcontainer configuration'],
         },
     ],
 ]);
@@ -1088,13 +1181,995 @@ function checkProjectFileDrift(
     ];
 }
 
+/**
+ * Check overlay parameters: unresolved tokens, secret leakage, missing .env.example,
+ * stale project-file keys, and required parameters not supplied.
+ */
+function checkParameters(
+    overlaysConfig: OverlaysConfig,
+    outputPath: string,
+    workingDir: string
+): CheckResult[] {
+    const results: CheckResult[] = [];
+
+    // Load the project config — skip silently if none present
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch {
+        return [];
+    }
+    if (!projectConfig) {
+        return [];
+    }
+
+    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const suppliedParams = projectConfig.selection.parameters ?? {};
+
+    // Collect all parameter declarations for selected overlays
+    const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
+    const declaredCount = Object.keys(declared).length;
+
+    // ── Check 1: Unresolved {{cs.*}} tokens in generated files ────────────────
+    const filesToScan: Array<[string, string]> = [
+        ['devcontainer.json', path.join(outputPath, 'devcontainer.json')],
+        ['docker-compose.yml', path.join(outputPath, 'docker-compose.yml')],
+        ['.env.example', path.join(outputPath, '.env.example')],
+    ];
+
+    const unresolvedByFile: string[] = [];
+    for (const [label, filePath] of filesToScan) {
+        if (!fs.existsSync(filePath)) continue;
+        const content = fs.readFileSync(filePath, 'utf8');
+        const tokens = findUnresolvedTokens(content);
+        if (tokens.length > 0) {
+            unresolvedByFile.push(`${label}: ${[...new Set(tokens)].join(', ')}`);
+        }
+    }
+
+    if (unresolvedByFile.length > 0) {
+        results.push({
+            name: 'Unresolved parameter tokens',
+            status: 'fail',
+            message: `Unsubstituted {{cs.*}} tokens found in generated files`,
+            details: [
+                ...unresolvedByFile,
+                'Run "cs regen" or add the missing parameters to your project file',
+            ],
+            fixEligibility: 'automatic',
+            remediationKey: 'parameters-regen',
+            fixable: true,
+        });
+    }
+
+    // ── Check 2: Sensitive params hardcoded in devcontainer.json remoteEnv ───
+    const devcontainerPath = path.join(outputPath, 'devcontainer.json');
+    if (fs.existsSync(devcontainerPath)) {
+        try {
+            const devcontainer = JSON.parse(fs.readFileSync(devcontainerPath, 'utf8'));
+            const remoteEnv: Record<string, string> = devcontainer.remoteEnv ?? {};
+            const leakedSecrets: string[] = [];
+            for (const [key, value] of Object.entries(remoteEnv)) {
+                if (declared[key]?.sensitive && value !== '' && !value.startsWith('${')) {
+                    leakedSecrets.push(key);
+                }
+            }
+            if (leakedSecrets.length > 0) {
+                results.push({
+                    name: 'Sensitive parameters in devcontainer',
+                    status: 'warn',
+                    message: `Secret parameter(s) appear as plain text in devcontainer.json remoteEnv: ${leakedSecrets.join(', ')}`,
+                    details: [
+                        'Sensitive values should be stored in .env and referenced as ${VAR:-default}',
+                        'Run "cs regen" to regenerate with proper secret handling',
+                    ],
+                    fixEligibility: 'automatic',
+                    remediationKey: 'parameters-regen',
+                    fixable: true,
+                });
+            }
+        } catch {
+            // devcontainer.json parse errors are caught by checkManifest — skip here
+        }
+    }
+
+    // ── Check 3: Missing .env.example for compose stacks with parameters ─────
+    const manifest = (() => {
+        const mPath = path.join(outputPath, 'superposition.json');
+        if (!fs.existsSync(mPath)) return null;
+        try {
+            return JSON.parse(fs.readFileSync(mPath, 'utf8')) as { baseTemplate?: string };
+        } catch {
+            return null;
+        }
+    })();
+
+    const isCompose = manifest?.baseTemplate === 'compose';
+    if (isCompose && declaredCount > 0) {
+        const envExamplePath = path.join(outputPath, '.env.example');
+        if (!fs.existsSync(envExamplePath)) {
+            results.push({
+                name: 'Missing .env.example',
+                status: 'warn',
+                message: `Compose stack with ${declaredCount} parameter(s) has no .env.example`,
+                details: ['Run "cs regen" to generate the .env.example file'],
+                fixEligibility: 'automatic',
+                remediationKey: 'parameters-regen',
+                fixable: true,
+            });
+        }
+    }
+
+    // ── Check 4: Unknown parameters in project file ───────────────────────────
+    const unknownKeys = Object.keys(suppliedParams).filter((k) => !(k in declared));
+    if (unknownKeys.length > 0) {
+        results.push({
+            name: 'Unknown parameters in project file',
+            status: 'warn',
+            message: `parameters: contains ${unknownKeys.length} key(s) not declared by any selected overlay: ${unknownKeys.join(', ')}`,
+            details: [
+                'These may be stale entries from a removed overlay',
+                'Remove them from the parameters: section in your project file',
+            ],
+            fixEligibility: 'manual-only',
+        });
+    }
+
+    // ── Check 5: Required parameters missing from project file ───────────────
+    const { missingRequired } = resolveParameters(declared, suppliedParams);
+    if (missingRequired.length > 0) {
+        const declaringOverlays = missingRequired
+            .map((k) => `${k} (${declared[k]?.overlayId ?? 'unknown'})`)
+            .join(', ');
+        results.push({
+            name: 'Missing required parameters',
+            status: 'fail',
+            message: `${missingRequired.length} required parameter(s) have no value and no default: ${declaringOverlays}`,
+            details: [
+                'Add these to the parameters: section in your project file',
+                'Run "cs regen" (or doctor --fix) to apply defaults and regenerate',
+            ],
+            fixEligibility: 'automatic',
+            remediationKey: 'parameters-regen',
+            fixable: true,
+        });
+    }
+
+    // ── Pass: all parameters resolved ────────────────────────────────────────
+    if (results.length === 0 && declaredCount > 0) {
+        const { values } = resolveParameters(declared, suppliedParams);
+        const resolvedCount = Object.keys(values).length;
+        results.push({
+            name: 'Parameter resolution',
+            status: 'pass',
+            message: `${resolvedCount} parameter(s) resolved for ${selectedOverlays.length} overlay(s)`,
+            fixEligibility: 'not-applicable',
+        });
+    }
+
+    return results;
+}
+
+/**
+ * Check overlay dependency consistency: missing required overlays, unknown overlay IDs,
+ * and unsatisfied suggestions.
+ */
+function checkDependencies(overlaysConfig: OverlaysConfig, workingDir: string): CheckResult[] {
+    const overlayMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
+
+    // Read raw overlay list from YAML — loadProjectConfig throws for unknown IDs
+    let rawSelectedOverlays: string[] = [];
+    try {
+        const projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+        if (!projectConfig) return [];
+        rawSelectedOverlays = (projectConfig.selection.overlays ?? []) as string[];
+    } catch {
+        for (const fileName of ['.superposition.yml', 'superposition.yml']) {
+            const filePath = path.join(workingDir, fileName);
+            if (!fs.existsSync(filePath)) continue;
+            try {
+                const raw = yaml.load(fs.readFileSync(filePath, 'utf8')) as Record<string, unknown>;
+                if (Array.isArray(raw?.overlays)) {
+                    rawSelectedOverlays = (raw.overlays as unknown[])
+                        .filter((v) => typeof v === 'string')
+                        .map((v) => v as string);
+                }
+                break;
+            } catch {
+                return [];
+            }
+        }
+        if (rawSelectedOverlays.length === 0) return [];
+    }
+
+    if (rawSelectedOverlays.length === 0) {
+        return [
+            {
+                name: 'Overlay dependencies',
+                status: 'pass',
+                message: 'No overlays selected',
+                fixEligibility: 'not-applicable',
+            },
+        ];
+    }
+
+    // The set of overlays explicitly listed in the project file (for requires check)
+    const projectFileSet = new Set<string>(rawSelectedOverlays);
+
+    const results: CheckResult[] = [];
+
+    for (const id of rawSelectedOverlays) {
+        // Unknown overlay
+        if (!overlayMap.has(id)) {
+            results.push({
+                name: `Unknown overlay: ${id}`,
+                status: 'fail',
+                message: `Overlay "${id}" not found in registry — it may have been removed or misspelled`,
+                details: [`Edit .superposition.yml to correct the overlay ID`],
+                fixEligibility: 'manual-only',
+            });
+            continue;
+        }
+
+        const def = overlayMap.get(id)!;
+
+        // Missing required overlays — compare against project file, not auto-resolved set
+        for (const req of (def.requires as string[]) ?? []) {
+            if (!projectFileSet.has(req)) {
+                results.push({
+                    name: `Missing required overlay: ${req}`,
+                    status: 'fail',
+                    message: `Overlay "${id}" requires "${req}" which is not in your project file`,
+                    details: [
+                        `Add "${req}" to the overlays: list in .superposition.yml`,
+                        'Fixable with --fix flag',
+                    ],
+                    fixEligibility: 'automatic',
+                    remediationKey: 'dependency-fix',
+                    fixable: true,
+                });
+            }
+        }
+
+        // Suggested overlays — compare against project file
+        for (const sug of (def.suggests as string[]) ?? []) {
+            if (!projectFileSet.has(sug)) {
+                results.push({
+                    name: `Suggested overlay: ${sug}`,
+                    status: 'warn',
+                    message: `Overlay "${id}" suggests "${sug}" — consider adding it`,
+                    details: [
+                        `Add "${sug}" to the overlays: list in .superposition.yml for better functionality`,
+                    ],
+                    fixEligibility: 'not-applicable',
+                });
+            }
+        }
+    }
+
+    if (results.length === 0) {
+        results.push({
+            name: 'Overlay dependencies',
+            status: 'pass',
+            message: `${rawSelectedOverlays.length} overlay(s) selected; all dependencies satisfied`,
+            fixEligibility: 'not-applicable',
+        });
+    }
+
+    return results;
+}
+
+/**
+ * Execute the dependency-fix remediation: add missing required overlays then regenerate.
+ */
+async function executeDependencyFix(
+    outputPath: string,
+    overlaysConfig: OverlaysConfig,
+    overlaysDir: string,
+    workingDir: string,
+    silent = false
+): Promise<FixExecution> {
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch (err) {
+        return {
+            findingId: 'missing-required-overlay',
+            remediationKey: 'dependency-fix',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: `Failed to load project file: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+    if (!projectConfig) {
+        return {
+            findingId: 'missing-required-overlay',
+            remediationKey: 'dependency-fix',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: 'No project file (.superposition.yml) found',
+            rechecked: false,
+        };
+    }
+
+    const selectedOverlays = [...(projectConfig.selection.overlays ?? [])];
+    const overlayMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
+
+    // Collect missing required overlays
+    const toAdd: string[] = [];
+    const toProcess: string[] = [...(selectedOverlays as string[])];
+    const processed = new Set<string>();
+    const current = new Set<string>(selectedOverlays as string[]);
+    while (toProcess.length > 0) {
+        const id = toProcess.shift()!;
+        if (processed.has(id)) continue;
+        processed.add(id);
+        const def = overlayMap.get(id);
+        if (!def?.requires) continue;
+        for (const req of def.requires as string[]) {
+            if (!current.has(req)) {
+                current.add(req);
+                toAdd.push(req);
+                toProcess.push(req);
+            }
+        }
+    }
+
+    if (toAdd.length === 0) {
+        return {
+            findingId: 'missing-required-overlay',
+            remediationKey: 'dependency-fix',
+            attempted: false,
+            outcome: 'already-compliant',
+            reason: 'All required overlays are already present',
+            rechecked: false,
+        };
+    }
+
+    const updatedSelection = {
+        ...projectConfig.selection,
+        overlays: [...(selectedOverlays as string[]), ...toAdd] as OverlayId[],
+    };
+
+    try {
+        writeProjectConfig(projectConfig.file.path, updatedSelection);
+    } catch (err) {
+        return {
+            findingId: 'missing-required-overlay',
+            remediationKey: 'dependency-fix',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to write project file: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+
+    let answers;
+    try {
+        const reloadedConfig = loadProjectConfig(overlaysConfig, workingDir);
+        if (!reloadedConfig) throw new Error('Project file not found after write');
+        const baseAnswers = buildAnswersFromProjectConfig(reloadedConfig.selection, overlaysConfig);
+        const withPreset = await applyPresetSelections(baseAnswers, overlaysConfig, PRESETS_DIR);
+        answers = mergeAnswers(withPreset, { outputPath });
+    } catch (err) {
+        return {
+            findingId: 'missing-required-overlay',
+            remediationKey: 'dependency-fix',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to build answers for regeneration: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+
+    const originalLog = console.log;
+    if (silent) console.log = () => {};
+    try {
+        await composeDevContainer(answers, overlaysDir, { isRegen: true });
+    } catch (err) {
+        if (silent) console.log = originalLog;
+        return {
+            findingId: 'missing-required-overlay',
+            remediationKey: 'dependency-fix',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Regeneration failed: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    } finally {
+        if (silent) console.log = originalLog;
+    }
+
+    return {
+        findingId: 'missing-required-overlay',
+        remediationKey: 'dependency-fix',
+        attempted: true,
+        outcome: 'fixed',
+        reason: `Added missing required overlay(s): ${toAdd.join(', ')} and regenerated devcontainer`,
+        changedFiles: [projectConfig.file.path],
+        rechecked: true,
+    };
+}
+
+/**
+ * Normalise a ports: or forwardPorts: entry to the integer container-side port.
+ * Returns null for unparseable entries.
+ */
+function parseContainerPort(entry: string | number | { target?: number }): number | null {
+    if (typeof entry === 'number') return entry > 0 ? entry : null;
+    if (typeof entry === 'object' && entry !== null) {
+        return typeof entry.target === 'number' && entry.target > 0 ? entry.target : null;
+    }
+    if (typeof entry !== 'string') return null;
+    // Strip protocol suffix: "5432/tcp" → "5432"
+    const withoutProto = entry.replace(/\/[a-z]+$/i, '');
+    // Handle "host:container" and "ip:host:container" forms
+    const parts = withoutProto.split(':');
+    const portStr = parts[parts.length - 1] ?? '';
+    const port = parseInt(portStr, 10);
+    return Number.isFinite(port) && port > 0 ? port : null;
+}
+
+/**
+ * Cross-validate forwardPorts in devcontainer.json against ports exposed by compose services.
+ */
+function checkPortCrossValidation(outputPath: string): CheckResult[] {
+    const composePath = path.join(outputPath, 'docker-compose.yml');
+    if (!fs.existsSync(composePath)) {
+        return [
+            {
+                name: 'Port cross-validation',
+                status: 'pass',
+                message: 'No compose stack — port cross-validation skipped',
+                fixEligibility: 'not-applicable',
+            },
+        ];
+    }
+
+    // Parse devcontainer.json forwardPorts
+    const devcontainerPath = path.join(outputPath, 'devcontainer.json');
+    let forwardedPorts = new Set<number>();
+    if (fs.existsSync(devcontainerPath)) {
+        try {
+            const dc = JSON.parse(fs.readFileSync(devcontainerPath, 'utf8'));
+            for (const entry of dc.forwardPorts ?? []) {
+                const port = parseContainerPort(entry);
+                if (port !== null) forwardedPorts.add(port);
+            }
+        } catch {
+            // parse errors handled by checkManifest
+        }
+    }
+
+    // Parse docker-compose.yml ports and expose blocks
+    let boundPorts = new Set<number>();
+    let exposedPorts = new Set<number>();
+    try {
+        const raw = fs.readFileSync(composePath, 'utf8');
+        const doc = yaml.load(raw) as Record<string, unknown>;
+        const services = (doc?.services as Record<string, unknown>) ?? {};
+        for (const svc of Object.values(services)) {
+            const service = svc as Record<string, unknown>;
+            for (const entry of (service.ports as unknown[]) ?? []) {
+                const port = parseContainerPort(entry as string | number | { target?: number });
+                if (port !== null) boundPorts.add(port);
+            }
+            for (const entry of (service.expose as unknown[]) ?? []) {
+                const port = parseContainerPort(entry as string | number | { target?: number });
+                if (port !== null) exposedPorts.add(port);
+            }
+        }
+    } catch {
+        return [
+            {
+                name: 'Port cross-validation',
+                status: 'fail',
+                message:
+                    'Could not parse docker-compose.yml for port cross-validation — file may be malformed',
+                fixEligibility: 'manual-only',
+            },
+        ];
+    }
+
+    const allComposePorts = new Set([...boundPorts, ...exposedPorts]);
+    const results: CheckResult[] = [];
+
+    // forwardPorts entries with no backing compose service
+    for (const port of forwardedPorts) {
+        if (!allComposePorts.has(port)) {
+            results.push({
+                name: `Port ${port} not exposed by any service`,
+                status: 'fail',
+                message: `Port ${port} is listed in forwardPorts but is not exposed by any compose service`,
+                details: [`Remove port ${port} from forwardPorts or add it to a compose service`],
+                fixEligibility: 'manual-only',
+            });
+        }
+    }
+
+    // Bound compose ports not in forwardPorts
+    for (const port of boundPorts) {
+        if (!forwardedPorts.has(port)) {
+            results.push({
+                name: `Port ${port} not forwarded`,
+                status: 'warn',
+                message: `Port ${port} is bound by a compose service but is not in forwardPorts — it may be inaccessible from the host`,
+                details: [
+                    `Add ${port} to forwardPorts in your overlay's devcontainer.patch.json, then run cs regen`,
+                ],
+                fixEligibility: 'manual-only',
+            });
+        }
+    }
+
+    if (results.length === 0) {
+        results.push({
+            name: 'Port cross-validation',
+            status: 'pass',
+            message: `${forwardedPorts.size} forwarded port(s) all match compose service declarations`,
+            fixEligibility: 'not-applicable',
+        });
+    }
+
+    return results;
+}
+
+/**
+ * Check whether .env.example is in sync with the current overlay parameter declarations.
+ */
+function checkEnvExampleDrift(
+    overlaysConfig: OverlaysConfig,
+    outputPath: string,
+    workingDir: string
+): CheckResult[] {
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch {
+        return [];
+    }
+    if (!projectConfig) return [];
+
+    const envExamplePath = path.join(outputPath, '.env.example');
+    if (!fs.existsSync(envExamplePath)) {
+        return [
+            {
+                name: '.env.example drift',
+                status: 'pass',
+                message: 'No .env.example present — skipping drift check',
+                fixEligibility: 'not-applicable',
+            },
+        ];
+    }
+
+    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
+    const declaredKeys = new Set(Object.keys(declared));
+
+    // Parse .env.example keys (skip comments and blanks)
+    const envContent = fs.readFileSync(envExamplePath, 'utf8');
+    const exampleKeys = new Set<string>();
+    for (const line of envContent.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const key = trimmed.split('=')[0]?.trim();
+        if (key) exampleKeys.add(key);
+    }
+
+    const results: CheckResult[] = [];
+
+    // Keys declared by overlays but missing from .env.example
+    for (const [key, decl] of Object.entries(declared)) {
+        if (!exampleKeys.has(key)) {
+            results.push({
+                name: `Missing .env.example key: ${key}`,
+                status: 'fail',
+                message: `Parameter "${key}" declared by overlay "${decl.overlayId}" is missing from .env.example`,
+                details: [
+                    'Run cs regen or use --fix to regenerate .env.example',
+                    'Fixable with --fix flag',
+                ],
+                fixEligibility: 'automatic',
+                remediationKey: 'env-example-regen',
+                fixable: true,
+            });
+        }
+    }
+
+    // Keys in .env.example not declared by any overlay
+    for (const key of exampleKeys) {
+        if (!declaredKeys.has(key)) {
+            results.push({
+                name: `Stale .env.example key: ${key}`,
+                status: 'warn',
+                message: `Key "${key}" in .env.example is not declared by any selected overlay — it may be stale`,
+                details: [
+                    `Remove "${key}" from .env.example or run --fix to regenerate`,
+                    'Fixable with --fix flag',
+                ],
+                fixEligibility: 'automatic',
+                remediationKey: 'env-example-regen',
+                fixable: true,
+            });
+        }
+    }
+
+    if (results.length === 0) {
+        results.push({
+            name: '.env.example drift',
+            status: 'pass',
+            message: `.env.example is in sync with ${declaredKeys.size} declared parameter(s)`,
+            fixEligibility: 'not-applicable',
+        });
+    }
+
+    return results;
+}
+
+/**
+ * Execute the env-example-regen remediation: full regen which regenerates .env.example.
+ */
+async function executeEnvExampleRegen(
+    outputPath: string,
+    overlaysConfig: OverlaysConfig,
+    overlaysDir: string,
+    workingDir: string,
+    silent = false
+): Promise<FixExecution> {
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch (err) {
+        return {
+            findingId: 'env-example-drift',
+            remediationKey: 'env-example-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: `Failed to load project file: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+    if (!projectConfig) {
+        return {
+            findingId: 'env-example-drift',
+            remediationKey: 'env-example-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: 'No project file (.superposition.yml) found',
+            rechecked: false,
+        };
+    }
+
+    let answers;
+    try {
+        const baseAnswers = buildAnswersFromProjectConfig(projectConfig.selection, overlaysConfig);
+        const withPreset = await applyPresetSelections(baseAnswers, overlaysConfig, PRESETS_DIR);
+        answers = mergeAnswers(withPreset, { outputPath });
+    } catch (err) {
+        return {
+            findingId: 'env-example-drift',
+            remediationKey: 'env-example-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to build answers: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+
+    const originalLog = console.log;
+    if (silent) console.log = () => {};
+    try {
+        await composeDevContainer(answers, overlaysDir, { isRegen: true });
+    } catch (err) {
+        if (silent) console.log = originalLog;
+        return {
+            findingId: 'env-example-drift',
+            remediationKey: 'env-example-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Regeneration failed: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    } finally {
+        if (silent) console.log = originalLog;
+    }
+
+    return {
+        findingId: 'env-example-drift',
+        remediationKey: 'env-example-regen',
+        attempted: true,
+        outcome: 'fixed',
+        reason: 'Regenerated .env.example from current overlay selection',
+        changedFiles: [path.join(outputPath, '.env.example')],
+        rechecked: true,
+    };
+}
+
+/**
+ * Dry-compose the devcontainer to a temp directory and compare files against the output directory.
+ */
+async function checkReproducibility(
+    overlaysConfig: OverlaysConfig,
+    outputPath: string,
+    overlaysDir: string,
+    workingDir: string
+): Promise<CheckResult[]> {
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch {
+        return [];
+    }
+    if (!projectConfig) return [];
+
+    // Skip when output directory or devcontainer.json are absent — regen hasn't run yet,
+    // or the environment check surfaces the missing dir already.
+    if (!fs.existsSync(outputPath) || !fs.existsSync(path.join(outputPath, 'devcontainer.json'))) {
+        return [];
+    }
+
+    let tmpDir: string | undefined;
+    try {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cs-doctor-repro-'));
+
+        let answers;
+        try {
+            const baseAnswers = buildAnswersFromProjectConfig(
+                projectConfig.selection,
+                overlaysConfig
+            );
+            const withPreset = await applyPresetSelections(
+                baseAnswers,
+                overlaysConfig,
+                PRESETS_DIR
+            );
+            answers = mergeAnswers(withPreset, { outputPath: tmpDir });
+        } catch (err) {
+            return [
+                {
+                    name: 'Reproducibility',
+                    status: 'fail',
+                    message: `Failed to build answers for dry compose: ${err instanceof Error ? err.message : String(err)}`,
+                    fixEligibility: 'manual-only',
+                },
+            ];
+        }
+
+        const originalLog = console.log;
+        console.log = () => {};
+        try {
+            // Copy the existing custom/ directory to tmpDir so applyCustomPatches()
+            // inside composeDevContainer applies the same user patches that produced
+            // the current outputPath — without this, the dry-compose output would
+            // always differ whenever .devcontainer/custom/ contains any overrides.
+            const srcCustom = path.join(outputPath, 'custom');
+            if (fs.existsSync(srcCustom)) {
+                const destCustom = path.join(tmpDir!, 'custom');
+                fs.cpSync(srcCustom, destCustom, { recursive: true });
+            }
+            await composeDevContainer(answers, overlaysDir, { isRegen: false });
+        } catch (err) {
+            return [
+                {
+                    name: 'Reproducibility',
+                    status: 'fail',
+                    message: `Dry compose failed: ${err instanceof Error ? err.message : String(err)}`,
+                    fixEligibility: 'automatic',
+                    remediationKey: 'reproducibility-regen',
+                    fixable: true,
+                },
+            ];
+        } finally {
+            console.log = originalLog;
+        }
+
+        const GENERATION_HEADERS = [
+            '# Generated by container-superposition',
+            '// Generated by container-superposition',
+        ];
+
+        function isGeneratedFile(filePath: string): boolean {
+            try {
+                const firstLine = fs.readFileSync(filePath, 'utf8').split('\n')[0] ?? '';
+                return GENERATION_HEADERS.some((h) => firstLine.startsWith(h));
+            } catch {
+                return false;
+            }
+        }
+
+        function listFiles(dir: string): string[] {
+            const result: string[] = [];
+            if (!fs.existsSync(dir)) return result;
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    result.push(...listFiles(full).map((f) => path.join(entry.name, f)));
+                } else {
+                    result.push(entry.name);
+                }
+            }
+            return result;
+        }
+
+        function normalise(content: string, rel: string): string {
+            const normalised = content.replace(/\r\n/g, '\n');
+            if (rel === 'superposition.json') {
+                // Parse the manifest as JSON and strip the fields that legitimately
+                // differ between runs (wall-clock timestamp, output-path-dependent
+                // location) before re-serialising for a structural comparison.
+                try {
+                    const obj = JSON.parse(normalised) as Record<string, unknown>;
+                    delete obj['generated'];
+                    if (obj['customizations'] && typeof obj['customizations'] === 'object') {
+                        delete (obj['customizations'] as Record<string, unknown>)['location'];
+                    }
+                    return JSON.stringify(obj, null, 4);
+                } catch {
+                    // Unparseable JSON — fall through to character comparison
+                }
+            }
+            return normalised;
+        }
+
+        const tmpFiles = new Set(listFiles(tmpDir));
+        const results: CheckResult[] = [];
+
+        // Files produced by regen but absent or different in outputPath
+        for (const rel of tmpFiles) {
+            const actual = path.join(outputPath, rel);
+            const expected = path.join(tmpDir!, rel);
+            if (!fs.existsSync(actual)) {
+                results.push({
+                    name: `Missing generated file: ${rel}`,
+                    status: 'fail',
+                    message: `File "${rel}" would be created by cs regen but does not exist`,
+                    details: ['Run cs regen or use --fix to synchronise'],
+                    fixEligibility: 'automatic',
+                    remediationKey: 'reproducibility-regen',
+                    fixable: true,
+                });
+            } else if (
+                normalise(fs.readFileSync(actual, 'utf8'), rel) !==
+                normalise(fs.readFileSync(expected, 'utf8'), rel)
+            ) {
+                results.push({
+                    name: `Out-of-date generated file: ${rel}`,
+                    status: 'fail',
+                    message: `File "${rel}" differs from what cs regen would produce — it may have been manually edited or is out of date`,
+                    details: ['Run cs regen or use --fix to synchronise'],
+                    fixEligibility: 'automatic',
+                    remediationKey: 'reproducibility-regen',
+                    fixable: true,
+                });
+            }
+        }
+
+        // Generated files in outputPath that regen would not produce (stale)
+        for (const rel of listFiles(outputPath)) {
+            if (tmpFiles.has(rel)) continue;
+            const actualPath = path.join(outputPath, rel);
+            if (isGeneratedFile(actualPath)) {
+                results.push({
+                    name: `Stale generated file: ${rel}`,
+                    status: 'warn',
+                    message: `File "${rel}" exists but cs regen would not produce it — it may be stale`,
+                    fixEligibility: 'manual-only',
+                });
+            }
+        }
+
+        if (results.length === 0) {
+            results.push({
+                name: 'Reproducibility',
+                status: 'pass',
+                message: 'Generated output matches current project configuration',
+                fixEligibility: 'not-applicable',
+            });
+        }
+
+        return results;
+    } finally {
+        if (tmpDir) {
+            try {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            } catch {
+                // best-effort cleanup
+            }
+        }
+    }
+}
+
+/**
+ * Execute the reproducibility-regen remediation: call composeDevContainer with isRegen: true.
+ */
+async function executeReproducibilityRegen(
+    outputPath: string,
+    overlaysConfig: OverlaysConfig,
+    overlaysDir: string,
+    workingDir: string,
+    silent = false
+): Promise<FixExecution> {
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch (err) {
+        return {
+            findingId: 'reproducibility',
+            remediationKey: 'reproducibility-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: `Failed to load project file: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+    if (!projectConfig) {
+        return {
+            findingId: 'reproducibility',
+            remediationKey: 'reproducibility-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: 'No project file (.superposition.yml) found',
+            rechecked: false,
+        };
+    }
+
+    let answers;
+    try {
+        const baseAnswers = buildAnswersFromProjectConfig(projectConfig.selection, overlaysConfig);
+        const withPreset = await applyPresetSelections(baseAnswers, overlaysConfig, PRESETS_DIR);
+        answers = mergeAnswers(withPreset, { outputPath });
+    } catch (err) {
+        return {
+            findingId: 'reproducibility',
+            remediationKey: 'reproducibility-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to build answers: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+
+    const originalLog = console.log;
+    if (silent) console.log = () => {};
+    try {
+        await composeDevContainer(answers, overlaysDir, { isRegen: true });
+    } catch (err) {
+        if (silent) console.log = originalLog;
+        return {
+            findingId: 'reproducibility',
+            remediationKey: 'reproducibility-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Regeneration failed: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    } finally {
+        if (silent) console.log = originalLog;
+    }
+
+    return {
+        findingId: 'reproducibility',
+        remediationKey: 'reproducibility-regen',
+        attempted: true,
+        outcome: 'fixed',
+        reason: 'Regenerated devcontainer configuration from current project file',
+        rechecked: true,
+    };
+}
+
 function generateReport(
     environmentChecks: CheckResult[],
     overlayChecks: CheckResult[],
     manifestChecks: CheckResult[],
     mergeChecks: CheckResult[],
     portChecks: CheckResult[],
-    driftChecks: CheckResult[] = []
+    driftChecks: CheckResult[] = [],
+    parametersChecks: CheckResult[] = [],
+    dependenciesChecks: CheckResult[] = [],
+    portCrossValidationChecks: CheckResult[] = [],
+    envExampleDriftChecks: CheckResult[] = [],
+    reproducibilityChecks: CheckResult[] = []
 ): DoctorReport {
     const allChecks = [
         ...environmentChecks,
@@ -1103,6 +2178,11 @@ function generateReport(
         ...mergeChecks,
         ...portChecks,
         ...driftChecks,
+        ...parametersChecks,
+        ...dependenciesChecks,
+        ...portCrossValidationChecks,
+        ...envExampleDriftChecks,
+        ...reproducibilityChecks,
     ];
 
     const passed = allChecks.filter((c) => c.status === 'pass').length;
@@ -1117,6 +2197,11 @@ function generateReport(
         merge: mergeChecks,
         ports: portChecks,
         drift: driftChecks,
+        parameters: parametersChecks,
+        dependencies: dependenciesChecks,
+        portCrossValidation: portCrossValidationChecks,
+        envExampleDrift: envExampleDriftChecks,
+        reproducibility: reproducibilityChecks,
         summary: {
             passed,
             warnings,
@@ -1223,6 +2308,73 @@ function formatAsText(report: DoctorReport): string {
         }
     }
 
+    // Parameters section
+    if (report.parameters.length > 0) {
+        const failedParams = report.parameters.filter((c) => c.status !== 'pass');
+        if (failedParams.length > 0) {
+            lines.push(chalk.bold('\nParameters:'));
+            for (const check of failedParams) {
+                lines.push(formatCheckResult(check));
+            }
+        } else {
+            lines.push(chalk.bold('\nParameters:'));
+            lines.push(
+                `  ${chalk.green('✓')} ${chalk.white(report.parameters[0]?.message ?? 'All parameters resolved')}`
+            );
+        }
+    }
+
+    // Dependencies section
+    if (report.dependencies.length > 0) {
+        const nonPass = report.dependencies.filter((c) => c.status !== 'pass');
+        const hasFail = nonPass.some((c) => c.status === 'fail');
+        lines.push(chalk.bold('\nDependencies:'));
+        if (nonPass.length > 0) {
+            for (const check of nonPass) {
+                lines.push(formatCheckResult(check));
+            }
+        }
+        if (!hasFail) {
+            const passCheck = report.dependencies.find((c) => c.status === 'pass');
+            lines.push(
+                `  ${chalk.green('✓')} ${chalk.white(passCheck?.message ?? 'All overlay dependencies satisfied')}`
+            );
+        }
+    }
+
+    // Port cross-validation section
+    if (report.portCrossValidation.length > 0) {
+        const failed = report.portCrossValidation.filter((c) => c.status !== 'pass');
+        if (failed.length > 0) {
+            lines.push(chalk.bold('\nPort Cross-Validation:'));
+            for (const check of failed) {
+                lines.push(formatCheckResult(check));
+            }
+        }
+    }
+
+    // .env.example drift section
+    if (report.envExampleDrift.length > 0) {
+        const failed = report.envExampleDrift.filter((c) => c.status !== 'pass');
+        if (failed.length > 0) {
+            lines.push(chalk.bold('\n.env.example Drift:'));
+            for (const check of failed) {
+                lines.push(formatCheckResult(check));
+            }
+        }
+    }
+
+    // Reproducibility section
+    if (report.reproducibility.length > 0) {
+        const failed = report.reproducibility.filter((c) => c.status !== 'pass');
+        if (failed.length > 0) {
+            lines.push(chalk.bold('\nReproducibility:'));
+            for (const check of failed) {
+                lines.push(formatCheckResult(check));
+            }
+        }
+    }
+
     // Summary
     lines.push(chalk.bold('\nSummary:'));
     lines.push(`  ${chalk.green('✓')} ${report.summary.passed} passed`);
@@ -1278,6 +2430,11 @@ function reportToFindings(report: DoctorReport): DiagnosticFinding[] {
         ...checksToFindings(report.merge, 'merge', 'devcontainer'),
         ...checksToFindings(report.ports, 'ports', 'environment'),
         ...checksToFindings(report.drift, 'manifest', 'manifest'),
+        ...checksToFindings(report.parameters, 'manifest', 'full'),
+        ...checksToFindings(report.dependencies, 'manifest', 'full'),
+        ...checksToFindings(report.portCrossValidation, 'ports', 'full'),
+        ...checksToFindings(report.envExampleDrift, 'manifest', 'full'),
+        ...checksToFindings(report.reproducibility, 'manifest', 'full'),
     ];
 }
 
@@ -1288,8 +2445,12 @@ function orderFindingsForRemediation(findings: DiagnosticFinding[]): DiagnosticF
     const PRIORITY: Record<string, number> = {
         'manifest-migration': 1,
         'devcontainer-regeneration': 2,
-        'node-version-fix': 3,
-        'docker-repair': 4,
+        'dependency-fix': 3,
+        'parameters-regen': 4,
+        'env-example-regen': 5,
+        'reproducibility-regen': 6,
+        'node-version-fix': 7,
+        'docker-repair': 8,
     };
     return [...findings].sort((a, b) => {
         const pa = PRIORITY[a.remediationKey ?? ''] ?? 99;
@@ -1354,6 +2515,7 @@ function buildAnswersFromManifest(
                 language.push(id as LanguageOverlay);
                 break;
             case 'database':
+            case 'messaging':
                 database.push(id as DatabaseOverlay);
                 break;
             case 'observability':
@@ -1714,6 +2876,154 @@ function executeNodeVersionFix(): FixExecution {
 }
 
 /**
+ * Execute parameters-regen fix: add missing parameter defaults to the project file
+ * then regenerate the devcontainer.
+ */
+async function executeParametersRegen(
+    outputPath: string,
+    overlaysConfig: OverlaysConfig,
+    overlaysDir: string,
+    workingDir: string,
+    silent = false
+): Promise<FixExecution> {
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch (err) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: `Failed to load project file: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+    if (!projectConfig) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: 'No project file (.superposition.yml) found — run "cs init" first',
+            rechecked: false,
+        };
+    }
+
+    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
+    const supplied = { ...(projectConfig.selection.parameters ?? {}) };
+
+    // Fill in defaults for missing required parameters
+    const { missingRequired } = resolveParameters(declared, supplied);
+    const needsManual: string[] = [];
+    for (const key of missingRequired) {
+        const def = declared[key];
+        if (def?.default !== undefined) {
+            supplied[key] = def.default;
+        } else {
+            needsManual.push(key);
+        }
+    }
+
+    if (needsManual.length > 0) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: false,
+            outcome: 'requires-manual-action',
+            reason: `Cannot auto-fix: ${needsManual.join(', ')} have no default value — add them manually to parameters: in your project file`,
+            rechecked: false,
+        };
+    }
+
+    // Write updated project file with filled-in parameters
+    const updatedSelection = { ...projectConfig.selection, parameters: supplied };
+    const projectFilePath = projectConfig.file.path;
+    try {
+        writeProjectConfig(projectFilePath, updatedSelection);
+    } catch (err) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to write project file: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+
+    // Rebuild answers from updated project file and regenerate
+    let answers;
+    try {
+        const reloadedConfig = loadProjectConfig(overlaysConfig, workingDir);
+        if (!reloadedConfig) throw new Error('Project file not found after write');
+        const baseAnswers = buildAnswersFromProjectConfig(reloadedConfig.selection, overlaysConfig);
+        const withPreset = await applyPresetSelections(baseAnswers, overlaysConfig, PRESETS_DIR);
+        answers = mergeAnswers(withPreset, { outputPath });
+    } catch (err) {
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to build answers for regeneration: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+
+    const originalLog = console.log;
+    if (silent) console.log = () => {};
+    try {
+        await composeDevContainer(answers, overlaysDir, { isRegen: true });
+    } catch (err) {
+        if (silent) console.log = originalLog;
+        return {
+            findingId: 'missing-required-parameters',
+            remediationKey: 'parameters-regen',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Regeneration failed: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    } finally {
+        if (silent) console.log = originalLog;
+    }
+
+    // Re-check: ensure no unresolved tokens remain
+    const filesToScan: Array<[string, string]> = [
+        ['devcontainer.json', path.join(outputPath, 'devcontainer.json')],
+        ['docker-compose.yml', path.join(outputPath, 'docker-compose.yml')],
+        ['.env.example', path.join(outputPath, '.env.example')],
+    ];
+    const stillUnresolved: string[] = [];
+    for (const [, filePath] of filesToScan) {
+        if (!fs.existsSync(filePath)) continue;
+        const tokens = findUnresolvedTokens(fs.readFileSync(filePath, 'utf8'));
+        stillUnresolved.push(...tokens);
+    }
+
+    const addedKeys = Object.keys(supplied).filter(
+        (k) => !(projectConfig!.selection.parameters ?? {})[k]
+    );
+
+    return {
+        findingId: 'missing-required-parameters',
+        remediationKey: 'parameters-regen',
+        attempted: true,
+        outcome: stillUnresolved.length === 0 ? 'fixed' : 'requires-manual-action',
+        reason:
+            stillUnresolved.length === 0
+                ? addedKeys.length > 0
+                    ? `Added defaults for ${addedKeys.join(', ')} and regenerated devcontainer`
+                    : 'Regenerated devcontainer from project file'
+                : `Regeneration ran but unresolved tokens remain: ${[...new Set(stillUnresolved)].join(', ')}`,
+        changedFiles: [projectFilePath],
+        rechecked: true,
+    };
+}
+
+/**
  * Execute a single remediation action and return its execution record.
  */
 async function executeSingleFix(
@@ -1722,7 +3032,8 @@ async function executeSingleFix(
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
     silent = false,
-    explicitManifestPath?: string
+    explicitManifestPath?: string,
+    workingDir: string = process.cwd()
 ): Promise<FixExecution> {
     switch (finding.remediationKey) {
         case 'manifest-migration':
@@ -1734,6 +3045,38 @@ async function executeSingleFix(
                 overlaysDir,
                 silent,
                 explicitManifestPath
+            );
+        case 'parameters-regen':
+            return executeParametersRegen(
+                outputPath,
+                overlaysConfig,
+                overlaysDir,
+                workingDir,
+                silent
+            );
+        case 'dependency-fix':
+            return executeDependencyFix(
+                outputPath,
+                overlaysConfig,
+                overlaysDir,
+                workingDir,
+                silent
+            );
+        case 'env-example-regen':
+            return executeEnvExampleRegen(
+                outputPath,
+                overlaysConfig,
+                overlaysDir,
+                workingDir,
+                silent
+            );
+        case 'reproducibility-regen':
+            return executeReproducibilityRegen(
+                outputPath,
+                overlaysConfig,
+                overlaysDir,
+                workingDir,
+                silent
             );
         case 'node-version-fix':
             return executeNodeVersionFix();
@@ -1865,7 +3208,8 @@ async function executeFixRun(
             overlaysConfig,
             overlaysDir,
             requestedJson,
-            explicitManifestPath
+            explicitManifestPath,
+            workingDir
         );
         executions.push(execution);
 
@@ -1901,6 +3245,16 @@ async function executeFixRun(
     const finalManifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, finalManifestPath);
     const finalDriftChecks = checkProjectFileDrift(overlaysConfig, workingDir, finalManifestPath);
+    const finalParamChecks = checkParameters(overlaysConfig, outputPath, workingDir);
+    const finalDepChecks = checkDependencies(overlaysConfig, workingDir);
+    const finalPortCrossChecks = checkPortCrossValidation(outputPath);
+    const finalEnvDriftChecks = checkEnvExampleDrift(overlaysConfig, outputPath, workingDir);
+    const finalReproChecks = await checkReproducibility(
+        overlaysConfig,
+        outputPath,
+        overlaysDir,
+        workingDir
+    );
     const finalFindings = [
         ...checksToFindings(envChecks, 'environment', 'environment'),
         ...checksToFindings(manifestChecks, 'manifest', 'manifest'),
@@ -1908,6 +3262,11 @@ async function executeFixRun(
         ...checksToFindings(overlayChecks, 'overlay', 'full'),
         ...checksToFindings(portChecks, 'ports', 'environment'),
         ...checksToFindings(finalDriftChecks, 'manifest', 'manifest'),
+        ...checksToFindings(finalParamChecks, 'manifest', 'full'),
+        ...checksToFindings(finalDepChecks, 'manifest', 'full'),
+        ...checksToFindings(finalPortCrossChecks, 'ports', 'full'),
+        ...checksToFindings(finalEnvDriftChecks, 'manifest', 'full'),
+        ...checksToFindings(finalReproChecks, 'manifest', 'full'),
     ];
 
     const summary = buildOutcomeSummary(executions);
@@ -2118,6 +3477,14 @@ export async function doctorCommand(
         );
     }
 
+    // ── Validate --dry-run flag ───────────────────────────────────────────────
+    if (options.dryRun && !options.fix) {
+        console.error(
+            chalk.red('✗ Error: --dry-run requires --fix. Use: cs doctor --fix --dry-run')
+        );
+        process.exit(1);
+    }
+
     // Run all checks
     const environmentChecks = checkEnvironment(outputPath, explicitManifestPath);
     const overlayChecks = checkOverlays(overlaysDir);
@@ -2126,6 +3493,16 @@ export async function doctorCommand(
     const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, manifestPath);
     const driftChecks = checkProjectFileDrift(overlaysConfig, workingDir, manifestPath);
+    const parametersChecks = checkParameters(overlaysConfig, outputPath, workingDir);
+    const dependenciesChecks = checkDependencies(overlaysConfig, workingDir);
+    const portCrossValidationChecks = checkPortCrossValidation(outputPath);
+    const envExampleDriftChecks = checkEnvExampleDrift(overlaysConfig, outputPath, workingDir);
+    const reproducibilityChecks = await checkReproducibility(
+        overlaysConfig,
+        outputPath,
+        overlaysDir,
+        workingDir
+    );
 
     // Generate report
     const report = generateReport(
@@ -2134,7 +3511,12 @@ export async function doctorCommand(
         manifestChecks,
         mergeChecks,
         portChecks,
-        driftChecks
+        driftChecks,
+        parametersChecks,
+        dependenciesChecks,
+        portCrossValidationChecks,
+        envExampleDriftChecks,
+        reproducibilityChecks
     );
 
     if (options.fix) {
@@ -2142,6 +3524,89 @@ export async function doctorCommand(
         if (!options.json) {
             // Print diagnostic findings first (as normal)
             console.log(formatAsText(report));
+        }
+
+        // ── Dry-run branch ────────────────────────────────────────────────────
+        if (options.dryRun) {
+            const allFindings = reportToFindings(report);
+            const autoFixable = allFindings.filter(
+                (f) => f.fixEligibility === 'automatic' && f.status !== 'pass'
+            );
+            const manualOnly = allFindings.filter(
+                (f) => f.fixEligibility === 'manual-only' && f.status !== 'pass'
+            );
+
+            if (options.json) {
+                const plannedActions: RemediationPlan[] = autoFixable.map((f) => {
+                    const action = REMEDIATION_REGISTRY.get(f.remediationKey ?? '');
+                    return {
+                        findingName: f.name,
+                        remediationKey: f.remediationKey ?? '',
+                        plannedChanges: action?.plannedChanges ?? [],
+                        safetyClass: action?.safetyClass ?? 'safe-unattended',
+                    };
+                });
+                console.log(
+                    JSON.stringify(
+                        {
+                            dryRun: true,
+                            plannedActions,
+                            manualFindings: manualOnly.map((f) => ({
+                                name: f.name,
+                                message: f.message,
+                            })),
+                        },
+                        null,
+                        2
+                    )
+                );
+            } else {
+                if (autoFixable.length === 0) {
+                    console.log(
+                        chalk.green(
+                            '\nDoctor dry-run — no auto-fixable findings. Nothing to apply.'
+                        )
+                    );
+                } else {
+                    console.log(chalk.bold('\nDoctor dry-run — changes that --fix would apply:'));
+                    console.log(chalk.dim('══════════════════════════════════════════════════'));
+                    autoFixable.forEach((f, i) => {
+                        const action = REMEDIATION_REGISTRY.get(f.remediationKey ?? '');
+                        console.log(
+                            `\n  [${i + 1}] ${chalk.cyan(f.remediationKey ?? '')} (${chalk.dim(action?.safetyClass ?? '')})`
+                        );
+                        console.log(`      Finding: ${chalk.white(`"${f.message}"`)}`);
+                        console.log(`      Would:`);
+                        for (const change of action?.plannedChanges ?? []) {
+                            console.log(`        ${chalk.dim('•')} ${chalk.dim(change)}`);
+                        }
+                    });
+                    console.log(chalk.dim('\n──────────────────────────────────────────────────'));
+                    console.log(
+                        `  ${chalk.yellow(`${autoFixable.length} fix action(s) would be applied.`)} Run without --dry-run to apply.`
+                    );
+                }
+
+                if (manualOnly.length > 0) {
+                    console.log(
+                        chalk.bold('\nFindings that require manual action (not auto-fixable):')
+                    );
+                    for (const f of manualOnly) {
+                        console.log(
+                            `  ${chalk.red('✗')} ${chalk.white(f.name)} — ${chalk.gray(f.message)}`
+                        );
+                        const action = REMEDIATION_REGISTRY.get(f.remediationKey ?? '');
+                        if (action?.manualFallback.length) {
+                            for (const step of action.manualFallback) {
+                                console.log(`    ${chalk.dim('→')} ${chalk.dim(step)}`);
+                            }
+                        }
+                    }
+                }
+            }
+
+            const hasAnyFindings = autoFixable.length > 0 || manualOnly.length > 0;
+            process.exit(hasAnyFindings ? 1 : 0);
         }
 
         const fixRun = await executeFixRun(

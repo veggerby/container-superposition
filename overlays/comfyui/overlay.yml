@@ -7,9 +7,13 @@ supports:
 requires: []
 suggests:
     - cuda
+    - rocm
     - python
     - ollama
+compose_imports:
+    - .shared/compose/nvidia-gpu-devcontainer.yml
 conflicts: []
+serviceOrder: 3
 tags:
     - dev
     - ai

@@ -1,16 +1,9 @@
 # Feature Specification: `doctor --fix` — Interactive Auto-Repair
 
-**Feature Branch**: `004-doctor-fix`
+**Spec ID**: `004-doctor-fix`
 **Created**: 2026-03-19
 **Status**: Final
 **Input**: GitHub issue: Implement `doctor --fix` — interactive auto-repair for environment issues
-
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/004-doctor-fix/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: APPROVED
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
 ## Summary
 

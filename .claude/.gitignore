@@ -1,0 +1,8 @@
+# Personal/session state — not project artifacts
+settings.local.json
+settings.json
+projects/
+worktrees/
+todos/
+plans/
+scheduled_tasks.json

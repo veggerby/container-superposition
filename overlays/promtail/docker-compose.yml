@@ -2,6 +2,7 @@ version: '3.8'
 services:
     promtail:
         image: grafana/promtail:${PROMTAIL_VERSION:-latest}
+        restart: unless-stopped
         command: -config.file=/etc/promtail/promtail-config.yaml
         volumes:
             - ./promtail-config-promtail.yaml:/etc/promtail/promtail-config.yaml
@@ -11,6 +12,13 @@ services:
             - loki
         networks:
             - devnet
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:9080/ready']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
 
 networks:
     devnet:
+        name: devnet

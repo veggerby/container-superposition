@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/config.schema.json
 stack: plain
 baseImage: trixie
 containerName: Container Superposition

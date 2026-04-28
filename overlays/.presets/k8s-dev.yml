@@ -1,0 +1,174 @@
+# Kubernetes Development Preset
+# Local Kubernetes cluster + dev loop tooling, language-agnostic
+
+id: k8s-dev
+name: Kubernetes Development
+description: Local Kubernetes cluster with fast inner-loop tooling — choose your cluster provider and dev-loop tool
+type: meta
+category: preset
+supports: [] # Works with both plain and compose
+tags: [preset, kubernetes, k8s, kind, k3d, skaffold, tilt, devloop, kubectl, helm]
+
+selects:
+    required:
+        - kubectl-helm
+        - docker-in-docker
+        - modern-cli-tools
+
+    userChoice: {}
+
+parameters:
+    cluster:
+        description: 'Local Kubernetes cluster provider'
+        default: k3d
+        options:
+            - id: k3d
+              overlays: [k3d]
+              description: 'k3d (k3s in Docker) — fastest startup, lowest memory, ideal for CI'
+            - id: kind
+              overlays: [kind]
+              description: 'kind (Kubernetes in Docker) — official CNCF tool, most compatible'
+
+    devloop:
+        description: 'Inner-loop dev tool (watch → build → deploy on save)'
+        default: tilt
+        options:
+            - id: tilt
+              overlays: [tilt]
+              description: 'Tilt — live UI, smart rebuilds, port-forward management'
+            - id: skaffold
+              overlays: [skaffold]
+              description: 'Skaffold — declarative YAML, CI-compatible, multi-deployer support'
+            - id: none
+              overlays: []
+              description: 'No dev-loop tool — use kubectl directly'
+
+glueConfig:
+    environment:
+        KUBECONFIG: '/home/vscode/.kube/config'
+        KUBECTL_CONTEXT: 'local'
+
+    portMappings:
+        app: 8080
+        tilt-ui: 10350
+
+    readme: |
+        ## Kubernetes Development Stack
+
+        This devcontainer provides a complete local Kubernetes development environment.
+
+        ### Tools
+
+        | Tool | Purpose |
+        |------|---------|
+        | kubectl + Helm | Kubernetes CLI and package manager |
+        | docker-in-docker | Run Docker inside the devcontainer to build images |
+        | k3d / kind | Provision a local Kubernetes cluster |
+        | Tilt / Skaffold | Watch → build → deploy inner loop |
+        | Modern CLI tools | `jq`, `yq`, `bat`, `fd`, `rg` for working with manifests |
+
+        ### Cluster Management
+
+        #### k3d (default)
+
+        ```bash
+        # Create cluster
+        k3d cluster create dev --port "8080:80@loadbalancer"
+
+        # List clusters
+        k3d cluster list
+
+        # Delete cluster
+        k3d cluster delete dev
+        ```
+
+        #### kind
+
+        ```bash
+        # Create cluster
+        kind create cluster --name dev
+
+        # List clusters
+        kind get clusters
+
+        # Delete cluster
+        kind delete cluster --name dev
+        ```
+
+        ### Inner-Loop Workflow
+
+        #### Tilt
+
+        Create a `Tiltfile` in your project root:
+
+        ```python
+        # Tiltfile
+        docker_build('my-app', '.')
+        k8s_yaml('k8s/')
+        k8s_resource('my-app', port_forwards=8080)
+        ```
+
+        Then run:
+
+        ```bash
+        tilt up
+        # Open http://localhost:10350 for the Tilt UI
+        ```
+
+        #### Skaffold
+
+        Create a `skaffold.yaml` in your project root:
+
+        ```yaml
+        apiVersion: skaffold/v4beta11
+        kind: Config
+        build:
+            artifacts:
+                - image: my-app
+        manifests:
+            rawYaml:
+                - k8s/*.yaml
+        ```
+
+        Then run:
+
+        ```bash
+        skaffold dev
+        ```
+
+        ### Helm Quick Start
+
+        ```bash
+        # Add a chart repository
+        helm repo add bitnami https://charts.bitnami.com/bitnami
+        helm repo update
+
+        # Install a chart
+        helm install my-release bitnami/postgresql
+
+        # Upgrade
+        helm upgrade my-release bitnami/postgresql --set auth.password=secret
+        ```
+
+        ### kubectl Tips
+
+        ```bash
+        # Watch all resources
+        kubectl get all -A -w
+
+        # Port-forward a service
+        kubectl port-forward svc/my-app 8080:80
+
+        # Inspect manifest with yq
+        kubectl get deployment my-app -o yaml | yq '.spec.template.spec.containers[0]'
+
+        # Live logs
+        kubectl logs -f -l app=my-app
+        ```
+
+        ### Next Steps
+
+        - Add a language overlay (`nodejs`, `go`, `python`, etc.) for your application runtime
+        - Add the `k8s-operator-dev` preset if you are building Kubernetes operators
+        - Configure image registry credentials for pushing built images
+        - Add Prometheus + Grafana overlays for in-cluster monitoring

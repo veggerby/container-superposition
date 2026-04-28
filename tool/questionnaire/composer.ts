@@ -755,7 +755,11 @@ function validateImportPath(importPath: string, overlaysDir: string): string | n
 /**
  * Load and resolve imports from shared files for an overlay
  */
-function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevContainer {
+function loadImportsForOverlay(
+    overlayName: string,
+    overlaysDir: string,
+    silent = false
+): DevContainer {
     let importedConfig: DevContainer = {};
 
     // Load overlay manifest to get imports
@@ -802,13 +806,14 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
 
             if (ext === '.json') {
                 // JSON files are merged as devcontainer patches
-                console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
+                if (!silent) console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
                 const importedPatch = loadJson<DevContainer>(fullImportPath);
                 importedConfig = deepMerge(importedConfig, importedPatch);
             } else if (ext === '.yaml' || ext === '.yml') {
                 // YAML files are loaded and merged as devcontainer patches
                 try {
-                    console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
+                    if (!silent)
+                        console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
                     const yamlContent = fs.readFileSync(fullImportPath, 'utf8');
                     const importedPatch = yaml.load(yamlContent) as DevContainer;
                     if (importedPatch && typeof importedPatch === 'object') {
@@ -821,7 +826,8 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
                 }
             } else if (ext === '.env') {
                 // .env files are handled separately during env merging — skip here
-                console.log(chalk.dim(`   📎 Shared .env import noted: ${importPath}`));
+                if (!silent)
+                    console.log(chalk.dim(`   📎 Shared .env import noted: ${importPath}`));
             } else {
                 // FR-007: Unsupported file types are errors
                 throw new Error(
@@ -847,17 +853,19 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
 export function applyOverlay(
     baseConfig: DevContainer,
     overlayName: string,
-    overlaysDir: string
+    overlaysDir: string,
+    options: { silent?: boolean } = {}
 ): DevContainer {
+    const { silent = false } = options;
     const overlayPath = path.join(overlaysDir, overlayName, 'devcontainer.patch.json');
 
     if (!fs.existsSync(overlayPath)) {
-        console.warn(chalk.yellow(`⚠️  Overlay not found: ${overlayName}`));
+        if (!silent) console.warn(chalk.yellow(`⚠️  Overlay not found: ${overlayName}`));
         return baseConfig;
     }
 
     // First, load and apply any imports
-    const importedConfig = loadImportsForOverlay(overlayName, overlaysDir);
+    const importedConfig = loadImportsForOverlay(overlayName, overlaysDir, silent);
     if (Object.keys(importedConfig).length > 0) {
         baseConfig = deepMerge(baseConfig, importedConfig);
     }
@@ -912,8 +920,36 @@ class FileRegistry {
 }
 
 /**
- * Clean up stale files from previous runs
- * Removes anything not in the registry (except preserved files like superposition.json)
+ * Recursively remove stale files within a registered subdirectory.
+ * Called for directories that ARE in the registry but may contain files from
+ * a previous run that are no longer part of the current generation (e.g.
+ * scripts/setup-rabbitmq.sh after rabbitmq was removed from the project).
+ * Returns the number of files removed.
+ */
+function cleanupStaleDirFiles(dirPath: string, prefix: string, expectedFiles: Set<string>): number {
+    let removed = 0;
+    const entries = fs.readdirSync(dirPath);
+    for (const entry of entries) {
+        const entryPath = path.join(dirPath, entry);
+        const stat = fs.statSync(entryPath);
+        if (stat.isDirectory()) {
+            removed += cleanupStaleDirFiles(entryPath, `${prefix}${entry}/`, expectedFiles);
+        } else {
+            const registryKey = `${prefix}${entry}`;
+            if (!expectedFiles.has(registryKey)) {
+                fs.unlinkSync(entryPath);
+                removed++;
+            }
+        }
+    }
+    return removed;
+}
+
+/**
+ * Clean up stale files from previous runs.
+ * Removes anything not in the registry (except preserved files like superposition.json).
+ * Also recurses into registered subdirectories to remove individual stale files within
+ * them — e.g. scripts/setup-rabbitmq.sh after rabbitmq is removed from the project.
  */
 function cleanupStaleFiles(outputPath: string, registry: FileRegistry): void {
     if (!fs.existsSync(outputPath)) {
@@ -943,10 +979,14 @@ function cleanupStaleFiles(outputPath: string, registry: FileRegistry): void {
                 continue;
             }
 
-            // Remove directory if not in registry
             if (!expectedDirs.has(entry)) {
+                // Remove directory entirely — nothing inside belongs to this run
                 fs.rmSync(entryPath, { recursive: true, force: true });
                 removedCount++;
+            } else {
+                // Directory is still expected, but individual files inside it may be stale
+                // (e.g. scripts/setup-rabbitmq.sh after rabbitmq was removed)
+                removedCount += cleanupStaleDirFiles(entryPath, `${entry}/`, expectedFiles);
             }
         } else {
             // Remove file if not in registry
@@ -980,6 +1020,22 @@ function copyDir(src: string, dest: string): void {
             copyDir(srcPath, destPath);
         } else {
             fs.copyFileSync(srcPath, destPath);
+        }
+    }
+}
+
+/**
+ * Recursively register every file inside a directory in the FileRegistry.
+ * Used after copyDir() to ensure cleanup logic doesn't delete the copied contents.
+ */
+function registerDirContents(registry: FileRegistry, dirPath: string, prefix: string): void {
+    if (!fs.existsSync(dirPath)) return;
+    for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+        const rel = `${prefix}${entry.name}`;
+        if (entry.isDirectory()) {
+            registerDirContents(registry, path.join(dirPath, entry.name), `${rel}/`);
+        } else {
+            registry.addFile(rel);
         }
     }
 }
@@ -1037,6 +1093,9 @@ function copyOverlayFiles(
             const destPath = path.join(outputPath, destDirName);
             copyDir(srcPath, destPath);
             registry.addDirectory(destDirName);
+            // Register every file inside the copied directory so that
+            // cleanupStaleDirFiles does not delete them during the same run.
+            registerDirContents(registry, destPath, `${destDirName}/`);
             copiedFiles++;
         }
     }
@@ -2320,12 +2379,20 @@ export async function composeDevContainer(
 
     // 8.5. Copy cross-distro-packages feature if used
     if (config.features?.['./features/cross-distro-packages']) {
-        const featuresDir = path.join(outputPath, 'features', 'cross-distro-packages');
-        const sourceFeatureDir = path.join(REPO_ROOT, 'features', 'cross-distro-packages');
+        const featureName = 'cross-distro-packages';
+        const featuresDir = path.join(outputPath, 'features', featureName);
+        const sourceFeatureDir = path.join(REPO_ROOT, 'features', featureName);
 
         if (fs.existsSync(sourceFeatureDir)) {
             copyDir(sourceFeatureDir, featuresDir);
             fileRegistry.addDirectory('features');
+            // Register every file inside the feature so cleanupStaleDirFiles
+            // does not remove them when it recurses into the 'features' directory.
+            for (const f of fs.readdirSync(sourceFeatureDir)) {
+                if (fs.statSync(path.join(sourceFeatureDir, f)).isFile()) {
+                    fileRegistry.addFile(`features/${featureName}/${f}`);
+                }
+            }
             console.log(chalk.dim(`   📦 Copied cross-distro-packages feature`));
         }
     }
@@ -2780,19 +2847,18 @@ function mergeSetupScripts(
     const setupScripts: string[] = [];
     const verifyScripts: string[] = [];
 
-    // Create scripts subfolder
     const scriptsDir = path.join(outputPath, 'scripts');
-    if (!fs.existsSync(scriptsDir)) {
-        fs.mkdirSync(scriptsDir, { recursive: true });
-    }
 
-    // Add scripts directory to registry if any scripts will be added
+    // Only create the scripts directory (and register it) if at least one overlay needs it
     const hasScripts = overlays.some(
         (o) =>
             fs.existsSync(path.join(overlaysDir, o, 'setup.sh')) ||
             fs.existsSync(path.join(overlaysDir, o, 'verify.sh'))
     );
     if (hasScripts) {
+        if (!fs.existsSync(scriptsDir)) {
+            fs.mkdirSync(scriptsDir, { recursive: true });
+        }
         fileRegistry.addDirectory('scripts');
         // Emit shared setup utilities so overlay scripts can source them
         const setupUtilsSrc = path.join(TEMPLATES_DIR, 'scripts', 'setup-utils.sh');
@@ -2943,7 +3009,11 @@ function mergeRunServices(config: DevContainer, overlays: string[], overlaysDir:
         if (fs.existsSync(overlayPath)) {
             const overlayConfig = loadJson<any>(overlayPath);
             if (overlayConfig.runServices) {
-                const order = overlayConfig._serviceOrder || 0;
+                const manifestPath = path.join(overlaysDir, overlay, 'overlay.yml');
+                const manifest = fs.existsSync(manifestPath)
+                    ? (yaml.load(fs.readFileSync(manifestPath, 'utf8')) as OverlayMetadata)
+                    : null;
+                const order = manifest?.serviceOrder ?? 0;
                 for (const service of overlayConfig.runServices) {
                     services.push({ name: service, order });
                 }

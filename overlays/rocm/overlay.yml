@@ -4,7 +4,8 @@ description: AMD ROCm libraries and GPU passthrough for containerized ML/inferen
 category: dev
 supports: []
 requires: []
-suggests: []
+suggests:
+    - comfyui
 conflicts:
     - cuda
 tags:

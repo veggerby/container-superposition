@@ -1,3 +1,6 @@
 {
-    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json"
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "postCreateCommand": {
+        "setup-gemini-cli": "bash .devcontainer/scripts/setup-gemini-cli.sh"
+    }
 }

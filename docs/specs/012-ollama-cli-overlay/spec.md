@@ -1,16 +1,9 @@
 # Feature Specification: Split Ollama Service and CLI Overlays
 
-**Feature Branch**: `012-ollama-cli-overlay`
+**Spec ID**: `012-ollama-cli-overlay`
 **Created**: 2026-04-16
 **Status**: Final
 **Input**: Requirement — split current `ollama` overlay into separate service and CLI overlays, with implicit dependency from `ollama` to `ollama-cli`
-
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/012-ollama-cli-overlay/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: APPROVED
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
 
 ## Summary
 
@@ -41,7 +34,7 @@ Selecting `ollama` must automatically include `ollama-cli` via `requires` so exi
 - Remove CLI installation from `overlays/ollama` and keep service responsibilities there
 - Update tests and changelog entries
 
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 — Plain stack with remote Ollama
 

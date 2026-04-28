@@ -2,6 +2,7 @@ version: '3.8'
 services:
     jaeger:
         image: jaegertracing/all-in-one:${JAEGER_VERSION:-latest}
+        restart: unless-stopped
         environment:
             - COLLECTOR_OTLP_ENABLED=true
         ports:
@@ -30,3 +31,4 @@ services:
 
 networks:
     devnet:
+        name: devnet

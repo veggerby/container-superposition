@@ -1,18 +1,11 @@
 # Feature Specification: Verbose Plan Graph
 
-**Feature Branch**: `001-verbose-plan-graph`  
+**Spec ID**: `001-verbose-plan-graph`
 **Created**: 2026-03-10  
 **Status**: Final  
 **Input**: User description: "Extend the plan command with a --verbose flag that narrates the dependency resolution graph — explaining why each overlay was included, not just what was included. The principle: nothing here is magic. Scope update: it should also be possible to run plan including --verbose on an existing manifest."
 
-## Review & Approval _(mandatory before implementation)_
-
-- **Spec Path**: `docs/specs/001-verbose-plan-graph/spec.md`
-- **Commit Status**: Committed
-- **Review Status**: APPROVED
-- **Implementation Gate**: No implementation code may begin until this spec is committed and reviewed.
-
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing
 
 ### User Story 1 - Explain auto-included overlays (Priority: P1)
 
@@ -80,7 +73,7 @@ A user who only wants a quick summary should still be able to run the plan comma
 - The user requests an invalid or unknown overlay and the plan must fail with a clear message instead of producing partial explanation data.
 - A user attempts to plan from a missing or invalid manifest and the command must fail with a clear message instead of producing incomplete verbose explanation output.
 
-## Requirements _(mandatory)_
+## Requirements
 
 ### Functional Requirements
 
@@ -110,14 +103,14 @@ A user who only wants a quick summary should still be able to run the plan comma
 - Existing conflict and validation behavior remains in scope; this feature only expands how the reasoning is presented.
 - Existing manifest-driven workflows should use the same explanation model as direct overlay selection rather than introducing a separate reasoning format.
 
-## Dependencies & Impact _(mandatory)_
+## Dependencies & Impact
 
 - **Affected Areas**: CLI command behavior, manifest-driven planning workflows, plan output, discovery documentation, CHANGELOG.md, automated tests
 - **Compatibility Impact**: Backward compatible
 - **Required Documentation Updates**: README.md, discovery command documentation, CHANGELOG.md
 - **Verification Plan**: Unit tests for inclusion-reason reporting, command-level tests for verbose and non-verbose output, manifest-driven planning validation, and manual validation with direct, transitive, duplicate-path, manifest, and failure scenarios
 
-## Success Criteria _(mandatory)_
+## Success Criteria
 
 ### Measurable Outcomes
 

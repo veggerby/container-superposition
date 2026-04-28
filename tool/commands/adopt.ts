@@ -651,7 +651,7 @@ function buildExpectedDevcontainerConfig(
     let config = loadJsonFile<DevContainer>(templatePath, {});
 
     for (const overlayId of overlayIds) {
-        config = applyOverlay(config, overlayId, overlaysDir);
+        config = applyOverlay(config, overlayId, overlaysDir, { silent: true });
     }
 
     return addGeneratedOverlayCommands(config, overlayIds, overlaysDir);
