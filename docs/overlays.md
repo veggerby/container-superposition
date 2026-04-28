@@ -729,14 +729,14 @@ Ollama command-line client for local or remote Ollama servers
 
 Browser-based chat UI for Ollama and OpenAI-compatible LLM backends
 
-| Property      | Value                                               |
-| ------------- | --------------------------------------------------- |
-| **Category**  | dev                                                 |
-| **Supports**  | compose                                             |
-| **Suggests**  | `ollama`, `prometheus`, `grafana`, `otel-collector` |
-| **Conflicts** | `grafana`, `nodejs`, `bun`, `rust`                  |
-| **Tags**      | `dev`, `ai`, `llm`, `ui`, `chat`, `openwebui`       |
-| **Ports**     | 3000/http                                           |
+| Property      | Value                                         |
+| ------------- | --------------------------------------------- |
+| **Category**  | dev                                           |
+| **Supports**  | compose                                       |
+| **Suggests**  | `ollama`, `prometheus`, `otel-collector`      |
+| **Conflicts** | `grafana`, `nodejs`, `bun`, `rust`            |
+| **Tags**      | `dev`, `ai`, `llm`, `ui`, `chat`, `openwebui` |
+| **Ports**     | 3000/http                                     |
 
 ### OpenAPI Tools (`openapi-tools`)
 

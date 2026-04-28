@@ -8,7 +8,6 @@ requires: []
 suggests:
     - ollama
     - prometheus
-    - grafana
     - otel-collector
 conflicts:
     - grafana

@@ -1,49 +1,51 @@
-# Apache Jena Fuseki
+# Apache Jena Fuseki Overlay
 
-Apache Jena Fuseki is a SPARQL 1.1 server that provides REST-style SPARQL HTTP Update, SPARQL Query, and SPARQL Update using the SPARQL protocol over HTTP. It is part of the Apache Jena project and is backed by the TDB2 triplestore for persistent RDF data storage. The server includes a built-in web administration UI for managing datasets, running queries, and monitoring the server.
+SPARQL 1.1 server and RDF triplestore powered by Apache Jena TDB2, with a built-in web administration UI.
 
-## Services
+## Features
 
-| Service | Port | Description                       |
-| ------- | ---- | --------------------------------- |
-| fuseki  | 3030 | Fuseki SPARQL server and admin UI |
+- **Apache Jena Fuseki** — SPARQL 1.1 server supporting queries, updates, and the Graph Store Protocol
+- **TDB2 triplestore** — High-performance persistent RDF storage with better concurrency than TDB1
+- **Admin web UI** — Browser-based interface for managing datasets, running ad-hoc queries, and monitoring the server (port 3030)
+- **REST management API** — Create, list, and delete datasets without restarting the server
+- **Dataset auto-creation** — A default dataset is created automatically on first start
+- **Persistent storage** — RDF data is stored in a named Docker volume (`fuseki-data`) and survives container restarts
+- **Docker Compose service** — Runs as an isolated sidecar container accessible on the `devnet` network
 
-## Configuration
+## How It Works
 
-| Parameter               | Default  | Description                                        |
-| ----------------------- | -------- | -------------------------------------------------- |
-| `FUSEKI_VERSION`        | `latest` | Docker image version tag                           |
-| `FUSEKI_PORT`           | `3030`   | Host port mapped to Fuseki (3030 inside container) |
-| `FUSEKI_ADMIN_PASSWORD` | `admin`  | Fuseki admin user password                         |
-| `FUSEKI_DATASET`        | `ds`     | Name of the default dataset created on first start |
+This overlay adds Fuseki as a separate Docker Compose service. Fuseki runs inside its own container and is reachable from your development container using the hostname `fuseki`.
 
-## Connection
+**Service configuration:**
 
-From inside the development container, Fuseki is reachable at `http://fuseki:3030`. The default dataset endpoint is at `http://fuseki:3030/ds`.
+- Image: `ghcr.io/stain/jena-fuseki`
+- Network: `devnet` (shared with the dev container)
+- Persistence: `fuseki-data` volume for TDB2 database files
+- Port: 3030 (customizable via `FUSEKI_PORT` host mapping)
 
-SPARQL endpoints for the default dataset `ds`:
+**Environment variables set in the dev container:**
 
-| Endpoint          | URL                            |
-| ----------------- | ------------------------------ |
-| SPARQL Query      | `http://fuseki:3030/ds/query`  |
-| SPARQL Update     | `http://fuseki:3030/ds/update` |
-| Graph Store (GSP) | `http://fuseki:3030/ds/data`   |
+| Variable                | Value                | Description                               |
+| ----------------------- | -------------------- | ----------------------------------------- |
+| `FUSEKI_HOST`           | `fuseki`             | Container hostname for internal access    |
+| `FUSEKI_PORT`           | `3030`               | Container-internal port for SPARQL access |
+| `FUSEKI_URL`            | `http://fuseki:3030` | Base URL for SPARQL requests              |
+| `FUSEKI_DATASET`        | `ds` (default)       | Name of the default dataset               |
+| `FUSEKI_ADMIN_PASSWORD` | see `.env`           | Admin user password (set in `.env`)       |
 
-The admin UI and REST management API are available at `http://fuseki:3030`.
+## Common Commands
 
-## Usage
-
-### Running SPARQL Queries with curl
+### SPARQL Queries
 
 ```bash
 # Simple SELECT query
 curl -X POST \
   -H "Content-Type: application/sparql-query" \
   -d "SELECT * WHERE { ?s ?p ?o } LIMIT 10" \
-  http://fuseki:3030/ds/query
+  "$FUSEKI_URL/$FUSEKI_DATASET/query"
 
-# Query with URL encoding
-curl -G http://fuseki:3030/ds/query \
+# Query with URL encoding (GET request)
+curl -G "$FUSEKI_URL/$FUSEKI_DATASET/query" \
   --data-urlencode "query=SELECT * WHERE { ?s ?p ?o } LIMIT 10"
 ```
 
@@ -54,19 +56,19 @@ curl -G http://fuseki:3030/ds/query \
 curl -X PUT \
   -H "Content-Type: text/turtle" \
   --data-binary @data.ttl \
-  http://fuseki:3030/ds/data
+  "$FUSEKI_URL/$FUSEKI_DATASET/data"
+
+# Add data without replacing existing triples (POST)
+curl -X POST \
+  -H "Content-Type: text/turtle" \
+  --data-binary @more-data.ttl \
+  "$FUSEKI_URL/$FUSEKI_DATASET/data"
 
 # Load into a named graph
 curl -X PUT \
   -H "Content-Type: text/turtle" \
   --data-binary @data.ttl \
-  "http://fuseki:3030/ds/data?graph=http://example.org/mygraph"
-
-# Add data with POST (does not replace existing triples)
-curl -X POST \
-  -H "Content-Type: text/turtle" \
-  --data-binary @more-data.ttl \
-  http://fuseki:3030/ds/data
+  "$FUSEKI_URL/$FUSEKI_DATASET/data?graph=http://example.org/mygraph"
 ```
 
 ### SPARQL Update
@@ -75,93 +77,97 @@ curl -X POST \
 # Insert triples via SPARQL Update
 curl -X POST \
   -H "Content-Type: application/sparql-update" \
-  -d "INSERT DATA { <http://example.org/subject> <http://example.org/predicate> \"object\" . }" \
-  http://fuseki:3030/ds/update
+  -d "INSERT DATA { <http://example.org/s> <http://example.org/p> \"o\" . }" \
+  "$FUSEKI_URL/$FUSEKI_DATASET/update"
 ```
 
-### Using Python (SPARQLWrapper)
-
-```bash
-pip install SPARQLWrapper
-```
-
-```python
-from SPARQLWrapper import SPARQLWrapper, JSON
-
-sparql = SPARQLWrapper("http://fuseki:3030/ds/query")
-sparql.setReturnFormat(JSON)
-
-sparql.setQuery("""
-    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    SELECT ?subject ?predicate ?object
-    WHERE {
-        ?subject ?predicate ?object
-    }
-    LIMIT 10
-""")
-
-results = sparql.query().convert()
-for result in results["results"]["bindings"]:
-    print(result)
-```
-
-### Using Java (Apache Jena)
-
-```xml
-<dependency>
-    <groupId>org.apache.jena</groupId>
-    <artifactId>apache-jena-libs</artifactId>
-    <version>5.1.0</version>
-    <type>pom</type>
-</dependency>
-```
-
-```java
-import org.apache.jena.query.*;
-import org.apache.jena.rdfconnection.RDFConnection;
-
-try (RDFConnection conn = RDFConnection.connect("http://fuseki:3030/ds")) {
-    String queryStr = "SELECT * WHERE { ?s ?p ?o } LIMIT 10";
-    try (QueryExecution qe = conn.query(queryStr)) {
-        ResultSet rs = qe.execSelect();
-        ResultSetFormatter.out(System.out, rs);
-    }
-}
-```
-
-### Managing Datasets via REST API
+### Dataset Management
 
 ```bash
 # List all datasets (requires admin credentials)
-curl -u admin:admin http://fuseki:3030/$/datasets
+curl -u "admin:$FUSEKI_ADMIN_PASSWORD" "$FUSEKI_URL/\$/datasets"
 
 # Create a new TDB2-backed dataset
 curl -X POST \
-  -u admin:admin \
+  -u "admin:$FUSEKI_ADMIN_PASSWORD" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "dbName=mydata&dbType=tdb2" \
-  http://fuseki:3030/$/datasets
+  "$FUSEKI_URL/\$/datasets"
 
 # Delete a dataset
 curl -X DELETE \
-  -u admin:admin \
-  http://fuseki:3030/$/datasets/mydata
+  -u "admin:$FUSEKI_ADMIN_PASSWORD" \
+  "$FUSEKI_URL/\$/datasets/mydata"
 ```
 
 ### Admin UI
 
-Open the admin interface at `http://localhost:3030` (forwarded from the container). Log in with username `admin` and the configured `FUSEKI_ADMIN_PASSWORD`. From the UI you can:
+```bash
+# Open in browser (from the host machine)
+open http://localhost:3030
+```
 
-- Browse and query datasets
-- Upload RDF files
-- Create and delete datasets
-- Monitor server statistics
+Log in with username `admin` and the configured `FUSEKI_ADMIN_PASSWORD`. From the UI you can browse and query datasets, upload RDF files, create/delete datasets, and monitor server statistics.
 
-## Notes
+## Use Cases
 
-- This overlay requires the compose stack
-- Data is stored in a named Docker volume (`fuseki-data`) and persists across container restarts
-- The `FUSEKI_DATASET` parameter sets the dataset name created automatically on the first container start; additional datasets can be created via the admin UI or REST API
-- The TDB2 backend is used by default, which offers better concurrency and performance than TDB1
-- Use hostname `fuseki` from within the development container; use `localhost` from the host machine
-- The `FUSEKI_ADMIN_PASSWORD` should be changed from the default in any shared environment
+- **Semantic web development** — Prototype and test OWL/RDFS ontologies and SPARQL queries locally
+- **Linked data applications** — Build applications that consume or publish RDF data
+- **Knowledge graph projects** — Store, update, and query knowledge graphs during development
+- **Data integration** — Use SPARQL Federation or CONSTRUCT queries to merge heterogeneous data sources
+- **Research and education** — Run SPARQL 1.1 workloads without a cloud account
+
+**Integrates well with:**
+
+- `java` — Use Apache Jena client library (`jena-arq`) for typed SPARQL queries
+- `python` — Use `SPARQLWrapper` or `rdflib-endpoint` for data science workflows
+- `nodejs` — Use `n3` or `comunica` for JavaScript/TypeScript SPARQL clients
+
+## Configuration
+
+### Environment Variables
+
+The overlay includes a `.env.example` file. Copy and customize:
+
+```bash
+cd .devcontainer
+cp .env.example .env
+```
+
+**Default values (`.devcontainer/.env.example`):**
+
+```bash
+FUSEKI_VERSION=latest
+FUSEKI_PORT=3030
+FUSEKI_ADMIN_PASSWORD=admin   # ⚠ Change this for any shared environment
+FUSEKI_DATASET=ds
+```
+
+⚠️ **Security:** The default `FUSEKI_ADMIN_PASSWORD=admin` must be changed for any environment accessible beyond localhost.
+
+### SPARQL Endpoints
+
+Default dataset `ds` endpoints (from inside the dev container):
+
+| Endpoint          | URL                            |
+| ----------------- | ------------------------------ |
+| SPARQL Query      | `http://fuseki:3030/ds/query`  |
+| SPARQL Update     | `http://fuseki:3030/ds/update` |
+| Graph Store (GSP) | `http://fuseki:3030/ds/data`   |
+| Admin UI          | `http://fuseki:3030`           |
+
+All endpoints are also forwarded to `localhost:3030` on the host machine.
+
+## References
+
+- [Apache Jena Fuseki Documentation](https://jena.apache.org/documentation/fuseki2/)
+- [SPARQL 1.1 Query Language](https://www.w3.org/TR/sparql11-query/)
+- [SPARQL 1.1 Update](https://www.w3.org/TR/sparql11-update/)
+- [Fuseki Docker Image (stain/jena-docker)](https://github.com/stain/jena-docker)
+- [Apache Jena TDB2](https://jena.apache.org/documentation/tdb2/)
+
+**Related Overlays:**
+
+- `java` — Develop JVM applications using Apache Jena client libraries
+- `python` — Use RDFLib or SPARQLWrapper for Python-based SPARQL workflows
+- `nodejs` — Build JavaScript SPARQL clients with Comunica or N3.js

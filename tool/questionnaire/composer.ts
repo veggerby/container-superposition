@@ -755,7 +755,11 @@ function validateImportPath(importPath: string, overlaysDir: string): string | n
 /**
  * Load and resolve imports from shared files for an overlay
  */
-function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevContainer {
+function loadImportsForOverlay(
+    overlayName: string,
+    overlaysDir: string,
+    silent = false
+): DevContainer {
     let importedConfig: DevContainer = {};
 
     // Load overlay manifest to get imports
@@ -802,13 +806,14 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
 
             if (ext === '.json') {
                 // JSON files are merged as devcontainer patches
-                console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
+                if (!silent) console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
                 const importedPatch = loadJson<DevContainer>(fullImportPath);
                 importedConfig = deepMerge(importedConfig, importedPatch);
             } else if (ext === '.yaml' || ext === '.yml') {
                 // YAML files are loaded and merged as devcontainer patches
                 try {
-                    console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
+                    if (!silent)
+                        console.log(chalk.dim(`   📎 Applying shared import: ${importPath}`));
                     const yamlContent = fs.readFileSync(fullImportPath, 'utf8');
                     const importedPatch = yaml.load(yamlContent) as DevContainer;
                     if (importedPatch && typeof importedPatch === 'object') {
@@ -821,7 +826,8 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
                 }
             } else if (ext === '.env') {
                 // .env files are handled separately during env merging — skip here
-                console.log(chalk.dim(`   📎 Shared .env import noted: ${importPath}`));
+                if (!silent)
+                    console.log(chalk.dim(`   📎 Shared .env import noted: ${importPath}`));
             } else {
                 // FR-007: Unsupported file types are errors
                 throw new Error(
@@ -847,17 +853,19 @@ function loadImportsForOverlay(overlayName: string, overlaysDir: string): DevCon
 export function applyOverlay(
     baseConfig: DevContainer,
     overlayName: string,
-    overlaysDir: string
+    overlaysDir: string,
+    options: { silent?: boolean } = {}
 ): DevContainer {
+    const { silent = false } = options;
     const overlayPath = path.join(overlaysDir, overlayName, 'devcontainer.patch.json');
 
     if (!fs.existsSync(overlayPath)) {
-        console.warn(chalk.yellow(`⚠️  Overlay not found: ${overlayName}`));
+        if (!silent) console.warn(chalk.yellow(`⚠️  Overlay not found: ${overlayName}`));
         return baseConfig;
     }
 
     // First, load and apply any imports
-    const importedConfig = loadImportsForOverlay(overlayName, overlaysDir);
+    const importedConfig = loadImportsForOverlay(overlayName, overlaysDir, silent);
     if (Object.keys(importedConfig).length > 0) {
         baseConfig = deepMerge(baseConfig, importedConfig);
     }
@@ -1017,6 +1025,22 @@ function copyDir(src: string, dest: string): void {
 }
 
 /**
+ * Recursively register every file inside a directory in the FileRegistry.
+ * Used after copyDir() to ensure cleanup logic doesn't delete the copied contents.
+ */
+function registerDirContents(registry: FileRegistry, dirPath: string, prefix: string): void {
+    if (!fs.existsSync(dirPath)) return;
+    for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+        const rel = `${prefix}${entry.name}`;
+        if (entry.isDirectory()) {
+            registerDirContents(registry, path.join(dirPath, entry.name), `${rel}/`);
+        } else {
+            registry.addFile(rel);
+        }
+    }
+}
+
+/**
  * Copy additional files from overlay to output directory
  * Excludes devcontainer.patch.json and .env.example (handled separately)
  */
@@ -1069,6 +1093,9 @@ function copyOverlayFiles(
             const destPath = path.join(outputPath, destDirName);
             copyDir(srcPath, destPath);
             registry.addDirectory(destDirName);
+            // Register every file inside the copied directory so that
+            // cleanupStaleDirFiles does not delete them during the same run.
+            registerDirContents(registry, destPath, `${destDirName}/`);
             copiedFiles++;
         }
     }

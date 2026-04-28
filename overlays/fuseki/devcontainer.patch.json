@@ -10,7 +10,7 @@
     },
     "remoteEnv": {
         "FUSEKI_HOST": "fuseki",
-        "FUSEKI_PORT": "{{cs.FUSEKI_PORT}}",
+        "FUSEKI_PORT": "3030",
         "FUSEKI_DATASET": "{{cs.FUSEKI_DATASET}}",
         "FUSEKI_ADMIN_PASSWORD": "{{cs.FUSEKI_ADMIN_PASSWORD}}",
         "FUSEKI_URL": "http://fuseki:3030"
