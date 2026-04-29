@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-04-29
+
 ### Added
 
 - **`doctor` overlay dependency checks** — `cs doctor` now validates that all overlay `requires:` dependencies are present in the project file, flags unknown overlay IDs (typos, removed overlays), and surfaces `suggests:` entries as informational warnings; `doctor --fix` auto-adds missing required overlays and regenerates
@@ -600,7 +602,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/veggerby/container-superposition/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/veggerby/container-superposition/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/veggerby/container-superposition/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/veggerby/container-superposition/compare/v0.1.5...v0.1.6
