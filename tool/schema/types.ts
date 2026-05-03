@@ -139,7 +139,43 @@ export interface ProjectEnvVar {
 
 export type ProjectMountTarget = 'auto' | 'devcontainerMount' | 'composeVolume';
 export interface ProjectMount {
-    value: string;
+    /**
+     * Escape hatch for advanced/custom mount strings.
+     * Example (devcontainer): source=${localEnv:HOME}/.cache,target=/home/vscode/.cache,type=bind
+     * Example (compose): ${HOME}/.cache:/home/vscode/.cache:cached
+     */
+    value?: string;
+    /**
+     * Structured mount source path/name.
+     */
+    source?: string;
+    /**
+     * Structured mount destination path inside the container.
+     */
+    destination?: string;
+    /**
+     * Optional mount type for structured entries. Defaults to bind.
+     */
+    type?: 'bind' | 'volume' | 'tmpfs';
+    /**
+     * Optional mount consistency mode (for docker desktop/mac style semantics).
+     */
+    consistency?: 'consistent' | 'cached' | 'delegated';
+    /**
+     * Convenience boolean alias for consistency: cached.
+     */
+    cached?: boolean;
+    /**
+     * Read-only flag for structured mounts.
+     */
+    readOnly?: boolean;
+    /**
+     * Optional named mount key when declared in map form.
+     */
+    name?: string;
+    /**
+     * Routing target for generated output.
+     */
     target?: ProjectMountTarget;
 }
 

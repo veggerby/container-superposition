@@ -39,7 +39,12 @@ describe('Project Mounts', () => {
                 overlays: ['nodejs'],
                 mounts: [
                     'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind',
-                    { value: './data:/workspace/data', target: 'devcontainerMount' },
+                    {
+                        source: '${HOME}/.codex',
+                        destination: '/home/vscode/.codex',
+                        cached: true,
+                        target: 'devcontainerMount',
+                    },
                 ],
             })
         );
@@ -47,11 +52,43 @@ describe('Project Mounts', () => {
         const loaded = loadProjectConfig(overlaysConfig, repoDir);
         expect(loaded?.selection.mounts).toEqual([
             { value: 'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind' },
-            { value: './data:/workspace/data', target: 'devcontainerMount' },
+            {
+                source: '${HOME}/.codex',
+                destination: '/home/vscode/.codex',
+                cached: true,
+                target: 'devcontainerMount',
+            },
         ]);
 
         const answers = buildAnswersFromProjectConfig(loaded!.selection, overlaysConfig);
         expect(answers.projectMounts).toEqual(loaded?.selection.mounts);
+    });
+
+    it('supports map-form mounts definitions', () => {
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            yaml.dump({
+                stack: 'plain',
+                overlays: ['nodejs'],
+                mounts: {
+                    codex: {
+                        source: '${HOME}/.codex',
+                        destination: '/home/vscode/.codex',
+                        cached: true,
+                    },
+                },
+            })
+        );
+
+        const loaded = loadProjectConfig(overlaysConfig, repoDir);
+        expect(loaded?.selection.mounts).toEqual([
+            {
+                name: 'codex',
+                source: '${HOME}/.codex',
+                destination: '/home/vscode/.codex',
+                cached: true,
+            },
+        ]);
     });
 
     it('routes auto mounts to devcontainer.json on plain stack', async () => {
@@ -70,7 +107,10 @@ describe('Project Mounts', () => {
             outputPath,
             projectMounts: [
                 {
-                    value: 'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind',
+                    source: '${localWorkspaceFolder}/../libs',
+                    destination: '/workspace/libs',
+                    type: 'bind',
+                    readOnly: true,
                 },
             ],
         };
@@ -82,11 +122,11 @@ describe('Project Mounts', () => {
         ) as { mounts?: string[] };
 
         expect(devcontainer.mounts).toContain(
-            'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind'
+            'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind,readonly'
         );
     });
 
-    it('routes auto mounts to devcontainer.json on compose stack (stack-agnostic)', async () => {
+    it('routes auto mounts to docker-compose volumes on compose stack', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
 
         const answers: QuestionnaireAnswers = {
@@ -100,7 +140,7 @@ describe('Project Mounts', () => {
             devTools: [],
             observability: [],
             outputPath,
-            projectMounts: [{ value: './data:/workspace/data' }],
+            projectMounts: [{ source: './data', destination: '/workspace/data' }],
         };
 
         await composeDevContainer(answers);
@@ -108,10 +148,7 @@ describe('Project Mounts', () => {
         const devcontainer = JSON.parse(
             fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8')
         ) as { mounts?: string[] };
-
-        // auto routes to devcontainer.json mounts[] regardless of stack, so the same
-        // superposition.yml works when swapping between plain and compose
-        expect(devcontainer.mounts).toContain('./data:/workspace/data');
+        expect(devcontainer.mounts ?? []).not.toContain('./data:/workspace/data');
 
         const compose = yaml.load(
             fs.readFileSync(path.join(outputPath, 'docker-compose.yml'), 'utf8')
@@ -123,10 +160,7 @@ describe('Project Mounts', () => {
             };
         };
 
-        // auto does NOT write to docker-compose volumes (only explicit composeVolume does)
-        expect(compose.services.devcontainer?.volumes ?? []).not.toContain(
-            './data:/workspace/data'
-        );
+        expect(compose.services.devcontainer?.volumes ?? []).toContain('./data:/workspace/data');
     });
 
     it('forces mount into devcontainer.json when target is devcontainerMount on compose stack', async () => {
@@ -144,7 +178,12 @@ describe('Project Mounts', () => {
             observability: [],
             outputPath,
             projectMounts: [
-                { value: 'source=certs,target=/certs,type=volume', target: 'devcontainerMount' },
+                {
+                    source: 'certs',
+                    destination: '/certs',
+                    type: 'volume',
+                    target: 'devcontainerMount',
+                },
             ],
         };
 
@@ -165,9 +204,7 @@ describe('Project Mounts', () => {
         };
 
         expect(devcontainer.mounts).toContain('source=certs,target=/certs,type=volume');
-        expect(compose.services.devcontainer?.volumes ?? []).not.toContain(
-            'source=certs,target=/certs,type=volume'
-        );
+        expect(compose.services.devcontainer?.volumes ?? []).not.toContain('certs:/certs');
     });
 
     it('forces mount into compose volumes when target is composeVolume on compose stack', async () => {
@@ -184,7 +221,9 @@ describe('Project Mounts', () => {
             devTools: [],
             observability: [],
             outputPath,
-            projectMounts: [{ value: './logs:/workspace/logs', target: 'composeVolume' }],
+            projectMounts: [
+                { source: './logs', destination: '/workspace/logs', target: 'composeVolume' },
+            ],
         };
 
         await composeDevContainer(answers);
@@ -229,7 +268,6 @@ describe('Project Mounts', () => {
 
     it('coexists with customizations.devcontainerPatch — both mounts appear', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
-        // Write the custom devcontainer patch to disk (mirrors the run.ts flow)
         const customDir = path.join(outputPath, 'custom');
         fs.mkdirSync(customDir, { recursive: true });
         fs.writeFileSync(
@@ -248,7 +286,9 @@ describe('Project Mounts', () => {
             devTools: [],
             observability: [],
             outputPath,
-            projectMounts: [{ value: 'source=vol-a,target=/a,type=volume' }],
+            projectMounts: [
+                { source: 'vol-a', destination: '/a', type: 'volume', target: 'devcontainerMount' },
+            ],
         };
 
         await composeDevContainer(answers);
@@ -263,7 +303,6 @@ describe('Project Mounts', () => {
 
     it('coexists with customizations.dockerComposePatch — both volumes appear', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
-        // Write the custom docker-compose patch to disk (mirrors the run.ts flow)
         const customDir = path.join(outputPath, 'custom');
         fs.mkdirSync(customDir, { recursive: true });
         fs.writeFileSync(
@@ -284,8 +323,9 @@ describe('Project Mounts', () => {
             devTools: [],
             observability: [],
             outputPath,
-            // explicit composeVolume so it lands in docker-compose.yml volumes
-            projectMounts: [{ value: './data:/workspace/data', target: 'composeVolume' }],
+            projectMounts: [
+                { source: './data', destination: '/workspace/data', target: 'composeVolume' },
+            ],
         };
 
         await composeDevContainer(answers);
@@ -312,7 +352,12 @@ describe('Project Mounts', () => {
                 overlays: ['nodejs'],
                 mounts: [
                     'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind',
-                    { value: './certs:/certs', target: 'devcontainerMount' },
+                    {
+                        source: '${HOME}/.codex',
+                        destination: '/home/vscode/.codex',
+                        cached: true,
+                        target: 'devcontainerMount',
+                    },
                 ],
             })
         );
@@ -321,12 +366,11 @@ describe('Project Mounts', () => {
         expect(loaded).not.toBeNull();
 
         const serialized = serializeProjectConfig(loaded!.selection);
-        // String shorthand preserved for auto-target mounts
         expect(serialized).toContain(
             'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind'
         );
-        // Long form preserved for explicit targets
         expect(serialized).toContain('devcontainerMount');
+        expect(serialized).toContain('destination: /home/vscode/.codex');
     });
 
     it('rejects empty mount value strings', () => {
@@ -347,27 +391,26 @@ describe('Project Mounts', () => {
     it('rejects invalid mount entries (non-string, non-object)', () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
-            // Write raw YAML to ensure the array entry is a number (42)
             `stack: plain\noverlays:\n  - nodejs\nmounts:\n  - 42\n`
         );
 
         expect(() => loadProjectConfig(overlaysConfig, repoDir)).toThrow(
-            /mounts\[0\] must be a non-empty string or an object/
+            /mounts\[0\] must be a non-empty string or an object mount definition/
         );
     });
 
-    it('rejects object mounts with empty value', () => {
+    it('rejects object mounts missing value and source/destination pair', () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
             yaml.dump({
                 stack: 'plain',
                 overlays: ['nodejs'],
-                mounts: [{ value: '' }],
+                mounts: [{ type: 'bind' }],
             })
         );
 
         expect(() => loadProjectConfig(overlaysConfig, repoDir)).toThrow(
-            /mounts\[0\].value must be a non-empty string/
+            /must define either "value" or both "source" and "destination"/
         );
     });
 });

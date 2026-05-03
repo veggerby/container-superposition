@@ -149,39 +149,49 @@ artifact based on `stack`.
 
 ```yaml
 mounts:
-    # String shorthand — always routes to devcontainer.json mounts[] (stack-agnostic)
+    # String shorthand (escape hatch)
     - 'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind,readonly'
 
-    # Long form — auto is stack-agnostic (same as string shorthand)
-    - value: './data:/workspace/data'
-      target: auto # always devcontainer.json mounts[] regardless of stack
+    # Structured list form (preferred)
+    - source: ${HOME}/.codex
+      destination: /home/vscode/.codex
+      cached: true
+      # target: auto (default)
 
-    - value: 'source=certs,target=/certs,type=volume'
-      target: devcontainerMount # explicit alias for auto — always devcontainer.json mounts[]
+    # Explicit target override
+    - source: certs
+      destination: /certs
+      type: volume
+      target: devcontainerMount
 
-    - value: './logs:/workspace/logs'
-      target: composeVolume # explicit compose volumes only (error on plain stack)
+    # Compose-only target
+    - source: ./logs
+      destination: /workspace/logs
+      target: composeVolume
+
+    # Raw-value fallback for advanced/custom cases
+    - value: './custom-src:/custom-dest:ro'
+      target: composeVolume
 ```
 
 #### Routing table
 
 | `target`            | `stack: plain`               | `stack: compose`                                     |
 | ------------------- | ---------------------------- | ---------------------------------------------------- |
-| `auto` (default)    | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
+| `auto` (default)    | `devcontainer.json mounts[]` | `docker-compose.yml services.devcontainer.volumes[]` |
 | `devcontainerMount` | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
 | `composeVolume`     | ❌ Error                     | `docker-compose.yml services.devcontainer.volumes[]` |
 
-`auto` (and the string shorthand) always route to `devcontainer.json mounts[]` regardless of
-stack — so the same `superposition.yml` works unchanged when swapping between `plain` and
-`compose`. Use `composeVolume` only when you specifically need Docker Compose volume semantics.
+`auto` is stack-aware: plain stacks get `devcontainer.json mounts[]`; compose stacks get
+`docker-compose.yml` volumes. Use explicit targets to override this default routing.
 
 Mounts declared here are applied **before** `customizations.devcontainerPatch` and
 `customizations.dockerComposePatch`, so patch overrides are respected.
 
 #### Mount spec formats
 
-Both devcontainer mount syntax and Docker Compose volume syntax are accepted — the value is
-passed through verbatim to the target artifact:
+Structured entries are rendered into the correct target syntax automatically. You can still use
+raw strings (or `value`) when needed:
 
 ```yaml
 mounts:

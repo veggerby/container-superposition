@@ -1299,7 +1299,7 @@ function resolveProjectMountTarget(
 ): ResolvedProjectMountTarget {
     const target = mount.target ?? 'auto';
 
-    if (target === 'devcontainerMount' || target === 'auto') {
+    if (target === 'devcontainerMount') {
         return 'devcontainerMount';
     }
 
@@ -1312,7 +1312,64 @@ function resolveProjectMountTarget(
         return 'composeVolume';
     }
 
-    return 'devcontainerMount';
+    return stack === 'compose' ? 'composeVolume' : 'devcontainerMount';
+}
+
+function boolToReadonlyFlag(value: boolean | undefined): string {
+    return value ? ',readonly' : '';
+}
+
+function buildConsistencyValue(mount: ProjectMount): string | undefined {
+    if (mount.cached) {
+        return 'cached';
+    }
+    return mount.consistency;
+}
+
+function toDevcontainerMountSpec(mount: ProjectMount): string {
+    if (mount.value) {
+        return mount.value;
+    }
+
+    const source = mount.source?.trim();
+    const destination = mount.destination?.trim();
+    if (!source || !destination) {
+        throw new Error(
+            'Structured project mounts require both "source" and "destination" when no raw "value" is provided'
+        );
+    }
+
+    const type = mount.type ?? 'bind';
+    const consistency = buildConsistencyValue(mount);
+    return `source=${source},target=${destination},type=${type}${
+        consistency ? `,consistency=${consistency}` : ''
+    }${boolToReadonlyFlag(mount.readOnly)}`;
+}
+
+function toComposeVolumeSpec(mount: ProjectMount): string {
+    if (mount.value) {
+        return mount.value;
+    }
+
+    const source = mount.source?.trim();
+    const destination = mount.destination?.trim();
+    if (!source || !destination) {
+        throw new Error(
+            'Structured project mounts require both "source" and "destination" when no raw "value" is provided'
+        );
+    }
+
+    const options: string[] = [];
+    if (mount.readOnly) {
+        options.push('ro');
+    }
+    const consistency = buildConsistencyValue(mount);
+    if (consistency) {
+        options.push(consistency);
+    }
+    return options.length > 0
+        ? `${source}:${destination}:${options.join(',')}`
+        : `${source}:${destination}`;
 }
 
 /**
@@ -1334,7 +1391,7 @@ function applyProjectMountsToDevcontainer(
 
     const devcontainerMounts = projectMounts
         .filter((m) => resolveProjectMountTarget(m, stack) === 'devcontainerMount')
-        .map((m) => m.value);
+        .map(toDevcontainerMountSpec);
 
     if (devcontainerMounts.length === 0) {
         return config;
@@ -1361,7 +1418,7 @@ function buildComposeProjectMountVolumes(
 
     return projectMounts
         .filter((m) => resolveProjectMountTarget(m, stack) === 'composeVolume')
-        .map((m) => m.value);
+        .map(toComposeVolumeSpec);
 }
 
 function mergeComposeEnvFile(outputPath: string, entries: Record<string, string>): boolean {

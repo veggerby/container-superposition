@@ -273,29 +273,22 @@
             }
         },
         "mounts": {
-            "type": "array",
             "description": "Project-level mount specs routed to devcontainer.json mounts or docker-compose volumes based on stack/target",
-            "items": {
-                "oneOf": [
-                    {
-                        "type": "string",
-                        "description": "Raw mount spec string"
-                    },
-                    {
-                        "type": "object",
-                        "properties": {
-                            "value": { "type": "string", "description": "Raw mount spec string" },
-                            "target": {
-                                "type": "string",
-                                "enum": ["auto", "devcontainerMount", "composeVolume"],
-                                "description": "Routing target: auto (stack-dependent), devcontainerMount (always devcontainer.json), composeVolume (compose only)"
-                            }
-                        },
-                        "required": ["value"],
-                        "additionalProperties": false
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/projectMountEntry"
                     }
-                ]
-            }
+                },
+                {
+                    "type": "object",
+                    "description": "Named mount map form",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/projectMountObject"
+                    }
+                }
+            ]
         },
         "customizations": {
             "type": "object",
@@ -353,5 +346,43 @@
         }
     },
     "required": [],
-    "additionalProperties": false
+    "additionalProperties": false,
+    "$defs": {
+        "projectMountTarget": {
+            "type": "string",
+            "enum": ["auto", "devcontainerMount", "composeVolume"]
+        },
+        "projectMountObject": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "type": "string",
+                    "description": "Raw mount spec string (escape hatch)"
+                },
+                "source": { "type": "string", "description": "Mount source path or volume name" },
+                "destination": { "type": "string", "description": "Container destination path" },
+                "type": { "type": "string", "enum": ["bind", "volume", "tmpfs"] },
+                "consistency": { "type": "string", "enum": ["consistent", "cached", "delegated"] },
+                "cached": {
+                    "type": "boolean",
+                    "description": "Convenience alias for consistency: cached"
+                },
+                "readOnly": { "type": "boolean" },
+                "target": { "$ref": "#/$defs/projectMountTarget" }
+            },
+            "additionalProperties": false,
+            "oneOf": [{ "required": ["value"] }, { "required": ["source", "destination"] }]
+        },
+        "projectMountEntry": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "description": "Raw mount spec string"
+                },
+                {
+                    "$ref": "#/$defs/projectMountObject"
+                }
+            ]
+        }
+    }
 }
