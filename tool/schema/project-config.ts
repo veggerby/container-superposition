@@ -419,6 +419,18 @@ function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefi
     return Object.keys(parsed).length > 0 ? parsed : undefined;
 }
 
+/**
+ * Normalize the raw `mounts` YAML value into an array of `ProjectMount` objects.
+ *
+ * Accepts both the string shorthand (a raw mount spec) and the object long form
+ * `{value: string, target?: ProjectMountTarget}`. All entries are normalized to
+ * `ProjectMount` objects with the `value` field set.
+ *
+ * @param value - Raw YAML value of the `mounts` field
+ * @returns Normalized mount array, or `undefined` if the input is empty/absent
+ * @throws {ProjectConfigError} When an entry is an empty string, a non-string/non-object
+ *   value, or an object without a valid `value` string
+ */
 function parseMounts(value: unknown): ProjectMount[] | undefined {
     if (value === undefined || value === null) {
         return undefined;
