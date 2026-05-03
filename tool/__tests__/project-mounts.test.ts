@@ -126,7 +126,7 @@ describe('Project Mounts', () => {
         );
     });
 
-    it('routes auto mounts to docker-compose volumes on compose stack', async () => {
+    it('routes auto mounts to devcontainer.json on compose stack (stack-agnostic)', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
 
         const answers: QuestionnaireAnswers = {
@@ -145,11 +145,13 @@ describe('Project Mounts', () => {
 
         await composeDevContainer(answers);
 
+        // auto always routes to devcontainer.json mounts[] regardless of stack
         const devcontainer = JSON.parse(
             fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8')
         ) as { mounts?: string[] };
-        expect(devcontainer.mounts ?? []).not.toContain('./data:/workspace/data');
+        expect(devcontainer.mounts).toContain('source=./data,target=/workspace/data,type=bind');
 
+        // auto does NOT write to docker-compose volumes (use explicit composeVolume for that)
         const compose = yaml.load(
             fs.readFileSync(path.join(outputPath, 'docker-compose.yml'), 'utf8')
         ) as {
@@ -159,8 +161,9 @@ describe('Project Mounts', () => {
                 };
             };
         };
-
-        expect(compose.services.devcontainer?.volumes ?? []).toContain('./data:/workspace/data');
+        expect(compose.services.devcontainer?.volumes ?? []).not.toContain(
+            './data:/workspace/data'
+        );
     });
 
     it('forces mount into devcontainer.json when target is devcontainerMount on compose stack', async () => {
@@ -411,6 +414,21 @@ describe('Project Mounts', () => {
 
         expect(() => loadProjectConfig(overlaysConfig, repoDir)).toThrow(
             /must define either "value" or both "source" and "destination"/
+        );
+    });
+
+    it('rejects object mounts that combine value with source or destination', () => {
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            yaml.dump({
+                stack: 'plain',
+                overlays: ['nodejs'],
+                mounts: [{ value: 'source=a,target=/a,type=bind', source: 'a', destination: '/a' }],
+            })
+        );
+
+        expect(() => loadProjectConfig(overlaysConfig, repoDir)).toThrow(
+            /must not combine "value" with "source" or "destination"/
         );
     });
 });

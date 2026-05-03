@@ -115,7 +115,7 @@ mounts:
     - 'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind'
     # long form — explicit target routing
     - value: './data:/workspace/data'
-      target: auto # default; plain→devcontainer.json, compose→docker-compose.yml
+      target: auto # default; always devcontainer.json mounts[] regardless of stack
     - value: 'source=certs,target=/certs,type=volume'
       target: devcontainerMount # always devcontainer.json
     - value: './logs:/workspace/logs'

@@ -1289,7 +1289,7 @@ type ResolvedProjectMountTarget = 'devcontainerMount' | 'composeVolume';
  * - `composeVolume` — always routes to `docker-compose.yml services.devcontainer.volumes[]`;
  *   throws if the stack is not `compose` (no docker-compose.yml is generated for plain stacks)
  * - `auto` (default) — always routes to `devcontainer.json mounts[]` regardless of stack,
- *   so that the same config works when swapping between `plain` and `compose`
+ *   so that the same `superposition.yml` works unchanged when swapping `stack: plain` ↔ `stack: compose`
  *
  * @throws {Error} When `composeVolume` is requested on a non-compose stack
  */
@@ -1298,10 +1298,6 @@ function resolveProjectMountTarget(
     stack: QuestionnaireAnswers['stack']
 ): ResolvedProjectMountTarget {
     const target = mount.target ?? 'auto';
-
-    if (target === 'devcontainerMount') {
-        return 'devcontainerMount';
-    }
 
     if (target === 'composeVolume') {
         if (stack !== 'compose') {
@@ -1312,7 +1308,9 @@ function resolveProjectMountTarget(
         return 'composeVolume';
     }
 
-    return stack === 'compose' ? 'composeVolume' : 'devcontainerMount';
+    // Both 'auto' (default) and explicit 'devcontainerMount' are treated identically:
+    // always route to devcontainer.json mounts[] regardless of stack
+    return 'devcontainerMount';
 }
 
 function boolToReadonlyFlag(value: boolean | undefined): string {

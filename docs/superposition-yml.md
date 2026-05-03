@@ -144,8 +144,8 @@ appropriate output file.
 
 ### `mounts`
 
-Declare filesystem mounts once. The generation pipeline routes them to the correct devcontainer
-artifact based on `stack`.
+Declare filesystem mounts once. Entries are **stack-agnostic by default** — the same
+`mounts:` block works unchanged when swapping between `stack: plain` and `stack: compose`.
 
 ```yaml
 mounts:
@@ -178,12 +178,12 @@ mounts:
 
 | `target`            | `stack: plain`               | `stack: compose`                                     |
 | ------------------- | ---------------------------- | ---------------------------------------------------- |
-| `auto` (default)    | `devcontainer.json mounts[]` | `docker-compose.yml services.devcontainer.volumes[]` |
+| `auto` (default)    | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
 | `devcontainerMount` | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
 | `composeVolume`     | ❌ Error                     | `docker-compose.yml services.devcontainer.volumes[]` |
 
-`auto` is stack-aware: plain stacks get `devcontainer.json mounts[]`; compose stacks get
-`docker-compose.yml` volumes. Use explicit targets to override this default routing.
+`auto` and `devcontainerMount` always route to `devcontainer.json mounts[]` regardless of stack.
+Use `composeVolume` only when you specifically need Docker Compose volume semantics.
 
 Mounts declared here are applied **before** `customizations.devcontainerPatch` and
 `customizations.dockerComposePatch`, so patch overrides are respected.

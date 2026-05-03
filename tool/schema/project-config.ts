@@ -422,14 +422,22 @@ function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefi
 /**
  * Normalize the raw `mounts` YAML value into an array of `ProjectMount` objects.
  *
- * Accepts both the string shorthand (a raw mount spec) and the object long form
- * `{value: string, target?: ProjectMountTarget}`. All entries are normalized to
- * `ProjectMount` objects with the `value` field set.
+ * Accepts three input forms:
+ * - **String shorthand**: `"source=...,target=...,type=bind"` — stored as `{ value: string }`
+ * - **Object with `value`**: `{ value: "...", target?: ProjectMountTarget }` — stored as-is;
+ *   must not also include `source` or `destination` (use one form or the other)
+ * - **Structured object**: `{ source: "...", destination: "...", type?, consistency?,
+ *   cached?, readOnly?, target? }` — stored with individual fields; `source` and `destination`
+ *   are both required when this form is used
+ * - **Named map**: each key becomes the `name` on the resulting `ProjectMount` object (used
+ *   internally for identification; `name` is not persisted when the selection is serialized
+ *   back to `superposition.yml`); values must be structured objects (string shorthands are
+ *   not supported in map form)
  *
  * @param value - Raw YAML value of the `mounts` field
  * @returns Normalized mount array, or `undefined` if the input is empty/absent
- * @throws {ProjectConfigError} When an entry is an empty string, a non-string/non-object
- *   value, or an object without a valid `value` string
+ * @throws {ProjectConfigError} When an entry is empty, invalid, or mixes `value` with
+ *   `source`/`destination` fields
  */
 function parseMounts(value: unknown): ProjectMount[] | undefined {
     if (value === undefined || value === null) {
@@ -449,6 +457,13 @@ function parseMounts(value: unknown): ProjectMount[] | undefined {
         const value = expectOptionalString(record.value, `${fieldBase}.value`);
 
         if (value !== undefined) {
+            const valueFormHasSource = record.source !== undefined;
+            const valueFormHasDestination = record.destination !== undefined;
+            if (valueFormHasSource || valueFormHasDestination) {
+                throw new ProjectConfigError(
+                    `${fieldBase} must not combine "value" with "source" or "destination" — use one form or the other`
+                );
+            }
             return { value, target, name };
         }
 
@@ -604,7 +619,6 @@ export function loadProjectConfig(
         'editor',
         'env',
         'mounts',
-        'mount',
         'customizations',
         'parameters',
     ]);
@@ -635,7 +649,7 @@ export function loadProjectConfig(
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
         env: parseProjectEnv(document.env),
-        mounts: parseMounts(document.mounts ?? document.mount),
+        mounts: parseMounts(document.mounts),
         customizations: parseCustomizations(document.customizations),
         parameters: parseParameters(document.parameters),
     };
@@ -839,7 +853,6 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
             if (entry.cached !== undefined) structured.cached = entry.cached;
             if (entry.readOnly !== undefined) structured.readOnly = entry.readOnly;
             if (entry.target && entry.target !== 'auto') structured.target = entry.target;
-            if (entry.name) structured.name = entry.name;
             return structured;
         });
     }
