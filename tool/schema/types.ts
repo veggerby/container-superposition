@@ -137,6 +137,48 @@ export interface ProjectEnvVar {
     target?: ProjectEnvTarget;
 }
 
+export type ProjectMountTarget = 'auto' | 'devcontainerMount' | 'composeVolume';
+export interface ProjectMount {
+    /**
+     * Escape hatch for advanced/custom mount strings.
+     * Example (devcontainer): source=${localEnv:HOME}/.cache,target=/home/vscode/.cache,type=bind
+     * Example (compose): ${HOME}/.cache:/home/vscode/.cache:cached
+     */
+    value?: string;
+    /**
+     * Structured mount source path/name.
+     */
+    source?: string;
+    /**
+     * Structured mount destination path inside the container.
+     */
+    destination?: string;
+    /**
+     * Optional mount type for structured entries. Defaults to bind.
+     */
+    type?: 'bind' | 'volume' | 'tmpfs';
+    /**
+     * Optional mount consistency mode (for docker desktop/mac style semantics).
+     */
+    consistency?: 'consistent' | 'cached' | 'delegated';
+    /**
+     * Convenience boolean alias for consistency: cached.
+     */
+    cached?: boolean;
+    /**
+     * Read-only flag for structured mounts.
+     */
+    readOnly?: boolean;
+    /**
+     * Optional named mount key when declared in map form.
+     */
+    name?: string;
+    /**
+     * Routing target for generated output.
+     */
+    target?: ProjectMountTarget;
+}
+
 /**
  * Questionnaire response interface
  */
@@ -161,6 +203,7 @@ export interface QuestionnaireAnswers {
     minimal?: boolean; // Whether to use minimal mode (exclude optional/nice-to-have features)
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
     projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
+    projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
     overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
 }
@@ -540,6 +583,7 @@ export interface ProjectConfigSelection {
     minimal?: boolean;
     editor?: EditorProfile;
     env?: Record<string, ProjectEnvVar>;
+    mounts?: ProjectMount[];
     customizations?: ProjectConfigCustomizationsInput;
     parameters?: Record<string, string>; // Overlay parameter values for {{cs.KEY}} substitution
 }

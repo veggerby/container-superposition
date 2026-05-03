@@ -15,6 +15,8 @@ import type {
     ObservabilityTool,
     OverlaysConfig,
     ProjectEnvTarget,
+    ProjectMount,
+    ProjectMountTarget,
     ProjectConfigCustomizationsInput,
     ProjectConfigFileEntry,
     ProjectConfigSelection,
@@ -34,6 +36,11 @@ const BASE_IMAGE_VALUES: BaseImage[] = ['bookworm', 'trixie', 'alpine', 'ubuntu'
 const TARGET_VALUES: DeploymentTarget[] = ['local', 'codespaces', 'gitpod', 'devpod'];
 const EDITOR_VALUES: EditorProfile[] = ['vscode', 'jetbrains', 'none'];
 const PROJECT_ENV_TARGET_VALUES: ProjectEnvTarget[] = ['auto', 'remoteEnv', 'composeEnv'];
+const PROJECT_MOUNT_TARGET_VALUES: ProjectMountTarget[] = [
+    'auto',
+    'devcontainerMount',
+    'composeVolume',
+];
 
 class ProjectConfigError extends Error {
     constructor(message: string) {
@@ -412,6 +419,116 @@ function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefi
     return Object.keys(parsed).length > 0 ? parsed : undefined;
 }
 
+/**
+ * Normalize the raw `mounts` YAML value into an array of `ProjectMount` objects.
+ *
+ * Accepts three input forms:
+ * - **String shorthand**: `"source=...,target=...,type=bind"` — stored as `{ value: string }`
+ * - **Object with `value`**: `{ value: "...", target?: ProjectMountTarget }` — stored as-is;
+ *   must not also include `source` or `destination` (use one form or the other)
+ * - **Structured object**: `{ source: "...", destination: "...", type?, consistency?,
+ *   cached?, readOnly?, target? }` — stored with individual fields; `source` and `destination`
+ *   are both required when this form is used
+ * - **Named map**: each key becomes the `name` on the resulting `ProjectMount` object (used
+ *   internally for identification; `name` is not persisted when the selection is serialized
+ *   back to `superposition.yml`); values must be structured objects (string shorthands are
+ *   not supported in map form)
+ *
+ * @param value - Raw YAML value of the `mounts` field
+ * @returns Normalized mount array, or `undefined` if the input is empty/absent
+ * @throws {ProjectConfigError} When an entry is empty, invalid, or mixes `value` with
+ *   `source`/`destination` fields
+ */
+function parseMounts(value: unknown): ProjectMount[] | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    const parseMountRecord = (
+        record: Record<string, unknown>,
+        fieldBase: string,
+        name?: string
+    ): ProjectMount => {
+        const target = expectOptionalEnum(
+            record.target,
+            `${fieldBase}.target`,
+            PROJECT_MOUNT_TARGET_VALUES
+        );
+        const value = expectOptionalString(record.value, `${fieldBase}.value`);
+
+        if (value !== undefined) {
+            const valueFormHasSource = record.source !== undefined;
+            const valueFormHasDestination = record.destination !== undefined;
+            if (valueFormHasSource || valueFormHasDestination) {
+                throw new ProjectConfigError(
+                    `${fieldBase} must not combine "value" with "source" or "destination" — use one form or the other`
+                );
+            }
+            return { value, target, name };
+        }
+
+        const source = expectOptionalString(record.source, `${fieldBase}.source`);
+        const destination = expectOptionalString(record.destination, `${fieldBase}.destination`);
+        const type = expectOptionalEnum(record.type, `${fieldBase}.type`, [
+            'bind',
+            'volume',
+            'tmpfs',
+        ]);
+        const consistency = expectOptionalEnum(record.consistency, `${fieldBase}.consistency`, [
+            'consistent',
+            'cached',
+            'delegated',
+        ]);
+        const cached = expectOptionalBoolean(record.cached, `${fieldBase}.cached`);
+        const readOnly = expectOptionalBoolean(record.readOnly, `${fieldBase}.readOnly`);
+
+        if (!source || !destination) {
+            throw new ProjectConfigError(
+                `${fieldBase} must define either "value" or both "source" and "destination"`
+            );
+        }
+
+        return { source, destination, type, consistency, cached, readOnly, target, name };
+    };
+
+    if (Array.isArray(value)) {
+        if (value.length === 0) {
+            return undefined;
+        }
+        return value.map((entry, index) => {
+            if (typeof entry === 'string') {
+                const str = entry.trim();
+                if (str.length === 0) {
+                    throw new ProjectConfigError(`mounts[${index}] must be a non-empty string`);
+                }
+                return { value: str };
+            }
+
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+                throw new ProjectConfigError(
+                    `mounts[${index}] must be a non-empty string or an object mount definition`
+                );
+            }
+
+            return parseMountRecord(entry as Record<string, unknown>, `mounts[${index}]`);
+        });
+    }
+
+    const mapRecord = expectPlainObject(value, 'mounts');
+    const entries = Object.entries(mapRecord);
+    if (entries.length === 0) {
+        return undefined;
+    }
+
+    return entries.map(([name, entry]) => {
+        const fieldBase = `mounts.${name}`;
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            throw new ProjectConfigError(`${fieldBase} must be an object mount definition`);
+        }
+        return parseMountRecord(entry as Record<string, unknown>, fieldBase, name);
+    });
+}
+
 function parseCustomizations(value: unknown): ProjectConfigCustomizationsInput | undefined {
     if (value === undefined || value === null) {
         return undefined;
@@ -501,6 +618,7 @@ export function loadProjectConfig(
         'minimal',
         'editor',
         'env',
+        'mounts',
         'customizations',
         'parameters',
     ]);
@@ -531,6 +649,7 @@ export function loadProjectConfig(
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
         env: parseProjectEnv(document.env),
+        mounts: parseMounts(document.mounts),
         customizations: parseCustomizations(document.customizations),
         parameters: parseParameters(document.parameters),
     };
@@ -570,6 +689,7 @@ export function buildAnswersFromProjectConfig(
         minimal: selection.minimal,
         editor: selection.editor,
         projectEnv: selection.env,
+        projectMounts: selection.mounts,
         customizations: selection.customizations
             ? materializeCustomizationConfig(selection.customizations)
             : undefined,
@@ -643,6 +763,7 @@ export function buildProjectConfigSelectionFromAnswers(
         minimal: answers.minimal,
         editor: answers.editor,
         env: answers.projectEnv,
+        mounts: answers.projectMounts?.length ? answers.projectMounts : undefined,
         customizations: buildProjectConfigCustomizationsFromAnswers(answers.customizations),
         parameters:
             answers.overlayParameters && Object.keys(answers.overlayParameters).length > 0
@@ -713,6 +834,27 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
                     : entry.value,
             ])
         );
+    }
+
+    if (selection.mounts && selection.mounts.length > 0) {
+        document.mounts = selection.mounts.map((entry) => {
+            if (entry.value && (!entry.target || entry.target === 'auto')) {
+                return entry.value;
+            }
+            if (entry.value) {
+                return { value: entry.value, target: entry.target };
+            }
+            const structured: Record<string, unknown> = {
+                source: entry.source,
+                destination: entry.destination,
+            };
+            if (entry.type) structured.type = entry.type;
+            if (entry.consistency) structured.consistency = entry.consistency;
+            if (entry.cached !== undefined) structured.cached = entry.cached;
+            if (entry.readOnly !== undefined) structured.readOnly = entry.readOnly;
+            if (entry.target && entry.target !== 'auto') structured.target = entry.target;
+            return structured;
+        });
     }
 
     if (selection.customizations) {

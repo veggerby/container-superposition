@@ -16,6 +16,7 @@ import type {
     PortsDocumentation,
     DeploymentTarget,
     ProjectEnvVar,
+    ProjectMount,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import {
@@ -1275,6 +1276,149 @@ function applyProjectEnvToDevcontainer(
     return deepMerge(config, { remoteEnv }) as DevContainer;
 }
 
+/**
+ * The concrete routing destination after 'auto' has been evaluated based on stack.
+ * Unlike `ProjectMountTarget`, this type excludes the 'auto' sentinel value.
+ */
+type ResolvedProjectMountTarget = 'devcontainerMount' | 'composeVolume';
+
+/**
+ * Resolve the abstract `ProjectMountTarget` to a concrete destination.
+ *
+ * - `devcontainerMount` — always routes to `devcontainer.json mounts[]`
+ * - `composeVolume` — always routes to `docker-compose.yml services.devcontainer.volumes[]`;
+ *   throws if the stack is not `compose` (no docker-compose.yml is generated for plain stacks)
+ * - `auto` (default) — always routes to `devcontainer.json mounts[]` regardless of stack,
+ *   so that the same `superposition.yml` works unchanged when swapping `stack: plain` ↔ `stack: compose`
+ *
+ * @throws {Error} When `composeVolume` is requested on a non-compose stack
+ */
+function resolveProjectMountTarget(
+    mount: ProjectMount,
+    stack: QuestionnaireAnswers['stack']
+): ResolvedProjectMountTarget {
+    const target = mount.target ?? 'auto';
+
+    if (target === 'composeVolume') {
+        if (stack !== 'compose') {
+            throw new Error(
+                'Project mount target "composeVolume" requires stack: compose because no docker-compose.yml is generated for plain stacks'
+            );
+        }
+        return 'composeVolume';
+    }
+
+    // Both 'auto' (default) and explicit 'devcontainerMount' are treated identically:
+    // always route to devcontainer.json mounts[] regardless of stack
+    return 'devcontainerMount';
+}
+
+function boolToReadonlyFlag(value: boolean | undefined): string {
+    return value ? ',readonly' : '';
+}
+
+function buildConsistencyValue(mount: ProjectMount): string | undefined {
+    if (mount.cached) {
+        return 'cached';
+    }
+    return mount.consistency;
+}
+
+function toDevcontainerMountSpec(mount: ProjectMount): string {
+    if (mount.value) {
+        return mount.value;
+    }
+
+    const source = mount.source?.trim();
+    const destination = mount.destination?.trim();
+    if (!source || !destination) {
+        throw new Error(
+            'Structured project mounts require both "source" and "destination" when no raw "value" is provided'
+        );
+    }
+
+    const type = mount.type ?? 'bind';
+    const consistency = buildConsistencyValue(mount);
+    return `source=${source},target=${destination},type=${type}${
+        consistency ? `,consistency=${consistency}` : ''
+    }${boolToReadonlyFlag(mount.readOnly)}`;
+}
+
+function toComposeVolumeSpec(mount: ProjectMount): string {
+    if (mount.value) {
+        return mount.value;
+    }
+
+    const source = mount.source?.trim();
+    const destination = mount.destination?.trim();
+    if (!source || !destination) {
+        throw new Error(
+            'Structured project mounts require both "source" and "destination" when no raw "value" is provided'
+        );
+    }
+
+    const options: string[] = [];
+    if (mount.readOnly) {
+        options.push('ro');
+    }
+    const consistency = buildConsistencyValue(mount);
+    if (consistency) {
+        options.push(consistency);
+    }
+    return options.length > 0
+        ? `${source}:${destination}:${options.join(',')}`
+        : `${source}:${destination}`;
+}
+
+/**
+ * Merge project mounts destined for `devcontainer.json` into the devcontainer config.
+ *
+ * Filters the `projectMounts` list to entries whose resolved target is `devcontainerMount`
+ * (i.e. explicit `target: devcontainerMount`, or `target: auto`), then
+ * deepMerge-concatenates their values into `config.mounts[]`. Returns early unchanged if
+ * no applicable mounts exist.
+ */
+function applyProjectMountsToDevcontainer(
+    config: DevContainer,
+    projectMounts: ProjectMount[] | undefined,
+    stack: QuestionnaireAnswers['stack']
+): DevContainer {
+    if (!projectMounts?.length) {
+        return config;
+    }
+
+    const devcontainerMounts = projectMounts
+        .filter((m) => resolveProjectMountTarget(m, stack) === 'devcontainerMount')
+        .map(toDevcontainerMountSpec);
+
+    if (devcontainerMounts.length === 0) {
+        return config;
+    }
+
+    console.log(chalk.dim(`   🗂️  Applying project mounts to devcontainer.json`));
+    return deepMerge(config, { mounts: devcontainerMounts }) as DevContainer;
+}
+
+/**
+ * Extract mount values destined for `docker-compose.yml services.devcontainer.volumes[]`.
+ *
+ * Returns the raw value strings for all mounts whose resolved target is `composeVolume`
+ * (i.e. explicit `target: composeVolume` only). The caller is responsible for merging the
+ * returned array into the compose service definition.
+ */
+function buildComposeProjectMountVolumes(
+    projectMounts: ProjectMount[] | undefined,
+    stack: QuestionnaireAnswers['stack']
+): string[] {
+    if (!projectMounts?.length) {
+        return [];
+    }
+
+    return projectMounts
+        .filter((m) => resolveProjectMountTarget(m, stack) === 'composeVolume')
+        .map(toComposeVolumeSpec);
+}
+
 function mergeComposeEnvFile(outputPath: string, entries: Record<string, string>): boolean {
     if (Object.keys(entries).length === 0) {
         return false;
@@ -1684,7 +1828,8 @@ function mergeDockerComposeFiles(
     overlaysDir: string,
     portOffset?: number,
     customImage?: string,
-    projectEnv?: QuestionnaireAnswers['projectEnv']
+    projectEnv?: QuestionnaireAnswers['projectEnv'],
+    projectMounts?: QuestionnaireAnswers['projectMounts']
 ): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
@@ -1796,6 +1941,19 @@ function mergeDockerComposeFiles(
             );
             console.log(
                 chalk.dim(`   🌱 Applying project env to docker-compose devcontainer service`)
+            );
+        }
+
+        const composeMountVolumes = buildComposeProjectMountVolumes(projectMounts, baseStack);
+        if (composeMountVolumes.length > 0) {
+            const existing: string[] = Array.isArray(merged.services.devcontainer.volumes)
+                ? (merged.services.devcontainer.volumes as string[])
+                : [];
+            merged.services.devcontainer.volumes = [
+                ...new Set([...existing, ...composeMountVolumes]),
+            ];
+            console.log(
+                chalk.dim(`   🗂️  Applying project mounts to docker-compose devcontainer service`)
             );
         }
 
@@ -2353,6 +2511,7 @@ export async function composeDevContainer(
     }
 
     config = applyProjectEnvToDevcontainer(config, answers.projectEnv, answers.stack, rootEnv);
+    config = applyProjectMountsToDevcontainer(config, answers.projectMounts, answers.stack);
 
     // 7. Copy template files (docker-compose, scripts, etc.)
     const entries = fs.readdirSync(templatePath);
@@ -2415,7 +2574,8 @@ export async function composeDevContainer(
             actualOverlaysDir,
             answers.portOffset,
             customImage,
-            answers.projectEnv
+            answers.projectEnv,
+            answers.projectMounts
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {

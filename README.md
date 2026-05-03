@@ -27,6 +27,8 @@ database:
   - postgres
 env:
   APP_ENV: development
+mounts:
+  - "./local-tools:/workspace/tools"
 customizations:
   envTemplate:
     POSTGRES_PASSWORD: postgres
@@ -90,6 +92,7 @@ npx container-superposition migrate
 Start here:
 
 - [Docs index](https://github.com/veggerby/container-superposition/blob/main/docs/README.md)
+- [**superposition.yml reference**](https://github.com/veggerby/container-superposition/blob/main/docs/superposition-yml.md) ← project file authoring guide
 - [Quick reference](https://github.com/veggerby/container-superposition/blob/main/docs/quick-reference.md)
 - [Adopt command](https://github.com/veggerby/container-superposition/blob/main/docs/adopt.md)
 - [Hash command](https://github.com/veggerby/container-superposition/blob/main/docs/hash.md)
