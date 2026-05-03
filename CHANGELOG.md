@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`mounts` field in `superposition.yml`** — First-class filesystem mount support modeled after the existing `env` field; declare mounts once and the generation pipeline routes them to the correct devcontainer artifact based on `stack`
+    - String shorthand: `- "source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind"` — raw mount spec passed through verbatim
+    - Long form: `{value: "...", target: auto|devcontainerMount|composeVolume}` — explicit routing control
+    - `target: auto` (default): plain stack → `devcontainer.json mounts[]`; compose stack → `docker-compose.yml services.devcontainer.volumes[]`
+    - `target: devcontainerMount`: always writes to `devcontainer.json mounts[]` regardless of stack
+    - `target: composeVolume`: always writes to `docker-compose.yml services.devcontainer.volumes[]` (compose only; error on plain)
+    - Applied before `customizations.devcontainerPatch` / `customizations.dockerComposePatch` so patch overrides remain respected
+- **`superposition.yml` authoring guide** (`docs/superposition-yml.md`) — comprehensive reference covering every field, routing tables, and a complete annotated example; `README.md` updated to reference it
+
 ## [0.1.9] - 2026-04-29
 
 ### Added

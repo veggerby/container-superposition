@@ -1865,7 +1865,9 @@ function mergeDockerComposeFiles(
             const existing: string[] = Array.isArray(merged.services.devcontainer.volumes)
                 ? (merged.services.devcontainer.volumes as string[])
                 : [];
-            merged.services.devcontainer.volumes = [...new Set([...existing, ...composeMountVolumes])];
+            merged.services.devcontainer.volumes = [
+                ...new Set([...existing, ...composeMountVolumes]),
+            ];
             console.log(
                 chalk.dim(`   🗂️  Applying project mounts to docker-compose devcontainer service`)
             );

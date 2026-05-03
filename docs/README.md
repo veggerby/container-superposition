@@ -11,6 +11,7 @@ must not begin until the relevant spec is committed and reviewed.
 
 ### Getting Started
 
+- **[superposition.yml Reference](superposition-yml.md)** - Complete project file authoring guide (fields, routing tables, examples)
 - **[Publishing Guide](publishing.md)** - How to publish to npm and make the tool publicly available
 - **[Quick Reference](quick-reference.md)** - Quick lookup for templates, overlays, ports, and commands
 - **[Examples](examples.md)** - Common usage patterns and real-world scenarios

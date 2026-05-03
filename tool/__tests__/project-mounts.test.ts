@@ -69,7 +69,9 @@ describe('Project Mounts', () => {
             observability: [],
             outputPath,
             projectMounts: [
-                { value: 'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind' },
+                {
+                    value: 'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind',
+                },
             ],
         };
 
