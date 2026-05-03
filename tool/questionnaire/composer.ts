@@ -16,6 +16,7 @@ import type {
     PortsDocumentation,
     DeploymentTarget,
     ProjectEnvVar,
+    ProjectMount,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import {
@@ -1275,6 +1276,65 @@ function applyProjectEnvToDevcontainer(
     return deepMerge(config, { remoteEnv }) as DevContainer;
 }
 
+type ResolvedProjectMountTarget = 'devcontainerMount' | 'composeVolume';
+
+function resolveProjectMountTarget(
+    mount: ProjectMount,
+    stack: QuestionnaireAnswers['stack']
+): ResolvedProjectMountTarget {
+    const target = mount.target ?? 'auto';
+
+    if (target === 'devcontainerMount') {
+        return 'devcontainerMount';
+    }
+
+    if (target === 'composeVolume') {
+        if (stack !== 'compose') {
+            throw new Error(
+                'Project mount target "composeVolume" requires stack: compose because no docker-compose.yml is generated for plain stacks'
+            );
+        }
+        return 'composeVolume';
+    }
+
+    // auto
+    return stack === 'compose' ? 'composeVolume' : 'devcontainerMount';
+}
+
+function applyProjectMountsToDevcontainer(
+    config: DevContainer,
+    projectMounts: ProjectMount[] | undefined,
+    stack: QuestionnaireAnswers['stack']
+): DevContainer {
+    if (!projectMounts?.length) {
+        return config;
+    }
+
+    const devcontainerMounts = projectMounts
+        .filter((m) => resolveProjectMountTarget(m, stack) === 'devcontainerMount')
+        .map((m) => m.value);
+
+    if (devcontainerMounts.length === 0) {
+        return config;
+    }
+
+    console.log(chalk.dim(`   🗂️  Applying project mounts to devcontainer.json`));
+    return deepMerge(config, { mounts: devcontainerMounts }) as DevContainer;
+}
+
+function buildComposeProjectMountVolumes(
+    projectMounts: ProjectMount[] | undefined,
+    stack: QuestionnaireAnswers['stack']
+): string[] {
+    if (!projectMounts?.length) {
+        return [];
+    }
+
+    return projectMounts
+        .filter((m) => resolveProjectMountTarget(m, stack) === 'composeVolume')
+        .map((m) => m.value);
+}
+
 function mergeComposeEnvFile(outputPath: string, entries: Record<string, string>): boolean {
     if (Object.keys(entries).length === 0) {
         return false;
@@ -1684,7 +1744,8 @@ function mergeDockerComposeFiles(
     overlaysDir: string,
     portOffset?: number,
     customImage?: string,
-    projectEnv?: QuestionnaireAnswers['projectEnv']
+    projectEnv?: QuestionnaireAnswers['projectEnv'],
+    projectMounts?: QuestionnaireAnswers['projectMounts']
 ): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
@@ -1796,6 +1857,17 @@ function mergeDockerComposeFiles(
             );
             console.log(
                 chalk.dim(`   🌱 Applying project env to docker-compose devcontainer service`)
+            );
+        }
+
+        const composeMountVolumes = buildComposeProjectMountVolumes(projectMounts, baseStack);
+        if (composeMountVolumes.length > 0) {
+            const existing: string[] = Array.isArray(merged.services.devcontainer.volumes)
+                ? (merged.services.devcontainer.volumes as string[])
+                : [];
+            merged.services.devcontainer.volumes = [...new Set([...existing, ...composeMountVolumes])];
+            console.log(
+                chalk.dim(`   🗂️  Applying project mounts to docker-compose devcontainer service`)
             );
         }
 
@@ -2353,6 +2425,7 @@ export async function composeDevContainer(
     }
 
     config = applyProjectEnvToDevcontainer(config, answers.projectEnv, answers.stack, rootEnv);
+    config = applyProjectMountsToDevcontainer(config, answers.projectMounts, answers.stack);
 
     // 7. Copy template files (docker-compose, scripts, etc.)
     const entries = fs.readdirSync(templatePath);
@@ -2415,7 +2488,8 @@ export async function composeDevContainer(
             actualOverlaysDir,
             answers.portOffset,
             customImage,
-            answers.projectEnv
+            answers.projectEnv,
+            answers.projectMounts
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {

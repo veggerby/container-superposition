@@ -272,6 +272,31 @@
                 ]
             }
         },
+        "mounts": {
+            "type": "array",
+            "description": "Project-level mount specs routed to devcontainer.json mounts or docker-compose volumes based on stack/target",
+            "items": {
+                "oneOf": [
+                    {
+                        "type": "string",
+                        "description": "Raw mount spec string"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "value": { "type": "string", "description": "Raw mount spec string" },
+                            "target": {
+                                "type": "string",
+                                "enum": ["auto", "devcontainerMount", "composeVolume"],
+                                "description": "Routing target: auto (stack-dependent), devcontainerMount (always devcontainer.json), composeVolume (compose only)"
+                            }
+                        },
+                        "required": ["value"],
+                        "additionalProperties": false
+                    }
+                ]
+            }
+        },
         "customizations": {
             "type": "object",
             "properties": {

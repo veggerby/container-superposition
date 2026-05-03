@@ -137,6 +137,12 @@ export interface ProjectEnvVar {
     target?: ProjectEnvTarget;
 }
 
+export type ProjectMountTarget = 'auto' | 'devcontainerMount' | 'composeVolume';
+export interface ProjectMount {
+    value: string;
+    target?: ProjectMountTarget;
+}
+
 /**
  * Questionnaire response interface
  */
@@ -161,6 +167,7 @@ export interface QuestionnaireAnswers {
     minimal?: boolean; // Whether to use minimal mode (exclude optional/nice-to-have features)
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
     projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
+    projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
     overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
 }
@@ -540,6 +547,7 @@ export interface ProjectConfigSelection {
     minimal?: boolean;
     editor?: EditorProfile;
     env?: Record<string, ProjectEnvVar>;
+    mounts?: ProjectMount[];
     customizations?: ProjectConfigCustomizationsInput;
     parameters?: Record<string, string>; // Overlay parameter values for {{cs.KEY}} substitution
 }
