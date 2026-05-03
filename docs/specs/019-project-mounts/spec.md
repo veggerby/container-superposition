@@ -44,33 +44,34 @@ Run `regen` and confirm the raw string appears in `devcontainer.json mounts`.
 ### User Story 2 — Declare a mount on a compose stack (Priority: P1)
 
 A developer adds a `mounts:` list to `superposition.yml` on a `compose` stack and expects each
-entry to appear in `docker-compose.yml → services.devcontainer.volumes[]` after regeneration.
+entry (with `target: auto` or string shorthand) to appear in `devcontainer.json mounts[]` —
+the same as it would on a plain stack — so the project file is **stack-agnostic**.
 
-**Why this priority**: Compose-stack users who need volumes must currently use
-`customizations.dockerComposePatch`, which is verbose and hard to reason about.
+**Why this priority**: Users should be able to swap `stack: plain` ↔ `stack: compose` without
+needing to touch the `mounts:` block.
 
 **Independent Test**: Create a `superposition.yml` with `stack: compose` and a `mounts:` entry.
-Run `regen` and confirm the entry appears in `services.devcontainer.volumes` in
-`docker-compose.yml`.
+Run `regen` and confirm the entry appears in `devcontainer.json mounts[]` (not in compose
+volumes, unless `composeVolume` is explicitly requested).
 
 **Acceptance Scenarios**:
 
 1. **Given** `mounts: ["./data:/workspace/data"]` with `stack: compose`, **When** generation runs,
-   **Then** `./data:/workspace/data` appears in `docker-compose.yml services.devcontainer.volumes`.
+   **Then** `./data:/workspace/data` appears in `devcontainer.json mounts[]`.
 2. **Given** `target: auto` on `stack: compose`, **When** generation runs, **Then** the mount
-   routes to compose volumes (same as default for compose).
+   routes to `devcontainer.json mounts[]` (same as plain — stack-agnostic).
 
 ---
 
-### User Story 3 — Explicit target overrides auto-routing (Priority: P2)
+### User Story 3 — Explicit `composeVolume` target for Docker Compose volumes (Priority: P2)
 
-A developer on a `compose` stack forces a mount into `devcontainer.json` by setting
-`target: devcontainerMount`.
+A developer who specifically wants a mount wired as a Docker Compose service volume (e.g. to
+leverage named volumes or compose-specific semantics) sets `target: composeVolume`.
 
 **Acceptance Scenarios**:
 
-1. **Given** `{value: "...", target: devcontainerMount}` on `stack: compose`, **When** generation
-   runs, **Then** the value appears in `devcontainer.json mounts[]`, not compose volumes.
+1. **Given** `{value: "...", target: composeVolume}` on `stack: compose`, **When** generation
+   runs, **Then** the value appears in `docker-compose.yml services.devcontainer.volumes[]`.
 2. **Given** `{value: "...", target: composeVolume}` on `stack: plain`, **When** generation runs,
    **Then** generation errors with a clear message about compose-only targets.
 
@@ -125,9 +126,13 @@ mounts:
 
 | `target`            | `stack: plain`             | `stack: compose`                                   |
 | ------------------- | -------------------------- | -------------------------------------------------- |
-| `auto` (default)    | `devcontainer.json mounts` | `docker-compose.yml services.devcontainer.volumes` |
+| `auto` (default)    | `devcontainer.json mounts` | `devcontainer.json mounts`                         |
 | `devcontainerMount` | `devcontainer.json mounts` | `devcontainer.json mounts`                         |
 | `composeVolume`     | ❌ Error                   | `docker-compose.yml services.devcontainer.volumes` |
+
+`auto` and `devcontainerMount` are stack-agnostic: they always route to `devcontainer.json
+mounts[]` so that the same `superposition.yml` works without modification when swapping
+`stack: plain` ↔ `stack: compose`.
 
 ---
 

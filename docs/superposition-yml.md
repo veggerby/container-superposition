@@ -149,27 +149,31 @@ artifact based on `stack`.
 
 ```yaml
 mounts:
-    # String shorthand — target is auto-detected
+    # String shorthand — always routes to devcontainer.json mounts[] (stack-agnostic)
     - 'source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind,readonly'
 
-    # Long form — explicit routing target
+    # Long form — auto is stack-agnostic (same as string shorthand)
     - value: './data:/workspace/data'
-      target: auto # default: plain→devcontainer.json, compose→docker-compose volumes
+      target: auto # always devcontainer.json mounts[] regardless of stack
 
     - value: 'source=certs,target=/certs,type=volume'
-      target: devcontainerMount # always devcontainer.json mounts[]
+      target: devcontainerMount # explicit alias for auto — always devcontainer.json mounts[]
 
     - value: './logs:/workspace/logs'
-      target: composeVolume # always docker-compose services.devcontainer.volumes[] (compose only)
+      target: composeVolume # explicit compose volumes only (error on plain stack)
 ```
 
 #### Routing table
 
 | `target`            | `stack: plain`               | `stack: compose`                                     |
 | ------------------- | ---------------------------- | ---------------------------------------------------- |
-| `auto` (default)    | `devcontainer.json mounts[]` | `docker-compose.yml services.devcontainer.volumes[]` |
+| `auto` (default)    | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
 | `devcontainerMount` | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
 | `composeVolume`     | ❌ Error                     | `docker-compose.yml services.devcontainer.volumes[]` |
+
+`auto` (and the string shorthand) always route to `devcontainer.json mounts[]` regardless of
+stack — so the same `superposition.yml` works unchanged when swapping between `plain` and
+`compose`. Use `composeVolume` only when you specifically need Docker Compose volume semantics.
 
 Mounts declared here are applied **before** `customizations.devcontainerPatch` and
 `customizations.dockerComposePatch`, so patch overrides are respected.
@@ -181,11 +185,12 @@ passed through verbatim to the target artifact:
 
 ```yaml
 mounts:
-    # devcontainer.json style (for devcontainerMount or plain stack)
+    # devcontainer.json style (works with auto/devcontainerMount on any stack)
     - 'source=${localWorkspaceFolder}/../shared,target=/workspace/shared,type=bind'
 
-    # Docker Compose short syntax (for composeVolume or compose stack)
-    - './local-data:/workspace/data'
+    # Docker Compose short syntax (use with composeVolume on a compose stack)
+    - value: './local-data:/workspace/data'
+      target: composeVolume
 
     # Docker named volume (devcontainer style)
     - 'source=my-cache,target=/root/.cache,type=volume'

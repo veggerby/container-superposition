@@ -86,7 +86,7 @@ describe('Project Mounts', () => {
         );
     });
 
-    it('routes auto mounts to docker-compose volumes on compose stack', async () => {
+    it('routes auto mounts to devcontainer.json on compose stack (stack-agnostic)', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
 
         const answers: QuestionnaireAnswers = {
@@ -105,6 +105,14 @@ describe('Project Mounts', () => {
 
         await composeDevContainer(answers);
 
+        const devcontainer = JSON.parse(
+            fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8')
+        ) as { mounts?: string[] };
+
+        // auto routes to devcontainer.json mounts[] regardless of stack, so the same
+        // superposition.yml works when swapping between plain and compose
+        expect(devcontainer.mounts).toContain('./data:/workspace/data');
+
         const compose = yaml.load(
             fs.readFileSync(path.join(outputPath, 'docker-compose.yml'), 'utf8')
         ) as {
@@ -115,7 +123,10 @@ describe('Project Mounts', () => {
             };
         };
 
-        expect(compose.services.devcontainer?.volumes).toContain('./data:/workspace/data');
+        // auto does NOT write to docker-compose volumes (only explicit composeVolume does)
+        expect(compose.services.devcontainer?.volumes ?? []).not.toContain(
+            './data:/workspace/data'
+        );
     });
 
     it('forces mount into devcontainer.json when target is devcontainerMount on compose stack', async () => {
@@ -273,7 +284,8 @@ describe('Project Mounts', () => {
             devTools: [],
             observability: [],
             outputPath,
-            projectMounts: [{ value: './data:/workspace/data' }],
+            // explicit composeVolume so it lands in docker-compose.yml volumes
+            projectMounts: [{ value: './data:/workspace/data', target: 'composeVolume' }],
         };
 
         await composeDevContainer(answers);

@@ -9,12 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`mounts` field in `superposition.yml`** — First-class filesystem mount support modeled after the existing `env` field; declare mounts once and the generation pipeline routes them to the correct devcontainer artifact based on `stack`
-    - String shorthand: `- "source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind"` — raw mount spec passed through verbatim
+- **`mounts` field in `superposition.yml`** — First-class filesystem mount support; declare mounts once and they work regardless of `stack` — no edits needed when swapping between `plain` and `compose`
+    - String shorthand: `- "source=${localWorkspaceFolder}/../libs,target=/workspace/libs,type=bind"` — raw mount spec, always routed to `devcontainer.json mounts[]`
     - Long form: `{value: "...", target: auto|devcontainerMount|composeVolume}` — explicit routing control
-    - `target: auto` (default): plain stack → `devcontainer.json mounts[]`; compose stack → `docker-compose.yml services.devcontainer.volumes[]`
-    - `target: devcontainerMount`: always writes to `devcontainer.json mounts[]` regardless of stack
-    - `target: composeVolume`: always writes to `docker-compose.yml services.devcontainer.volumes[]` (compose only; error on plain)
+    - `target: auto` (default) and `target: devcontainerMount`: always write to `devcontainer.json mounts[]` regardless of stack — stack-agnostic by design
+    - `target: composeVolume`: writes to `docker-compose.yml services.devcontainer.volumes[]` (compose only; error on plain) — opt-in for Docker Compose volume semantics
     - Applied before `customizations.devcontainerPatch` / `customizations.dockerComposePatch` so patch overrides remain respected
 - **`superposition.yml` authoring guide** (`docs/superposition-yml.md`) — comprehensive reference covering every field, routing tables, and a complete annotated example; `README.md` updated to reference it
 

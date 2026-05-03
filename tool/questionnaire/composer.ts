@@ -1288,8 +1288,8 @@ type ResolvedProjectMountTarget = 'devcontainerMount' | 'composeVolume';
  * - `devcontainerMount` — always routes to `devcontainer.json mounts[]`
  * - `composeVolume` — always routes to `docker-compose.yml services.devcontainer.volumes[]`;
  *   throws if the stack is not `compose` (no docker-compose.yml is generated for plain stacks)
- * - `auto` (default) — resolved based on stack: `plain` → `devcontainerMount`,
- *   `compose` → `composeVolume`
+ * - `auto` (default) — always routes to `devcontainer.json mounts[]` regardless of stack,
+ *   so that the same config works when swapping between `plain` and `compose`
  *
  * @throws {Error} When `composeVolume` is requested on a non-compose stack
  */
@@ -1299,7 +1299,7 @@ function resolveProjectMountTarget(
 ): ResolvedProjectMountTarget {
     const target = mount.target ?? 'auto';
 
-    if (target === 'devcontainerMount') {
+    if (target === 'devcontainerMount' || target === 'auto') {
         return 'devcontainerMount';
     }
 
@@ -1312,15 +1312,14 @@ function resolveProjectMountTarget(
         return 'composeVolume';
     }
 
-    // auto
-    return stack === 'compose' ? 'composeVolume' : 'devcontainerMount';
+    return 'devcontainerMount';
 }
 
 /**
  * Merge project mounts destined for `devcontainer.json` into the devcontainer config.
  *
  * Filters the `projectMounts` list to entries whose resolved target is `devcontainerMount`
- * (i.e. explicit `target: devcontainerMount`, or `target: auto` on a plain stack), then
+ * (i.e. explicit `target: devcontainerMount`, or `target: auto`), then
  * deepMerge-concatenates their values into `config.mounts[]`. Returns early unchanged if
  * no applicable mounts exist.
  */
@@ -1349,8 +1348,8 @@ function applyProjectMountsToDevcontainer(
  * Extract mount values destined for `docker-compose.yml services.devcontainer.volumes[]`.
  *
  * Returns the raw value strings for all mounts whose resolved target is `composeVolume`
- * (i.e. explicit `target: composeVolume`, or `target: auto` on a compose stack). The caller
- * is responsible for merging the returned array into the compose service definition.
+ * (i.e. explicit `target: composeVolume` only). The caller is responsible for merging the
+ * returned array into the compose service definition.
  */
 function buildComposeProjectMountVolumes(
     projectMounts: ProjectMount[] | undefined,
