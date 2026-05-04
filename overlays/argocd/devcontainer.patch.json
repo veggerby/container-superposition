@@ -1,0 +1,9 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "postCreateCommand": {
+        "setup-argocd": "bash .devcontainer/scripts/setup-argocd.sh"
+    },
+    "postStartCommand": {
+        "verify-argocd": "bash .devcontainer/scripts/verify-argocd.sh"
+    }
+}

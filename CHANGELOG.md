@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`ansible` overlay** — Adds Ansible automation tooling (`ansible`, `ansible-playbook`, `ansible-galaxy`) with `ansible-lint`, plus the VS Code Red Hat Ansible extension (`redhat.ansible`)
     - Installs via the shared `cross-distro-packages` feature with distro fallback package names
     - Suggests `aws-cli`, `azure-cli`, `gcloud`, and `terraform` for end-to-end infrastructure automation workflows
+- **`argocd` overlay** — Adds Argo CD CLI for GitOps application workflows
+    - Installs architecture-specific `argocd` binary from official Argo CD releases in `setup.sh`
+    - Includes `verify.sh` smoke check wired to `postStartCommand`
+    - Suggests `kubectl-helm`, `k3d`, and `kind` for Kubernetes/GitOps development workflows
 
 ## [0.1.9] - 2026-04-29
 

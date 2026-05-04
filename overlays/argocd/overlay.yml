@@ -1,0 +1,17 @@
+id: argocd
+name: Argo CD CLI
+description: GitOps CLI for managing Argo CD applications and sync workflows
+category: cloud
+supports: []
+requires: []
+suggests:
+    - kubectl-helm
+    - k3d
+    - kind
+conflicts: []
+tags:
+    - cloud
+    - kubernetes
+    - gitops
+    - argocd
+ports: []
