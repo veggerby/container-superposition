@@ -1,0 +1,16 @@
+id: task
+name: Taskfile (task)
+description: Modern task runner and build tool using Taskfiles
+category: dev
+supports: []
+requires: []
+suggests:
+    - modern-cli-tools
+    - kubectl-helm
+conflicts: []
+tags:
+    - dev
+    - automation
+    - taskfile
+    - build
+ports: []

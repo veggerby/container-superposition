@@ -821,6 +821,16 @@ Continuous development and deployment pipeline for Kubernetes applications
 | **Conflicts** | `tilt`                                                       |
 | **Tags**      | `dev`, `kubernetes`, `k8s`, `cicd`, `deployment`, `skaffold` |
 
+### Taskfile (task) (`task`)
+
+Modern task runner and build tool using Taskfiles
+
+| Property     | Value                                    |
+| ------------ | ---------------------------------------- |
+| **Category** | dev                                      |
+| **Suggests** | `modern-cli-tools`, `kubectl-helm`       |
+| **Tags**     | `dev`, `automation`, `taskfile`, `build` |
+
 ### Tilt (`tilt`)
 
 Live update and orchestration for Kubernetes development

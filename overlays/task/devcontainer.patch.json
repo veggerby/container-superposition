@@ -1,0 +1,9 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "postCreateCommand": {
+        "setup-task": "bash .devcontainer/scripts/setup-task.sh"
+    },
+    "postStartCommand": {
+        "verify-task": "bash .devcontainer/scripts/verify-task.sh"
+    }
+}

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`task` overlay** — Adds [Taskfile](https://taskfile.dev/) CLI (`task`) for declarative project automation
+    - Installs architecture-specific Task binary (amd64/arm64) from official releases in `setup.sh`
+    - Includes `verify.sh` smoke check wired to `postStartCommand`
+    - Suggests `modern-cli-tools` and `kubectl-helm` for broader developer workflows
 - **`mounts` field in `superposition.yml`** — First-class filesystem mount support with structured entries and raw-string fallback; **stack-agnostic by design** so the same config works unchanged when swapping between `plain` and `compose`
     - Structured form supports `source`, `destination`, optional `type`, `cached`, `consistency`, `readOnly`, and `target`
     - Named map syntax is supported (e.g. `mounts: { codex: { source: ..., destination: ... } }`) in addition to list syntax
