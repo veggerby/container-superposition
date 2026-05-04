@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `target: composeVolume` is an explicit opt-in to route to `docker-compose.yml services.devcontainer.volumes[]` (compose only; error on plain)
     - Applied before `customizations.devcontainerPatch` / `customizations.dockerComposePatch` so patch overrides remain respected
 - **`superposition.yml` authoring guide** (`docs/superposition-yml.md`) — comprehensive reference covering every field, routing tables, and a complete annotated example; `README.md` updated to reference it
+- **`ansible` overlay** — Adds Ansible automation tooling (`ansible`, `ansible-playbook`, `ansible-galaxy`) with `ansible-lint`, plus the VS Code Red Hat Ansible extension (`redhat.ansible`)
+    - Installs via the shared `cross-distro-packages` feature with distro fallback package names
+    - Suggests `aws-cli`, `azure-cli`, `gcloud`, and `terraform` for end-to-end infrastructure automation workflows
 
 ## [0.1.9] - 2026-04-29
 

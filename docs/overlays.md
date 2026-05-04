@@ -373,6 +373,16 @@ Sample Python Flask app with OpenTelemetry instrumentation
 
 ## Cloud Tool Overlays
 
+### Ansible (`ansible`)
+
+Automation and configuration management with Ansible and ansible-lint
+
+| Property     | Value                                         |
+| ------------ | --------------------------------------------- |
+| **Category** | cloud                                         |
+| **Suggests** | `aws-cli`, `azure-cli`, `gcloud`, `terraform` |
+| **Tags**     | `cloud`, `iac`, `automation`, `ansible`       |
+
 ### AWS CLI (`aws-cli`)
 
 Amazon Web Services command-line tools

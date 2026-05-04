@@ -1,0 +1,18 @@
+id: ansible
+name: Ansible
+description: Automation and configuration management with Ansible and ansible-lint
+category: cloud
+supports: []
+requires: []
+suggests:
+    - aws-cli
+    - azure-cli
+    - gcloud
+    - terraform
+conflicts: []
+tags:
+    - cloud
+    - iac
+    - automation
+    - ansible
+ports: []
