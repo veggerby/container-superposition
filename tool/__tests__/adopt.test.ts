@@ -559,7 +559,7 @@ describe('adoptCommand', () => {
             expect(fs.existsSync(path.join(devcontainerDir, 'superposition.json'))).toBe(false);
         });
 
-        it('writes a project file when --project-file is used', async () => {
+        it('writes a project file by default', async () => {
             const devcontainerDir = path.join(tmpDir, '.devcontainer');
             fs.mkdirSync(devcontainerDir);
             writeDevcontainerJson(devcontainerDir, {
@@ -574,7 +574,6 @@ describe('adoptCommand', () => {
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
                 force: true,
-                projectFile: true,
             });
 
             const projectConfigPath = path.join(tmpDir, '.superposition.yml');
@@ -767,7 +766,6 @@ describe('adoptCommand', () => {
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
-                projectFile: true,
             });
 
             const output = consoleLogSpy.mock.calls.join('\n');

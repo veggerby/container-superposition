@@ -1281,27 +1281,26 @@ export async function adoptCommand(
     }
 
     // ── Guard: existing files ──────────────────────────────────────────────
-    // superposition.json and optional project config go to the project root
+    // superposition.json and superposition.yml/.superposition.yml go to the project root
     // (parent of .devcontainer/) so they can be committed alongside app code.
     const projectRoot = path.dirname(absoluteDir);
     const manifestPath = path.join(projectRoot, 'superposition.json');
     const customDir = path.join(absoluteDir, 'custom');
     const customPatchPath = path.join(customDir, 'devcontainer.patch.json');
     const customComposePath = path.join(customDir, 'docker-compose.patch.yml');
-    const discoveredProjectFiles = options.projectFile ? findProjectConfig(projectRoot) : [];
+    const discoveredProjectFiles = findProjectConfig(projectRoot);
 
     if (discoveredProjectFiles.length > 1) {
         console.error(
             chalk.red(
-                `✗ Found both supported project config files in ${projectRoot}. Keep only one before using --project-file.`
+                `✗ Found both supported project config files in ${projectRoot}. Keep only one before continuing.`
             )
         );
         process.exit(1);
     }
 
-    const projectFilePath = options.projectFile
-        ? (discoveredProjectFiles[0]?.path ?? path.join(projectRoot, '.superposition.yml'))
-        : null;
+    const projectFilePath =
+        discoveredProjectFiles[0]?.path ?? path.join(projectRoot, '.superposition.yml');
 
     const existingFiles: string[] = [];
     if (fs.existsSync(manifestPath)) existingFiles.push(path.relative(process.cwd(), manifestPath));
@@ -1327,19 +1326,17 @@ export async function adoptCommand(
 
     // ── Prompt ────────────────────────────────────────────────────────────
     const hasCustomFiles = analysis.customDevcontainerPatch || analysis.customComposePatch;
-    const projectSelection = projectFilePath
-        ? buildProjectConfigSelection(
-              analysis,
-              overlaysConfig,
-              projectRoot,
-              absoluteDir,
-              devcontainer
-          )
-        : null;
+    const projectSelection = buildProjectConfigSelection(
+        analysis,
+        overlaysConfig,
+        projectRoot,
+        absoluteDir,
+        devcontainer
+    );
     let confirmed: boolean;
     try {
         confirmed = await confirm({
-            message: `Generate superposition.json${projectFilePath ? ', project config' : ''}${hasCustomFiles ? ', and custom/ patch files' : ''} from these suggestions?`,
+            message: `Generate project config, superposition.json${hasCustomFiles ? ', and custom/ patch files' : ''} from these suggestions?`,
             default: true,
         });
     } catch {
@@ -1403,14 +1400,12 @@ export async function adoptCommand(
         process.exit(1);
     }
 
-    if (projectFilePath && projectSelection) {
-        try {
-            writeProjectConfig(projectFilePath, projectSelection);
-            console.log(chalk.green(`✓ Written ${path.relative(process.cwd(), projectFilePath)}`));
-        } catch (err) {
-            console.error(chalk.red('✗ Failed to write project config:'), err);
-            process.exit(1);
-        }
+    try {
+        writeProjectConfig(projectFilePath, projectSelection);
+        console.log(chalk.green(`✓ Written ${path.relative(process.cwd(), projectFilePath)}`));
+    } catch (err) {
+        console.error(chalk.red('✗ Failed to write project config:'), err);
+        process.exit(1);
     }
 
     // ── Write custom patches ───────────────────────────────────────────────
@@ -1460,7 +1455,7 @@ export async function adoptCommand(
     console.log(
         chalk.dim(
             '\n💡 Next steps:\n' +
-                '   1. Review and adjust superposition.json as needed\n' +
+                `   1. Review and adjust ${path.basename(projectFilePath)} as needed\n` +
                 '   2. Run: container-superposition regen\n' +
                 (hasCustomFiles
                     ? '   3. Review custom/ patches — they will be merged automatically on every regen\n'
