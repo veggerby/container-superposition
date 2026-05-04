@@ -208,6 +208,32 @@ mounts:
 
 ---
 
+### `shell`
+
+Declarative shell profile customizations. This is intended for aliases and shell snippets.
+
+Use top-level `env` for environment variables (`export`-style values), not `shell`.
+
+```yaml
+shell:
+    aliases:
+        k: kubectl
+        kgp: kubectl get pods
+    snippets:
+        - source /etc/profile
+        - complete -C '/usr/local/bin/aws_completer' aws
+```
+
+Generation behavior:
+
+- Writes `.devcontainer/custom/shell-init.sh` with aliases/snippets
+- Adds a postCreate hook that idempotently manages a marked block in:
+    - `~/.bashrc`
+    - `~/.zshrc`
+- The managed block sources the generated `shell-init.sh`
+
+---
+
 ### `customizations`
 
 Inline patches applied during generation. These are the same patches that can be placed in

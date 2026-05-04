@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Installs architecture-specific `argocd` binary from official Argo CD releases in `setup.sh`
     - Includes `verify.sh` smoke check wired to `postStartCommand`
     - Suggests `kubectl-helm`, `k3d`, and `kind` for Kubernetes/GitOps development workflows
+- **`shell` field in `superposition.yml`** — First-class shell profile customizations for aliases and snippets
+    - Supports `shell.aliases` and `shell.snippets`
+    - Generates `.devcontainer/custom/shell-init.sh`
+    - Adds an idempotent postCreate hook that manages a marked source block in `~/.bashrc` and `~/.zshrc`
+    - `env` remains the canonical place for environment variables/exports
 
 ## [0.1.9] - 2026-04-29
 

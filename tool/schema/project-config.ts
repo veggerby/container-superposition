@@ -17,6 +17,7 @@ import type {
     ProjectEnvTarget,
     ProjectMount,
     ProjectMountTarget,
+    ProjectShellConfig,
     ProjectConfigCustomizationsInput,
     ProjectConfigFileEntry,
     ProjectConfigSelection,
@@ -564,6 +565,44 @@ function parseCustomizations(value: unknown): ProjectConfigCustomizationsInput |
     return hasValues ? customizations : undefined;
 }
 
+function parseProjectShell(value: unknown): ProjectShellConfig | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+    const record = expectPlainObject(value, 'shell');
+    let aliases: Record<string, string> | undefined;
+    let snippets: string[] | undefined;
+
+    if (record.aliases !== undefined) {
+        const aliasObj = expectPlainObject(record.aliases, 'shell.aliases');
+        aliases = {};
+        for (const [name, cmd] of Object.entries(aliasObj)) {
+            if (!/^[A-Za-z_][A-Za-z0-9_-]*$/.test(name)) {
+                throw new ProjectConfigError(`shell.aliases.${name} has an invalid alias name`);
+            }
+            aliases[name] = expectString(cmd, `shell.aliases.${name}`);
+        }
+        if (Object.keys(aliases).length === 0) {
+            aliases = undefined;
+        }
+    }
+
+    if (record.snippets !== undefined) {
+        if (!Array.isArray(record.snippets)) {
+            throw new ProjectConfigError('shell.snippets must be an array of shell snippets');
+        }
+        snippets = record.snippets.map((entry, i) => expectString(entry, `shell.snippets[${i}]`));
+        if (snippets.length === 0) {
+            snippets = undefined;
+        }
+    }
+
+    if (!aliases && !snippets) {
+        return undefined;
+    }
+    return { aliases, snippets };
+}
+
 export function findProjectConfig(repoRoot: string = process.cwd()): ProjectConfigFileEntry[] {
     return PROJECT_CONFIG_FILENAMES.map((fileName) => ({
         fileName,
@@ -619,6 +658,7 @@ export function loadProjectConfig(
         'editor',
         'env',
         'mounts',
+        'shell',
         'customizations',
         'parameters',
     ]);
@@ -650,6 +690,7 @@ export function loadProjectConfig(
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
         env: parseProjectEnv(document.env),
         mounts: parseMounts(document.mounts),
+        shell: parseProjectShell(document.shell),
         customizations: parseCustomizations(document.customizations),
         parameters: parseParameters(document.parameters),
     };
@@ -690,6 +731,7 @@ export function buildAnswersFromProjectConfig(
         editor: selection.editor,
         projectEnv: selection.env,
         projectMounts: selection.mounts,
+        projectShell: selection.shell,
         customizations: selection.customizations
             ? materializeCustomizationConfig(selection.customizations)
             : undefined,
@@ -764,6 +806,7 @@ export function buildProjectConfigSelectionFromAnswers(
         editor: answers.editor,
         env: answers.projectEnv,
         mounts: answers.projectMounts?.length ? answers.projectMounts : undefined,
+        shell: answers.projectShell,
         customizations: buildProjectConfigCustomizationsFromAnswers(answers.customizations),
         parameters:
             answers.overlayParameters && Object.keys(answers.overlayParameters).length > 0
@@ -855,6 +898,19 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
             if (entry.target && entry.target !== 'auto') structured.target = entry.target;
             return structured;
         });
+    }
+
+    if (selection.shell) {
+        const shell: Record<string, unknown> = {};
+        if (selection.shell.aliases && Object.keys(selection.shell.aliases).length > 0) {
+            shell.aliases = selection.shell.aliases;
+        }
+        if (selection.shell.snippets && selection.shell.snippets.length > 0) {
+            shell.snippets = selection.shell.snippets;
+        }
+        if (Object.keys(shell).length > 0) {
+            document.shell = shell;
+        }
     }
 
     if (selection.customizations) {
