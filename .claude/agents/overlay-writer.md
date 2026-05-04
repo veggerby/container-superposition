@@ -179,6 +179,17 @@ PARAM_NAME={{cs.PARAM_NAME}}
 When invoking the reviewer sub-agent, pass: "Review the overlay at overlays/<id>/ that was just written. Report all issues."
 If the reviewer reports critical issues, fix them and run lint/tests again.
 
+## Definition of Done
+
+Do not hand off until all are true:
+
+- `npm run lint:fix` then `npm run lint` pass.
+- `npm test` passes for changed areas (or full suite when scope is broad).
+- `npm run docs:generate` has been run for overlay changes and `docs/overlays.md` is committed.
+- `npm run init -- regen` has been run when generated outputs may be affected.
+- `npm run init -- doctor` reports no `Reproducibility` errors.
+- User-visible changes are captured in `CHANGELOG.md` under `Unreleased`.
+
 ## Conflict reciprocity
 
 After writing `conflicts` in the new overlay, always check each listed overlay and add the new overlay's id to their `conflicts` list too. Read each conflicting overlay.yml and edit it.

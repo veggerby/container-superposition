@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`task` overlay** — Adds [Taskfile](https://taskfile.dev/) CLI (`task`) for declarative project automation
+    - Installs architecture-specific Task binary (amd64/arm64) from official releases in `setup.sh`
+    - Includes `verify.sh` smoke check wired to `postStartCommand`
+    - Suggests `modern-cli-tools` and `kubectl-helm` for broader developer workflows
 - **`mounts` field in `superposition.yml`** — First-class filesystem mount support with structured entries and raw-string fallback; **stack-agnostic by design** so the same config works unchanged when swapping between `plain` and `compose`
     - Structured form supports `source`, `destination`, optional `type`, `cached`, `consistency`, `readOnly`, and `target`
     - Named map syntax is supported (e.g. `mounts: { codex: { source: ..., destination: ... } }`) in addition to list syntax
@@ -17,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `target: composeVolume` is an explicit opt-in to route to `docker-compose.yml services.devcontainer.volumes[]` (compose only; error on plain)
     - Applied before `customizations.devcontainerPatch` / `customizations.dockerComposePatch` so patch overrides remain respected
 - **`superposition.yml` authoring guide** (`docs/superposition-yml.md`) — comprehensive reference covering every field, routing tables, and a complete annotated example; `README.md` updated to reference it
+- **`ansible` overlay** — Adds Ansible automation tooling (`ansible`, `ansible-playbook`, `ansible-galaxy`) with `ansible-lint`, plus the VS Code Red Hat Ansible extension (`redhat.ansible`)
+    - Installs via the shared `cross-distro-packages` feature with distro fallback package names
+    - Suggests `aws-cli`, `azure-cli`, `gcloud`, and `terraform` for end-to-end infrastructure automation workflows
+- **`argocd` overlay** — Adds Argo CD CLI for GitOps application workflows
+    - Installs architecture-specific `argocd` binary from official Argo CD releases in `setup.sh`
+    - Includes `verify.sh` smoke check wired to `postStartCommand`
+    - Suggests `kubectl-helm`, `k3d`, and `kind` for Kubernetes/GitOps development workflows
+- **`shell` field in `superposition.yml`** — First-class shell profile customizations for aliases and snippets
+    - Supports `shell.aliases` and `shell.snippets`
+    - Generates `.devcontainer/custom/shell-init.sh`
+    - Adds an idempotent postCreate hook that manages a marked source block in `~/.bashrc` and `~/.zshrc`
+    - `env` remains the canonical place for environment variables/exports
 
 ## [0.1.9] - 2026-04-29
 

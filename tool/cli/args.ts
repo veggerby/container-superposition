@@ -261,7 +261,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             'Path to the existing .devcontainer directory (default: ./.devcontainer)'
         )
         .option('--dry-run', 'Print analysis and suggested command only; no files written')
-        .option('--force', 'Overwrite existing superposition.json if present')
+        .option(
+            '--force',
+            'Overwrite existing adopt outputs if present (project file, superposition.json, custom patches)'
+        )
         .option(
             '--backup',
             'Force backup creation even when inside a git repo (default: backup only outside git repos)'

@@ -106,3 +106,15 @@ Once lint and tests pass:
     - Anything that deviated from the plan or that QA should scrutinise
 
 Do not mark the task complete if lint or tests fail — fix the root cause first.
+
+## Definition of Done
+
+A change is done only when:
+
+- `npm run lint:fix` then `npm run lint` pass.
+- Relevant tests pass (`npm test` scope matches risk; full suite for cross-cutting/core changes).
+- Generated artifacts are synced:
+    - overlay changes: `npm run docs:generate` and commit `docs/overlays.md`
+    - output-affecting changes: `npm run init -- regen`
+- `npm run init -- doctor` has no `Reproducibility` errors.
+- `CHANGELOG.md` has compliant `Unreleased` entries for user-visible changes.

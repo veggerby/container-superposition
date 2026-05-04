@@ -290,6 +290,23 @@
                 }
             ]
         },
+        "shell": {
+            "type": "object",
+            "description": "Shell profile customizations written via a managed shell-init hook",
+            "properties": {
+                "aliases": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" },
+                    "description": "Alias name -> command map (e.g. k: kubectl)"
+                },
+                "snippets": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Raw shell snippets appended to generated shell-init"
+                }
+            },
+            "additionalProperties": false
+        },
         "customizations": {
             "type": "object",
             "properties": {

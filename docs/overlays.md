@@ -373,6 +373,26 @@ Sample Python Flask app with OpenTelemetry instrumentation
 
 ## Cloud Tool Overlays
 
+### Ansible (`ansible`)
+
+Automation and configuration management with Ansible and ansible-lint
+
+| Property     | Value                                         |
+| ------------ | --------------------------------------------- |
+| **Category** | cloud                                         |
+| **Suggests** | `aws-cli`, `azure-cli`, `gcloud`, `terraform` |
+| **Tags**     | `cloud`, `iac`, `automation`, `ansible`       |
+
+### Argo CD CLI (`argocd`)
+
+GitOps CLI for managing Argo CD applications and sync workflows
+
+| Property     | Value                                     |
+| ------------ | ----------------------------------------- |
+| **Category** | cloud                                     |
+| **Suggests** | `kubectl-helm`, `k3d`, `kind`             |
+| **Tags**     | `cloud`, `kubernetes`, `gitops`, `argocd` |
+
 ### AWS CLI (`aws-cli`)
 
 Amazon Web Services command-line tools
@@ -800,6 +820,16 @@ Continuous development and deployment pipeline for Kubernetes applications
 | **Suggests**  | `kubectl-helm`, `kind`, `k3d`                                |
 | **Conflicts** | `tilt`                                                       |
 | **Tags**      | `dev`, `kubernetes`, `k8s`, `cicd`, `deployment`, `skaffold` |
+
+### Taskfile (task) (`task`)
+
+Modern task runner and build tool using Taskfiles
+
+| Property     | Value                                    |
+| ------------ | ---------------------------------------- |
+| **Category** | dev                                      |
+| **Suggests** | `modern-cli-tools`, `kubectl-helm`       |
+| **Tags**     | `dev`, `automation`, `taskfile`, `build` |
 
 ### Tilt (`tilt`)
 

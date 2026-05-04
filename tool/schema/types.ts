@@ -179,6 +179,11 @@ export interface ProjectMount {
     target?: ProjectMountTarget;
 }
 
+export interface ProjectShellConfig {
+    aliases?: Record<string, string>;
+    snippets?: string[];
+}
+
 /**
  * Questionnaire response interface
  */
@@ -204,6 +209,7 @@ export interface QuestionnaireAnswers {
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
     projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
     projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
+    projectShell?: ProjectShellConfig; // First-class shell profile customizations
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
     overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
 }
@@ -584,6 +590,7 @@ export interface ProjectConfigSelection {
     editor?: EditorProfile;
     env?: Record<string, ProjectEnvVar>;
     mounts?: ProjectMount[];
+    shell?: ProjectShellConfig;
     customizations?: ProjectConfigCustomizationsInput;
     parameters?: Record<string, string>; // Overlay parameter values for {{cs.KEY}} substitution
 }

@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "features": {
+        "./features/cross-distro-packages": {
+            "apt": "ansible|ansible-core ansible-lint|python3-ansible-lint",
+            "apk": "ansible ansible-lint"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["redhat.ansible"]
+        }
+    }
+}
