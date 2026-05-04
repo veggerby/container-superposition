@@ -144,8 +144,9 @@ appropriate output file.
 
 ### `mounts`
 
-Declare filesystem mounts once. Entries are **stack-agnostic by default** — the same
-`mounts:` block works unchanged when swapping between `stack: plain` and `stack: compose`.
+Declare filesystem mounts once. By default (`target: auto`), routing is **stack-aware**:
+`stack: plain` writes to `devcontainer.json mounts[]`, while `stack: compose` writes to
+`docker-compose.yml services.devcontainer.volumes[]`.
 
 ```yaml
 mounts:
@@ -178,12 +179,12 @@ mounts:
 
 | `target`            | `stack: plain`               | `stack: compose`                                     |
 | ------------------- | ---------------------------- | ---------------------------------------------------- |
-| `auto` (default)    | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
+| `auto` (default)    | `devcontainer.json mounts[]` | `docker-compose.yml services.devcontainer.volumes[]` |
 | `devcontainerMount` | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
 | `composeVolume`     | ❌ Error                     | `docker-compose.yml services.devcontainer.volumes[]` |
 
-`auto` and `devcontainerMount` always route to `devcontainer.json mounts[]` regardless of stack.
-Use `composeVolume` only when you specifically need Docker Compose volume semantics.
+Use `devcontainerMount` when you explicitly want `devcontainer.json mounts[]` on a compose stack.
+Use `composeVolume` when you explicitly want compose volume routing.
 
 Mounts declared here are applied **before** `customizations.devcontainerPatch` and
 `customizations.dockerComposePatch`, so patch overrides are respected.
@@ -213,6 +214,7 @@ mounts:
 Declarative shell profile customizations. This is intended for aliases and shell snippets.
 
 Use top-level `env` for environment variables (`export`-style values), not `shell`.
+`shell` is for interactive shell UX (aliases, completions, snippets).
 
 ```yaml
 shell:

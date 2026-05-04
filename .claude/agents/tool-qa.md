@@ -129,6 +129,8 @@ When reviewing changes to `tool/commands/doctor.ts`:
 - [ ] `CHANGELOG.md` has an entry for every user-visible change
 - [ ] Any new overlay has a `README.md`
 - [ ] If a spec exists, read the `## Implementation Notes` the developer left
+- [ ] `npm run init -- regen` has been run when output-affecting changes exist
+- [ ] `npm run init -- doctor` has no `Reproducibility` errors (README/devcontainer drift is a merge blocker)
 
 ## QA report format
 

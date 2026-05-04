@@ -23,10 +23,16 @@
 - **Adding an overlay**: create `overlays/<id>/overlay.yml` (id must match directory name exactly) + `devcontainer.patch.json` + `README.md`; if it introduces a new category, also update `tool/schema/types.ts` and the loader/composer in `tool/questionnaire/composer.ts` together in the same change
 - **Conflicts are bidirectional**: if overlay A lists B in `conflicts`, B must also list A
 - **Docker Compose networks**: never use `external: true`; always declare the network inline and set `name: devnet` so Docker uses that as the actual network name regardless of the Compose project name (e.g. `networks:\n  devnet:\n    name: devnet`)
-- **Spec-first**: before writing implementation code for a new feature, commit a spec under `docs/specs/`
-- **Changelog required**: add an appropriate `CHANGELOG.md` entry for user-visible changes; anything introduced **for the first time in the current release** must appear as a single consolidated entry under `Added` only — do not also list it under `Changed` or `Fixed`; if iterative work on an unreleased item is done, fold all details into the single `Added` bullet rather than adding separate `Changed` or `Fixed` bullets for the same item
-- **Docs required**: run `npm run docs:generate` after adding or changing overlays, then commit the updated `docs/overlays.md`
-- **Lint:fix before committing**: run `npm run lint:fix` to auto-fix formatting issues, then verify with `npm run lint`
+
+## Definition of Done
+
+- **Code quality**: `npm run lint:fix` then `npm run lint` pass.
+- **Tests**: run targeted tests for changed areas at minimum; run `npm test` for broader changes.
+- **Spec-first**: before writing implementation code for a new feature, commit a spec under `docs/specs/`.
+- **Generated docs**: if overlays changed, run `npm run docs:generate` and commit updated `docs/overlays.md`.
+- **Reproducibility**: run `npm run init -- regen` from project root after user-visible/tooling changes that affect generated output.
+- **Doctor check**: run `npm run init -- doctor`; no `Reproducibility` errors are allowed before merge.
+- **Changelog**: user-visible changes must be reflected in `CHANGELOG.md` under `Unreleased` per project changelog rules.
 
 **Key Technologies:**
 
