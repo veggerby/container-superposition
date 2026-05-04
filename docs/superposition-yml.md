@@ -144,9 +144,8 @@ appropriate output file.
 
 ### `mounts`
 
-Declare filesystem mounts once. By default (`target: auto`), routing is **stack-aware**:
-`stack: plain` writes to `devcontainer.json mounts[]`, while `stack: compose` writes to
-`docker-compose.yml services.devcontainer.volumes[]`.
+Declare filesystem mounts once. All mounts default to `devcontainer.json mounts[]` (`target: auto`).
+Use `composeVolume` to route explicitly to docker-compose volumes on a compose stack.
 
 ```yaml
 mounts:
@@ -179,11 +178,11 @@ mounts:
 
 | `target`            | `stack: plain`               | `stack: compose`                                     |
 | ------------------- | ---------------------------- | ---------------------------------------------------- |
-| `auto` (default)    | `devcontainer.json mounts[]` | `docker-compose.yml services.devcontainer.volumes[]` |
+| `auto` (default)    | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
 | `devcontainerMount` | `devcontainer.json mounts[]` | `devcontainer.json mounts[]`                         |
 | `composeVolume`     | ❌ Error                     | `docker-compose.yml services.devcontainer.volumes[]` |
 
-Use `devcontainerMount` when you explicitly want `devcontainer.json mounts[]` on a compose stack.
+Use `devcontainerMount` when you want the same explicit `devcontainer.json mounts[]` routing regardless of stack.
 Use `composeVolume` when you explicitly want compose volume routing.
 
 Mounts declared here are applied **before** `customizations.devcontainerPatch` and
@@ -223,16 +222,23 @@ shell:
         kgp: kubectl get pods
     snippets:
         - source /etc/profile
-        - complete -C '/usr/local/bin/aws_completer' aws
+        # Shell-specific commands must be guarded — shell-init.sh is sourced by
+        # both ~/.bashrc and ~/.zshrc, so unguarded bash-only syntax causes errors
+        # in zsh and vice versa.  Use $BASH_VERSION / $ZSH_VERSION to guard:
+        - '[ -n "$BASH_VERSION" ] && complete -C ''/usr/local/bin/aws_completer'' aws'
 ```
 
 Generation behavior:
 
-- Writes `.devcontainer/custom/shell-init.sh` with aliases/snippets
+- Writes `.devcontainer/scripts/shell-init.sh` with aliases/snippets
 - Adds a postCreate hook that idempotently manages a marked block in:
     - `~/.bashrc`
     - `~/.zshrc`
 - The managed block sources the generated `shell-init.sh`
+
+> **Note:** `shell-init.sh` is sourced by **both** `~/.bashrc` and `~/.zshrc`.
+> Keep `snippets` shell-agnostic, or guard shell-specific commands with
+> `$BASH_VERSION` / `$ZSH_VERSION` checks (see example above).
 
 ---
 

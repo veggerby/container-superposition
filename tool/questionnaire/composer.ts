@@ -1439,12 +1439,11 @@ function applyProjectShellConfig(
         return config;
     }
 
-    const customDir = path.join(outputPath, 'custom');
     const scriptsDir = path.join(outputPath, 'scripts');
-    fs.mkdirSync(customDir, { recursive: true });
     fs.mkdirSync(scriptsDir, { recursive: true });
+    fileRegistry.addDirectory('scripts');
 
-    const shellInitPath = path.join(customDir, 'shell-init.sh');
+    const shellInitPath = path.join(scriptsDir, 'shell-init.sh');
     const aliasLines = Object.entries(aliases)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([name, cmd]) => `alias ${name}=${quoteShellSingle(cmd)}`);
@@ -1457,7 +1456,7 @@ function applyProjectShellConfig(
         '',
     ].join('\n');
     fs.writeFileSync(shellInitPath, shellInit, 'utf8');
-    fileRegistry.addFile('custom/shell-init.sh');
+    fileRegistry.addFile('scripts/shell-init.sh');
 
     const hookScriptPath = path.join(scriptsDir, 'setup-project-shell.sh');
     const hookScript = `#!/usr/bin/env bash
@@ -1465,7 +1464,7 @@ set -e
 BEGIN_MARKER="# >>> container-superposition shell >>>"
 END_MARKER="# <<< container-superposition shell <<<"
 DEVCONTAINER_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-SHELL_INIT_FILE="\${DEVCONTAINER_DIR}/custom/shell-init.sh"
+SHELL_INIT_FILE="\${DEVCONTAINER_DIR}/scripts/shell-init.sh"
 
 install_hook() {
     local rc_file="$1"

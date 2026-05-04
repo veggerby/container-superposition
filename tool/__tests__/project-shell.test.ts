@@ -105,7 +105,7 @@ describe('Project Shell', () => {
 
         await composeDevContainer(answers);
 
-        const shellInitPath = path.join(outputPath, 'custom', 'shell-init.sh');
+        const shellInitPath = path.join(outputPath, 'scripts', 'shell-init.sh');
         const hookScriptPath = path.join(outputPath, 'scripts', 'setup-project-shell.sh');
         expect(fs.existsSync(shellInitPath)).toBe(true);
         expect(fs.existsSync(hookScriptPath)).toBe(true);
