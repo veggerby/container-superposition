@@ -178,7 +178,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
             },
             preset: {
                 type: 'string',
-                enum: presetIds.length > 0 ? presetIds : undefined,
+                enum: presetIds,
                 description:
                     'ID of a preset (meta-overlay) to expand. Use cs list --presets to browse available presets.',
             },
@@ -355,13 +355,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
             language: {
                 type: 'array',
                 description: 'Deprecated — use overlays: [...] instead',
-                items: {
-                    type: 'string',
-                    enum: overlayIds.filter((id) => {
-                        // Included for completeness; the generator doesn't categorize at schema level
-                        return true;
-                    }),
-                },
+                items: { type: 'string', enum: overlayIds },
                 deprecated: true,
             },
             database: {
