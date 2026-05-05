@@ -5,6 +5,9 @@ on:
         paths:
             - 'overlays/**'
             - 'docs/generate-docs.ts'
+            - 'scripts/generate-schema.ts'
+            - 'tool/schema/types.ts'
+            - 'tool/schema/project-config.ts'
             - '.github/workflows/generate-docs.yml'
 
 jobs:
@@ -35,21 +38,24 @@ jobs:
             - name: Generate overlay documentation
               run: npm run docs:generate
 
+            - name: Generate superposition.yml schema
+              run: npm run schema:generate
+
             - name: Check for uncommitted changes
               run: |
-                  if [ -n "$(git status --porcelain docs/)" ]; then
-                    echo "❌ Generated documentation is out of sync!"
+                  if [ -n "$(git status --porcelain docs/ tool/schema/superposition.schema.json)" ]; then
+                    echo "❌ Generated files are out of sync!"
                     echo ""
                     echo "The following files have uncommitted changes:"
-                    git status --porcelain docs/
+                    git status --porcelain docs/ tool/schema/superposition.schema.json
                     echo ""
                     echo "Diff of changes:"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    git diff docs/
+                    git diff docs/ tool/schema/superposition.schema.json
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     echo ""
-                    echo "Please run 'npm run docs:generate' locally and commit the changes."
+                    echo "Please run 'npm run docs:generate' and 'npm run schema:generate' locally and commit the changes."
                     exit 1
                   else
-                    echo "✅ Generated documentation is up to date"
+                    echo "✅ Generated files are up to date"
                   fi

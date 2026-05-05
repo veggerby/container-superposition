@@ -11,7 +11,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
 
         permissions:
-            contents: read
+            contents: write
             id-token: write # Required for npm provenance
 
         steps:
@@ -55,6 +55,9 @@ jobs:
             - name: Build
               run: npm run build
 
+            - name: Generate superposition.yml schema
+              run: npm run schema:generate
+
             - name: Run tests
               run: npm test
 
@@ -65,6 +68,11 @@ jobs:
 
             - name: Publish to npm
               run: npm publish --provenance --access public
+
+            - name: Upload schema to release
+              run: gh release upload ${{ github.ref_name }} tool/schema/superposition.schema.json --clobber
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Verify published package
               run: |

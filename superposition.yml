@@ -1,3 +1,4 @@
+$schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.schema.json
 stack: plain
 baseImage: trixie
 containerName: Container Superposition

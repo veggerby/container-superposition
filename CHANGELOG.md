@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **JSON Schema for `superposition.yml`** — machine-readable schema enables editor auto-complete and inline validation when authoring project files
+    - Schema is generated automatically from the overlay registry and TypeScript types via `npm run schema:generate`
+    - Generated `superposition.yml` files now include a `$schema` line pointing to the stable URL: `https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.schema.json`
+    - Schema file (`tool/schema/superposition.schema.json`) is committed to the repository, kept in sync by CI, and uploaded as a release asset with each GitHub release
+    - Keeping the schema up to date is part of the Definition of Done: run `npm run schema:generate` after adding overlays or changing `ProjectConfigSelection` types
+
 ## [0.1.10] - 2026-05-05
 
 ### Added

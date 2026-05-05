@@ -29,6 +29,8 @@ import type {
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
 const DEVCONTAINER_SCHEMA_URL =
     'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json';
+export const SUPERPOSITION_SCHEMA_URL =
+    'https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.schema.json';
 
 type ProjectConfigFileName = (typeof PROJECT_CONFIG_FILENAMES)[number];
 
@@ -638,6 +640,7 @@ export function loadProjectConfig(
 
     const document = expectPlainObject(parsed, file.fileName);
     const supportedKeys = new Set([
+        '$schema',
         'stack',
         'baseImage',
         'customImage',
@@ -854,7 +857,9 @@ function hasKeys(value: Record<string, any> | undefined): boolean {
 }
 
 function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<string, any> {
-    const document: Record<string, any> = {};
+    const document: Record<string, any> = {
+        $schema: SUPERPOSITION_SCHEMA_URL,
+    };
 
     if (selection.stack) document.stack = selection.stack;
     if (selection.baseImage) document.baseImage = selection.baseImage;
