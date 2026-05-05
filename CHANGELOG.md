@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-05-05
+
 ### Added
 
 - **`task` overlay** — Adds [Taskfile](https://taskfile.dev/) CLI (`task`) for declarative project automation
@@ -629,7 +631,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/veggerby/container-superposition/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/veggerby/container-superposition/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/veggerby/container-superposition/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/veggerby/container-superposition/compare/v0.1.6...v0.1.7
