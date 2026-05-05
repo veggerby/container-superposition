@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Auto-generate JSON Schema for superposition.yml from the overlay registry and types.
+ * Auto-generate JSON Schema for superposition.yml.
+ *
+ * Enum values for stack, baseImage, target and editor are imported directly from the
+ * exported constants in tool/schema/project-config.ts so they stay in sync with the
+ * runtime validation logic.  Overlay IDs are read from the live overlay registry.
  *
  * Output: tool/schema/superposition.schema.json
  *
@@ -11,7 +15,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import type { OverlayMetadata } from '../tool/schema/types.js';
 import { loadOverlaysConfig } from '../tool/schema/overlay-loader.js';
+import {
+    STACK_VALUES,
+    BASE_IMAGE_VALUES,
+    TARGET_VALUES,
+    EDITOR_VALUES,
+    PROJECT_ENV_TARGET_VALUES,
+    PROJECT_MOUNT_TARGET_VALUES,
+} from '../tool/schema/project-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,8 +42,38 @@ const REPO_ROOT =
 
 const OUTPUT_PATH = path.join(REPO_ROOT, 'tool', 'schema', 'superposition.schema.json');
 
-function buildSchema(overlayIds: string[], presetIds: string[]): object {
-    const allOverlayIds = [...overlayIds, ...presetIds];
+function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
+    // Non-preset overlay IDs (only these are valid in the `overlays` array field)
+    const overlayIds = overlays
+        .filter((o) => o.category !== 'preset')
+        .map((o) => o.id)
+        .sort();
+
+    // Per-category enums matching buildCategoryLookup() rules in project-config.ts:
+    //   - database includes both 'database' and 'messaging' categories
+    const languageIds = overlays
+        .filter((o) => o.category === 'language')
+        .map((o) => o.id)
+        .sort();
+    const databaseIds = overlays
+        .filter((o) => o.category === 'database' || o.category === 'messaging')
+        .map((o) => o.id)
+        .sort();
+    const observabilityIds = overlays
+        .filter((o) => o.category === 'observability')
+        .map((o) => o.id)
+        .sort();
+    const cloudIds = overlays
+        .filter((o) => o.category === 'cloud')
+        .map((o) => o.id)
+        .sort();
+    const devIds = overlays
+        .filter((o) => o.category === 'dev')
+        .map((o) => o.id)
+        .sort();
+
+    const mountTargetValues = [...PROJECT_MOUNT_TARGET_VALUES];
+    const envTargetValues = [...PROJECT_ENV_TARGET_VALUES];
 
     const mountEntry = {
         oneOf: [
@@ -70,7 +113,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
                     },
                     target: {
                         type: 'string',
-                        enum: ['auto', 'devcontainerMount', 'composeVolume'],
+                        enum: mountTargetValues,
                         description:
                             'Routing target: auto (default) always routes to devcontainer.json mounts[]; composeVolume routes to docker-compose volumes (compose stack only)',
                         default: 'auto',
@@ -90,7 +133,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
                     },
                     target: {
                         type: 'string',
-                        enum: ['auto', 'devcontainerMount', 'composeVolume'],
+                        enum: mountTargetValues,
                         description: 'Routing target override',
                         default: 'auto',
                     },
@@ -118,7 +161,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
                     },
                     target: {
                         type: 'string',
-                        enum: ['auto', 'remoteEnv', 'composeEnv'],
+                        enum: envTargetValues,
                         description:
                             'auto (default): plain→remoteEnv, compose→docker-compose environment; remoteEnv: always devcontainer.json; composeEnv: always docker-compose (compose only)',
                         default: 'auto',
@@ -143,13 +186,13 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
             },
             stack: {
                 type: 'string',
-                enum: ['plain', 'compose'],
+                enum: [...STACK_VALUES],
                 description:
                     'Base devcontainer template: plain (single image) or compose (multi-service Docker Compose)',
             },
             baseImage: {
                 type: 'string',
-                enum: ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'],
+                enum: [...BASE_IMAGE_VALUES],
                 description:
                     'Base OS image. Use "custom" together with customImage to specify an arbitrary image.',
                 default: 'bookworm',
@@ -171,7 +214,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
                     'Flat list of overlay IDs to include. Preferred over the legacy category arrays. Dependency resolution runs automatically.',
                 items: {
                     type: 'string',
-                    enum: allOverlayIds,
+                    enum: overlayIds,
                     description: 'Overlay identifier',
                 },
                 uniqueItems: true,
@@ -204,7 +247,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
             },
             target: {
                 type: 'string',
-                enum: ['local', 'codespaces', 'gitpod', 'devpod'],
+                enum: [...TARGET_VALUES],
                 description:
                     'Deployment target profile. Applies environment-specific patches during generation.',
             },
@@ -215,7 +258,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
             },
             editor: {
                 type: 'string',
-                enum: ['vscode', 'jetbrains', 'none'],
+                enum: [...EDITOR_VALUES],
                 description:
                     'Editor profile: vscode (default, includes extensions/settings), jetbrains (removes VS Code config), none (removes VS Code config)',
                 default: 'vscode',
@@ -254,7 +297,7 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
                                 readOnly: { type: 'boolean' },
                                 target: {
                                     type: 'string',
-                                    enum: ['auto', 'devcontainerMount', 'composeVolume'],
+                                    enum: mountTargetValues,
                                 },
                             },
                         },
@@ -352,34 +395,35 @@ function buildSchema(overlayIds: string[], presetIds: string[]): object {
             },
 
             // ── Legacy category arrays (deprecated; prefer overlays: [...]) ─────────
+            // Per-category enums match buildCategoryLookup() rules in project-config.ts.
             language: {
                 type: 'array',
                 description: 'Deprecated — use overlays: [...] instead',
-                items: { type: 'string', enum: overlayIds },
+                items: { type: 'string', enum: languageIds },
                 deprecated: true,
             },
             database: {
                 type: 'array',
                 description: 'Deprecated — use overlays: [...] instead',
-                items: { type: 'string', enum: overlayIds },
+                items: { type: 'string', enum: databaseIds },
                 deprecated: true,
             },
             observability: {
                 type: 'array',
                 description: 'Deprecated — use overlays: [...] instead',
-                items: { type: 'string', enum: overlayIds },
+                items: { type: 'string', enum: observabilityIds },
                 deprecated: true,
             },
             cloudTools: {
                 type: 'array',
                 description: 'Deprecated — use overlays: [...] instead',
-                items: { type: 'string', enum: overlayIds },
+                items: { type: 'string', enum: cloudIds },
                 deprecated: true,
             },
             devTools: {
                 type: 'array',
                 description: 'Deprecated — use overlays: [...] instead',
-                items: { type: 'string', enum: overlayIds },
+                items: { type: 'string', enum: devIds },
                 deprecated: true,
             },
             playwright: {
@@ -397,17 +441,13 @@ const overlaysDir = path.join(REPO_ROOT, 'overlays');
 const indexYmlPath = path.join(overlaysDir, 'index.yml');
 const config = loadOverlaysConfig(overlaysDir, indexYmlPath);
 
-const overlayIds = config.overlays
-    .filter((o) => o.category !== 'preset')
-    .map((o) => o.id)
-    .sort();
-
+const nonPresetOverlays = config.overlays.filter((o) => o.category !== 'preset');
 const presetIds = config.overlays
     .filter((o) => o.category === 'preset')
     .map((o) => o.id)
     .sort();
 
-const schema = buildSchema(overlayIds, presetIds);
+const schema = buildSchema(nonPresetOverlays, presetIds);
 const schemaJson = JSON.stringify(schema, null, 4) + '\n';
 
 const outputDir = path.dirname(OUTPUT_PATH);
@@ -417,4 +457,6 @@ if (!fs.existsSync(outputDir)) {
 
 fs.writeFileSync(OUTPUT_PATH, schemaJson, 'utf8');
 console.log(`✅ Generated superposition.yml schema at ${OUTPUT_PATH}`);
-console.log(`   Overlay IDs: ${overlayIds.length}  Preset IDs: ${presetIds.length}`);
+console.log(
+    `   Overlay IDs: ${nonPresetOverlays.length}  Preset IDs: ${presetIds.length}  Stack values: ${STACK_VALUES.join(', ')}  Base images: ${BASE_IMAGE_VALUES.length}`
+);

@@ -41,16 +41,21 @@ The static URL is always current and is the one written into generated `superpos
 
 The generator:
 
-1. Loads the live overlay registry (same path-resolution logic as `docs/generate-docs.ts`).
-2. Extracts all overlay IDs from `OverlayMetadata` entries (excluding presets) plus preset IDs
-   separately.
-3. Builds a JSON Schema (draft-07) describing `ProjectConfigSelection`, including:
-    - Static enums for `stack`, `baseImage`, `target`, `editor`
-    - Dynamic `enum` for overlay IDs in the `overlays` array items
+1. Imports the enum constant arrays (`STACK_VALUES`, `BASE_IMAGE_VALUES`, `TARGET_VALUES`,
+   `EDITOR_VALUES`, `PROJECT_ENV_TARGET_VALUES`, `PROJECT_MOUNT_TARGET_VALUES`) directly from
+   `tool/schema/project-config.ts`. These are the same arrays used at runtime for validation,
+   so the schema and the parser are always in agreement.
+2. Loads the live overlay registry (same path-resolution logic as `docs/generate-docs.ts`).
+3. Extracts overlay IDs by category, matching the `buildCategoryLookup()` rules (incl.
+   `database` + `messaging` both mapping to the `database` legacy field).
+4. Builds a JSON Schema (draft-07) describing `ProjectConfigSelection`, including:
+    - Enum values for `stack`, `baseImage`, `target`, `editor` derived from exported constants
+    - Dynamic `enum` for `overlays` items — non-preset overlay IDs only (presets are restricted
+      to the `preset` field)
+    - Per-category `enum` values for the legacy arrays (`language`, `database`, etc.) using the
+      same category rules as `buildCategoryLookup()`
     - All compound types (`env`, `mounts`, `shell`, `customizations`, `parameters`)
-    - The legacy category arrays (`language`, `database`, `observability`, `cloudTools`,
-      `devTools`, `playwright`) as deprecated alternatives
-4. Writes the result to `tool/schema/superposition.schema.json`.
+5. Writes the result to `tool/schema/superposition.schema.json`.
 
 ## Definition of Done additions
 
@@ -61,11 +66,12 @@ The generator:
 - The CI validation workflow (`generate-docs.yml`) checks that the committed schema matches
   a freshly generated one (same as the docs-sync check).
 
-## Serialization change
+## Serialization and round-trip
 
-`buildProjectConfigDocument` in `tool/schema/project-config.ts` is updated to place
-`$schema` as the first key in the YAML output when `SUPERPOSITION_SCHEMA_URL` is set.
-This mirrors the existing `withSchemaFirst` helper already used for devcontainer patches.
+`buildProjectConfigDocument` in `tool/schema/project-config.ts` places `$schema` as the
+first key in the YAML output. The value is taken from `selection.$schema` (the value that was
+in the file when it was loaded) with `SUPERPOSITION_SCHEMA_URL` as the fallback for new files.
+This means any user-pinned schema URL (e.g. a versioned release URL) is preserved on `regen`.
 
 ## Release workflow
 

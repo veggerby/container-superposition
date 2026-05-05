@@ -34,12 +34,12 @@ export const SUPERPOSITION_SCHEMA_URL =
 
 type ProjectConfigFileName = (typeof PROJECT_CONFIG_FILENAMES)[number];
 
-const STACK_VALUES: Stack[] = ['plain', 'compose'];
-const BASE_IMAGE_VALUES: BaseImage[] = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
-const TARGET_VALUES: DeploymentTarget[] = ['local', 'codespaces', 'gitpod', 'devpod'];
-const EDITOR_VALUES: EditorProfile[] = ['vscode', 'jetbrains', 'none'];
-const PROJECT_ENV_TARGET_VALUES: ProjectEnvTarget[] = ['auto', 'remoteEnv', 'composeEnv'];
-const PROJECT_MOUNT_TARGET_VALUES: ProjectMountTarget[] = [
+export const STACK_VALUES: Stack[] = ['plain', 'compose'];
+export const BASE_IMAGE_VALUES: BaseImage[] = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
+export const TARGET_VALUES: DeploymentTarget[] = ['local', 'codespaces', 'gitpod', 'devpod'];
+export const EDITOR_VALUES: EditorProfile[] = ['vscode', 'jetbrains', 'none'];
+export const PROJECT_ENV_TARGET_VALUES: ProjectEnvTarget[] = ['auto', 'remoteEnv', 'composeEnv'];
+export const PROJECT_MOUNT_TARGET_VALUES: ProjectMountTarget[] = [
     'auto',
     'devcontainerMount',
     'composeVolume',
@@ -679,6 +679,7 @@ export function loadProjectConfig(
     const overlays = aggregateOverlays(document, lookup);
 
     const selection: ProjectConfigSelection = {
+        $schema: expectOptionalString(document.$schema, '$schema'),
         stack: expectOptionalEnum(document.stack, 'stack', STACK_VALUES),
         baseImage: expectOptionalEnum(document.baseImage, 'baseImage', BASE_IMAGE_VALUES),
         customImage: expectOptionalString(document.customImage, 'customImage'),
@@ -858,7 +859,7 @@ function hasKeys(value: Record<string, any> | undefined): boolean {
 
 function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<string, any> {
     const document: Record<string, any> = {
-        $schema: SUPERPOSITION_SCHEMA_URL,
+        $schema: selection.$schema ?? SUPERPOSITION_SCHEMA_URL,
     };
 
     if (selection.stack) document.stack = selection.stack;
