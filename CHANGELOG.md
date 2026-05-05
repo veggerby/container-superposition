@@ -109,6 +109,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`generate` command** — AI-powered intent-driven environment scaffolding
+    - `cs generate --prompt "Python app with postgres and redis"` — generates a `superposition.yml` manifest from a natural-language description
+    - Modify mode: when a `superposition.yml` is already present, applies an incremental diff (`add jaeger`, `remove otel-collector`, `switch to compose`) rather than regenerating from scratch; original manifest backed up to `.bak` before overwrite
+    - `--scaffold` — also runs `composeDevContainer` to emit a full `.devcontainer/` folder
+    - `--adopt` — scans the repository for language/framework signals (`package.json`, `go.mod`, `Cargo.toml`, etc.) and combines them with the prompt for richer intent detection
+    - `--from-scratch` — forces from-scratch mode even if a `superposition.yml` exists
+    - `--no-interactive` / `--json` — skip confirmation and write directly (CI-friendly)
+    - Backed by the [Vercel AI SDK](https://sdk.vercel.ai) (`ai` + `@ai-sdk/openai` / `@ai-sdk/anthropic`) with `generateObject()` for Zod-validated structured output; model configurable via `CS_AI_MODEL` env var (format: `provider:model-id`, default: `openai:gpt-4o-mini`)
+    - The LLM can only select from the live overlay catalog — it cannot invent IDs
+    - Fails clearly when no API key is configured (`OPENAI_API_KEY` for the default provider)
+    - `--json` output includes a structured `rationale` array explaining why each overlay was selected or removed (source: `prompt-intent`, `repo-signal`, `diff-add`, `diff-remove`)
+    - Modify mode warns before applying destructive changes: removing the only language overlay, or removing an overlay required by another overlay still in the manifest
+    - **Local Ollama support** — when `OLLAMA_HOST` is set (e.g. `OLLAMA_HOST=http://localhost:11434`), the generator automatically uses the local Ollama instance (`llama3.2` by default, overridable via `CS_AI_MODEL=ollama:<model>`); no API key required
+- **AI intent engine** — the internal plumbing that makes `cs generate` safe and predictable
+    - Structured schema validation prevents the LLM from returning invalid overlay IDs or incomplete manifests
+    - Pure, LLM-free diff application for reliable, fully-tested modify-mode behaviour
+    - Overlay catalog injected into every prompt so the model can only choose from valid IDs in the live catalog
+    - OpenAI, Anthropic, and local Ollama providers supported via a single `CS_AI_MODEL` env var (`provider:model-id` format)
 - **`open-webui` overlay** — Browser-based chat UI for Ollama and OpenAI-compatible LLM backends, running as a Docker Compose sidecar
     - Serves the Open WebUI at port `3000` (mapped from container port `8080`); auto-forwarded and opened in the browser
     - Pre-configured `OLLAMA_BASE_URL=http://ollama:11434` so it connects automatically when the `ollama` overlay is also selected
@@ -250,6 +268,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Minimum Node.js version set to `>=20`** — The `generate` command uses the Vercel AI SDK (`ai` + `@ai-sdk/*`), which requires Node.js 18+; the engine floor is set to `>=20` to align with the project's LTS policy. (The previous `@mastra/core` dependency had forced this to `>=22.13.0`; that requirement is now removed.) All other commands are unaffected.
 - **Flat `overlays` field in project config** — Project files now use a single `overlays` array instead of per-category keys (`language`, `database`, `devTools`, etc.); old category keys are still accepted for backward compatibility
 - **`doctor` command** — `--from-manifest`, `--from-project`, and `--project-root` flags added, bringing `doctor` into parity with `init` and `regen` for project-file and manifest selection
 - **`direnv` overlay** — Package installation moved to `cross-distro-packages` devcontainer feature (runs at image-build time); `setup.sh` now handles only shell hook configuration

@@ -76,6 +76,11 @@ npx container-superposition migrate
     - Add `--project-root <path>` to resolve persisted input from a different repository root
 - `regen` — deterministically replay the repository project file (`superposition.yml` required)
     - Add `--project-root <path>` to resolve persisted input from a different repository root
+- `generate` — AI-powered intent-driven scaffolding from a natural-language prompt (requires an OpenAI/Anthropic API key, or set `OLLAMA_HOST` to use a local Ollama instance without any API key)
+    - `--prompt "Python app with postgres and redis"` — generate a `superposition.yml` from scratch
+    - `--scaffold` — also emit the full `.devcontainer/` output
+    - `--adopt` — enrich the prompt with repo language/framework signals
+    - When a `superposition.yml` already exists, operates in modify mode and backs up the original
 - `migrate` — one-time migration: creates `superposition.yml` from an existing `superposition.json`
     - Required for repos that ran `init` before this project-file-first model was introduced
 - `adopt` — migrate an existing `.devcontainer/` to the overlay-based workflow
