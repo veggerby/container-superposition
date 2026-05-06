@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Schema file (`tool/schema/superposition.schema.json`) is committed to the repository, kept in sync by CI, and uploaded as a release asset with each GitHub release
     - Keeping the schema up to date is part of the Definition of Done: run `npm run schema:generate` after adding overlays or changing `ProjectConfigSelection` types
 
+### Fixed
+
+- **Generated README reproducibility** — consolidated generated `README.md` files no longer embed the current date in their header, so repeated `cs regen` runs remain deterministic and `cs doctor` does not report false-positive drift from a day rollover alone
+
 ## [0.1.10] - 2026-05-05
 
 ### Added
