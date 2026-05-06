@@ -20,6 +20,20 @@ exist, it fails with an error — keep only one.
 
 ## Reference
 
+### `$schema`
+
+```yaml
+$schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.schema.json
+```
+
+Optional but recommended. Points editors (VS Code, JetBrains, etc.) to the JSON Schema
+for this file, enabling auto-complete and inline validation. The `init` and `regen`
+commands write this line automatically. The URL above always resolves to the latest
+schema on the `main` branch. A versioned copy is also attached to each
+[GitHub release](https://github.com/veggerby/container-superposition/releases).
+
+---
+
 ### `stack`
 
 ```yaml

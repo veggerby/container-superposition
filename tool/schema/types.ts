@@ -576,6 +576,7 @@ export interface CompositionInput extends QuestionnaireAnswers {
 }
 
 export interface ProjectConfigSelection {
+    $schema?: string; // Optional schema reference URI — preserved on round-trip, defaults to SUPERPOSITION_SCHEMA_URL
     stack?: Stack;
     baseImage?: BaseImage;
     customImage?: string;
