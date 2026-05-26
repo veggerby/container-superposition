@@ -1,0 +1,15 @@
+id: pi
+name: Pi
+description: Minimal terminal coding agent with multi-provider LLM support
+category: dev
+supports: []
+requires:
+    - nodejs
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - ai
+    - coding-agent
+    - llm
+ports: []

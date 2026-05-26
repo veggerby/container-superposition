@@ -67,6 +67,7 @@ export type DevTool =
     | 'amp'
     | 'windsurf-cli'
     | 'opencode'
+    | 'pi'
     | 'mkdocs2'
     | 'devcontainer-cli';
 export type ObservabilityTool =

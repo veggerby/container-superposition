@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`pi` overlay** — adds the [Pi](https://pi.dev) minimal terminal coding agent (`@earendil-works/pi-coding-agent`) with multi-provider LLM support (Anthropic, OpenAI, Gemini, DeepSeek, and more)
+
 - **JSON Schema for `superposition.yml`** — machine-readable schema enables editor auto-complete and inline validation when authoring project files
     - Schema is generated automatically from the overlay registry and TypeScript types via `npm run schema:generate`
     - Generated `superposition.yml` files now include a `$schema` line pointing to the stable URL: `https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.schema.json`
