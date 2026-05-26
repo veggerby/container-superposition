@@ -1,4 +1,4 @@
-# Pi
+# Pi Overlay
 
 Adds the [Pi](https://pi.dev) terminal coding agent (`pi`) — a minimal, open-source, self-extensible AI coding harness that lets you use LLMs directly in your terminal to read, write, edit, and run code.
 
@@ -19,6 +19,10 @@ Pi is a deliberately minimal terminal coding agent. Unlike heavier AI coding too
 
 This overlay installs Pi via npm (`@earendil-works/pi-coding-agent`), which is the same package installed by the official installer at [pi.dev/install.sh](https://pi.dev/install.sh).
 
+## How It Works
+
+This overlay installs `@earendil-works/pi-coding-agent` globally via npm, making the `pi` command available in your devcontainer.
+
 ## Common Commands
 
 ```bash
@@ -37,6 +41,12 @@ pi /resume
 # Check version
 pi --version
 ```
+
+## Use Cases
+
+- **Terminal-first coding assistant** — Use Pi interactively while editing and debugging from the CLI
+- **Automated one-shot tasks** — Run `pi -p "..."` in scripts or CI pipelines
+- **Multi-provider flexibility** — Switch between Anthropic, OpenAI, Gemini, and other supported providers
 
 ## Authentication
 
@@ -79,6 +89,12 @@ Settings are stored in `~/.pi/agent/settings.json` (global) or `.pi/settings.jso
 | `PI_OFFLINE`            | Disable startup network operations                 |
 | `PI_SKIP_VERSION_CHECK` | Skip automatic version update check                |
 | `PI_CODING_AGENT_DIR`   | Override config directory (default: `~/.pi/agent`) |
+
+## Verification
+
+```bash
+bash .devcontainer/scripts/verify-pi.sh
+```
 
 ## Usage
 
