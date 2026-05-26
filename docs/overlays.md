@@ -778,6 +778,16 @@ opencode AI coding agent for terminal-based development assistance
 | **Requires** | `nodejs`                |
 | **Tags**     | `dev`, `ai`, `opencode` |
 
+### Pi (`pi`)
+
+Minimal terminal coding agent with multi-provider LLM support
+
+| Property     | Value                              |
+| ------------ | ---------------------------------- |
+| **Category** | dev                                |
+| **Requires** | `nodejs`                           |
+| **Tags**     | `dev`, `ai`, `coding-agent`, `llm` |
+
 ### Playwright (`playwright`)
 
 Browser automation and testing framework

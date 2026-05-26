@@ -1,0 +1,6 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "postCreateCommand": {
+        "setup-pi": "bash .devcontainer/scripts/setup-pi.sh"
+    }
+}
