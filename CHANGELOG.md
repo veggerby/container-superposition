@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fuseki` overlay** — added `hostname: fuseki` to the Docker Compose service to fix a startup failure where Fuseki could not resolve its own hostname
+
 ## [0.1.11] - 2026-05-27
 
 ### Added
