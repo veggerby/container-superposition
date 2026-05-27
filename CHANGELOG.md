@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`fuseki` overlay** — added `hostname: fuseki` to the Docker Compose service so the JVM can resolve the container's own hostname at startup; without an explicit hostname Docker assigns the short container ID which is not registered in Docker's internal DNS, causing a `java.net.UnknownHostException` from Log4j's `NetUtils.getLocalHostname()` on every boot
+- **`fuseki` overlay** — added `hostname: fuseki` to the Docker Compose service to fix a startup failure where Fuseki could not resolve its own hostname
 
 ## [0.1.11] - 2026-05-27
 
