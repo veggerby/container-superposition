@@ -95,6 +95,17 @@ jobs:
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup GitVersion
+              uses: gittools/actions/gitversion/setup@v3
+              with:
+                  versionSpec: '6.0.x'
+
+            - name: Determine version with GitVersion
+              id: gitversion
+              uses: gittools/actions/gitversion/execute@v3
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -108,10 +119,10 @@ jobs:
             - name: Compute prerelease version
               id: version
               run: |
-                  BASE_VERSION=$(node -p "require('./package.json').version")
+                  BASE_VERSION=${{ steps.gitversion.outputs.majorMinorPatch }}
                   PR_NUMBER=${{ github.event.pull_request.number }}
-                  RUN_NUMBER=${{ github.run_number }}
-                  VERSION="${BASE_VERSION}-pr.${PR_NUMBER}.${RUN_NUMBER}"
+                  RUN_ID=${{ github.run_id }}
+                  VERSION="${BASE_VERSION}-pr.${PR_NUMBER}.${RUN_ID}"
                   echo "version=$VERSION" >> $GITHUB_OUTPUT
                   echo "Prerelease version: $VERSION"
 
