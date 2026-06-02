@@ -208,6 +208,7 @@ export interface QuestionnaireAnswers {
     target?: DeploymentTarget; // Deployment target for environment-specific optimizations
     minimal?: boolean; // Whether to use minimal mode (exclude optional/nice-to-have features)
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
+    devcontainerGitignore?: boolean; // Write outputPath/.gitignore that ignores generated artifacts
     projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
     projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
     projectShell?: ProjectShellConfig; // First-class shell profile customizations
@@ -590,6 +591,7 @@ export interface ProjectConfigSelection {
     target?: DeploymentTarget;
     minimal?: boolean;
     editor?: EditorProfile;
+    devcontainerGitignore?: boolean;
     env?: Record<string, ProjectEnvVar>;
     mounts?: ProjectMount[];
     shell?: ProjectShellConfig;

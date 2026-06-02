@@ -263,6 +263,11 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                     'Editor profile: vscode (default, includes extensions/settings), jetbrains (removes VS Code config), none (removes VS Code config)',
                 default: 'vscode',
             },
+            devcontainerGitignore: {
+                type: 'boolean',
+                description:
+                    'When true, writes outputPath/.gitignore with wildcard rules so generated devcontainer artifacts are not committed.',
+            },
             env: {
                 type: 'object',
                 description:
