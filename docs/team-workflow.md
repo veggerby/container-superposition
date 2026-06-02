@@ -93,7 +93,22 @@ This creates `superposition.json` in the current directory:
 
 ### 2. Configure Git Ignore
 
-Add the following to your `.gitignore`:
+If you are using `superposition.yml`, you can enable automatic generation of
+`outputPath/.gitignore` by setting:
+
+```yaml
+devcontainerGitignore: true
+```
+
+This writes:
+
+```gitignore
+*
+!.gitignore
+```
+
+If you prefer manual Git ignore management (or need custom exceptions), add the following to your
+repository `.gitignore`:
 
 ```gitignore
 # DevContainer - generated locally from superposition.json
@@ -106,7 +121,8 @@ Add the following to your `.gitignore`:
 !.devcontainer/.gitignore
 ```
 
-**Recommended:** Also create `.devcontainer/.gitignore` to prevent accidental commits:
+**Recommended:** Also create `.devcontainer/.gitignore` to prevent accidental commits when
+`devcontainerGitignore` is not enabled:
 
 ```gitignore
 # Ignore all generated files

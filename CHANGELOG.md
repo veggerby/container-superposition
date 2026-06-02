@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`devcontainerGitignore` project-file option** — when enabled in `superposition.yml`,
+  generation writes `outputPath/.gitignore` with:
+    - `*`
+    - `!.gitignore`
+  This keeps generated devcontainer artifacts out of Git while allowing the ignore file itself
+  to remain tracked.
+
 ### Fixed
 
 - **`fuseki` overlay** — added `hostname: fuseki` to the Docker Compose service to fix a startup failure where Fuseki could not resolve its own hostname
