@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   generation writes `outputPath/.gitignore` with:
     - `*`
     - `!.gitignore`
-  This keeps generated devcontainer artifacts out of Git while allowing the ignore file itself
-  to remain tracked.
+      This keeps generated devcontainer artifacts out of Git while allowing the ignore file itself
+      to remain tracked.
 
 ### Fixed
 
