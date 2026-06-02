@@ -1749,6 +1749,18 @@ function mergeGitignoreFiles(outputPath: string, overlays: string[], overlaysDir
     return anyWritten;
 }
 
+function ensureOutputGitignore(outputPath: string): boolean {
+    const gitignorePath = path.join(outputPath, '.gitignore');
+    const content = '*\n!.gitignore\n';
+
+    if (fs.existsSync(gitignorePath) && fs.readFileSync(gitignorePath, 'utf-8') === content) {
+        return false;
+    }
+
+    fs.writeFileSync(gitignorePath, content);
+    return true;
+}
+
 /**
  * Apply preset glue configuration (README and port mappings)
  * Note: Environment variables are handled in mergeEnvExamples to ensure proper port offset application
@@ -2861,6 +2873,16 @@ export async function composeDevContainer(
     // Note: .gitignore lives at the project root (parent of outputPath), not inside outputPath,
     // so it is intentionally NOT added to fileRegistry (cleanupStaleFiles must not touch it).
     mergeGitignoreFiles(outputPath, overlays, actualOverlaysDir);
+
+    if (answers.devcontainerGitignore) {
+        const written = ensureOutputGitignore(outputPath);
+        fileRegistry.addFile('.gitignore');
+        if (written) {
+            console.log(chalk.dim('   📄 Wrote output .gitignore to ignore generated artifacts'));
+        } else {
+            console.log(chalk.dim('   📄 Output .gitignore already up to date'));
+        }
+    }
 
     // 15. Apply preset glue configuration (README and port mappings) if present
     if (answers.presetGlueConfig) {

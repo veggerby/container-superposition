@@ -659,6 +659,7 @@ export function loadProjectConfig(
         'target',
         'minimal',
         'editor',
+        'devcontainerGitignore',
         'env',
         'mounts',
         'shell',
@@ -692,6 +693,10 @@ export function loadProjectConfig(
         target: expectOptionalEnum(document.target, 'target', TARGET_VALUES),
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
+        devcontainerGitignore: expectOptionalBoolean(
+            document.devcontainerGitignore,
+            'devcontainerGitignore'
+        ),
         env: parseProjectEnv(document.env),
         mounts: parseMounts(document.mounts),
         shell: parseProjectShell(document.shell),
@@ -733,6 +738,7 @@ export function buildAnswersFromProjectConfig(
         target: selection.target,
         minimal: selection.minimal,
         editor: selection.editor,
+        devcontainerGitignore: selection.devcontainerGitignore,
         projectEnv: selection.env,
         projectMounts: selection.mounts,
         projectShell: selection.shell,
@@ -808,6 +814,7 @@ export function buildProjectConfigSelectionFromAnswers(
         target: answers.target,
         minimal: answers.minimal,
         editor: answers.editor,
+        devcontainerGitignore: answers.devcontainerGitignore,
         env: answers.projectEnv,
         mounts: answers.projectMounts?.length ? answers.projectMounts : undefined,
         shell: answers.projectShell,
@@ -874,6 +881,9 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.target) document.target = selection.target;
     if (selection.minimal !== undefined) document.minimal = selection.minimal;
     if (selection.editor) document.editor = selection.editor;
+    if (selection.devcontainerGitignore !== undefined) {
+        document.devcontainerGitignore = selection.devcontainerGitignore;
+    }
     if (selection.env && Object.keys(selection.env).length > 0) {
         document.env = Object.fromEntries(
             Object.entries(selection.env).map(([key, entry]) => [

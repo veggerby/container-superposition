@@ -2316,6 +2316,7 @@ describe('Command Tests', () => {
                         language: ['nodejs'],
                         database: ['postgres'],
                         outputPath: './.devcontainer',
+                        devcontainerGitignore: true,
                     })
                 );
 
@@ -2325,6 +2326,7 @@ describe('Command Tests', () => {
                 expect(loaded?.selection.overlays).toEqual(
                     expect.arrayContaining(['nodejs', 'postgres'])
                 );
+                expect(loaded?.selection.devcontainerGitignore).toBe(true);
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }
@@ -2339,6 +2341,7 @@ describe('Command Tests', () => {
                     overlays: ['nodejs', 'docker-sock'],
                     minimal: true,
                     editor: 'none',
+                    devcontainerGitignore: true,
                 },
                 overlaysConfig
             );
@@ -2350,6 +2353,7 @@ describe('Command Tests', () => {
             expect(answers.devTools).toEqual(['docker-sock']);
             expect(answers.minimal).toBe(true);
             expect(answers.editor).toBe('none');
+            expect(answers.devcontainerGitignore).toBe(true);
         });
 
         it('should fail on dual project config files', () => {

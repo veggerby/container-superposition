@@ -371,6 +371,25 @@ Selects the editor customization profile:
 
 ---
 
+### `devcontainerGitignore`
+
+```yaml
+devcontainerGitignore: true
+```
+
+When `true`, generation writes `outputPath/.gitignore` with wildcard rules that ignore all
+generated devcontainer artifacts (while keeping `.gitignore` itself tracked):
+
+```gitignore
+*
+!.gitignore
+```
+
+Use this when `superposition.yml` is the canonical source and you do not want generated files
+committed to Git.
+
+---
+
 ### `parameters`
 
 ```yaml

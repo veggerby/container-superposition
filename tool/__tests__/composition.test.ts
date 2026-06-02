@@ -761,4 +761,68 @@ describe('Gitignore - first-class overlay support', () => {
 
         fs.rmSync(projectRoot, { recursive: true });
     });
+
+    it('writes output .gitignore when devcontainerGitignore is enabled', async () => {
+        const projectRoot = path.join(GITIGNORE_TEST_ROOT, 'devcontainer-gitignore-enabled');
+        const outputPath = path.join(projectRoot, '.devcontainer');
+
+        if (fs.existsSync(projectRoot)) fs.rmSync(projectRoot, { recursive: true });
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            devcontainerGitignore: true,
+        };
+
+        await composeDevContainer(answers);
+
+        const gitignorePath = path.join(outputPath, '.gitignore');
+        expect(fs.existsSync(gitignorePath)).toBe(true);
+        expect(fs.readFileSync(gitignorePath, 'utf-8')).toBe('*\n!.gitignore\n');
+
+        fs.rmSync(projectRoot, { recursive: true });
+    });
+
+    it('keeps template output .gitignore when devcontainerGitignore is disabled', async () => {
+        const projectRoot = path.join(GITIGNORE_TEST_ROOT, 'devcontainer-gitignore-cleanup');
+        const outputPath = path.join(projectRoot, '.devcontainer');
+
+        if (fs.existsSync(projectRoot)) fs.rmSync(projectRoot, { recursive: true });
+
+        const withGitignore: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            devcontainerGitignore: true,
+        };
+        await composeDevContainer(withGitignore);
+        expect(fs.existsSync(path.join(outputPath, '.gitignore'))).toBe(true);
+
+        const withoutGitignore: QuestionnaireAnswers = {
+            ...withGitignore,
+            devcontainerGitignore: false,
+        };
+        await composeDevContainer(withoutGitignore);
+        expect(fs.readFileSync(path.join(outputPath, '.gitignore'), 'utf-8')).toContain('.env');
+        expect(fs.readFileSync(path.join(outputPath, '.gitignore'), 'utf-8')).not.toBe(
+            '*\n!.gitignore\n'
+        );
+
+        fs.rmSync(projectRoot, { recursive: true });
+    });
 });
