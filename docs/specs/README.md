@@ -24,3 +24,4 @@
 | [020-superposition-yml-schema](020-superposition-yml-schema.md)                              | JSON Schema for `superposition.yml`                 | Approved | SCHEMA-FIELD  |
 | [021-deterministic-generated-readme](021-deterministic-generated-readme/spec.md)             | Deterministic Generated README Header               | Approved | CLI-UX        |
 | [022-local-superposition-config](022-local-superposition-config/spec.md)                     | Local Superposition Config                          | Final    | PROJECT       |
+| [023-pr-prerelease-gate](023-pr-prerelease-gate/spec.md)                                     | PR Prerelease Deployment Gate                       | Final    | INFRA-BUILD   |

@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       This keeps generated devcontainer artifacts out of Git while allowing the ignore file itself
       to remain tracked.
 
+### Changed
+
+- **PR prerelease publishing** — draft PRs publish npm prereleases only when labeled `publish-prerelease`; ready-for-review PRs continue publishing automatically.
+
 ### Fixed
 
 - **`fuseki` overlay** — added `hostname: fuseki` to the Docker Compose service to fix a startup failure where Fuseki could not resolve its own hostname

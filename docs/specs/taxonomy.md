@@ -172,7 +172,9 @@ _No specs yet._
 
 ### INFRA-BUILD
 
-_No specs yet._
+| Spec                                                     | Title                         | Status |
+| -------------------------------------------------------- | ----------------------------- | ------ |
+| [023-pr-prerelease-gate](023-pr-prerelease-gate/spec.md) | PR Prerelease Deployment Gate | Final  |
 
 ---
 
