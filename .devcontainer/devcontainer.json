@@ -16,8 +16,8 @@
       "ppa": true
     },
     "./features/cross-distro-packages": {
-      "apt": "bash-completion curl wget vim less build-essential bubblewrap jq ripgrep fd-find bat",
-      "apk": "bash-completion curl wget vim less build-base bubblewrap jq ripgrep fd bat"
+      "apt": "bash-completion curl wget vim less build-essential jq ripgrep fd-find bat",
+      "apk": "bash-completion curl wget vim less build-base jq ripgrep fd bat"
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts",
@@ -45,8 +45,6 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "christian-kohler.npm-intellisense",
-        "openai.chatgpt",
-        "anthropic.claude-code",
         "eamodio.gitlens",
         "github.vscode-pull-request-github",
         "mhutchie.git-graph",
@@ -74,6 +72,7 @@
     }
   },
   "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.pi,target=/home/vscode/.pi,type=bind,consistency=cached",
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
   ],
   "remoteEnv": {
@@ -95,18 +94,18 @@
       "onAutoForward": "notify"
     }
   },
-  "postStartCommand": {
-    "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}",
-    "verify-nodejs": "bash .devcontainer/scripts/verify-nodejs.sh",
-    "verify-codex": "bash .devcontainer/scripts/verify-codex.sh",
-    "verify-claude-code": "bash .devcontainer/scripts/verify-claude-code.sh"
-  },
   "postCreateCommand": {
+    "setup-pi": "bash .devcontainer/scripts/setup-pi.sh",
+    "setup-task": "bash .devcontainer/scripts/setup-task.sh",
     "setup-nodejs": "bash .devcontainer/scripts/setup-nodejs.sh",
-    "setup-codex": "bash .devcontainer/scripts/setup-codex.sh",
-    "setup-claude-code": "bash .devcontainer/scripts/setup-claude-code.sh",
     "setup-git-helpers": "bash .devcontainer/scripts/setup-git-helpers.sh",
     "setup-modern-cli-tools": "bash .devcontainer/scripts/setup-modern-cli-tools.sh",
     "setup-devcontainer-cli": "bash .devcontainer/scripts/setup-devcontainer-cli.sh"
+  },
+  "postStartCommand": {
+    "enable-git-safe-directory": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    "verify-task": "bash .devcontainer/scripts/verify-task.sh",
+    "verify-nodejs": "bash .devcontainer/scripts/verify-nodejs.sh",
+    "verify-pi": "bash .devcontainer/scripts/verify-pi.sh"
   }
 }
