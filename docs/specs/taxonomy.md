@@ -178,9 +178,11 @@ _No specs yet._
 
 ## PROJECT — Project-level configuration
 
-| Spec                                                                   | Title                                       | Status   |
-| ---------------------------------------------------------------------- | ------------------------------------------- | -------- |
-| [002-superposition-config-file](002-superposition-config-file/spec.md) | Project Configuration File                  | Final    |
-| [008-project-file-canonical](008-project-file-canonical/spec.md)       | Project File Canonical Form                 | Approved |
-| [009-project-env](009-project-env/spec.md)                             | Unified Project-Level Environment Variables | Approved |
-| [018-init-project-file](018-init-project-file/spec.md)                 | `init --project-file`                       | Final    |
+| Spec                                                                     | Title                                       | Status      |
+| ------------------------------------------------------------------------ | ------------------------------------------- | ----------- |
+| [002-superposition-config-file](002-superposition-config-file/spec.md)   | Project Configuration File                  | Final       |
+| [008-project-file-canonical](008-project-file-canonical/spec.md)         | Project File Canonical Form                 | Approved    |
+| [009-project-env](009-project-env/spec.md)                               | Unified Project-Level Environment Variables | Approved    |
+| [018-init-project-file](018-init-project-file/spec.md)                   | `init --project-file`                       | Final       |
+| [019-project-mounts](019-project-mounts/spec.md)                         | First-Class Mounts Support                  | Approved    |
+| [022-local-superposition-config](022-local-superposition-config/spec.md) | Local Superposition Config                  | Implemented |

@@ -1,0 +1,252 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.local.schema.json",
+    "title": "Superposition Local Configuration",
+    "description": "Local config for machine-specific generated-output enrichment. Place superposition.local.yml in repository root and keep it out of Git.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "JSON Schema reference URI"
+        },
+        "env": {
+            "type": "object",
+            "description": "Runtime environment variables. Routed to devcontainer.json remoteEnv or docker-compose environment based on stack and target.",
+            "additionalProperties": {
+                "oneOf": [
+                    {
+                        "type": "string",
+                        "description": "String shorthand — target is auto-detected based on stack (plain→remoteEnv, compose→docker-compose environment)"
+                    },
+                    {
+                        "type": "object",
+                        "description": "Long form with explicit routing target",
+                        "required": ["value"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "value": {
+                                "type": "string",
+                                "description": "Variable value (supports ${VAR} and ${VAR:-default} syntax)"
+                            },
+                            "target": {
+                                "type": "string",
+                                "enum": ["auto", "remoteEnv", "composeEnv"],
+                                "description": "auto (default): plain→remoteEnv, compose→docker-compose environment; remoteEnv: always devcontainer.json; composeEnv: always docker-compose (compose only)",
+                                "default": "auto"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "mounts": {
+            "oneOf": [
+                {
+                    "type": "array",
+                    "description": "List of filesystem mounts",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "description": "Raw mount string (escape hatch)",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "object",
+                                "description": "Structured mount using source/destination fields",
+                                "required": ["source", "destination"],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "source": {
+                                        "type": "string",
+                                        "description": "Mount source path or volume name"
+                                    },
+                                    "destination": {
+                                        "type": "string",
+                                        "description": "Mount destination path inside the container"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["bind", "volume", "tmpfs"],
+                                        "description": "Mount type (default: bind)"
+                                    },
+                                    "consistency": {
+                                        "type": "string",
+                                        "enum": ["consistent", "cached", "delegated"],
+                                        "description": "Mount consistency mode"
+                                    },
+                                    "cached": {
+                                        "type": "boolean",
+                                        "description": "Shorthand for consistency: cached"
+                                    },
+                                    "readOnly": {
+                                        "type": "boolean",
+                                        "description": "Make the mount read-only"
+                                    },
+                                    "target": {
+                                        "type": "string",
+                                        "enum": ["auto", "devcontainerMount", "composeVolume"],
+                                        "description": "Routing target: auto (default) always routes to devcontainer.json mounts[]; composeVolume routes to docker-compose volumes (compose stack only)",
+                                        "default": "auto"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "object",
+                                "description": "Raw-value mount with optional routing target",
+                                "required": ["value"],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "value": {
+                                        "type": "string",
+                                        "description": "Raw mount string",
+                                        "minLength": 1
+                                    },
+                                    "target": {
+                                        "type": "string",
+                                        "enum": ["auto", "devcontainerMount", "composeVolume"],
+                                        "description": "Routing target override",
+                                        "default": "auto"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "type": "object",
+                    "description": "Named map of filesystem mounts",
+                    "additionalProperties": {
+                        "type": "object",
+                        "description": "Structured mount (named form; name is not serialized back)",
+                        "required": ["source", "destination"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "source": {
+                                "type": "string"
+                            },
+                            "destination": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": ["bind", "volume", "tmpfs"]
+                            },
+                            "consistency": {
+                                "type": "string",
+                                "enum": ["consistent", "cached", "delegated"]
+                            },
+                            "cached": {
+                                "type": "boolean"
+                            },
+                            "readOnly": {
+                                "type": "boolean"
+                            },
+                            "target": {
+                                "type": "string",
+                                "enum": ["auto", "devcontainerMount", "composeVolume"]
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "shell": {
+            "type": "object",
+            "description": "Declarative shell profile customizations (aliases and snippets). Use env for environment variables.",
+            "additionalProperties": false,
+            "properties": {
+                "aliases": {
+                    "type": "object",
+                    "description": "Shell aliases written to .devcontainer/scripts/shell-init.sh",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        {
+                            "k": "kubectl",
+                            "kgp": "kubectl get pods"
+                        }
+                    ]
+                },
+                "snippets": {
+                    "type": "array",
+                    "description": "Shell snippet lines appended to shell-init.sh. Guard shell-specific syntax with $BASH_VERSION / $ZSH_VERSION.",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "customizations": {
+            "type": "object",
+            "description": "Inline patches applied during generation (equivalent to .devcontainer/custom/ patches).",
+            "additionalProperties": false,
+            "properties": {
+                "devcontainerPatch": {
+                    "type": "object",
+                    "description": "Deep-merged into devcontainer.json after all overlays are applied"
+                },
+                "dockerComposePatch": {
+                    "type": "object",
+                    "description": "Deep-merged into docker-compose.yml after all overlays are applied (compose stack only)"
+                },
+                "envTemplate": {
+                    "type": "object",
+                    "description": "Key/value pairs written to .devcontainer/.env.example",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "environment": {
+                    "type": "object",
+                    "description": "Alias for envTemplate (deprecated; prefer envTemplate)",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "scripts": {
+                    "type": "object",
+                    "description": "Shell commands appended to postCreate / postStart hooks",
+                    "additionalProperties": false,
+                    "properties": {
+                        "postCreate": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Commands run once after container creation (postCreateCommand)"
+                        },
+                        "postStart": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Commands run each time the container starts (postStartCommand)"
+                        }
+                    }
+                },
+                "files": {
+                    "type": "array",
+                    "description": "Extra files to write into the output directory",
+                    "items": {
+                        "type": "object",
+                        "required": ["path", "content"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "description": "Destination path"
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "File content"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

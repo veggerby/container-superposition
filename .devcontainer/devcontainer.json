@@ -71,7 +71,9 @@
       }
     }
   },
-  "mounts": [],
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.pi,target=/home/vscode/.pi,type=bind,consistency=cached"
+  ],
   "remoteEnv": {
     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
     "PATH": "${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}"

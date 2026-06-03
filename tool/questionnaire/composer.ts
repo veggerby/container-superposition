@@ -2352,7 +2352,11 @@ function copyCustomFiles(
         }
 
         // Copy file
-        fs.copyFileSync(file.source, destPath);
+        if (file.content !== undefined) {
+            fs.writeFileSync(destPath, file.content);
+        } else {
+            fs.copyFileSync(file.source, destPath);
+        }
 
         // Add file to registry
         fileRegistry.addFile(relativeDest);
@@ -2714,6 +2718,13 @@ export async function composeDevContainer(
         copyCustomFiles(customPatches, outputPath, fileRegistry);
     }
 
+    if (answers.customizations) {
+        console.log(chalk.cyan('\n🎨 Applying project config customizations...'));
+        config = applyCustomDevcontainerPatch(config, answers.customizations);
+        config = applyCustomScripts(config, answers.customizations, outputPath);
+        copyCustomFiles(answers.customizations, outputPath, fileRegistry);
+    }
+
     // Remove internal fields (those starting with _)
     Object.keys(config).forEach((key) => {
         if (key.startsWith('_')) {
@@ -2806,6 +2817,9 @@ export async function composeDevContainer(
     if (customPatches && answers.stack === 'compose') {
         applyCustomDockerComposePatch(outputPath, customPatches);
     }
+    if (answers.customizations && answers.stack === 'compose') {
+        applyCustomDockerComposePatch(outputPath, answers.customizations);
+    }
 
     // 13. Generate superposition.json manifest
     generateManifest(
@@ -2862,6 +2876,12 @@ export async function composeDevContainer(
     if (customPatches) {
         const customEnvCreated = applyCustomEnvironment(outputPath, customPatches);
         // Add .env.example to registry if it was created by custom patches but not by overlays
+        if (customEnvCreated && !envCreated) {
+            fileRegistry.addFile('.env.example');
+        }
+    }
+    if (answers.customizations) {
+        const customEnvCreated = applyCustomEnvironment(outputPath, answers.customizations);
         if (customEnvCreated && !envCreated) {
             fileRegistry.addFile('.env.example');
         }
