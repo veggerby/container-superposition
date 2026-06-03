@@ -2,7 +2,7 @@
   "manifestVersion": "1",
   "generatedBy": "0.1.3",
   "version": "0.1.0",
-  "generated": "2026-06-03T08:00:08.775Z",
+  "generated": "2026-06-03T10:14:54.699Z",
   "baseTemplate": "plain",
   "baseImage": "trixie",
   "overlays": [
@@ -15,9 +15,5 @@
     "task"
   ],
   "containerName": "Container Superposition",
-  "target": "local",
-  "customizations": {
-    "enabled": true,
-    "location": ".devcontainer/custom"
-  }
+  "target": "local"
 }

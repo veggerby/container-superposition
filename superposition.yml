@@ -10,9 +10,3 @@ overlays:
     - modern-cli-tools
     - devcontainer-cli
     - task
-mounts:
-    pi:
-        source: ${localEnv:HOME}${localEnv:USERPROFILE}/.pi
-        destination: /home/vscode/.pi
-        type: bind
-        cached: true
