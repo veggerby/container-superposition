@@ -175,10 +175,10 @@ jobs:
                         `npm install container-superposition@${version}`,
                         '```',
                         '',
-                        `Or install using the PR tag (always resolves to the latest build for this PR):`,
+                        `Or run (regen) directly from the prerelease version:`,
                         '',
                         '```',
-                        `npm install container-superposition@${tag}`,
+                        `npx container-superposition@${version} regen`,
                         '```',
                       ].join('\n');
 
