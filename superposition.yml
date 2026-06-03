@@ -4,9 +4,9 @@ baseImage: trixie
 containerName: Container Superposition
 overlays:
     - nodejs
-    - codex
-    - claude-code
+    - pi
     - docker-sock
     - git-helpers
     - modern-cli-tools
     - devcontainer-cli
+    - task

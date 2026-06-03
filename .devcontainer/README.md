@@ -26,19 +26,9 @@ Node.js LTS with TypeScript and tooling
 
 ### Development Tools
 
-#### Codex
+#### Pi
 
-OpenAI Codex CLI for AI-powered code generation and assistance
-
-**Configuration**
-
-Configurable via environment variables and configuration files.
-
-*For complete documentation, see [Codex overlay](../overlays/codex/README.md)*
-
-#### Claude Code
-
-Anthropic Claude Code CLI for AI-powered development assistance
+Minimal terminal coding agent with multi-provider LLM support
 
 **Common Commands**
 
@@ -52,7 +42,7 @@ Configurable via environment variables and configuration files.
 
 
 
-*For complete documentation, see [Claude Code overlay](../overlays/claude-code/README.md)*
+*For complete documentation, see [Pi overlay](../overlays/pi/README.md)*
 
 #### Docker (host socket)
 
@@ -128,11 +118,6 @@ Common issues:
 - **Node version mismatch**
 - ...and 1 more (see full docs)
 
-### Codex
-
-Common issues:
-- **codex command not found**
-
 ### Docker (host socket)
 
 Common issues:
@@ -161,12 +146,12 @@ Common issues:
 **Overlay Documentation:**
 
 - [nodejs](../overlays/nodejs/README.md)
-- [codex](../overlays/codex/README.md)
-- [claude-code](../overlays/claude-code/README.md)
+- [pi](../overlays/pi/README.md)
 - [docker-sock](../overlays/docker-sock/README.md)
 - [git-helpers](../overlays/git-helpers/README.md)
 - [modern-cli-tools](../overlays/modern-cli-tools/README.md)
 - [devcontainer-cli](../overlays/devcontainer-cli/README.md)
+- [task](../overlays/task/README.md)
 
 **Project Documentation:**
 
