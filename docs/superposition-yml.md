@@ -156,6 +156,31 @@ appropriate output file.
 
 ---
 
+### `ports`
+
+Declare explicit project-level port bindings once. These are expanded from the repository root
+`.env` at generation time and applied to both:
+
+- `devcontainer.json` (`forwardPorts`, and optional `portsAttributes`)
+- `docker-compose.yml` `services.devcontainer.ports` (compose stacks)
+
+```yaml
+ports:
+    - ${API_PORT:-8080}:8080
+    - value: ${WEB_DEV_PORT:-5173}:5173
+      label: Web dev server
+      onAutoForward: openBrowser
+```
+
+Supported metadata keys on object entries:
+
+- `label` (string)
+- `onAutoForward` (`notify` | `openBrowser` | `openPreview` | `silent` | `ignore`)
+
+> `ports` are **not** shifted by `portOffset`.
+
+---
+
 ### `mounts`
 
 Declare filesystem mounts once. All mounts default to `devcontainer.json mounts[]` (`target: auto`).
@@ -302,12 +327,13 @@ customizations:
 1. Base template loaded
 2. Overlays applied in order
 3. Port offsets applied
-4. Project `env` applied
-5. Project `mounts` applied
-6. `customizations.devcontainerPatch` merged (deepMerge, arrays deduplicated)
-7. `customizations.dockerComposePatch` merged
-8. Target-specific patches applied
-9. Files written
+4. Project `ports` applied (without `portOffset`)
+5. Project `env` applied
+6. Project `mounts` applied
+7. `customizations.devcontainerPatch` merged (deepMerge, arrays deduplicated)
+8. `customizations.dockerComposePatch` merged
+9. Target-specific patches applied
+10. Files written
 
 ---
 
@@ -433,6 +459,9 @@ mounts:
       target: devcontainerMount
 
 portOffset: 0
+ports:
+    - ${API_PORT:-8080}:8080
+    - ${WEB_DEV_PORT:-5173}:5173
 
 target: local
 

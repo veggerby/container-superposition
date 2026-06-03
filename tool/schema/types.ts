@@ -138,6 +138,29 @@ export interface ProjectEnvVar {
     target?: ProjectEnvTarget;
 }
 
+export type ProjectPortAutoForwardAction =
+    | 'notify'
+    | 'openBrowser'
+    | 'openPreview'
+    | 'silent'
+    | 'ignore';
+
+export interface ProjectPort {
+    /**
+     * Port binding in docker-compose short syntax, e.g. "${API_PORT:-8080}:8080".
+     * Expanded at generation time from the repo root .env file defaults.
+     */
+    value: string;
+    /**
+     * Optional label for devcontainer.json portsAttributes.
+     */
+    label?: string;
+    /**
+     * Optional VS Code auto-forward action for devcontainer.json portsAttributes.
+     */
+    onAutoForward?: ProjectPortAutoForwardAction;
+}
+
 export type ProjectMountTarget = 'auto' | 'devcontainerMount' | 'composeVolume';
 export interface ProjectMount {
     /**
@@ -210,6 +233,7 @@ export interface QuestionnaireAnswers {
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
     devcontainerGitignore?: boolean; // Write outputPath/.gitignore that ignores generated artifacts
     projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
+    projectPorts?: ProjectPort[]; // First-class project ports with generation-time expansion
     projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
     projectShell?: ProjectShellConfig; // First-class shell profile customizations
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
@@ -593,6 +617,7 @@ export interface ProjectConfigSelection {
     editor?: EditorProfile;
     devcontainerGitignore?: boolean;
     env?: Record<string, ProjectEnvVar>;
+    ports?: ProjectPort[];
     mounts?: ProjectMount[];
     shell?: ProjectShellConfig;
     customizations?: ProjectConfigCustomizationsInput;

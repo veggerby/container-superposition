@@ -10,6 +10,7 @@ import type {
     CloudTool,
     OverlayMetadata,
     OverlaysConfig,
+    ProjectPort,
     SuperpositionManifest,
     PresetGlueConfig,
     CustomizationConfig,
@@ -1110,6 +1111,11 @@ function copyOverlayFiles(
 }
 
 type ResolvedProjectEnvTarget = 'remoteEnv' | 'composeEnv';
+interface ResolvedProjectPort extends ProjectPort {
+    resolvedValue: string;
+    hostPort: number;
+    containerPort: number;
+}
 
 const PROJECT_ENV_REFERENCE_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/g;
 
@@ -1179,6 +1185,111 @@ function hasUnresolvedProjectEnvReference(value: string): boolean {
     const result = PROJECT_ENV_REFERENCE_PATTERN.test(value);
     PROJECT_ENV_REFERENCE_PATTERN.lastIndex = 0;
     return result;
+}
+
+function parseResolvedProjectPortBinding(
+    value: string
+): { hostPort: number; containerPort: number } | null {
+    const segments = value.split(':').map((segment) => segment.trim());
+    if (segments.length !== 2 && segments.length !== 3) {
+        return null;
+    }
+
+    const hostSegment = segments.length === 2 ? segments[0] : segments[1];
+    const containerSegment = segments[segments.length - 1];
+    if (!/^\d+$/.test(hostSegment) || !/^\d+$/.test(containerSegment)) {
+        return null;
+    }
+
+    const hostPort = Number.parseInt(hostSegment, 10);
+    const containerPort = Number.parseInt(containerSegment, 10);
+    if (
+        Number.isNaN(hostPort) ||
+        Number.isNaN(containerPort) ||
+        hostPort < 1 ||
+        hostPort > 65535 ||
+        containerPort < 1 ||
+        containerPort > 65535
+    ) {
+        return null;
+    }
+
+    return { hostPort, containerPort };
+}
+
+function resolveProjectPorts(
+    projectPorts: QuestionnaireAnswers['projectPorts'],
+    rootEnv: Record<string, string>
+): ResolvedProjectPort[] {
+    const entries = projectPorts ?? [];
+    return entries.map((entry, index) => {
+        const resolvedValue = resolveRootEnvReferences(entry.value, rootEnv).trim();
+        if (hasUnresolvedProjectEnvReference(resolvedValue)) {
+            throw new Error(
+                `project ports[${index}] could not be fully resolved from root .env: "${entry.value}"`
+            );
+        }
+
+        const parsed = parseResolvedProjectPortBinding(resolvedValue);
+        if (!parsed) {
+            throw new Error(
+                `project ports[${index}] must resolve to "HOST:CONTAINER" or "IP:HOST:CONTAINER", got "${resolvedValue}"`
+            );
+        }
+
+        return {
+            ...entry,
+            resolvedValue,
+            hostPort: parsed.hostPort,
+            containerPort: parsed.containerPort,
+        };
+    });
+}
+
+function applyProjectPortsToDevcontainer(
+    config: DevContainer,
+    resolvedProjectPorts: ResolvedProjectPort[]
+): DevContainer {
+    if (resolvedProjectPorts.length === 0) {
+        return config;
+    }
+
+    const existingForwardPorts = Array.isArray(config.forwardPorts) ? [...config.forwardPorts] : [];
+    const existingPortSet = new Set(existingForwardPorts.map((port) => String(port)));
+    for (const port of resolvedProjectPorts) {
+        if (!existingPortSet.has(String(port.hostPort))) {
+            existingForwardPorts.push(port.hostPort);
+            existingPortSet.add(String(port.hostPort));
+        }
+    }
+    config.forwardPorts = existingForwardPorts as number[];
+
+    const nextPortAttributes = { ...(config.portsAttributes ?? {}) };
+    for (const port of resolvedProjectPorts) {
+        if (!port.label && !port.onAutoForward) {
+            continue;
+        }
+        const key = String(port.hostPort);
+        const attrs = { ...(nextPortAttributes[key] ?? {}) };
+        if (port.label) {
+            attrs.label = port.label;
+        }
+        if (port.onAutoForward) {
+            attrs.onAutoForward = port.onAutoForward;
+        }
+        nextPortAttributes[key] = attrs;
+    }
+
+    if (Object.keys(nextPortAttributes).length > 0) {
+        config.portsAttributes = nextPortAttributes;
+    }
+
+    console.log(
+        chalk.dim(
+            `   🔌 Applying ${resolvedProjectPorts.length} project port mapping(s) to devcontainer.json`
+        )
+    );
+    return config;
 }
 
 function buildResolvedProjectRemoteEnvEntries(
@@ -1924,7 +2035,8 @@ function mergeDockerComposeFiles(
     portOffset?: number,
     customImage?: string,
     projectEnv?: QuestionnaireAnswers['projectEnv'],
-    projectMounts?: QuestionnaireAnswers['projectMounts']
+    projectMounts?: QuestionnaireAnswers['projectMounts'],
+    resolvedProjectPorts: ResolvedProjectPort[] = []
 ): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
@@ -2049,6 +2161,20 @@ function mergeDockerComposeFiles(
             ];
             console.log(
                 chalk.dim(`   🗂️  Applying project mounts to docker-compose devcontainer service`)
+            );
+        }
+
+        if (resolvedProjectPorts.length > 0) {
+            const existing = Array.isArray(merged.services.devcontainer.ports)
+                ? merged.services.devcontainer.ports
+                : [];
+            merged.services.devcontainer.ports = [
+                ...new Set([...existing, ...resolvedProjectPorts.map((port) => port.resolvedValue)]),
+            ];
+            console.log(
+                chalk.dim(
+                    `   🔌 Applying ${resolvedProjectPorts.length} project port mapping(s) to docker-compose devcontainer service`
+                )
             );
         }
 
@@ -2566,6 +2692,7 @@ export async function composeDevContainer(
     const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
     const rootEnv = loadEnvFileIfExists(path.join(projectRoot, '.env'));
+    const resolvedProjectPorts = resolveProjectPorts(answers.projectPorts, rootEnv);
 
     if (!fs.existsSync(outputPath)) {
         fs.mkdirSync(outputPath, { recursive: true });
@@ -2670,7 +2797,8 @@ export async function composeDevContainer(
             answers.portOffset,
             customImage,
             answers.projectEnv,
-            answers.projectMounts
+            answers.projectMounts,
+            resolvedProjectPorts
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {
@@ -2694,6 +2822,8 @@ export async function composeDevContainer(
     if (answers.portOffset) {
         applyPortOffsetToDevcontainer(config, answers.portOffset);
     }
+
+    config = applyProjectPortsToDevcontainer(config, resolvedProjectPorts);
 
     // Merge setup scripts from overlays into postCreateCommand
     mergeSetupScripts(config, overlays, outputPath, fileRegistry, actualOverlaysDir);

@@ -29,6 +29,8 @@ env:
   APP_ENV: development
 mounts:
   - "./local-tools:/workspace/tools"
+ports:
+  - ${API_PORT:-8080}:8080
 customizations:
   envTemplate:
     POSTGRES_PASSWORD: postgres

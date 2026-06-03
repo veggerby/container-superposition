@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `!.gitignore`
       This keeps generated devcontainer artifacts out of Git while allowing the ignore file itself
       to remain tracked.
+- **`ports` field in `superposition.yml`** — first-class project port bindings with generation-time `${VAR}` / `${VAR:-default}` expansion from the repository root `.env`
+    - Supports shorthand string entries (e.g. `${API_PORT:-8080}:8080`) and object entries with optional `label` and `onAutoForward` metadata
+    - Applies to both plain and compose generation (`devcontainer.json` forwardPorts + optional portsAttributes, and compose `services.devcontainer.ports`)
+    - Project `ports` entries are intentionally not shifted by `portOffset`
 
 ### Fixed
 
