@@ -69,6 +69,21 @@ Publishing is **automated via GitHub Actions** when a new release is created.
     - ✅ Publish to npm with provenance
     - ✅ Verify publication
 
+### PR prereleases
+
+Ready for Review PRs publish npm prereleases automatically.
+
+Draft PRs skip prerelease publishing unless labeled `publish-prerelease`. Add `publish-prerelease` to a Draft PR when reviewers need an npm prerelease before the PR is ready. Remove `publish-prerelease` to stop future Draft PR prereleases, or convert a PR to Draft without that label to skip future Draft prerelease publishes.
+
+The label does not affect final releases, mergeability, or npm `latest`. Maintainers may create the repository label with this description: `Publish npm prereleases for this PR, including while draft`.
+
+Skipped Draft PR runs are expected: GitHub Actions should show the `publish-prerelease` job as skipped, not failed, and no new prerelease PR comment is created for that skipped run.
+
+Version format and dist-tag format are unchanged:
+
+- Version: `{base}-pr.{number}.{run_id}`
+- Dist-tag: `pr-{number}`
+
 ### Manual Publishing (Development/Testing)
 
 For testing or emergency releases:

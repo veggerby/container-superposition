@@ -4,7 +4,14 @@ on:
     release:
         types: [published]
     pull_request:
-        types: [opened, synchronize, reopened]
+        types:
+            - opened
+            - synchronize
+            - reopened
+            - ready_for_review
+            - converted_to_draft
+            - labeled
+            - unlabeled
 
 jobs:
     publish:
@@ -85,7 +92,11 @@ jobs:
 
     publish-prerelease:
         runs-on: ubuntu-latest
-        if: github.event_name == 'pull_request'
+        # Draft PRs publish prereleases only with publish-prerelease label; ready PRs publish automatically.
+        if: >-
+            github.event_name == 'pull_request' &&
+            (github.event.pull_request.draft == false ||
+             contains(github.event.pull_request.labels.*.name, 'publish-prerelease'))
 
         permissions:
             contents: read
@@ -164,10 +175,10 @@ jobs:
                         `npm install container-superposition@${version}`,
                         '```',
                         '',
-                        `Or install using the PR tag (always resolves to the latest build for this PR):`,
+                        `Or run (regen) directly from the prerelease version:`,
                         '',
                         '```',
-                        `npm install container-superposition@${tag}`,
+                        `npx container-superposition@${version} regen`,
                         '```',
                       ].join('\n');
 

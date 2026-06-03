@@ -10,3 +10,4 @@ overlays:
     - modern-cli-tools
     - devcontainer-cli
     - task
+devcontainerGitignore: true

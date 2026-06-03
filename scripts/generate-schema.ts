@@ -24,6 +24,7 @@ import {
     EDITOR_VALUES,
     PROJECT_ENV_TARGET_VALUES,
     PROJECT_MOUNT_TARGET_VALUES,
+    SUPERPOSITION_LOCAL_SCHEMA_URL,
 } from '../tool/schema/project-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -41,6 +42,7 @@ const REPO_ROOT =
     ) ?? REPO_ROOT_CANDIDATES[0];
 
 const OUTPUT_PATH = path.join(REPO_ROOT, 'tool', 'schema', 'superposition.schema.json');
+const LOCAL_OUTPUT_PATH = path.join(REPO_ROOT, 'tool', 'schema', 'superposition.local.schema.json');
 
 function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
     // Non-preset overlay IDs (only these are valid in the `overlays` array field)
@@ -452,8 +454,26 @@ const presetIds = config.overlays
     .map((o) => o.id)
     .sort();
 
-const schema = buildSchema(nonPresetOverlays, presetIds);
+const schema = buildSchema(nonPresetOverlays, presetIds) as { properties: Record<string, unknown> };
 const schemaJson = JSON.stringify(schema, null, 4) + '\n';
+
+const localSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    $id: SUPERPOSITION_LOCAL_SCHEMA_URL,
+    title: 'Superposition Local Configuration',
+    description:
+        'Local config for machine-specific generated-output enrichment. Place superposition.local.yml in repository root and keep it out of Git.',
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        $schema: schema.properties.$schema,
+        env: schema.properties.env,
+        mounts: schema.properties.mounts,
+        shell: schema.properties.shell,
+        customizations: schema.properties.customizations,
+    },
+};
+const localSchemaJson = JSON.stringify(localSchema, null, 4) + '\n';
 
 const outputDir = path.dirname(OUTPUT_PATH);
 if (!fs.existsSync(outputDir)) {
@@ -461,7 +481,9 @@ if (!fs.existsSync(outputDir)) {
 }
 
 fs.writeFileSync(OUTPUT_PATH, schemaJson, 'utf8');
+fs.writeFileSync(LOCAL_OUTPUT_PATH, localSchemaJson, 'utf8');
 console.log(`✅ Generated superposition.yml schema at ${OUTPUT_PATH}`);
+console.log(`✅ Generated superposition.local.yml schema at ${LOCAL_OUTPUT_PATH}`);
 console.log(
     `   Overlay IDs: ${nonPresetOverlays.length}  Preset IDs: ${presetIds.length}  Stack values: ${STACK_VALUES.join(', ')}  Base images: ${BASE_IMAGE_VALUES.length}`
 );
