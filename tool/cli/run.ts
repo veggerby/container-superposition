@@ -37,6 +37,9 @@ import { listTrackedFilesUnder } from '../utils/git.js';
 function displayOutputPath(projectRoot: string, outputPath: string): string {
     const resolved = path.resolve(projectRoot, outputPath);
     const relative = path.relative(projectRoot, resolved);
+    if (relative === '') {
+        return '.';
+    }
     if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) {
         return relative.split(path.sep).join('/');
     }
@@ -156,6 +159,9 @@ export async function main(): Promise<void> {
             const overlaysConfigForProject = loadOverlaysConfigWrapper();
             projectConfig = loadProjectConfig(overlaysConfigForProject, projectRoot) ?? undefined;
             localProjectConfig = loadLocalProjectConfig(projectRoot) ?? undefined;
+            if (localProjectConfig) {
+                ensureLocalConfigIgnored(projectRoot);
+            }
             if (projectConfig) {
                 projectConfigAnswers = await applyPresetSelections(
                     buildAnswersFromProjectConfig(

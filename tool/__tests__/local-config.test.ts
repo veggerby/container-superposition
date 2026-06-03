@@ -260,6 +260,25 @@ describe('Local superposition config', () => {
         );
     });
 
+    it('no-scaffold still adds root gitignore entry when local config exists', () => {
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.local.yml'),
+            yaml.dump({
+                mounts: [{ source: '${HOME}/.codex', destination: '/home/vscode/.codex' }],
+            })
+        );
+
+        const result = runCli(
+            ['init', '--stack', 'plain', '--language', 'nodejs', '--no-scaffold'],
+            repoDir
+        );
+        expect(result.status).toBe(0);
+        expect(fs.readFileSync(path.join(repoDir, '.gitignore'), 'utf8')).toContain(
+            'superposition.local.yml'
+        );
+        expect(fs.existsSync(path.join(repoDir, '.devcontainer', 'devcontainer.json'))).toBe(false);
+    });
+
     it('regen fails before writes for invalid local key', () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
@@ -276,6 +295,28 @@ describe('Local superposition config', () => {
             'Unsupported local config keys in superposition.local.yml: stack'
         );
         expect(fs.readFileSync(outputFile, 'utf8')).toBe('{"before":true}\n');
+    });
+
+    it('keeps root output tracked-file warning repo-relative', () => {
+        execFileSync('git', ['init'], { cwd: repoDir, stdio: 'ignore' });
+        execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: repoDir });
+        execFileSync('git', ['config', 'user.name', 'Test'], { cwd: repoDir });
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            yaml.dump({
+                stack: 'plain',
+                overlays: ['nodejs'],
+                outputPath: '.',
+                devcontainerGitignore: true,
+            })
+        );
+        execFileSync('git', ['add', 'superposition.yml'], { cwd: repoDir });
+        fs.writeFileSync(path.join(repoDir, 'superposition.local.yml'), 'env:\n  DEBUG: "true"\n');
+
+        const result = runCli(['regen'], repoDir);
+        expect(result.status).toBe(0);
+        expect(result.stderr).toContain('git rm -r --cached -- .');
+        expect(result.stderr).not.toContain(`git rm -r --cached -- ${repoDir}`);
     });
 
     it('warns when local config exists without devcontainerGitignore', () => {
