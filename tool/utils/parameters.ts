@@ -96,6 +96,12 @@ export function resolveParameters(
     // Identify unknown supplied parameters (not declared by any overlay)
     const unknownSupplied = Object.keys(supplied).filter((key) => !(key in declared));
 
+    // Include ad-hoc (project-only) parameters in resolved values.
+    // Keys not declared by any overlay are valid user-defined parameters.
+    for (const key of unknownSupplied) {
+        values[key] = supplied[key];
+    }
+
     return { values, missingRequired, unknownSupplied };
 }
 
@@ -186,7 +192,7 @@ export function validateEnvTokensResolved(
         if (unresolved.length > 0) {
             throw new Error(
                 `Unresolved parameter token in env.${envKey} value: ${unresolved[0]}\n` +
-                    `Declared parameters for selected overlays: ${declaredKeys}\n` +
+                    `Resolved parameters: ${declaredKeys}\n` +
                     `Add the missing parameter to superposition.yml parameters: or select an overlay that declares it.`
             );
         }

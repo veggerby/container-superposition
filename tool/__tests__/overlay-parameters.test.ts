@@ -119,12 +119,33 @@ describe('resolveParameters', () => {
         const declared = {
             KNOWN: { description: 'Known', default: 'val', overlayId: 'postgres' },
         };
-        const { unknownSupplied } = resolveParameters(declared, {
+        const { values, unknownSupplied } = resolveParameters(declared, {
             KNOWN: 'x',
             UNKNOWN_PARAM: 'y',
         });
         expect(unknownSupplied).toContain('UNKNOWN_PARAM');
         expect(unknownSupplied).not.toContain('KNOWN');
+        // Ad-hoc keys are now included in values
+        expect(values['UNKNOWN_PARAM']).toBe('y');
+    });
+
+    it('includes ad-hoc supplied keys in values', () => {
+        const { values, unknownSupplied } = resolveParameters({}, { API_PORT: '8088' });
+        expect(values.API_PORT).toBe('8088');
+        expect(unknownSupplied).toContain('API_PORT');
+    });
+
+    it('ad-hoc keys coexist with overlay-declared keys', () => {
+        const declared = {
+            POSTGRES_PORT: { description: 'port', default: '5432', overlayId: 'postgres' },
+        };
+        const { values, unknownSupplied } = resolveParameters(declared, {
+            POSTGRES_PORT: '5433',
+            API_PORT: '8088',
+        });
+        expect(values.POSTGRES_PORT).toBe('5433');
+        expect(values.API_PORT).toBe('8088');
+        expect(unknownSupplied).toEqual(['API_PORT']);
     });
 
     it('handles empty declared and supplied maps', () => {
@@ -328,6 +349,21 @@ describe('validateEnvTokensResolved', () => {
         expect(() =>
             validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, { KNOWN: 'val' })
         ).toThrow(/env\.FOO.*\{\{cs\.MISSING\}\}/);
+    });
+
+    it('error message says "Resolved parameters" not "Declared parameters"', () => {
+        expect(() =>
+            validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, { API_PORT: '8088' })
+        ).toThrow(/Resolved parameters: API_PORT/);
+        expect(() =>
+            validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, { API_PORT: '8088' })
+        ).not.toThrow(/Declared parameters for selected overlays/);
+    });
+
+    it('falls back to (none) when resolved map is empty', () => {
+        expect(() => validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, {})).toThrow(
+            /Resolved parameters: \(none\)/
+        );
     });
 
     it('error message includes declared parameter keys', () => {

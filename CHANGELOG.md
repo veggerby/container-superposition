@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Ad-hoc project parameters now resolve correctly** — `superposition.yml parameters:` keys not
+  declared by any selected overlay (e.g. `API_PORT`, `WEB_DEV_PORT`) are now included in the
+  resolved parameter map and available for `{{cs.KEY}}` substitution in `env:` values and
+  overlay file content. Previously they triggered a hard `Unresolved parameter token` error.
+
+### Changed
+
+- **Console output for unlisted parameters** — the `⚠️  Unknown overlay parameters …` warning
+  (yellow, comma-separated) is replaced by a neutral `⚙️  Project-only parameters (not declared
+by any selected overlay):` informational block using the same `KEY=VALUE` per-line format as
+  overlay parameters.
+- **Doctor check 4 wording** — renamed from "Unknown parameters in project file" to
+  "Project-only parameters (not declared by any selected overlay)"; `findingId` changed to
+  `project-only-parameters`; guidance updated to explain these keys are resolved and valid,
+  rather than advising removal.
+- **`validateEnvTokensResolved()` error message** — second line now reads
+  `Resolved parameters: …` instead of `Declared parameters for selected overlays: …`, accurately
+  reflecting that both overlay-declared and project-only keys appear in the resolved map.
+
 ### Added
 
 - **Parameter tokens (`{{cs.KEY}}`) in `env:` values** — `superposition.yml` (and

@@ -2745,22 +2745,27 @@ export async function composeDevContainer(
         );
     }
 
-    if (unknownSupplied.length > 0) {
-        console.warn(
-            chalk.yellow(
-                `   ⚠️  Unknown overlay parameters (not declared by any selected overlay): ${unknownSupplied.join(', ')}`
-            )
-        );
-    }
-
     const hasResolvedParams = Object.keys(resolvedParams).length > 0;
 
-    // Log resolved parameter values (sensitive values are redacted)
-    if (hasResolvedParams) {
+    // Log resolved parameter values split by kind:
+    // overlay-declared params (with sensitive redaction) and project-only params (plain text).
+    const overlayKeys = Object.keys(declaredParams);
+    if (overlayKeys.length > 0) {
         const displayValues = redactSensitiveValues(resolvedParams, declaredParams);
         console.log(chalk.dim(`   ⚙️  Overlay parameters:`));
-        for (const [k, v] of Object.entries(displayValues)) {
-            console.log(chalk.dim(`      ${k}=${v}`));
+        for (const key of overlayKeys) {
+            if (key in displayValues) {
+                console.log(chalk.dim(`      ${key}=${displayValues[key]}`));
+            }
+        }
+    }
+
+    if (unknownSupplied.length > 0) {
+        console.log(
+            chalk.dim(`   ⚙️  Project-only parameters (not declared by any selected overlay):`)
+        );
+        for (const key of unknownSupplied) {
+            console.log(chalk.dim(`      ${key}=${resolvedParams[key]}`));
         }
     }
     const outputPath = path.resolve(answers.outputPath);

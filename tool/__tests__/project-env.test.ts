@@ -258,6 +258,43 @@ describe('Parameter token substitution in env: values', () => {
         expect(JSON.stringify(dc)).not.toMatch(/\{\{cs\./);
     });
 
+    it('resolves ad-hoc project-only parameters (API_PORT/WEB_DEV_PORT) in env: values end-to-end (AC1)', async () => {
+        // No overlay declares API_PORT or WEB_DEV_PORT — these are project-only parameters.
+        // Verifies the composeDevContainer → resolveParameters → substituteParametersInObject path.
+        const outputPath = path.join(repoDir, '.devcontainer');
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            overlayParameters: {
+                API_PORT: '8088',
+                WEB_DEV_PORT: '5173',
+            },
+            projectEnv: {
+                VITE_API_URL: {
+                    value: 'http://localhost:{{cs.API_PORT}}',
+                    target: 'remoteEnv',
+                },
+                API_PORT: { value: '{{cs.API_PORT}}', target: 'remoteEnv' },
+                WEB_DEV_PORT: { value: '{{cs.WEB_DEV_PORT}}', target: 'remoteEnv' },
+            },
+        };
+        await composeDevContainer(answers, OVERLAYS_DIR, { isRegen: true });
+        const dc = JSON.parse(fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8'));
+        expect(dc.remoteEnv.VITE_API_URL).toBe('http://localhost:8088');
+        expect(dc.remoteEnv.API_PORT).toBe('8088');
+        expect(dc.remoteEnv.WEB_DEV_PORT).toBe('5173');
+        // No {{cs.*}} tokens survive to any generated file
+        expect(JSON.stringify(dc)).not.toMatch(/\{\{cs\./);
+    });
+
     it('throws hard error before writing files when {{cs.KEY}} token unresolved', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
         const answers: QuestionnaireAnswers = {

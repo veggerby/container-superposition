@@ -1385,16 +1385,18 @@ function checkParameters(
         }
     }
 
-    // ── Check 4: Unknown parameters in project file ───────────────────────────
+    // ── Check 4: Project-only parameters (not declared by any selected overlay) ──
     const unknownKeys = Object.keys(suppliedParams).filter((k) => !(k in declared));
     if (unknownKeys.length > 0) {
         results.push({
-            name: 'Unknown parameters in project file',
+            name: 'Project-only parameters (not declared by any selected overlay)',
+            findingId: 'project-only-parameters',
             status: 'warn',
             message: `parameters: contains ${unknownKeys.length} key(s) not declared by any selected overlay: ${unknownKeys.join(', ')}`,
             details: [
-                'These may be stale entries from a removed overlay',
-                'Remove them from the parameters: section in your project file',
+                'These parameters are resolved and available for {{cs.KEY}} substitution',
+                'If a key was added by mistake or is left over from a removed overlay, remove it from parameters:',
+                `If intentional (e.g. ${unknownKeys.slice(0, 2).join(', ')}), no action needed`,
             ],
             fixEligibility: 'manual-only',
         });

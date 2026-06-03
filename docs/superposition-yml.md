@@ -581,6 +581,44 @@ Overlay parameter values. Keys correspond to parameter names declared in `overla
 `parameters:` sections. Values are substituted for `{{cs.KEY}}` tokens throughout generated
 files.
 
+#### Ad-hoc (project-only) parameters
+
+You can define parameters in `parameters:` that are not declared by any overlay. These are
+resolved normally and available for `{{cs.KEY}}` substitution in `env:` values and overlay
+file content. They are called **project-only parameters**.
+
+```yaml
+parameters:
+    POSTGRES_DB: myapp # declared by postgres overlay
+    API_PORT: 8088 # project-only — not declared by any overlay
+    WEB_DEV_PORT: 5173 # project-only
+
+env:
+    VITE_API_URL: 'http://localhost:{{cs.API_PORT}}'
+    API_PORT: '{{cs.API_PORT}}'
+```
+
+During `regen`, the tool reports project-only parameters separately from overlay parameters:
+
+```
+   ⚙️  Overlay parameters:
+      POSTGRES_DB=myapp
+   ⚙️  Project-only parameters (not declared by any selected overlay):
+      API_PORT=8088
+      WEB_DEV_PORT=5173
+```
+
+`doctor` notes them as an informational warning (`project-only-parameters`). If a key is
+intentional, no action is needed. If it is a typo or left over from a removed overlay,
+remove it from `parameters:`.
+
+**Project-only parameters are not treated as sensitive.** Values appear in console output and
+generated files in plain text. For any value that should not be committed to source control,
+use `${VAR:-default}` runtime syntax in `env:` directly instead of `{{cs.KEY}}`.
+
+> **`ports:` note**: Port bindings use `${VAR:-default}` runtime syntax, not `{{cs.KEY}}`.
+> Use `{{cs.API_PORT}}` in `env:` values; use `${API_PORT:-8080}:8080` in `ports:` entries.
+
 ---
 
 ## Parameter tokens (`{{cs.KEY}}`)
