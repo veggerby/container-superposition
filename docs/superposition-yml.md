@@ -195,19 +195,80 @@ appropriate output file.
 
 ### `ports`
 
-Declare explicit project-level port bindings once. These are expanded from the repository root
-`.env` at generation time and applied to both:
+Declare project-level ports once. Behavior depends on `stack`.
 
-- `devcontainer.json` (`forwardPorts`, and optional `portsAttributes`)
-- `docker-compose.yml` `services.devcontainer.ports` (compose stacks)
+#### `stack: plain` — container port expressions
+
+Write a container port number or `${VAR:-default}` expression. Do **not** use `HOST:CONTAINER`
+format — the tool rejects it with an error. The tool **resolves** `${VAR}` at generation time
+using `superposition.yml env` first, then the root `.env`, then the inline default.
+
+Because a single `env` entry also drives `remoteEnv`, you get a single source of truth: change
+the value once and both `forwardPorts` and the container's runtime environment stay in sync.
 
 ```yaml
+stack: plain
+env:
+    API_PORT: '9001' # sets both remoteEnv.API_PORT and resolves the port expression below
 ports:
-    - ${API_PORT:-8080}:8080
+    - ${API_PORT:-8080} # resolves to 9001
+    - value: ${WEB_PORT:-5173}
+      label: Web dev server
+      onAutoForward: openBrowser
+```
+
+Generated `devcontainer.json` (excerpt):
+
+```json
+{
+    "forwardPorts": [9001, 5173],
+    "portsAttributes": {
+        "5173": { "label": "Web dev server", "onAutoForward": "openBrowser" }
+    }
+}
+```
+
+#### `stack: compose` — verbatim port bindings
+
+Write a full `HOST:CONTAINER` binding. Do **not** write a bare port expression — the tool
+rejects it with an error. The binding is written **verbatim** to `docker-compose.yml`;
+`${VAR}` is never expanded by the tool (Compose reads `.env` at container startup instead).
+
+For `devcontainer.json forwardPorts` and `portsAttributes`, the tool extracts the container
+port from the rightmost segment as a best-effort hint.
+
+```yaml
+stack: compose
+ports:
+    - ${API_PORT:-8080}:8080 # written verbatim; Compose expands ${API_PORT} at startup
     - value: ${WEB_DEV_PORT:-5173}:5173
       label: Web dev server
       onAutoForward: openBrowser
 ```
+
+Generated `docker-compose.yml` (excerpt):
+
+```yaml
+services:
+    devcontainer:
+        ports:
+            - ${API_PORT:-8080}:8080 # verbatim
+            - ${WEB_DEV_PORT:-5173}:5173
+```
+
+Generated `devcontainer.json` (excerpt):
+
+```json
+{
+    "forwardPorts": [8080, 5173],
+    "portsAttributes": {
+        "5173": { "label": "Web dev server", "onAutoForward": "openBrowser" }
+    }
+}
+```
+
+`portsAttributes` is always keyed by the **container port** (the port VS Code forwards), never
+the host port.
 
 Supported metadata keys on object entries:
 

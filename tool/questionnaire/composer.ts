@@ -21,6 +21,7 @@ import type {
     ProjectShellConfig,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
+import { ProjectConfigError } from '../schema/project-config.js';
 import {
     loadCustomPatches,
     hasCustomDirectory,
@@ -1111,10 +1112,11 @@ function copyOverlayFiles(
 }
 
 type ResolvedProjectEnvTarget = 'remoteEnv' | 'composeEnv';
-interface ResolvedProjectPort extends ProjectPort {
-    resolvedValue: string;
-    hostPort: number;
-    containerPort: number;
+interface PreparedProjectPort extends ProjectPort {
+    /** Resolved numeric container port (plain) or extracted hint (compose). undefined = skip forwardPorts. */
+    containerPort?: number;
+    /** Original verbatim binding string (compose stack only). */
+    rawBinding?: string;
 }
 
 const PROJECT_ENV_REFERENCE_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/g;
@@ -1187,89 +1189,168 @@ function hasUnresolvedProjectEnvReference(value: string): boolean {
     return result;
 }
 
-function parseResolvedProjectPortBinding(
-    value: string
-): { hostPort: number; containerPort: number } | null {
-    const segments = value.split(':').map((segment) => segment.trim());
-    if (segments.length !== 2 && segments.length !== 3) {
-        return null;
-    }
-
-    const hostSegment = segments.length === 2 ? segments[0] : segments[1];
-    const containerSegment = segments[segments.length - 1];
-    if (!/^\d+$/.test(hostSegment) || !/^\d+$/.test(containerSegment)) {
-        return null;
-    }
-
-    const hostPort = Number.parseInt(hostSegment, 10);
-    const containerPort = Number.parseInt(containerSegment, 10);
-    if (
-        Number.isNaN(hostPort) ||
-        Number.isNaN(containerPort) ||
-        hostPort < 1 ||
-        hostPort > 65535 ||
-        containerPort < 1 ||
-        containerPort > 65535
-    ) {
-        return null;
-    }
-
-    return { hostPort, containerPort };
+/**
+ * Resolve ${VAR} / ${VAR:-default} with superpositionEnv first, then rootEnv, then inline default.
+ * Unresolvable references are left as-is (caller checks via hasUnresolvedProjectEnvReference).
+ */
+function resolveWithPriorityEnv(
+    value: string,
+    superpositionEnv: Record<string, string>,
+    rootEnv: Record<string, string>
+): string {
+    return value.replace(PROJECT_ENV_REFERENCE_PATTERN, (match, name: string) => {
+        if (superpositionEnv[name] !== undefined) return superpositionEnv[name];
+        if (rootEnv[name] !== undefined) return rootEnv[name];
+        const defaultMatch = match.match(/^\$\{[A-Za-z_][A-Za-z0-9_]*:-([^}]*)\}$/);
+        return defaultMatch ? defaultMatch[1] : match;
+    });
 }
 
-function resolveProjectPorts(
+/** Extract string values from superposition.yml env section for port resolution. */
+function extractSuperpositionEnvStrings(
+    projectEnv: QuestionnaireAnswers['projectEnv']
+): Record<string, string> {
+    const env: Record<string, string> = {};
+    for (const [key, entry] of Object.entries(projectEnv ?? {})) {
+        env[key] = entry.value;
+    }
+    return env;
+}
+
+/**
+ * Extract the container port hint from a compose binding string (best-effort).
+ * Splits on top-level colons (not inside ${...}) and examines the last segment.
+ */
+function extractContainerPortHint(binding: string): number | undefined {
+    // Parse top-level segments, ignoring colons inside ${...}
+    const segments: string[] = [];
+    let depth = 0;
+    let current = '';
+    for (const ch of binding) {
+        if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+        else if (ch === ':' && depth === 0) {
+            segments.push(current);
+            current = '';
+            continue;
+        }
+        current += ch;
+    }
+    segments.push(current);
+
+    const lastSegment = segments[segments.length - 1].trim();
+
+    if (/^\d+$/.test(lastSegment)) {
+        const n = Number.parseInt(lastSegment, 10);
+        return n >= 1 && n <= 65535 ? n : undefined;
+    }
+
+    const defaultMatch = lastSegment.match(/^\$\{[A-Za-z_][A-Za-z0-9_]*:-([^}]+)\}$/);
+    if (defaultMatch && /^\d+$/.test(defaultMatch[1])) {
+        const n = Number.parseInt(defaultMatch[1], 10);
+        return n >= 1 && n <= 65535 ? n : undefined;
+    }
+
+    return undefined;
+}
+
+/**
+ * Returns true if the string contains a colon at the top level
+ * (i.e. NOT inside a ${...} expression). Used to distinguish
+ * HOST:CONTAINER bindings from bare port expressions.
+ */
+function hasTopLevelColon(s: string): boolean {
+    let depth = 0;
+    for (const ch of s) {
+        if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+        else if (ch === ':' && depth === 0) return true;
+    }
+    return false;
+}
+
+/**
+ * Prepare project ports for generation, applying stack-specific semantics:
+ * - plain: resolve ${VAR} (superposition env first, root .env second), validate numeric port, reject colon
+ * - compose: validate colon present, write verbatim, extract container port hint best-effort
+ */
+function prepareProjectPorts(
+    stack: QuestionnaireAnswers['stack'],
     projectPorts: QuestionnaireAnswers['projectPorts'],
+    superpositionEnv: Record<string, string>,
     rootEnv: Record<string, string>
-): ResolvedProjectPort[] {
+): PreparedProjectPort[] {
     const entries = projectPorts ?? [];
-    return entries.map((entry, index) => {
-        const resolvedValue = resolveRootEnvReferences(entry.value, rootEnv).trim();
-        if (hasUnresolvedProjectEnvReference(resolvedValue)) {
-            throw new Error(
-                `project ports[${index}] could not be fully resolved from root .env: "${entry.value}"`
+
+    if (stack === 'plain') {
+        return entries.map((entry, index): PreparedProjectPort => {
+            if (hasTopLevelColon(entry.value)) {
+                throw new ProjectConfigError(
+                    `ports[${index}]: stack 'plain' expects a container port expression (no colon), got "${entry.value}". Use "HOST:CONTAINER" format only on stack 'compose'.`
+                );
+            }
+            const resolved = resolveWithPriorityEnv(entry.value, superpositionEnv, rootEnv).trim();
+            if (hasUnresolvedProjectEnvReference(resolved)) {
+                const varMatch = resolved.match(/\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/);
+                const varName = varMatch ? varMatch[1] : '?';
+                const rawExpr = varMatch ? varMatch[0] : entry.value;
+                throw new ProjectConfigError(
+                    `ports[${index}]: cannot resolve "${rawExpr}" \u2014 variable '${varName}' not found in superposition.yml env, root .env, or inline default.`
+                );
+            }
+            if (!/^\d+$/.test(resolved)) {
+                throw new ProjectConfigError(
+                    `ports[${index}]: resolved port "${resolved}" is not a valid port number (expected integer 1\u201365535).`
+                );
+            }
+            const port = Number.parseInt(resolved, 10);
+            if (port < 1 || port > 65535) {
+                throw new ProjectConfigError(
+                    `ports[${index}]: resolved port ${resolved} is out of range (must be 1\u201365535).`
+                );
+            }
+            return { ...entry, containerPort: port };
+        });
+    }
+
+    // stack === 'compose'
+    return entries.map((entry, index): PreparedProjectPort => {
+        if (!hasTopLevelColon(entry.value)) {
+            throw new ProjectConfigError(
+                `ports[${index}]: stack 'compose' expects a HOST:CONTAINER port binding (with colon), got "${entry.value}". Use a bare port expression only on stack 'plain'.`
             );
         }
-
-        const parsed = parseResolvedProjectPortBinding(resolvedValue);
-        if (!parsed) {
-            throw new Error(
-                `project ports[${index}] must resolve to "HOST:CONTAINER" or "IP:HOST:CONTAINER", got "${resolvedValue}"`
-            );
-        }
-
-        return {
-            ...entry,
-            resolvedValue,
-            hostPort: parsed.hostPort,
-            containerPort: parsed.containerPort,
-        };
+        const containerPort = extractContainerPortHint(entry.value);
+        return { ...entry, rawBinding: entry.value, containerPort };
     });
 }
 
 function applyProjectPortsToDevcontainer(
     config: DevContainer,
-    resolvedProjectPorts: ResolvedProjectPort[]
+    preparedProjectPorts: PreparedProjectPort[]
 ): DevContainer {
-    if (resolvedProjectPorts.length === 0) {
+    if (preparedProjectPorts.length === 0) {
         return config;
     }
 
     const existingForwardPorts = Array.isArray(config.forwardPorts) ? [...config.forwardPorts] : [];
     const existingPortSet = new Set(existingForwardPorts.map((port) => String(port)));
-    for (const port of resolvedProjectPorts) {
-        if (!existingPortSet.has(String(port.hostPort))) {
-            existingForwardPorts.push(port.hostPort);
-            existingPortSet.add(String(port.hostPort));
+    for (const port of preparedProjectPorts) {
+        if (port.containerPort === undefined) continue;
+        if (!existingPortSet.has(String(port.containerPort))) {
+            existingForwardPorts.push(port.containerPort);
+            existingPortSet.add(String(port.containerPort));
         }
     }
     config.forwardPorts = existingForwardPorts as number[];
 
     const nextPortAttributes = { ...(config.portsAttributes ?? {}) };
-    for (const port of resolvedProjectPorts) {
+    for (const port of preparedProjectPorts) {
         if (!port.label && !port.onAutoForward) {
             continue;
         }
-        const key = String(port.hostPort);
+        if (port.containerPort === undefined) continue;
+        const key = String(port.containerPort);
         const attrs = { ...(nextPortAttributes[key] ?? {}) };
         if (port.label) {
             attrs.label = port.label;
@@ -1286,7 +1367,7 @@ function applyProjectPortsToDevcontainer(
 
     console.log(
         chalk.dim(
-            `   🔌 Applying ${resolvedProjectPorts.length} project port mapping(s) to devcontainer.json`
+            `   🔌 Applying ${preparedProjectPorts.length} project port mapping(s) to devcontainer.json`
         )
     );
     return config;
@@ -2036,7 +2117,7 @@ function mergeDockerComposeFiles(
     customImage?: string,
     projectEnv?: QuestionnaireAnswers['projectEnv'],
     projectMounts?: QuestionnaireAnswers['projectMounts'],
-    resolvedProjectPorts: ResolvedProjectPort[] = []
+    resolvedProjectPorts: PreparedProjectPort[] = []
 ): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
@@ -2171,7 +2252,7 @@ function mergeDockerComposeFiles(
             merged.services.devcontainer.ports = [
                 ...new Set([
                     ...existing,
-                    ...resolvedProjectPorts.map((port) => port.resolvedValue),
+                    ...resolvedProjectPorts.map((port) => port.rawBinding ?? port.value),
                 ]),
             ];
             console.log(
@@ -2699,7 +2780,13 @@ export async function composeDevContainer(
     const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
     const rootEnv = loadEnvFileIfExists(path.join(projectRoot, '.env'));
-    const resolvedProjectPorts = resolveProjectPorts(answers.projectPorts, rootEnv);
+    const superpositionEnv = extractSuperpositionEnvStrings(answers.projectEnv);
+    const preparedProjectPorts = prepareProjectPorts(
+        answers.stack,
+        answers.projectPorts,
+        superpositionEnv,
+        rootEnv
+    );
 
     if (!fs.existsSync(outputPath)) {
         fs.mkdirSync(outputPath, { recursive: true });
@@ -2805,7 +2892,7 @@ export async function composeDevContainer(
             customImage,
             answers.projectEnv,
             answers.projectMounts,
-            resolvedProjectPorts
+            preparedProjectPorts
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {
@@ -2830,7 +2917,7 @@ export async function composeDevContainer(
         applyPortOffsetToDevcontainer(config, answers.portOffset);
     }
 
-    config = applyProjectPortsToDevcontainer(config, resolvedProjectPorts);
+    config = applyProjectPortsToDevcontainer(config, preparedProjectPorts);
 
     // Merge setup scripts from overlays into postCreateCommand
     mergeSetupScripts(config, overlays, outputPath, fileRegistry, actualOverlaysDir);

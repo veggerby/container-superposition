@@ -147,8 +147,12 @@ export type ProjectPortAutoForwardAction =
 
 export interface ProjectPort {
     /**
-     * Port binding in docker-compose short syntax, e.g. "${API_PORT:-8080}:8080".
-     * Expanded at generation time from the repo root .env file defaults.
+     * For stack: plain  — Container port expression, e.g. "${API_PORT:-8080}" or "8080".
+     *                      Must NOT contain ":". Resolved from superposition.yml env,
+     *                      then root .env, then inline default.
+     * For stack: compose — Full docker-compose short syntax, e.g. "${API_PORT:-8080}:8080".
+     *                      Must contain ":". Written VERBATIM to docker-compose ports;
+     *                      the tool does NOT expand ${VAR} references.
      */
     value: string;
     /**

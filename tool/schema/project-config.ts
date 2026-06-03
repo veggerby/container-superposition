@@ -454,7 +454,9 @@ function parseProjectPorts(value: unknown): ProjectPort[] | undefined {
     }
 
     if (!Array.isArray(value)) {
-        throw new ProjectConfigError('ports must be an array');
+        throw new ProjectConfigError(
+            `ports: must be an array of port expressions (plain) or port bindings (compose).`
+        );
     }
 
     if (value.length === 0) {
@@ -464,6 +466,12 @@ function parseProjectPorts(value: unknown): ProjectPort[] | undefined {
     const parsed = value.map((entry, index): ProjectPort => {
         if (typeof entry === 'string') {
             return { value: expectString(entry, `ports[${index}]`) };
+        }
+
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            throw new ProjectConfigError(
+                `ports[${index}]: each entry must be a string or an object with a 'value' key.`
+            );
         }
 
         const record = expectPlainObject(entry, `ports[${index}]`);

@@ -17,12 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `!.gitignore`
       This keeps generated devcontainer artifacts out of Git while allowing the ignore file itself
       to remain tracked.
-- **`ports` field in `superposition.yml`** — first-class project port bindings with generation-time `${VAR}` / `${VAR:-default}` expansion from the repository root `.env`
-    - Supports shorthand string entries (e.g. `${API_PORT:-8080}:8080`) and object entries with optional `label` and `onAutoForward` metadata
-    - Applies to both plain and compose generation (`devcontainer.json` forwardPorts + optional portsAttributes, and compose `services.devcontainer.ports`)
+- **`ports` field in `superposition.yml`** — first-class project port declarations with stack-specific semantics
+    - `stack: plain`: write a container port expression (`${VAR:-default}` or a number, no colon); resolved at generation time with `superposition.yml env` taking priority over root `.env`, then inline default
+    - `stack: compose`: write a full `HOST:CONTAINER` binding; written **verbatim** to `docker-compose.yml` (no `${VAR}` expansion — Compose resolves at container startup); container port extracted best-effort for `forwardPorts`
+    - `portsAttributes` keyed by container port (not host port)
+    - Superposition.yml `env` entry simultaneously drives `remoteEnv` and plain-stack port resolution — single source of truth
     - Project `ports` entries are intentionally not shifted by `portOffset`
 
 ### Changed
+
+- **`ports` semantics corrected** — **BREAKING** for any `superposition.yml` that uses `ports` on `stack: plain`
+    - Plain stack: `value` must now be a bare container port expression (no colon). Any `HOST:CONTAINER` format on plain stack now throws an error at generation time with a clear message.
+    - Compose stack: `value` is now written **verbatim** to `docker-compose.yml`; `${VAR}` references are no longer expanded by the tool. `portsAttributes` key is now the extracted container port, not the host port.
+    - **Migration**: change `"8080:8080"` → `"8080"` and `"${API_PORT:-8080}:8080"` → `"${API_PORT:-8080}"` for plain-stack ports.
 
 - **PR prerelease publishing** — draft PRs publish npm prereleases only when labeled `publish-prerelease`; ready-for-review PRs continue publishing automatically.
 
