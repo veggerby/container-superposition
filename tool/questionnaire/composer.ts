@@ -55,7 +55,10 @@ import {
     substituteParametersInObject,
     findUnresolvedTokens,
     redactSensitiveValues,
+    substituteProjectEnvTokens,
+    validateEnvTokensResolved,
 } from '../utils/parameters.js';
+import { parseSimpleEnvFile as parseSimpleEnvFileUtil } from '../utils/env-file.js';
 import {
     detectWarnings,
     generateTips,
@@ -1122,23 +1125,7 @@ interface PreparedProjectPort extends ProjectPort {
 const PROJECT_ENV_REFERENCE_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/g;
 
 function parseSimpleEnvFile(content: string): Record<string, string> {
-    const env: Record<string, string> = {};
-
-    for (const line of content.split('\n')) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) {
-            continue;
-        }
-
-        const match = trimmed.match(/^([^=]+)=(.*)$/);
-        if (!match) {
-            continue;
-        }
-
-        env[match[1].trim()] = match[2].trim();
-    }
-
-    return env;
+    return parseSimpleEnvFileUtil(content);
 }
 
 function loadEnvFileIfExists(filePath: string): Record<string, string> {
@@ -2780,7 +2767,10 @@ export async function composeDevContainer(
     const projectRoot = path.dirname(outputPath);
     const fileRegistry = new FileRegistry();
     const rootEnv = loadEnvFileIfExists(path.join(projectRoot, '.env'));
-    const superpositionEnv = extractSuperpositionEnvStrings(answers.projectEnv);
+    // Apply {{cs.KEY}} substitution to project env values (in-memory; no file modified)
+    const substitutedProjectEnv = substituteProjectEnvTokens(answers.projectEnv, resolvedParams);
+    validateEnvTokensResolved(substitutedProjectEnv, resolvedParams);
+    const superpositionEnv = extractSuperpositionEnvStrings(substitutedProjectEnv);
     const preparedProjectPorts = prepareProjectPorts(
         answers.stack,
         answers.projectPorts,
@@ -2826,7 +2816,7 @@ export async function composeDevContainer(
         config = applyOverlay(config, overlay, actualOverlaysDir);
     }
 
-    config = applyProjectEnvToDevcontainer(config, answers.projectEnv, answers.stack, rootEnv);
+    config = applyProjectEnvToDevcontainer(config, substitutedProjectEnv, answers.stack, rootEnv);
     config = applyProjectMountsToDevcontainer(config, answers.projectMounts, answers.stack);
 
     // 7. Copy template files (docker-compose, scripts, etc.)
@@ -2890,7 +2880,7 @@ export async function composeDevContainer(
             actualOverlaysDir,
             answers.portOffset,
             customImage,
-            answers.projectEnv,
+            substitutedProjectEnv,
             answers.projectMounts,
             preparedProjectPorts
         );
@@ -3107,7 +3097,7 @@ export async function composeDevContainer(
         }
     }
 
-    materializeComposeProjectEnvFile(outputPath, answers.projectEnv, answers.stack, rootEnv);
+    materializeComposeProjectEnvFile(outputPath, substitutedProjectEnv, answers.stack, rootEnv);
 
     // 14b. Merge .gitignore files from overlays into project root .gitignore
     // Note: .gitignore lives at the project root (parent of outputPath), not inside outputPath,

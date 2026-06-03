@@ -185,11 +185,65 @@ env:
 | `remoteEnv`      | `devcontainer.json remoteEnv` | `devcontainer.json remoteEnv`                          |
 | `composeEnv`     | ❌ Error                      | `docker-compose.yml services.devcontainer.environment` |
 
-#### `${VAR}` references
+#### `${VAR}` and `{{cs.KEY}}` in env: values
 
-Values can reference variables from the root `.env` file using `${VAR}` or
-`${VAR:-default}` syntax. These are resolved at generation time and written into the
-appropriate output file.
+Two syntaxes are supported in `env:` values. They are resolved at different times:
+
+| Tier            | Syntax                       | Resolved by            | When             | Safe for secrets?                        |
+| --------------- | ---------------------------- | ---------------------- | ---------------- | ---------------------------------------- |
+| Generation-time | `{{cs.KEY}}`                 | This tool              | `regen` / `init` | No — value baked into generated file     |
+| Runtime         | `${VAR}` / `${VAR:-default}` | Docker Compose / shell | Container start  | Yes — value stays in `.env` (gitignored) |
+
+- **`{{cs.KEY}}`** references a project parameter from `parameters:`. The resolved value is
+  written verbatim into the generated output (`devcontainer.json`, `docker-compose.yml`,
+  `.devcontainer/.env`). **Never use `{{cs.KEY}}` for secrets.**
+- **`${VAR:-default}`** is a Docker Compose expression. For `stack: plain` it is resolved at
+  generation time using the root `.env`, then the inline default. For `stack: compose` it is
+  passed through verbatim to `docker-compose.yml`; Docker Compose resolves it at container
+  start using `.devcontainer/.env`.
+
+Decision tree:
+
+```
+Is the value the same for everyone on the team?
+  Yes → {{cs.KEY}} in env: value  (resolved at regen, baked in)
+  No  → ${VAR:-safe_default} in env: value  (each dev sets it in .env)
+
+Is the value a secret?
+  Yes → NEVER use {{cs.KEY}}; always ${VAR:-default}
+  No  → either syntax is acceptable
+```
+
+Example — build a `DATABASE_URL` from parameters (non-secret values):
+
+```yaml
+parameters:
+    POSTGRES_DB: myapp
+    POSTGRES_USER: myapp
+    POSTGRES_PORT: 5432
+
+env:
+    DATABASE_URL: 'postgresql://{{cs.POSTGRES_USER}}@postgres:{{cs.POSTGRES_PORT}}/{{cs.POSTGRES_DB}}'
+```
+
+After `cs regen`, `devcontainer.json remoteEnv.DATABASE_URL` equals
+`"postgresql://myapp@postgres:5432/myapp"`. No `{{cs.*}}` tokens appear in generated output.
+
+Example — secure pattern (password stays in `.env`):
+
+```yaml
+parameters:
+    POSTGRES_DB: myapp
+    POSTGRES_USER: myapp
+    POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:-changeme}'
+    POSTGRES_PORT: 5432
+
+env:
+    DATABASE_URL: 'postgresql://{{cs.POSTGRES_USER}}:${POSTGRES_PASSWORD:-changeme}@postgres:{{cs.POSTGRES_PORT}}/{{cs.POSTGRES_DB}}'
+```
+
+The password reference `${POSTGRES_PASSWORD:-changeme}` bypasses the parameter token — it
+stays unresolved by the tool and is handled by Docker Compose at runtime.
 
 ---
 
@@ -526,6 +580,56 @@ parameters:
 Overlay parameter values. Keys correspond to parameter names declared in `overlay.yml`
 `parameters:` sections. Values are substituted for `{{cs.KEY}}` tokens throughout generated
 files.
+
+---
+
+## Parameter tokens (`{{cs.KEY}}`)
+
+Parameter tokens let you reference resolved overlay parameter values in `env:` values and
+overlay file content at generation time.
+
+### Syntax
+
+```
+{{cs.KEY}}
+```
+
+`KEY` must match `[A-Z0-9_]+`. Lowercase keys and dotted paths are not supported.
+
+### Supported fields
+
+| Field                                            | Supported | Notes                              |
+| ------------------------------------------------ | --------- | ---------------------------------- |
+| `env:` values (string shorthand)                 | ✅        | Resolved at `regen` / `init`       |
+| `env:` long-form `.value`                        | ✅        | Resolved at `regen` / `init`       |
+| Overlay file content (patches, compose, scripts) | ✅        | Resolved at `regen` / `init`       |
+| `customizations.envTemplate` values              | ✅        | Resolved at `regen` / `init`       |
+| `env:` key (left side)                           | ❌        | Keys are literal identifiers       |
+| `env:` `.target`                                 | ❌        | Enum value, not a template         |
+| `ports:` expressions                             | ❌        | Use `${VAR}` runtime syntax        |
+| `stack:`, `baseImage:`, `containerName:`         | ❌        | Scalar config, no substitution     |
+| `parameters:` values                             | ❌        | Parameters ARE the resolved source |
+
+### Pass-through guarantee
+
+The `{{cs.KEY}}` engine ONLY replaces `{{cs.*}}` tokens. All other expressions pass
+through untouched:
+
+| Expression                | Touched? | Resolved by                         |
+| ------------------------- | -------- | ----------------------------------- |
+| `{{cs.KEY}}`              | ✅ Yes   | Tool at generation time             |
+| `${VAR}`                  | No       | Docker Compose / shell at runtime   |
+| `${VAR:-default}`         | No       | Docker Compose / shell at runtime   |
+| `${containerEnv:KEY}`     | No       | VS Code devcontainer at attach time |
+| `${localWorkspaceFolder}` | No       | VS Code devcontainer at attach time |
+| `${{ }}` (GitHub Actions) | No       | GitHub Actions runner               |
+| `$FOO` (bare shell)       | No       | Shell at runtime                    |
+
+### Rationale for `cs.` prefix
+
+The `cs.` namespace prefix is owned by this tool. The `{{` `}}` delimiters are unique
+in the set of files the tool generates and do not collide with Docker Compose, shell,
+VS Code, or GitHub Actions expression syntaxes.
 
 ---
 

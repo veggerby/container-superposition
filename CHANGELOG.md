@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Parameter tokens (`{{cs.KEY}}`) in `env:` values** — `superposition.yml` (and
+  `superposition.local.yml`) `env:` values now support `{{cs.KEY}}` parameter tokens.
+  Tokens are resolved in-memory at generation time using the fully resolved `parameters:` map
+  (CLI > project parameters > overlay defaults). The project file is never modified.
+  Unknown tokens cause a hard error before any files are written, reporting the `env.KEY` field
+  and the list of declared parameters.
+  This eliminates duplication between `parameters:` and `env:` — e.g.:
+
+    ```yaml
+    env:
+        DATABASE_URL: 'postgresql://{{cs.POSTGRES_USER}}:{{cs.POSTGRES_PORT}}/{{cs.POSTGRES_DB}}'
+    ```
+
+- **Doctor: sensitive parameter checks** — new `doctor` findings:
+    - `sensitive-params-project-file` (`warn`) — fires when a parameter declared `sensitive: true`
+      by an overlay has a literal (non-`${VAR}`) value in `superposition.yml parameters:`. Suppressed
+      when the value equals the overlay default.
+    - `sensitive-params-devcontainer-env` (`warn`) — fires when a sensitive parameter appears as
+      plain text in `.devcontainer/.env` after generation. Skipped when `.devcontainer/.env` is absent
+      (plain stack). Suppressed when value equals overlay default.
+
+- **Doctor: first-class property promotion suggestions** — new `doctor` findings suggest
+  migrating `customizations` usage to first-class fields:
+    - `customizations-env-promote` — `customizations.devcontainerPatch.remoteEnv` set but `env:` absent
+    - `customizations-mounts-promote` — `customizations.devcontainerPatch.mounts` set but `mounts:` absent
+    - `customizations-ports-promote` — `customizations.dockerComposePatch` contains port bindings but `ports:` absent
+
+- **Docs: variable precedence and parameter token section** — `docs/superposition-yml.md` now
+  includes a "Parameter tokens (`{{cs.KEY}}`)" section with syntax reference, supported fields
+  table, pass-through guarantee table, and worked examples. The `env:` section now documents
+  the two-tier generation-time vs runtime substitution model with a decision tree.
+
+- **Stable doctor finding IDs** — internal `CheckResult` gains an optional `findingId` field;
+  `checksToFindings()` prefers it over the name-slugified ID when present. Makes `doctor --fix`
+  routing and test assertions stable across name changes.
+
 - **`superposition.local.yml` local config** — optional repository-root local config for machine-specific `env`, `mounts`, `shell`, and `customizations` enrichment during generated devcontainer output creation, with schema support and Git safety warnings for unignored or already-tracked generated output.
 
 - **`devcontainerGitignore` project-file option** — when enabled in `superposition.yml`,

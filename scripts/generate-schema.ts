@@ -161,7 +161,8 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                 properties: {
                     value: {
                         type: 'string',
-                        description: 'Variable value (supports ${VAR} and ${VAR:-default} syntax)',
+                        description:
+                            'Variable value. Supports {{cs.KEY}} parameter tokens (resolved at generation time) and ${VAR:-default} Docker Compose expressions (resolved at container start).',
                     },
                     target: {
                         type: 'string',

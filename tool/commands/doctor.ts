@@ -42,6 +42,7 @@ import {
 } from '../schema/manifest-migrations.js';
 import { MERGE_STRATEGY } from '../utils/merge.js';
 import { extractPorts } from '../utils/port-utils.js';
+import { parseSimpleEnvFile } from '../utils/env-file.js';
 import { composeDevContainer } from '../questionnaire/composer.js';
 import { mergeAnswers } from '../questionnaire/answers.js';
 import {
@@ -78,6 +79,7 @@ interface RemediationPlan {
 /** Internal check result — extended with fix metadata */
 interface CheckResult {
     name: string;
+    findingId?: string; // Stable ID for --fix routing and test assertions
     status: 'pass' | 'warn' | 'fail';
     message: string;
     details?: string[];
@@ -1182,6 +1184,89 @@ function checkProjectFileDrift(
 }
 
 /**
+ * Detect customizations patterns that can be replaced by first-class fields.
+ * Emits warn-level suggestions for manual migration; never auto-fixes.
+ */
+function checkCustomizations(
+    selection: import('../schema/types.js').ProjectConfigSelection
+): CheckResult[] {
+    const results: CheckResult[] = [];
+    const cust = selection.customizations;
+    if (!cust) return results;
+
+    const hasEnv = Object.keys(selection.env ?? {}).length > 0;
+    const hasMounts = (selection.mounts ?? []).length > 0;
+    const hasPorts = (selection.ports ?? []).length > 0;
+
+    // 3a/3b: remoteEnv in devcontainerPatch or environment in dockerComposePatch → suggest env:
+    const patchRemoteEnvCount = Object.keys(cust.devcontainerPatch?.remoteEnv ?? {}).length;
+    const composeEnvCount = Object.keys(
+        (cust.dockerComposePatch as any)?.services?.devcontainer?.environment ?? {}
+    ).length;
+    if ((patchRemoteEnvCount > 0 || composeEnvCount > 0) && !hasEnv) {
+        results.push({
+            name: 'Prefer top-level env: over customizations',
+            findingId: 'customizations-env-promote',
+            status: 'warn',
+            message:
+                'customizations.devcontainerPatch.remoteEnv is set but top-level env: is absent.',
+            details: [
+                'Move these variables to the top-level env: field.',
+                'env: routes automatically for plain and compose stacks and supports {{cs.KEY}} tokens.',
+                'See docs/superposition-yml.md#env for migration guidance.',
+            ],
+            fixEligibility: 'manual-only',
+            fixable: false,
+        });
+    }
+
+    // 3c: mounts in devcontainerPatch → suggest mounts:
+    const patchMounts = cust.devcontainerPatch?.mounts;
+    if (Array.isArray(patchMounts) && patchMounts.length > 0 && !hasMounts) {
+        results.push({
+            name: 'Prefer top-level mounts: over customizations',
+            findingId: 'customizations-mounts-promote',
+            status: 'warn',
+            message:
+                'customizations.devcontainerPatch.mounts is set but top-level mounts: is absent.',
+            details: [
+                'Move mounts to the top-level mounts: field (spec 019).',
+                'mounts: provides structured validation and routing for plain and compose stacks.',
+            ],
+            fixEligibility: 'manual-only',
+            fixable: false,
+        });
+    }
+
+    // 3d: ports in dockerComposePatch services → suggest ports:
+    try {
+        const composeServices = (cust.dockerComposePatch as any)?.services ?? {};
+        const hasComposePorts = Object.values(composeServices).some(
+            (svc: unknown) => Array.isArray((svc as any)?.ports) && (svc as any).ports.length > 0
+        );
+        if (hasComposePorts && !hasPorts) {
+            results.push({
+                name: 'Prefer top-level ports: over customizations',
+                findingId: 'customizations-ports-promote',
+                status: 'warn',
+                message:
+                    'customizations.dockerComposePatch contains port bindings but top-level ports: is absent.',
+                details: [
+                    'Move port bindings to the top-level ports: field.',
+                    'ports: supports validation, auto-forward, and port-offset. See spec 024.',
+                ],
+                fixEligibility: 'manual-only',
+                fixable: false,
+            });
+        }
+    } catch {
+        // Malformed dockerComposePatch — skip ports check gracefully
+    }
+
+    return results;
+}
+
+/**
  * Check overlay parameters: unresolved tokens, secret leakage, missing .env.example,
  * stale project-file keys, and required parameters not supplied.
  */
@@ -1334,6 +1419,64 @@ function checkParameters(
             fixable: true,
         });
     }
+
+    // ── Check 2a: Sensitive params hardcoded in superposition.yml parameters: ─────────────────
+    const sensitiveHardcoded: string[] = [];
+    for (const [key, value] of Object.entries(suppliedParams)) {
+        if (!declared[key]?.sensitive) continue;
+        if (value.startsWith('${')) continue; // runtime expression — skip
+        if (declared[key].default !== undefined && value === declared[key].default) continue; // equals overlay default — suppress
+        sensitiveHardcoded.push(key);
+    }
+    if (sensitiveHardcoded.length > 0) {
+        const detailLines: string[] = sensitiveHardcoded.map(
+            (k) => `${k} — declared sensitive by overlay '${declared[k].overlayId}'`
+        );
+        detailLines.push(
+            'Use ${VAR} or ${VAR:-default} to reference a value from root .env instead.'
+        );
+        detailLines.push('Add the real value to root .env (which should be gitignored).');
+        results.push({
+            name: 'Sensitive parameters in project file',
+            findingId: 'sensitive-params-project-file',
+            status: 'warn',
+            message: `Sensitive parameter(s) hardcoded in plain text in superposition.yml parameters: ${sensitiveHardcoded.join(', ')}`,
+            details: detailLines,
+            fixEligibility: 'manual-only',
+            fixable: false,
+        });
+    }
+
+    // ── Check 2b: Sensitive params as plain text in .devcontainer/.env ───────
+    const devcontainerEnvPath = path.join(outputPath, '.env');
+    if (fs.existsSync(devcontainerEnvPath)) {
+        const composeEnvParsed = parseSimpleEnvFile(fs.readFileSync(devcontainerEnvPath, 'utf8'));
+        const sensitiveInComposeEnv: string[] = [];
+        for (const [key, value] of Object.entries(composeEnvParsed)) {
+            if (!declared[key]?.sensitive) continue;
+            if (value.startsWith('${')) continue;
+            if (declared[key].default !== undefined && value === declared[key].default) continue;
+            sensitiveInComposeEnv.push(key);
+        }
+        if (sensitiveInComposeEnv.length > 0) {
+            results.push({
+                name: 'Sensitive parameters in .devcontainer/.env',
+                findingId: 'sensitive-params-devcontainer-env',
+                status: 'warn',
+                message: `Sensitive parameter(s) written as plain text to .devcontainer/.env: ${sensitiveInComposeEnv.join(', ')}`,
+                details: [
+                    'If .devcontainer/ is committed to source control, this exposes the secret.',
+                    'In superposition.yml parameters:, set ${VAR} instead of a literal value.',
+                    'Store the real value in root .env (gitignored).',
+                ],
+                fixEligibility: 'manual-only',
+                fixable: false,
+            });
+        }
+    }
+
+    // ── Check customizations: first-class property promotion suggestions ──────
+    results.push(...checkCustomizations(projectConfig.selection));
 
     // ── Pass: all parameters resolved ────────────────────────────────────────
     if (results.length === 0 && declaredCount > 0) {
@@ -2401,10 +2544,12 @@ function checksToFindings(
     recheckScope: RecheckScope
 ): DiagnosticFinding[] {
     return checks.map((c) => {
-        const id = c.name
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '');
+        const id =
+            c.findingId ??
+            c.name
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
         return {
             id,
             category,

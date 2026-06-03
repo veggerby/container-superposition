@@ -134,6 +134,10 @@ export interface DevContainerConfig {
 export type EditorProfile = 'vscode' | 'jetbrains' | 'none';
 export type ProjectEnvTarget = 'auto' | 'remoteEnv' | 'composeEnv';
 export interface ProjectEnvVar {
+    /**
+     * The env var value. Supports `{{cs.KEY}}` parameter tokens (resolved at generation time)
+     * and `${VAR:-default}` Docker Compose expressions (resolved at container start).
+     */
     value: string;
     target?: ProjectEnvTarget;
 }
