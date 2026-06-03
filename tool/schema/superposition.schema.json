@@ -210,6 +210,44 @@
                 ]
             }
         },
+        "ports": {
+            "type": "array",
+            "description": "Project port bindings expanded at generation time (supports ${VAR} and ${VAR:-default}) and applied to both devcontainer.json and compose output. These ports are not affected by portOffset.",
+            "items": {
+                "oneOf": [
+                    {
+                        "type": "string",
+                        "description": "Port binding in docker-compose short syntax (e.g. ${API_PORT:-8080}:8080)"
+                    },
+                    {
+                        "type": "object",
+                        "required": ["value"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "value": {
+                                "type": "string",
+                                "description": "Port binding in docker-compose short syntax (e.g. ${API_PORT:-8080}:8080)"
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "Optional devcontainer.json portsAttributes label for the resolved host port"
+                            },
+                            "onAutoForward": {
+                                "type": "string",
+                                "enum": [
+                                    "notify",
+                                    "openBrowser",
+                                    "openPreview",
+                                    "silent",
+                                    "ignore"
+                                ],
+                                "description": "Optional devcontainer.json portsAttributes onAutoForward action"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
         "mounts": {
             "oneOf": [
                 {

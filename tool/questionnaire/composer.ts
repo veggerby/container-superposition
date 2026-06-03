@@ -2169,7 +2169,10 @@ function mergeDockerComposeFiles(
                 ? merged.services.devcontainer.ports
                 : [];
             merged.services.devcontainer.ports = [
-                ...new Set([...existing, ...resolvedProjectPorts.map((port) => port.resolvedValue)]),
+                ...new Set([
+                    ...existing,
+                    ...resolvedProjectPorts.map((port) => port.resolvedValue),
+                ]),
             ];
             console.log(
                 chalk.dim(
