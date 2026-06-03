@@ -8,13 +8,17 @@ import { composeDevContainer, generateManifestOnly } from '../questionnaire/comp
 import { loadManifest } from '../schema/manifest-migrations.js';
 import { printSummary } from '../utils/summary.js';
 import {
+    applyLocalConfigToAnswers,
     buildAnswersFromManifest,
     buildAnswersFromProjectConfig,
     buildProjectConfigSelectionFromAnswers,
+    findIgnoredLocalProjectConfig,
     findManifestFile,
     findDefaultRegenManifest,
     findProjectConfig,
+    loadLocalProjectConfig,
     loadProjectConfig,
+    materializeLocalCustomizationConfig,
     writeProjectConfig,
     writeProjectConfigCustomizations,
 } from '../schema/project-config.js';
@@ -27,6 +31,75 @@ import {
     PRESETS_DIR,
 } from '../questionnaire/questionnaire.js';
 import { parseCliArgs } from './args.js';
+import { appendGitignoreSection } from '../utils/gitignore.js';
+import { listTrackedFilesUnder } from '../utils/git.js';
+
+function displayOutputPath(projectRoot: string, outputPath: string): string {
+    const resolved = path.resolve(projectRoot, outputPath);
+    const relative = path.relative(projectRoot, resolved);
+    if (relative === '') {
+        return '.';
+    }
+    if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) {
+        return relative.split(path.sep).join('/');
+    }
+    return resolved;
+}
+
+function printIgnoredLocalConfigWarning(projectRoot: string): void {
+    if (!findIgnoredLocalProjectConfig(projectRoot)) {
+        return;
+    }
+    console.warn(
+        chalk.yellow(
+            '⚠ Ignoring .superposition.local.yml.\n  Rename it to superposition.local.yml in repository root to use local config.'
+        )
+    );
+}
+
+function ensureLocalConfigIgnored(projectRoot: string): void {
+    try {
+        const added = appendGitignoreSection(
+            path.join(projectRoot, '.gitignore'),
+            'container-superposition local config',
+            ['superposition.local.yml']
+        );
+        if (added) {
+            console.log('Added superposition.local.yml to root .gitignore.');
+        }
+    } catch {
+        console.warn(
+            chalk.yellow(
+                '⚠ superposition.local.yml is not ignored by Git.\n  Add this line to root .gitignore: superposition.local.yml'
+            )
+        );
+    }
+}
+
+function printLocalConfigSafety(projectRoot: string, answers: QuestionnaireAnswers): void {
+    const outputLabel = displayOutputPath(projectRoot, answers.outputPath);
+    ensureLocalConfigIgnored(projectRoot);
+
+    if (answers.devcontainerGitignore === true) {
+        console.log(`Local config detected: superposition.local.yml`);
+        console.log(`Generated ${outputLabel} output is ignored for new files.`);
+        const tracked = listTrackedFilesUnder(projectRoot, answers.outputPath);
+        if (tracked.ok && tracked.value && tracked.value.length > 0) {
+            console.warn(
+                chalk.yellow(
+                    `⚠ ${outputLabel} is ignored for new files, but existing generated files are still tracked by Git.\n  To untrack generated output: git rm -r --cached -- ${outputLabel}`
+                )
+            );
+        }
+        return;
+    }
+
+    console.warn(
+        chalk.yellow(
+            `⚠ Local config detected: superposition.local.yml\n  Generated ${outputLabel} output may include local-only settings.\n  Before committing, set devcontainerGitignore: true in superposition.yml or remove local config changes from generated output.`
+        )
+    );
+}
 
 export async function main(): Promise<void> {
     try {
@@ -77,10 +150,18 @@ export async function main(): Promise<void> {
 
         let projectConfig = undefined;
         let projectConfigAnswers: Partial<QuestionnaireAnswers> | undefined;
+        let localProjectConfig = undefined;
+        const projectRoot = process.cwd();
+
+        printIgnoredLocalConfigWarning(projectRoot);
 
         if (!cliArgs?.manifestPath) {
             const overlaysConfigForProject = loadOverlaysConfigWrapper();
-            projectConfig = loadProjectConfig(overlaysConfigForProject, process.cwd()) ?? undefined;
+            projectConfig = loadProjectConfig(overlaysConfigForProject, projectRoot) ?? undefined;
+            localProjectConfig = loadLocalProjectConfig(projectRoot) ?? undefined;
+            if (localProjectConfig) {
+                ensureLocalConfigIgnored(projectRoot);
+            }
             if (projectConfig) {
                 projectConfigAnswers = await applyPresetSelections(
                     buildAnswersFromProjectConfig(
@@ -347,6 +428,9 @@ export async function main(): Promise<void> {
             answers = mergeAnswers(projectConfigAnswers, interactiveAnswers);
         }
 
+        const isManifestOnly = cliArgs?.writeManifestOnly === true || cliArgs?.noScaffold === true;
+        const sharedAnswersForProjectFile = answers;
+
         if (!manifest && projectConfig?.selection.customizations) {
             const materializedOutputPath = path.resolve(answers.outputPath);
             if (!fs.existsSync(materializedOutputPath)) {
@@ -356,6 +440,16 @@ export async function main(): Promise<void> {
                 materializedOutputPath,
                 projectConfig.selection.customizations
             );
+        }
+
+        if (!manifest && !isManifestOnly && localProjectConfig) {
+            answers = applyLocalConfigToAnswers(answers, localProjectConfig.selection);
+            answers.customizations = materializeLocalCustomizationConfig(
+                localProjectConfig.selection.customizations
+            );
+            printLocalConfigSafety(projectRoot, answers);
+        } else {
+            answers = { ...answers, customizations: undefined };
         }
 
         const summaryLines = [
@@ -420,7 +514,9 @@ export async function main(): Promise<void> {
 
         if (projectFileOutputPath) {
             try {
-                const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
+                const projectSelection = buildProjectConfigSelectionFromAnswers(
+                    sharedAnswersForProjectFile
+                );
                 writeProjectConfig(projectFileOutputPath, projectSelection);
                 console.log(
                     chalk.green(
@@ -435,8 +531,6 @@ export async function main(): Promise<void> {
                 );
             }
         }
-
-        const isManifestOnly = cliArgs?.writeManifestOnly === true || cliArgs?.noScaffold === true;
 
         const spinner = ora({
             text: isManifestOnly

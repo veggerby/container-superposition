@@ -487,7 +487,11 @@ export interface CustomizationConfig {
 
 export interface ProjectConfigFileEntry {
     path: string;
-    fileName: '.superposition.yml' | 'superposition.yml';
+    fileName:
+        | '.superposition.yml'
+        | 'superposition.yml'
+        | 'superposition.local.yml'
+        | '.superposition.local.yml';
 }
 
 export interface ProjectConfigCustomizationsInput {

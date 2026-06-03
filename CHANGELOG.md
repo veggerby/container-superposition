@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`superposition.local.yml` local config** — optional repository-root local config for machine-specific `env`, `mounts`, `shell`, and `customizations` enrichment during generated devcontainer output creation, with schema support and Git safety warnings for unignored or already-tracked generated output.
+
 - **`devcontainerGitignore` project-file option** — when enabled in `superposition.yml`,
   generation writes `outputPath/.gitignore` with:
     - `*`
@@ -19,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Supports shorthand string entries (e.g. `${API_PORT:-8080}:8080`) and object entries with optional `label` and `onAutoForward` metadata
     - Applies to both plain and compose generation (`devcontainer.json` forwardPorts + optional portsAttributes, and compose `services.devcontainer.ports`)
     - Project `ports` entries are intentionally not shifted by `portOffset`
+
+### Changed
+
+- **PR prerelease publishing** — draft PRs publish npm prereleases only when labeled `publish-prerelease`; ready-for-review PRs continue publishing automatically.
 
 ### Fixed
 

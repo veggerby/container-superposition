@@ -10,7 +10,7 @@ The team collaboration workflow separates **team standards** (committed manifest
 
 - ✅ **No lock-in** - Generated files are plain JSON/YAML, fully editable
 - ✅ **One-command onboarding** - New developers run `npx container-superposition regen`
-- ✅ **Personal customizations** - Developers can add their own preferences via `.devcontainer/custom/`
+- ✅ **Personal customizations** - Developers can add their own preferences via `superposition.local.yml` or `.devcontainer/custom/`
 - ✅ **Version control friendly** - Only manifest is committed, not generated files
 - ✅ **CI validation** - Validate manifest without committing generated files
 
@@ -19,7 +19,8 @@ The team collaboration workflow separates **team standards** (committed manifest
 ```
 my-project/
 ├── superposition.json       # Committed - team-wide standard
-├── .gitignore               # Ignore .devcontainer/ (except custom/)
+├── .gitignore               # Ignore .devcontainer/ and superposition.local.yml
+├── superposition.local.yml  # Optional local config - not committed
 ├── .devcontainer/           # Generated locally, in .gitignore
 │   ├── devcontainer.json    # Generated from manifest
 │   ├── docker-compose.yml   # Generated from manifest
@@ -105,6 +106,14 @@ This writes:
 ```gitignore
 *
 !.gitignore
+```
+
+When using local config, add `superposition.local.yml` to root `.gitignore` (the tool does this
+automatically when possible). If generated output was already tracked, `.gitignore` does not untrack
+it. Run this manually to untrack generated output for the default path:
+
+```bash
+git rm -r --cached -- .devcontainer
 ```
 
 If you prefer manual Git ignore management (or need custom exceptions), add the following to your

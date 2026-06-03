@@ -29,12 +29,29 @@ import type {
 } from './types.js';
 
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
+export const LOCAL_PROJECT_CONFIG_FILENAME = 'superposition.local.yml' as const;
+export const IGNORED_LOCAL_PROJECT_CONFIG_FILENAME = '.superposition.local.yml' as const;
 const DEVCONTAINER_SCHEMA_URL =
     'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json';
 export const SUPERPOSITION_SCHEMA_URL =
     'https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.schema.json';
+export const SUPERPOSITION_LOCAL_SCHEMA_URL =
+    'https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.local.schema.json';
 
 type ProjectConfigFileName = (typeof PROJECT_CONFIG_FILENAMES)[number];
+
+export interface LocalProjectConfigSelection {
+    $schema?: string;
+    env?: ProjectConfigSelection['env'];
+    mounts?: ProjectConfigSelection['mounts'];
+    shell?: ProjectConfigSelection['shell'];
+    customizations?: ProjectConfigSelection['customizations'];
+}
+
+export interface LoadedLocalProjectConfig {
+    file: ProjectConfigFileEntry;
+    selection: LocalProjectConfigSelection;
+}
 
 export const STACK_VALUES: Stack[] = ['plain', 'compose'];
 export const BASE_IMAGE_VALUES: BaseImage[] = ['bookworm', 'trixie', 'alpine', 'ubuntu', 'custom'];
@@ -654,6 +671,64 @@ export function findProjectConfig(repoRoot: string = process.cwd()): ProjectConf
     })).filter((entry) => fs.existsSync(entry.path));
 }
 
+export function findLocalProjectConfig(
+    repoRoot: string = process.cwd()
+): ProjectConfigFileEntry | null {
+    const file = {
+        fileName: LOCAL_PROJECT_CONFIG_FILENAME,
+        path: path.join(repoRoot, LOCAL_PROJECT_CONFIG_FILENAME),
+    } satisfies ProjectConfigFileEntry;
+    return fs.existsSync(file.path) ? file : null;
+}
+
+export function findIgnoredLocalProjectConfig(
+    repoRoot: string = process.cwd()
+): ProjectConfigFileEntry | null {
+    const file = {
+        fileName: IGNORED_LOCAL_PROJECT_CONFIG_FILENAME,
+        path: path.join(repoRoot, IGNORED_LOCAL_PROJECT_CONFIG_FILENAME),
+    } satisfies ProjectConfigFileEntry;
+    return fs.existsSync(file.path) ? file : null;
+}
+
+export function loadLocalProjectConfig(
+    repoRoot: string = process.cwd()
+): LoadedLocalProjectConfig | null {
+    const file = findLocalProjectConfig(repoRoot);
+    if (!file) {
+        return null;
+    }
+
+    let parsed: unknown;
+    try {
+        parsed = yaml.load(fs.readFileSync(file.path, 'utf8')) ?? {};
+    } catch (error) {
+        throw new ProjectConfigError(
+            `Failed to parse ${LOCAL_PROJECT_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+
+    const document = expectPlainObject(parsed, LOCAL_PROJECT_CONFIG_FILENAME);
+    const supportedKeys = new Set(['$schema', 'env', 'mounts', 'shell', 'customizations']);
+    const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key));
+    if (unsupportedKeys.length > 0) {
+        throw new ProjectConfigError(
+            `Unsupported local config keys in ${LOCAL_PROJECT_CONFIG_FILENAME}: ${unsupportedKeys.join(', ')}\nAllowed top-level keys: $schema, env, mounts, shell, customizations.`
+        );
+    }
+
+    return {
+        file,
+        selection: {
+            $schema: expectOptionalString(document.$schema, '$schema'),
+            env: parseProjectEnv(document.env),
+            mounts: parseMounts(document.mounts),
+            shell: parseProjectShell(document.shell),
+            customizations: parseCustomizations(document.customizations),
+        },
+    };
+}
+
 export function loadProjectConfig(
     overlaysConfig: OverlaysConfig,
     repoRoot: string = process.cwd()
@@ -763,6 +838,92 @@ export function loadProjectConfig(
     }
 
     return { file, selection };
+}
+
+function mergePlainObjects<T extends Record<string, any>>(
+    base: T | undefined,
+    local: T | undefined
+): T | undefined {
+    if (!base && !local) return undefined;
+    const output: Record<string, any> = { ...(base ?? {}) };
+    for (const [key, value] of Object.entries(local ?? {})) {
+        const existing = output[key];
+        if (
+            existing &&
+            value &&
+            typeof existing === 'object' &&
+            typeof value === 'object' &&
+            !Array.isArray(existing) &&
+            !Array.isArray(value)
+        ) {
+            output[key] = mergePlainObjects(existing, value);
+        } else {
+            output[key] = value;
+        }
+    }
+    return output as T;
+}
+
+function mergeCustomizationConfig(
+    base: CustomizationConfig | undefined,
+    local: CustomizationConfig | undefined
+): CustomizationConfig | undefined {
+    if (!base && !local) return undefined;
+    return {
+        devcontainerPatch: mergePlainObjects(base?.devcontainerPatch, local?.devcontainerPatch),
+        dockerComposePatch: mergePlainObjects(base?.dockerComposePatch, local?.dockerComposePatch),
+        environmentVars: mergePlainObjects(base?.environmentVars, local?.environmentVars),
+        scripts:
+            base?.scripts || local?.scripts
+                ? {
+                      postCreate: [
+                          ...(base?.scripts?.postCreate ?? []),
+                          ...(local?.scripts?.postCreate ?? []),
+                      ],
+                      postStart: [
+                          ...(base?.scripts?.postStart ?? []),
+                          ...(local?.scripts?.postStart ?? []),
+                      ],
+                  }
+                : undefined,
+        files: [...(base?.files ?? []), ...(local?.files ?? [])],
+    };
+}
+
+export function materializeLocalCustomizationConfig(
+    input: ProjectConfigCustomizationsInput | undefined
+): CustomizationConfig | undefined {
+    return input ? materializeCustomizationConfig(input) : undefined;
+}
+
+export function applyLocalConfigToAnswers<T extends QuestionnaireAnswers>(
+    answers: T,
+    local: LocalProjectConfigSelection | undefined
+): T {
+    if (!local) {
+        return answers;
+    }
+
+    const localCustomizations = materializeLocalCustomizationConfig(local.customizations);
+    return {
+        ...answers,
+        projectEnv: mergePlainObjects(answers.projectEnv, local.env),
+        projectMounts: [...(answers.projectMounts ?? []), ...(local.mounts ?? [])],
+        projectShell:
+            answers.projectShell || local.shell
+                ? {
+                      aliases: mergePlainObjects(
+                          answers.projectShell?.aliases,
+                          local.shell?.aliases
+                      ),
+                      snippets: [
+                          ...(answers.projectShell?.snippets ?? []),
+                          ...(local.shell?.snippets ?? []),
+                      ],
+                  }
+                : undefined,
+        customizations: mergeCustomizationConfig(answers.customizations, localCustomizations),
+    } as T;
 }
 
 export function buildAnswersFromProjectConfig(

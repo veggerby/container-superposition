@@ -16,6 +16,43 @@ guarantee reproducible devcontainer builds across your team and CI.
 The tool searches the repository root for `superposition.yml` then `.superposition.yml`. If both
 exist, it fails with an error — keep only one.
 
+## Local config: `superposition.local.yml`
+
+Use `superposition.local.yml` for machine-specific mounts, env, shell aliases, or editor
+customizations that should not be committed to shared config.
+
+Place `superposition.local.yml` in the repository root, beside `superposition.yml` or
+`.superposition.yml`. Supported top-level fields are `$schema`, `env`, `mounts`, `shell`, and
+`customizations`.
+
+```yaml
+$schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.local.schema.json
+
+mounts:
+    - source: ${HOME}/.codex
+      destination: /home/vscode/.codex
+      type: bind
+      target: devcontainerMount
+```
+
+Local config applies after shared project config, so local map/scalar values override shared values
+for generated output only. Local arrays append using existing merge behavior.
+
+Git safety:
+
+- Keep `superposition.local.yml` out of Git. The tool auto-adds it to root `.gitignore` when local
+  config is present; if that write fails, add `superposition.local.yml` manually.
+- Prefer `devcontainerGitignore: true` in shared project config when using local config.
+- Ignored files already tracked by Git remain tracked. To untrack generated output for the default
+  path, run:
+
+```bash
+git rm -r --cached -- .devcontainer
+```
+
+`.superposition.local.yml` is unsupported and ignored. Rename it to `superposition.local.yml` in
+repository root to use local config.
+
 ---
 
 ## Reference

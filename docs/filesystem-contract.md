@@ -21,6 +21,7 @@ your-project/
 │       ├── devcontainer.patch.json
 │       └── docker-compose.patch.yml
 ├── superposition.json           # Manifest file (enables regeneration)
+├── superposition.local.yml      # Optional local config (gitignored, not shared)
 ├── .gitpod.yml                  # Gitpod workspace config (--target gitpod only)
 ├── devpod.yaml                  # DevPod workspace descriptor (--target devpod only)
 └── .devcontainer.backup-*/      # Automatic backups (gitignored)
@@ -29,7 +30,8 @@ your-project/
 ## Files You Should Customize
 
 - `.devcontainer/.env` or `.env` (copied from `.env.example`)
-- `.devcontainer/custom/` (your patches and scripts)
+- `.devcontainer/custom/` (shared project patches and scripts)
+- `superposition.local.yml` (local config for machine-specific generated-output enrichment; keep gitignored)
 
 ## Files Safe to Edit Directly
 
@@ -46,10 +48,18 @@ your-project/
 
 ## Files You Should Commit
 
+- `superposition.yml` or `.superposition.yml`
 - `superposition.json`
-- `.devcontainer/` (generated configuration)
+- `.devcontainer/` only when your repository intentionally commits generated output
 - `.devcontainer/custom/` (project-specific patches)
 - `.devcontainer/.env.example`
+
+Do not commit `superposition.local.yml` or generated output containing local-only settings. Prefer
+`devcontainerGitignore: true`; if generated output was already tracked, untrack generated output:
+
+```bash
+git rm -r --cached -- .devcontainer
+```
 
 ## Files in .gitignore
 
@@ -60,4 +70,7 @@ your-project/
 
 # Regeneration backups (local only)
 .devcontainer.backup-*
+
+# Local config (personal generated-output enrichment)
+superposition.local.yml
 ```
