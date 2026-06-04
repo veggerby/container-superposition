@@ -256,7 +256,7 @@ describe('Local superposition config', () => {
             'superposition.local.yml'
         );
         expect(fs.readFileSync(path.join(repoDir, '.devcontainer', '.gitignore'), 'utf8')).toBe(
-            '*\n!.gitignore\n'
+            '*\n'
         );
     });
 

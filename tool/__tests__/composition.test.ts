@@ -786,7 +786,7 @@ describe('Gitignore - first-class overlay support', () => {
 
         const gitignorePath = path.join(outputPath, '.gitignore');
         expect(fs.existsSync(gitignorePath)).toBe(true);
-        expect(fs.readFileSync(gitignorePath, 'utf-8')).toBe('*\n!.gitignore\n');
+        expect(fs.readFileSync(gitignorePath, 'utf-8')).toBe('*\n');
 
         fs.rmSync(projectRoot, { recursive: true });
     });
@@ -819,9 +819,7 @@ describe('Gitignore - first-class overlay support', () => {
         };
         await composeDevContainer(withoutGitignore);
         expect(fs.readFileSync(path.join(outputPath, '.gitignore'), 'utf-8')).toContain('.env');
-        expect(fs.readFileSync(path.join(outputPath, '.gitignore'), 'utf-8')).not.toBe(
-            '*\n!.gitignore\n'
-        );
+        expect(fs.readFileSync(path.join(outputPath, '.gitignore'), 'utf-8')).not.toBe('*\n');
 
         fs.rmSync(projectRoot, { recursive: true });
     });

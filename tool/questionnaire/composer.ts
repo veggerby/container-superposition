@@ -1979,7 +1979,7 @@ function mergeGitignoreFiles(outputPath: string, overlays: string[], overlaysDir
 
 function ensureOutputGitignore(outputPath: string): boolean {
     const gitignorePath = path.join(outputPath, '.gitignore');
-    const content = '*\n!.gitignore\n';
+    const content = '*\n';
 
     if (fs.existsSync(gitignorePath) && fs.readFileSync(gitignorePath, 'utf-8') === content) {
         return false;

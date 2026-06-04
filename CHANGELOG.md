@@ -71,9 +71,6 @@ by any selected overlay):` informational block using the same `KEY=VALUE` per-li
 - **`devcontainerGitignore` project-file option** — when enabled in `superposition.yml`,
   generation writes `outputPath/.gitignore` with:
     - `*`
-    - `!.gitignore`
-      This keeps generated devcontainer artifacts out of Git while allowing the ignore file itself
-      to remain tracked.
 - **`ports` field in `superposition.yml`** — first-class project port declarations with stack-specific semantics
     - `stack: plain`: write a container port expression (`${VAR:-default}` or a number, no colon); resolved at generation time with `superposition.yml env` taking priority over root `.env`, then inline default
     - `stack: compose`: write a full `HOST:CONTAINER` binding; written **verbatim** to `docker-compose.yml` (no `${VAR}` expansion — Compose resolves at container startup); container port extracted best-effort for `forwardPorts`
