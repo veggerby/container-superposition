@@ -224,7 +224,9 @@ describe('Project Ports', () => {
             expect(devcontainer.forwardPorts).toContain(8080);
         });
 
-        it('throws ProjectConfigError for HOST:CONTAINER format on plain stack', async () => {
+        it('adds -p HOST:CONTAINER to runArgs when hostPort !== containerPort on plain stack', async () => {
+            const outputPath = path.join(repoDir, '.devcontainer');
+
             const answers: QuestionnaireAnswers = {
                 stack: 'plain',
                 baseImage: 'bookworm',
@@ -235,13 +237,51 @@ describe('Project Ports', () => {
                 cloudTools: [],
                 devTools: [],
                 observability: [],
-                outputPath: path.join(repoDir, '.devcontainer'),
-                projectPorts: [{ value: '${API_PORT:-8080}:8080' }],
+                outputPath,
+                projectPorts: [{ value: '${API_PORT:-9001}:8080' }],
             };
 
-            await expect(composeDevContainer(answers)).rejects.toThrow(
-                "ports[0]: stack 'plain' expects a container port expression (no colon)"
-            );
+            await composeDevContainer(answers);
+
+            const devcontainer = JSON.parse(
+                fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8')
+            ) as { forwardPorts?: number[]; runArgs?: string[] };
+
+            // container port 8080 should be in forwardPorts
+            expect(devcontainer.forwardPorts).toContain(8080);
+            expect(devcontainer.forwardPorts).not.toContain(9001);
+            // host→container mapping published via runArgs
+            expect(devcontainer.runArgs).toContain('-p');
+            expect(devcontainer.runArgs).toContain('9001:8080');
+        });
+
+        it('does not add runArgs when hostPort equals containerPort on plain stack', async () => {
+            const outputPath = path.join(repoDir, '.devcontainer');
+
+            const answers: QuestionnaireAnswers = {
+                stack: 'plain',
+                baseImage: 'bookworm',
+                language: [],
+                needsDocker: false,
+                database: [],
+                playwright: false,
+                cloudTools: [],
+                devTools: [],
+                observability: [],
+                outputPath,
+                projectPorts: [{ value: '8080:8080' }],
+            };
+
+            await composeDevContainer(answers);
+
+            const devcontainer = JSON.parse(
+                fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8')
+            ) as { forwardPorts?: number[]; runArgs?: string[] };
+
+            expect(devcontainer.forwardPorts).toContain(8080);
+            // no -p needed when host and container port are the same
+            const runArgs: string[] = devcontainer.runArgs ?? [];
+            expect(runArgs.includes('-p')).toBe(false);
         });
 
         it('throws ProjectConfigError for unresolvable reference (no default, absent everywhere)', async () => {

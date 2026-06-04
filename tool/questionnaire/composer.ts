@@ -1120,6 +1120,8 @@ interface PreparedProjectPort extends ProjectPort {
     containerPort?: number;
     /** Original verbatim binding string (compose stack only). */
     rawBinding?: string;
+    /** Resolved numeric host port for plain-stack HOST:CONTAINER bindings. */
+    hostPort?: number;
 }
 
 const PROJECT_ENV_REFERENCE_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/g;
@@ -1271,11 +1273,6 @@ function prepareProjectPorts(
 
     if (stack === 'plain') {
         return entries.map((entry, index): PreparedProjectPort => {
-            if (hasTopLevelColon(entry.value)) {
-                throw new ProjectConfigError(
-                    `ports[${index}]: stack 'plain' expects a container port expression (no colon), got "${entry.value}". Use "HOST:CONTAINER" format only on stack 'compose'.`
-                );
-            }
             const resolved = resolveWithPriorityEnv(entry.value, superpositionEnv, rootEnv).trim();
             if (hasUnresolvedProjectEnvReference(resolved)) {
                 const varMatch = resolved.match(/\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/);
@@ -1284,6 +1281,35 @@ function prepareProjectPorts(
                 throw new ProjectConfigError(
                     `ports[${index}]: cannot resolve "${rawExpr}" \u2014 variable '${varName}' not found in superposition.yml env, root .env, or inline default.`
                 );
+            }
+            const colonIdx = resolved.indexOf(':');
+            if (colonIdx !== -1) {
+                // HOST:CONTAINER format — publish via runArgs (-p HOST:CONTAINER)
+                const hostPart = resolved.slice(0, colonIdx).trim();
+                const containerPart = resolved.slice(colonIdx + 1).trim();
+                if (!/^\d+$/.test(hostPart)) {
+                    throw new ProjectConfigError(
+                        `ports[${index}]: resolved host port "${hostPart}" is not a valid port number (expected integer 1\u201365535).`
+                    );
+                }
+                if (!/^\d+$/.test(containerPart)) {
+                    throw new ProjectConfigError(
+                        `ports[${index}]: resolved container port "${containerPart}" is not a valid port number (expected integer 1\u201365535).`
+                    );
+                }
+                const hostPort = Number.parseInt(hostPart, 10);
+                const containerPort = Number.parseInt(containerPart, 10);
+                if (hostPort < 1 || hostPort > 65535) {
+                    throw new ProjectConfigError(
+                        `ports[${index}]: resolved host port ${hostPort} is out of range (must be 1\u201365535).`
+                    );
+                }
+                if (containerPort < 1 || containerPort > 65535) {
+                    throw new ProjectConfigError(
+                        `ports[${index}]: resolved container port ${containerPort} is out of range (must be 1\u201365535).`
+                    );
+                }
+                return { ...entry, containerPort, hostPort };
             }
             if (!/^\d+$/.test(resolved)) {
                 throw new ProjectConfigError(
@@ -1330,6 +1356,29 @@ function applyProjectPortsToDevcontainer(
         }
     }
     config.forwardPorts = existingForwardPorts as number[];
+
+    // For plain-stack HOST:CONTAINER bindings, publish the mapping via runArgs (-p HOST:CONTAINER)
+    const plainBindings = preparedProjectPorts.filter(
+        (port) =>
+            port.hostPort !== undefined &&
+            port.containerPort !== undefined &&
+            port.hostPort !== port.containerPort
+    );
+    if (plainBindings.length > 0) {
+        const existingRunArgs: string[] = Array.isArray(config.runArgs) ? [...config.runArgs] : [];
+        for (const port of plainBindings) {
+            const pFlag = '-p';
+            const mapping = `${port.hostPort}:${port.containerPort}`;
+            // Check if this exact -p mapping is already present (consecutive pair)
+            const alreadyPresent = existingRunArgs.some(
+                (arg, i) => arg === pFlag && existingRunArgs[i + 1] === mapping
+            );
+            if (!alreadyPresent) {
+                existingRunArgs.push(pFlag, mapping);
+            }
+        }
+        config.runArgs = existingRunArgs;
+    }
 
     const nextPortAttributes = { ...(config.portsAttributes ?? {}) };
     for (const port of preparedProjectPorts) {
