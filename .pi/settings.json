@@ -1,5 +1,4 @@
 {
     "enableSkillCommands": true,
-    "enableInstallTelemetry": false,
-    "extensions": ["extensions/subagent"]
+    "enableInstallTelemetry": false
 }

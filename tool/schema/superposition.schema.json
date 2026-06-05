@@ -197,13 +197,51 @@
                         "properties": {
                             "value": {
                                 "type": "string",
-                                "description": "Variable value (supports ${VAR} and ${VAR:-default} syntax)"
+                                "description": "Variable value. Supports {{cs.KEY}} parameter tokens (resolved at generation time) and ${VAR:-default} Docker Compose expressions (resolved at container start)."
                             },
                             "target": {
                                 "type": "string",
                                 "enum": ["auto", "remoteEnv", "composeEnv"],
                                 "description": "auto (default): plain→remoteEnv, compose→docker-compose environment; remoteEnv: always devcontainer.json; composeEnv: always docker-compose (compose only)",
                                 "default": "auto"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "ports": {
+            "type": "array",
+            "description": "Project port bindings. Applied to devcontainer.json forwardPorts and portsAttributes. Compose-stack bindings are written verbatim to docker-compose.yml (${VAR} is not expanded — Compose resolves at startup). Plain-stack HOST:CONTAINER bindings publish via runArgs (-p HOST:CONTAINER). These ports are not affected by portOffset.",
+            "items": {
+                "oneOf": [
+                    {
+                        "type": "string",
+                        "description": "Port binding in docker-compose short syntax (e.g. ${API_PORT:-8080}:8080)"
+                    },
+                    {
+                        "type": "object",
+                        "required": ["value"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "value": {
+                                "type": "string",
+                                "description": "Port binding in docker-compose short syntax (e.g. ${API_PORT:-8080}:8080)"
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "Optional devcontainer.json portsAttributes label for the forwarded container port"
+                            },
+                            "onAutoForward": {
+                                "type": "string",
+                                "enum": [
+                                    "notify",
+                                    "openBrowser",
+                                    "openPreview",
+                                    "silent",
+                                    "ignore"
+                                ],
+                                "description": "Optional devcontainer.json portsAttributes onAutoForward action"
                             }
                         }
                     }

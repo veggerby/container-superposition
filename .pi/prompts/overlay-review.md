@@ -1,12 +1,10 @@
 ---
-description: Review one changed container-superposition overlay using the project overlay reviewer subagent
+description: Review one changed container-superposition overlay using the project overlay reviewer agent
 argument-hint: '<overlay-id-or-path>'
 ---
 
-Use `subagent` with exact args:
+Invoke the `overlay-reviewer` agent with:
 
-- `agent: "overlay-reviewer"`
-- `agentScope: "project"`
 - `cwd: "/workspaces/container-superposition"`
 
 Task:

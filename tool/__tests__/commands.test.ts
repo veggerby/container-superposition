@@ -12,6 +12,8 @@ import { explainCommand } from '../commands/explain.js';
 import { planCommand, generatePlanDiff } from '../commands/plan.js';
 import { doctorCommand } from '../commands/doctor.js';
 import { hashCommand, computeHash } from '../commands/hash.js';
+import { composeDevContainer } from '../questionnaire/composer.js';
+import type { QuestionnaireAnswers } from '../schema/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1489,7 +1491,9 @@ describe('Command Tests', () => {
 
                 const output = consoleLogSpy.mock.calls.join('\n');
                 expect(output).toContain('Parameters:');
-                expect(output).toContain('Unknown parameters in project file');
+                expect(output).toContain(
+                    'Project-only parameters (not declared by any selected overlay)'
+                );
                 expect(output).toContain('STALE_KEY_FROM_REMOVED_OVERLAY');
             } finally {
                 fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -2885,5 +2889,93 @@ describe('Command Tests', () => {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }
         });
+    });
+});
+
+describe('Ad-hoc project parameter console output (AC4)', () => {
+    const overlaysConfig = loadOverlaysConfig(
+        path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'overlays'),
+        path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'overlays', 'index.yml')
+    );
+    const OVERLAYS_DIR_LOCAL = path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        '..',
+        '..',
+        'overlays'
+    );
+
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    let repoDir: string;
+
+    beforeEach(() => {
+        repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'adhoc-console-'));
+        consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        fs.rmSync(repoDir, { recursive: true, force: true });
+        vi.restoreAllMocks();
+    });
+
+    it('shows project-only parameters in separate block, not in overlay block, no unknown warning (AC4)', async () => {
+        // postgres overlay declares POSTGRES_* params; API_PORT and WEB_DEV_PORT are project-only.
+        const outputPath = path.join(repoDir, '.devcontainer');
+        const answers: QuestionnaireAnswers = {
+            stack: 'compose',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: ['postgres'],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            overlayParameters: {
+                POSTGRES_DB: 'myapp',
+                POSTGRES_USER: 'myapp',
+                POSTGRES_PASSWORD: 'pass',
+                POSTGRES_PORT: '5432',
+                POSTGRES_VERSION: '16',
+                API_PORT: '8088',
+                WEB_DEV_PORT: '5173',
+            },
+        };
+
+        await composeDevContainer(answers, OVERLAYS_DIR_LOCAL, { isRegen: true });
+
+        const output = consoleLogSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+
+        // Must NOT contain old warning text
+        expect(output).not.toContain('Unknown overlay parameters');
+
+        // Must contain project-only header
+        expect(output).toContain(
+            '⚙️  Project-only parameters (not declared by any selected overlay):'
+        );
+
+        // API_PORT and WEB_DEV_PORT must appear as individual KEY=VALUE lines (6-space indent)
+        expect(output).toContain('      API_PORT=8088');
+        expect(output).toContain('      WEB_DEV_PORT=5173');
+
+        // API_PORT must NOT appear in the overlay parameters block.
+        // Strategy: find the overlay block, extract text up to the project-only block header,
+        // and verify API_PORT is absent from that segment.
+        const overlayBlockHeader = '⚙️  Overlay parameters:';
+        const projectOnlyBlockHeader =
+            '⚙️  Project-only parameters (not declared by any selected overlay):';
+        const overlayStart = output.indexOf(overlayBlockHeader);
+        const projectOnlyStart = output.indexOf(projectOnlyBlockHeader);
+        expect(overlayStart).toBeGreaterThan(-1);
+        expect(projectOnlyStart).toBeGreaterThan(overlayStart);
+
+        const overlayBlock = output.slice(overlayStart, projectOnlyStart);
+        expect(overlayBlock).not.toContain('API_PORT');
+        expect(overlayBlock).not.toContain('WEB_DEV_PORT');
+
+        // Overlay block DOES contain postgres params
+        expect(overlayBlock).toContain('POSTGRES_DB=myapp');
     });
 });

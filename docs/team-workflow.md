@@ -105,7 +105,6 @@ This writes:
 
 ```gitignore
 *
-!.gitignore
 ```
 
 When using local config, add `superposition.local.yml` to root `.gitignore` (the tool does this

@@ -23,6 +23,7 @@ import {
     TARGET_VALUES,
     EDITOR_VALUES,
     PROJECT_ENV_TARGET_VALUES,
+    PROJECT_PORT_AUTO_FORWARD_VALUES,
     PROJECT_MOUNT_TARGET_VALUES,
     SUPERPOSITION_LOCAL_SCHEMA_URL,
 } from '../tool/schema/project-config.js';
@@ -76,6 +77,7 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
 
     const mountTargetValues = [...PROJECT_MOUNT_TARGET_VALUES];
     const envTargetValues = [...PROJECT_ENV_TARGET_VALUES];
+    const portAutoForwardValues = [...PROJECT_PORT_AUTO_FORWARD_VALUES];
 
     const mountEntry = {
         oneOf: [
@@ -159,7 +161,8 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                 properties: {
                     value: {
                         type: 'string',
-                        description: 'Variable value (supports ${VAR} and ${VAR:-default} syntax)',
+                        description:
+                            'Variable value. Supports {{cs.KEY}} parameter tokens (resolved at generation time) and ${VAR:-default} Docker Compose expressions (resolved at container start).',
                     },
                     target: {
                         type: 'string',
@@ -275,6 +278,43 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                 description:
                     'Runtime environment variables. Routed to devcontainer.json remoteEnv or docker-compose environment based on stack and target.',
                 additionalProperties: envVarEntry,
+            },
+            ports: {
+                type: 'array',
+                description:
+                    'Project port bindings. Applied to devcontainer.json forwardPorts and portsAttributes. Compose-stack bindings are written verbatim to docker-compose.yml (${VAR} is not expanded — Compose resolves at startup). Plain-stack HOST:CONTAINER bindings publish via runArgs (-p HOST:CONTAINER). These ports are not affected by portOffset.',
+                items: {
+                    oneOf: [
+                        {
+                            type: 'string',
+                            description:
+                                'Port binding in docker-compose short syntax (e.g. ${API_PORT:-8080}:8080)',
+                        },
+                        {
+                            type: 'object',
+                            required: ['value'],
+                            additionalProperties: false,
+                            properties: {
+                                value: {
+                                    type: 'string',
+                                    description:
+                                        'Port binding in docker-compose short syntax (e.g. ${API_PORT:-8080}:8080)',
+                                },
+                                label: {
+                                    type: 'string',
+                                    description:
+                                        'Optional devcontainer.json portsAttributes label for the forwarded container port',
+                                },
+                                onAutoForward: {
+                                    type: 'string',
+                                    enum: portAutoForwardValues,
+                                    description:
+                                        'Optional devcontainer.json portsAttributes onAutoForward action',
+                                },
+                            },
+                        },
+                    ],
+                },
             },
             mounts: {
                 oneOf: [

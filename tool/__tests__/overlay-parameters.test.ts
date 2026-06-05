@@ -10,6 +10,8 @@ import {
     substituteParametersInObject,
     findUnresolvedTokens,
     redactSensitiveValues,
+    substituteProjectEnvTokens,
+    validateEnvTokensResolved,
 } from '../utils/parameters.js';
 import type { OverlayMetadata } from '../schema/types.js';
 
@@ -117,12 +119,33 @@ describe('resolveParameters', () => {
         const declared = {
             KNOWN: { description: 'Known', default: 'val', overlayId: 'postgres' },
         };
-        const { unknownSupplied } = resolveParameters(declared, {
+        const { values, unknownSupplied } = resolveParameters(declared, {
             KNOWN: 'x',
             UNKNOWN_PARAM: 'y',
         });
         expect(unknownSupplied).toContain('UNKNOWN_PARAM');
         expect(unknownSupplied).not.toContain('KNOWN');
+        // Ad-hoc keys are now included in values
+        expect(values['UNKNOWN_PARAM']).toBe('y');
+    });
+
+    it('includes ad-hoc supplied keys in values', () => {
+        const { values, unknownSupplied } = resolveParameters({}, { API_PORT: '8088' });
+        expect(values.API_PORT).toBe('8088');
+        expect(unknownSupplied).toContain('API_PORT');
+    });
+
+    it('ad-hoc keys coexist with overlay-declared keys', () => {
+        const declared = {
+            POSTGRES_PORT: { description: 'port', default: '5432', overlayId: 'postgres' },
+        };
+        const { values, unknownSupplied } = resolveParameters(declared, {
+            POSTGRES_PORT: '5433',
+            API_PORT: '8088',
+        });
+        expect(values.POSTGRES_PORT).toBe('5433');
+        expect(values.API_PORT).toBe('8088');
+        expect(unknownSupplied).toEqual(['API_PORT']);
     });
 
     it('handles empty declared and supplied maps', () => {
@@ -273,5 +296,91 @@ describe('substituteParametersInObject', () => {
         expect(result.note).toBe('say "hello"\\world');
         const json = JSON.stringify(result);
         expect(json).toContain('\\"hello\\"');
+    });
+});
+
+describe('substituteProjectEnvTokens', () => {
+    it('substitutes {{cs.KEY}} in string-shorthand value', () => {
+        const result = substituteProjectEnvTokens(
+            { DB: { value: '{{cs.PGUSER}}:{{cs.PGPORT}}' } },
+            { PGUSER: 'admin', PGPORT: '5432' }
+        );
+        expect(result.DB.value).toBe('admin:5432');
+    });
+
+    it('substitutes {{cs.KEY}} in long-form value (preserves target)', () => {
+        const result = substituteProjectEnvTokens(
+            { DB: { value: '{{cs.PGUSER}}', target: 'composeEnv' } },
+            { PGUSER: 'admin' }
+        );
+        expect(result.DB.value).toBe('admin');
+        expect(result.DB.target).toBe('composeEnv');
+    });
+
+    it('does NOT touch ${VAR:-default} expressions', () => {
+        const result = substituteProjectEnvTokens(
+            { PW: { value: '${PW:-changeme}' } },
+            { PW: 'should-not-touch' }
+        );
+        expect(result.PW.value).toBe('${PW:-changeme}');
+    });
+
+    it('does NOT touch ${containerEnv:KEY} expressions', () => {
+        const result = substituteProjectEnvTokens(
+            { PATH: { value: '/usr/local/bin:${containerEnv:PATH}' } },
+            { PATH: 'overridden' }
+        );
+        expect(result.PATH.value).toBe('/usr/local/bin:${containerEnv:PATH}');
+    });
+
+    it('returns empty object when projectEnv is undefined', () => {
+        expect(substituteProjectEnvTokens(undefined, {})).toEqual({});
+    });
+
+    it('does not mutate the original projectEnv map', () => {
+        const original = { X: { value: '{{cs.KEY}}' } };
+        substituteProjectEnvTokens(original, { KEY: 'resolved' });
+        expect(original.X.value).toBe('{{cs.KEY}}');
+    });
+});
+
+describe('validateEnvTokensResolved', () => {
+    it('throws with field name and token when token unresolved', () => {
+        expect(() =>
+            validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, { KNOWN: 'val' })
+        ).toThrow(/env\.FOO.*\{\{cs\.MISSING\}\}/);
+    });
+
+    it('error message says "Resolved parameters" not "Declared parameters"', () => {
+        expect(() =>
+            validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, { API_PORT: '8088' })
+        ).toThrow(/Resolved parameters: API_PORT/);
+        expect(() =>
+            validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, { API_PORT: '8088' })
+        ).not.toThrow(/Declared parameters for selected overlays/);
+    });
+
+    it('falls back to (none) when resolved map is empty', () => {
+        expect(() => validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, {})).toThrow(
+            /Resolved parameters: \(none\)/
+        );
+    });
+
+    it('error message includes declared parameter keys', () => {
+        expect(() =>
+            validateEnvTokensResolved({ FOO: { value: '{{cs.MISSING}}' } }, { KNOWN: 'val' })
+        ).toThrow(/KNOWN/);
+    });
+
+    it('does not throw when all tokens are resolved', () => {
+        expect(() =>
+            validateEnvTokensResolved({ FOO: { value: 'clean-value' } }, {})
+        ).not.toThrow();
+    });
+
+    it('does not throw for ${VAR} expressions (pass-through)', () => {
+        expect(() =>
+            validateEnvTokensResolved({ FOO: { value: '${SOME_VAR:-default}' } }, {})
+        ).not.toThrow();
     });
 });

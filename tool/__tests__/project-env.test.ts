@@ -183,3 +183,142 @@ describe('Project Env', () => {
         await expect(composeDevContainer(answers)).rejects.toThrow(/requires stack: compose/);
     });
 });
+
+describe('Parameter token substitution in env: values', () => {
+    const overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+    let repoDir: string;
+
+    beforeEach(() => {
+        repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'param-token-env-'));
+    });
+
+    afterEach(() => {
+        fs.rmSync(repoDir, { recursive: true, force: true });
+    });
+
+    it('resolves {{cs.KEY}} in env: value using postgres overlay parameters (compose stack)', async () => {
+        const outputPath = path.join(repoDir, '.devcontainer');
+        // postgres overlay declares POSTGRES_USER, POSTGRES_DB, POSTGRES_PORT (compose-only overlay)
+        const answers: QuestionnaireAnswers = {
+            stack: 'compose',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: ['postgres'],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            overlayParameters: {
+                POSTGRES_USER: 'testuser',
+                POSTGRES_PORT: '5433',
+                POSTGRES_DB: 'testdb',
+                POSTGRES_PASSWORD: 'pass',
+                POSTGRES_VERSION: '16',
+            },
+            // Use target: remoteEnv so the resolved value appears in devcontainer.json
+            projectEnv: {
+                DB_LABEL: {
+                    value: '{{cs.POSTGRES_USER}}:{{cs.POSTGRES_PORT}}/{{cs.POSTGRES_DB}}',
+                    target: 'remoteEnv',
+                },
+            },
+        };
+        await composeDevContainer(answers, OVERLAYS_DIR, { isRegen: true });
+        const dc = JSON.parse(fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8'));
+        expect(dc.remoteEnv.DB_LABEL).toBe('testuser:5433/testdb');
+        // No {{cs.*}} tokens survive to output
+        expect(JSON.stringify(dc)).not.toMatch(/\{\{cs\./);
+    });
+
+    it('does NOT substitute ${VAR:-default} via {{cs.KEY}} engine (pass-through at unit level verified separately)', async () => {
+        // The {{cs.KEY}} substitution engine must NOT touch ${VAR:-default} expressions.
+        // This is verified at unit level in overlay-parameters.test.ts.
+        // Integration: env: value with only a ${VAR} expression (no {{cs.KEY}} tokens)
+        // should produce no generated files with {{cs.*}} tokens.
+        const outputPath = path.join(repoDir, '.devcontainer');
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            // No {{cs.*}} tokens — only a ${VAR} runtime expression
+            projectEnv: { MY_VAR: { value: '${MY_VAR:-fallback}' } },
+        };
+        await composeDevContainer(answers, OVERLAYS_DIR, { isRegen: true });
+        const dc = JSON.parse(fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8'));
+        // No {{cs.*}} tokens in any generated output
+        expect(JSON.stringify(dc)).not.toMatch(/\{\{cs\./);
+    });
+
+    it('resolves ad-hoc project-only parameters (API_PORT/WEB_DEV_PORT) in env: values end-to-end (AC1)', async () => {
+        // No overlay declares API_PORT or WEB_DEV_PORT — these are project-only parameters.
+        // Verifies the composeDevContainer → resolveParameters → substituteParametersInObject path.
+        const outputPath = path.join(repoDir, '.devcontainer');
+        const answers: QuestionnaireAnswers = {
+            stack: 'plain',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            overlayParameters: {
+                API_PORT: '8088',
+                WEB_DEV_PORT: '5173',
+            },
+            projectEnv: {
+                VITE_API_URL: {
+                    value: 'http://localhost:{{cs.API_PORT}}',
+                    target: 'remoteEnv',
+                },
+                API_PORT: { value: '{{cs.API_PORT}}', target: 'remoteEnv' },
+                WEB_DEV_PORT: { value: '{{cs.WEB_DEV_PORT}}', target: 'remoteEnv' },
+            },
+        };
+        await composeDevContainer(answers, OVERLAYS_DIR, { isRegen: true });
+        const dc = JSON.parse(fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8'));
+        expect(dc.remoteEnv.VITE_API_URL).toBe('http://localhost:8088');
+        expect(dc.remoteEnv.API_PORT).toBe('8088');
+        expect(dc.remoteEnv.WEB_DEV_PORT).toBe('5173');
+        // No {{cs.*}} tokens survive to any generated file
+        expect(JSON.stringify(dc)).not.toMatch(/\{\{cs\./);
+    });
+
+    it('throws hard error before writing files when {{cs.KEY}} token unresolved', async () => {
+        const outputPath = path.join(repoDir, '.devcontainer');
+        const answers: QuestionnaireAnswers = {
+            stack: 'compose',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: ['postgres'],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            overlayParameters: {
+                POSTGRES_USER: 'u',
+                POSTGRES_PORT: '5432',
+                POSTGRES_DB: 'db',
+                POSTGRES_PASSWORD: 'pw',
+                POSTGRES_VERSION: '16',
+            },
+            projectEnv: { FOO: { value: '{{cs.MISSING_PARAM}}' } },
+        };
+        await expect(composeDevContainer(answers, OVERLAYS_DIR, { isRegen: true })).rejects.toThrow(
+            /env\.FOO/
+        );
+    });
+});

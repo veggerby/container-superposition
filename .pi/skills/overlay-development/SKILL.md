@@ -5,7 +5,7 @@ description: Container-superposition overlay development guidance. Use when crea
 
 # Overlay Development
 
-Use this skill for overlay work in container-superposition. Prefer project subagents for large tasks:
+Use this skill for overlay work in container-superposition. Prefer project agents for large tasks:
 
 - `overlay-writer` — create or modify overlays
 - `overlay-reviewer` — review one overlay

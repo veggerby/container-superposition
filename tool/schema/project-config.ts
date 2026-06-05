@@ -20,6 +20,8 @@ import type {
     ProjectShellConfig,
     ProjectConfigCustomizationsInput,
     ProjectConfigFileEntry,
+    ProjectPort,
+    ProjectPortAutoForwardAction,
     ProjectConfigSelection,
     QuestionnaireAnswers,
     Stack,
@@ -56,6 +58,13 @@ export const BASE_IMAGE_VALUES: BaseImage[] = ['bookworm', 'trixie', 'alpine', '
 export const TARGET_VALUES: DeploymentTarget[] = ['local', 'codespaces', 'gitpod', 'devpod'];
 export const EDITOR_VALUES: EditorProfile[] = ['vscode', 'jetbrains', 'none'];
 export const PROJECT_ENV_TARGET_VALUES: ProjectEnvTarget[] = ['auto', 'remoteEnv', 'composeEnv'];
+export const PROJECT_PORT_AUTO_FORWARD_VALUES: ProjectPortAutoForwardAction[] = [
+    'notify',
+    'openBrowser',
+    'openPreview',
+    'silent',
+    'ignore',
+];
 export const PROJECT_MOUNT_TARGET_VALUES: ProjectMountTarget[] = [
     'auto',
     'devcontainerMount',
@@ -439,6 +448,47 @@ function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefi
     return Object.keys(parsed).length > 0 ? parsed : undefined;
 }
 
+function parseProjectPorts(value: unknown): ProjectPort[] | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    if (!Array.isArray(value)) {
+        throw new ProjectConfigError(
+            `ports: must be an array of port expressions (plain) or port bindings (compose).`
+        );
+    }
+
+    if (value.length === 0) {
+        return undefined;
+    }
+
+    const parsed = value.map((entry, index): ProjectPort => {
+        if (typeof entry === 'string') {
+            return { value: expectString(entry, `ports[${index}]`) };
+        }
+
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            throw new ProjectConfigError(
+                `ports[${index}]: each entry must be a string or an object with a 'value' key.`
+            );
+        }
+
+        const record = expectPlainObject(entry, `ports[${index}]`);
+        return {
+            value: expectString(record.value, `ports[${index}].value`),
+            label: expectOptionalString(record.label, `ports[${index}].label`),
+            onAutoForward: expectOptionalEnum(
+                record.onAutoForward,
+                `ports[${index}].onAutoForward`,
+                PROJECT_PORT_AUTO_FORWARD_VALUES
+            ),
+        };
+    });
+
+    return parsed.length > 0 ? parsed : undefined;
+}
+
 /**
  * Normalize the raw `mounts` YAML value into an array of `ProjectMount` objects.
  *
@@ -736,6 +786,7 @@ export function loadProjectConfig(
         'editor',
         'devcontainerGitignore',
         'env',
+        'ports',
         'mounts',
         'shell',
         'customizations',
@@ -773,6 +824,7 @@ export function loadProjectConfig(
             'devcontainerGitignore'
         ),
         env: parseProjectEnv(document.env),
+        ports: parseProjectPorts(document.ports),
         mounts: parseMounts(document.mounts),
         shell: parseProjectShell(document.shell),
         customizations: parseCustomizations(document.customizations),
@@ -901,6 +953,7 @@ export function buildAnswersFromProjectConfig(
         editor: selection.editor,
         devcontainerGitignore: selection.devcontainerGitignore,
         projectEnv: selection.env,
+        projectPorts: selection.ports,
         projectMounts: selection.mounts,
         projectShell: selection.shell,
         customizations: selection.customizations
@@ -977,6 +1030,7 @@ export function buildProjectConfigSelectionFromAnswers(
         editor: answers.editor,
         devcontainerGitignore: answers.devcontainerGitignore,
         env: answers.projectEnv,
+        ports: answers.projectPorts?.length ? answers.projectPorts : undefined,
         mounts: answers.projectMounts?.length ? answers.projectMounts : undefined,
         shell: answers.projectShell,
         customizations: buildProjectConfigCustomizationsFromAnswers(answers.customizations),
@@ -1054,6 +1108,22 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
                     : entry.value,
             ])
         );
+    }
+
+    if (selection.ports && selection.ports.length > 0) {
+        document.ports = selection.ports.map((entry) => {
+            if (!entry.label && !entry.onAutoForward) {
+                return entry.value;
+            }
+            const detailed: Record<string, unknown> = { value: entry.value };
+            if (entry.label) {
+                detailed.label = entry.label;
+            }
+            if (entry.onAutoForward) {
+                detailed.onAutoForward = entry.onAutoForward;
+            }
+            return detailed;
+        });
     }
 
     if (selection.mounts && selection.mounts.length > 0) {

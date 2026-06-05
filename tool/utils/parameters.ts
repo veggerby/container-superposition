@@ -12,7 +12,11 @@
  * If string.replace() can't do it, it doesn't belong here.
  */
 
-import type { OverlayMetadata, OverlayParameterDefinition } from '../schema/types.js';
+import type {
+    OverlayMetadata,
+    OverlayParameterDefinition,
+    ProjectEnvVar,
+} from '../schema/types.js';
 
 /** Regex matching ALL {{cs.KEY}} tokens (used for substitution and validation). */
 const CS_PARAM_REGEX = /\{\{cs\.([A-Z0-9_]+)\}\}/g;
@@ -92,6 +96,12 @@ export function resolveParameters(
     // Identify unknown supplied parameters (not declared by any overlay)
     const unknownSupplied = Object.keys(supplied).filter((key) => !(key in declared));
 
+    // Include ad-hoc (project-only) parameters in resolved values.
+    // Keys not declared by any overlay are valid user-defined parameters.
+    for (const key of unknownSupplied) {
+        values[key] = supplied[key];
+    }
+
     return { values, missingRequired, unknownSupplied };
 }
 
@@ -149,6 +159,44 @@ export function findUnresolvedTokens(content: string): string[] {
         found.push(match[0]);
     }
     return found;
+}
+
+/**
+ * Apply {{cs.KEY}} substitution to every ProjectEnvVar.value in the env map.
+ * Returns a new map; does not mutate the input.
+ * Only {{cs.*}} tokens are replaced — ${VAR} / ${containerEnv:KEY} etc. are unchanged.
+ */
+export function substituteProjectEnvTokens(
+    projectEnv: Record<string, ProjectEnvVar> | undefined,
+    resolved: Record<string, string>
+): Record<string, ProjectEnvVar> {
+    if (!projectEnv) return {};
+    const result: Record<string, ProjectEnvVar> = {};
+    for (const [key, entry] of Object.entries(projectEnv)) {
+        result[key] = { ...entry, value: substituteParameters(entry.value, resolved) };
+    }
+    return result;
+}
+
+/**
+ * After substituteProjectEnvTokens(), throw if any {{cs.*}} tokens remain.
+ * Reports the env key and token so the user can fix the source.
+ */
+export function validateEnvTokensResolved(
+    substitutedEnv: Record<string, ProjectEnvVar>,
+    resolvedParams: Record<string, string>
+): void {
+    const declaredKeys = Object.keys(resolvedParams).join(', ') || '(none)';
+    for (const [envKey, entry] of Object.entries(substitutedEnv)) {
+        const unresolved = findUnresolvedTokens(entry.value);
+        if (unresolved.length > 0) {
+            throw new Error(
+                `Unresolved parameter token in env.${envKey} value: ${unresolved[0]}\n` +
+                    `Resolved parameters: ${declaredKeys}\n` +
+                    `Add the missing parameter to superposition.yml parameters: or select an overlay that declares it.`
+            );
+        }
+    }
 }
 
 /**

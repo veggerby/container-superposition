@@ -185,11 +185,156 @@ env:
 | `remoteEnv`      | `devcontainer.json remoteEnv` | `devcontainer.json remoteEnv`                          |
 | `composeEnv`     | ❌ Error                      | `docker-compose.yml services.devcontainer.environment` |
 
-#### `${VAR}` references
+#### `${VAR}` and `{{cs.KEY}}` in env: values
 
-Values can reference variables from the root `.env` file using `${VAR}` or
-`${VAR:-default}` syntax. These are resolved at generation time and written into the
-appropriate output file.
+Two syntaxes are supported in `env:` values. They are resolved at different times:
+
+| Tier            | Syntax                       | Resolved by            | When             | Safe for secrets?                        |
+| --------------- | ---------------------------- | ---------------------- | ---------------- | ---------------------------------------- |
+| Generation-time | `{{cs.KEY}}`                 | This tool              | `regen` / `init` | No — value baked into generated file     |
+| Runtime         | `${VAR}` / `${VAR:-default}` | Docker Compose / shell | Container start  | Yes — value stays in `.env` (gitignored) |
+
+- **`{{cs.KEY}}`** references a project parameter from `parameters:`. The resolved value is
+  written verbatim into the generated output (`devcontainer.json`, `docker-compose.yml`,
+  `.devcontainer/.env`). **Never use `{{cs.KEY}}` for secrets.**
+- **`${VAR:-default}`** is a Docker Compose expression. For `stack: plain` it is resolved at
+  generation time using the root `.env`, then the inline default. For `stack: compose` it is
+  passed through verbatim to `docker-compose.yml`; Docker Compose resolves it at container
+  start using `.devcontainer/.env`.
+
+Decision tree:
+
+```
+Is the value the same for everyone on the team?
+  Yes → {{cs.KEY}} in env: value  (resolved at regen, baked in)
+  No  → ${VAR:-safe_default} in env: value  (each dev sets it in .env)
+
+Is the value a secret?
+  Yes → NEVER use {{cs.KEY}}; always ${VAR:-default}
+  No  → either syntax is acceptable
+```
+
+Example — build a `DATABASE_URL` from parameters (non-secret values):
+
+```yaml
+parameters:
+    POSTGRES_DB: myapp
+    POSTGRES_USER: myapp
+    POSTGRES_PORT: 5432
+
+env:
+    DATABASE_URL: 'postgresql://{{cs.POSTGRES_USER}}@postgres:{{cs.POSTGRES_PORT}}/{{cs.POSTGRES_DB}}'
+```
+
+After `cs regen`, `devcontainer.json remoteEnv.DATABASE_URL` equals
+`"postgresql://myapp@postgres:5432/myapp"`. No `{{cs.*}}` tokens appear in generated output.
+
+Example — secure pattern (password stays in `.env`):
+
+```yaml
+parameters:
+    POSTGRES_DB: myapp
+    POSTGRES_USER: myapp
+    POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:-changeme}'
+    POSTGRES_PORT: 5432
+
+env:
+    DATABASE_URL: 'postgresql://{{cs.POSTGRES_USER}}:${POSTGRES_PASSWORD:-changeme}@postgres:{{cs.POSTGRES_PORT}}/{{cs.POSTGRES_DB}}'
+```
+
+The password reference `${POSTGRES_PASSWORD:-changeme}` bypasses the parameter token — it
+stays unresolved by the tool and is handled by Docker Compose at runtime.
+
+---
+
+### `ports`
+
+Declare project-level ports once. Behavior depends on `stack`.
+
+#### `stack: plain` — container port expressions
+
+Write a container port number or `${VAR:-default}` expression. The tool **resolves** `${VAR}` at
+generation time using `superposition.yml env` first, then the root `.env`, then the inline default.
+
+You may also use `HOST:CONTAINER` format (e.g. `9001:8080`). When host and container ports differ,
+the tool adds `-p HOST:CONTAINER` to `devcontainer.json runArgs` so the host binding is honoured.
+The container port always goes into `forwardPorts`.
+
+Because a single `env` entry also drives `remoteEnv`, you get a single source of truth: change
+the value once and both `forwardPorts` and the container's runtime environment stay in sync.
+
+```yaml
+stack: plain
+env:
+    API_PORT: '9001' # sets both remoteEnv.API_PORT and resolves the port expression below
+ports:
+    - ${API_PORT:-8080} # resolves to 9001; forwarded as-is
+    - 9001:8080 # host 9001 → container 8080; adds -p 9001:8080 to runArgs
+    - value: ${WEB_PORT:-5173}
+      label: Web dev server
+      onAutoForward: openBrowser
+```
+
+Generated `devcontainer.json` (excerpt):
+
+```json
+{
+    "forwardPorts": [9001, 8080, 5173],
+    "runArgs": ["-p", "9001:8080"],
+    "portsAttributes": {
+        "5173": { "label": "Web dev server", "onAutoForward": "openBrowser" }
+    }
+}
+```
+
+#### `stack: compose` — verbatim port bindings
+
+Write a full `HOST:CONTAINER` binding. Do **not** write a bare port expression — the tool
+rejects it with an error. The binding is written **verbatim** to `docker-compose.yml`;
+`${VAR}` is never expanded by the tool (Compose reads `.env` at container startup instead).
+
+For `devcontainer.json forwardPorts` and `portsAttributes`, the tool extracts the container
+port from the rightmost segment as a best-effort hint.
+
+```yaml
+stack: compose
+ports:
+    - ${API_PORT:-8080}:8080 # written verbatim; Compose expands ${API_PORT} at startup
+    - value: ${WEB_DEV_PORT:-5173}:5173
+      label: Web dev server
+      onAutoForward: openBrowser
+```
+
+Generated `docker-compose.yml` (excerpt):
+
+```yaml
+services:
+    devcontainer:
+        ports:
+            - ${API_PORT:-8080}:8080 # verbatim
+            - ${WEB_DEV_PORT:-5173}:5173
+```
+
+Generated `devcontainer.json` (excerpt):
+
+```json
+{
+    "forwardPorts": [8080, 5173],
+    "portsAttributes": {
+        "5173": { "label": "Web dev server", "onAutoForward": "openBrowser" }
+    }
+}
+```
+
+`portsAttributes` is always keyed by the **container port** (the port VS Code forwards), never
+the host port.
+
+Supported metadata keys on object entries:
+
+- `label` (string)
+- `onAutoForward` (`notify` | `openBrowser` | `openPreview` | `silent` | `ignore`)
+
+> `ports` are **not** shifted by `portOffset`.
 
 ---
 
@@ -339,12 +484,13 @@ customizations:
 1. Base template loaded
 2. Overlays applied in order
 3. Port offsets applied
-4. Project `env` applied
-5. Project `mounts` applied
-6. `customizations.devcontainerPatch` merged (deepMerge, arrays deduplicated)
-7. `customizations.dockerComposePatch` merged
-8. Target-specific patches applied
-9. Files written
+4. Project `ports` applied (without `portOffset`)
+5. Project `env` applied
+6. Project `mounts` applied
+7. `customizations.devcontainerPatch` merged (deepMerge, arrays deduplicated)
+8. `customizations.dockerComposePatch` merged
+9. Target-specific patches applied
+10. Files written
 
 ---
 
@@ -414,12 +560,11 @@ Selects the editor customization profile:
 devcontainerGitignore: true
 ```
 
-When `true`, generation writes `outputPath/.gitignore` with wildcard rules that ignore all
-generated devcontainer artifacts (while keeping `.gitignore` itself tracked):
+When `true`, generation writes `outputPath/.gitignore` with a wildcard rule that ignores all
+generated devcontainer artifacts:
 
 ```gitignore
 *
-!.gitignore
 ```
 
 Use this when `superposition.yml` is the canonical source and you do not want generated files
@@ -439,6 +584,94 @@ parameters:
 Overlay parameter values. Keys correspond to parameter names declared in `overlay.yml`
 `parameters:` sections. Values are substituted for `{{cs.KEY}}` tokens throughout generated
 files.
+
+#### Ad-hoc (project-only) parameters
+
+You can define parameters in `parameters:` that are not declared by any overlay. These are
+resolved normally and available for `{{cs.KEY}}` substitution in `env:` values and overlay
+file content. They are called **project-only parameters**.
+
+```yaml
+parameters:
+    POSTGRES_DB: myapp # declared by postgres overlay
+    API_PORT: 8088 # project-only — not declared by any overlay
+    WEB_DEV_PORT: 5173 # project-only
+
+env:
+    VITE_API_URL: 'http://localhost:{{cs.API_PORT}}'
+    API_PORT: '{{cs.API_PORT}}'
+```
+
+During `regen`, the tool reports project-only parameters separately from overlay parameters:
+
+```
+   ⚙️  Overlay parameters:
+      POSTGRES_DB=myapp
+   ⚙️  Project-only parameters (not declared by any selected overlay):
+      API_PORT=8088
+      WEB_DEV_PORT=5173
+```
+
+`doctor` notes them as an informational warning (`project-only-parameters`). If a key is
+intentional, no action is needed. If it is a typo or left over from a removed overlay,
+remove it from `parameters:`.
+
+**Project-only parameters are not treated as sensitive.** Values appear in console output and
+generated files in plain text. For any value that should not be committed to source control,
+use `${VAR:-default}` runtime syntax in `env:` directly instead of `{{cs.KEY}}`.
+
+> **`ports:` note**: Port bindings use `${VAR:-default}` runtime syntax, not `{{cs.KEY}}`.
+> Use `{{cs.API_PORT}}` in `env:` values; use `${API_PORT:-8080}:8080` in `ports:` entries.
+
+---
+
+## Parameter tokens (`{{cs.KEY}}`)
+
+Parameter tokens let you reference resolved overlay parameter values in `env:` values and
+overlay file content at generation time.
+
+### Syntax
+
+```
+{{cs.KEY}}
+```
+
+`KEY` must match `[A-Z0-9_]+`. Lowercase keys and dotted paths are not supported.
+
+### Supported fields
+
+| Field                                            | Supported | Notes                              |
+| ------------------------------------------------ | --------- | ---------------------------------- |
+| `env:` values (string shorthand)                 | ✅        | Resolved at `regen` / `init`       |
+| `env:` long-form `.value`                        | ✅        | Resolved at `regen` / `init`       |
+| Overlay file content (patches, compose, scripts) | ✅        | Resolved at `regen` / `init`       |
+| `customizations.envTemplate` values              | ✅        | Resolved at `regen` / `init`       |
+| `env:` key (left side)                           | ❌        | Keys are literal identifiers       |
+| `env:` `.target`                                 | ❌        | Enum value, not a template         |
+| `ports:` expressions                             | ❌        | Use `${VAR}` runtime syntax        |
+| `stack:`, `baseImage:`, `containerName:`         | ❌        | Scalar config, no substitution     |
+| `parameters:` values                             | ❌        | Parameters ARE the resolved source |
+
+### Pass-through guarantee
+
+The `{{cs.KEY}}` engine ONLY replaces `{{cs.*}}` tokens. All other expressions pass
+through untouched:
+
+| Expression                | Touched? | Resolved by                         |
+| ------------------------- | -------- | ----------------------------------- |
+| `{{cs.KEY}}`              | ✅ Yes   | Tool at generation time             |
+| `${VAR}`                  | No       | Docker Compose / shell at runtime   |
+| `${VAR:-default}`         | No       | Docker Compose / shell at runtime   |
+| `${containerEnv:KEY}`     | No       | VS Code devcontainer at attach time |
+| `${localWorkspaceFolder}` | No       | VS Code devcontainer at attach time |
+| `${{ }}` (GitHub Actions) | No       | GitHub Actions runner               |
+| `$FOO` (bare shell)       | No       | Shell at runtime                    |
+
+### Rationale for `cs.` prefix
+
+The `cs.` namespace prefix is owned by this tool. The `{{` `}}` delimiters are unique
+in the set of files the tool generates and do not collide with Docker Compose, shell,
+VS Code, or GitHub Actions expression syntaxes.
 
 ---
 
@@ -470,6 +703,9 @@ mounts:
       target: devcontainerMount
 
 portOffset: 0
+ports:
+    - ${API_PORT:-8080}:8080
+    - ${WEB_DEV_PORT:-5173}:5173
 
 target: local
 

@@ -134,8 +134,40 @@ export interface DevContainerConfig {
 export type EditorProfile = 'vscode' | 'jetbrains' | 'none';
 export type ProjectEnvTarget = 'auto' | 'remoteEnv' | 'composeEnv';
 export interface ProjectEnvVar {
+    /**
+     * The env var value. Supports `{{cs.KEY}}` parameter tokens (resolved at generation time)
+     * and `${VAR:-default}` Docker Compose expressions (resolved at container start).
+     */
     value: string;
     target?: ProjectEnvTarget;
+}
+
+export type ProjectPortAutoForwardAction =
+    | 'notify'
+    | 'openBrowser'
+    | 'openPreview'
+    | 'silent'
+    | 'ignore';
+
+export interface ProjectPort {
+    /**
+     * For stack: plain  — Container port expression, e.g. "${API_PORT:-8080}" or "8080".
+     *                      HOST:CONTAINER format (e.g. "9001:8080") is also accepted; when
+     *                      host ≠ container port the tool adds "-p HOST:CONTAINER" to runArgs.
+     *                      Resolved from superposition.yml env, then root .env, then inline default.
+     * For stack: compose — Full docker-compose short syntax, e.g. "${API_PORT:-8080}:8080".
+     *                      Must contain ":". Written VERBATIM to docker-compose ports;
+     *                      the tool does NOT expand ${VAR} references.
+     */
+    value: string;
+    /**
+     * Optional label for devcontainer.json portsAttributes.
+     */
+    label?: string;
+    /**
+     * Optional VS Code auto-forward action for devcontainer.json portsAttributes.
+     */
+    onAutoForward?: ProjectPortAutoForwardAction;
 }
 
 export type ProjectMountTarget = 'auto' | 'devcontainerMount' | 'composeVolume';
@@ -210,6 +242,7 @@ export interface QuestionnaireAnswers {
     editor?: EditorProfile; // Editor profile for customizations (default: vscode)
     devcontainerGitignore?: boolean; // Write outputPath/.gitignore that ignores generated artifacts
     projectEnv?: Record<string, ProjectEnvVar>; // First-class project env routed by stack/target
+    projectPorts?: ProjectPort[]; // First-class project ports with generation-time expansion
     projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
     projectShell?: ProjectShellConfig; // First-class shell profile customizations
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
@@ -597,6 +630,7 @@ export interface ProjectConfigSelection {
     editor?: EditorProfile;
     devcontainerGitignore?: boolean;
     env?: Record<string, ProjectEnvVar>;
+    ports?: ProjectPort[];
     mounts?: ProjectMount[];
     shell?: ProjectShellConfig;
     customizations?: ProjectConfigCustomizationsInput;

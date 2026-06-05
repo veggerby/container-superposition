@@ -7,18 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Ad-hoc project parameters now resolve correctly** — `superposition.yml parameters:` keys not
+  declared by any selected overlay (e.g. `API_PORT`, `WEB_DEV_PORT`) are now included in the
+  resolved parameter map and available for `{{cs.KEY}}` substitution in `env:` values and
+  overlay file content. Previously they triggered a hard `Unresolved parameter token` error.
+
+### Changed
+
+- **Console output for unlisted parameters** — the `⚠️  Unknown overlay parameters …` warning
+  (yellow, comma-separated) is replaced by a neutral `⚙️  Project-only parameters (not declared
+by any selected overlay):` informational block using the same `KEY=VALUE` per-line format as
+  overlay parameters.
+- **Doctor check 4 wording** — renamed from "Unknown parameters in project file" to
+  "Project-only parameters (not declared by any selected overlay)"; `findingId` changed to
+  `project-only-parameters`; guidance updated to explain these keys are resolved and valid,
+  rather than advising removal.
+- **`validateEnvTokensResolved()` error message** — second line now reads
+  `Resolved parameters: …` instead of `Declared parameters for selected overlays: …`, accurately
+  reflecting that both overlay-declared and project-only keys appear in the resolved map.
+
 ### Added
+
+- **Parameter tokens (`{{cs.KEY}}`) in `env:` values** — `superposition.yml` (and
+  `superposition.local.yml`) `env:` values now support `{{cs.KEY}}` parameter tokens.
+  Tokens are resolved in-memory at generation time using the fully resolved `parameters:` map
+  (CLI > project parameters > overlay defaults). The project file is never modified.
+  Unknown tokens cause a hard error before any files are written, reporting the `env.KEY` field
+  and the list of declared parameters.
+  This eliminates duplication between `parameters:` and `env:` — e.g.:
+
+    ```yaml
+    env:
+        DATABASE_URL: 'postgresql://{{cs.POSTGRES_USER}}:{{cs.POSTGRES_PORT}}/{{cs.POSTGRES_DB}}'
+    ```
+
+- **Doctor: sensitive parameter checks** — new `doctor` findings:
+    - `sensitive-params-project-file` (`warn`) — fires when a parameter declared `sensitive: true`
+      by an overlay has a literal (non-`${VAR}`) value in `superposition.yml parameters:`. Suppressed
+      when the value equals the overlay default.
+    - `sensitive-params-devcontainer-env` (`warn`) — fires when a sensitive parameter appears as
+      plain text in `.devcontainer/.env` after generation. Skipped when `.devcontainer/.env` is absent
+      (plain stack). Suppressed when value equals overlay default.
+
+- **Doctor: first-class property promotion suggestions** — new `doctor` findings suggest
+  migrating `customizations` usage to first-class fields:
+    - `customizations-env-promote` — `customizations.devcontainerPatch.remoteEnv` set but `env:` absent
+    - `customizations-mounts-promote` — `customizations.devcontainerPatch.mounts` set but `mounts:` absent
+    - `customizations-ports-promote` — `customizations.dockerComposePatch` contains port bindings but `ports:` absent
+
+- **Docs: variable precedence and parameter token section** — `docs/superposition-yml.md` now
+  includes a "Parameter tokens (`{{cs.KEY}}`)" section with syntax reference, supported fields
+  table, pass-through guarantee table, and worked examples. The `env:` section now documents
+  the two-tier generation-time vs runtime substitution model with a decision tree.
+
+- **Stable doctor finding IDs** — internal `CheckResult` gains an optional `findingId` field;
+  `checksToFindings()` prefers it over the name-slugified ID when present. Makes `doctor --fix`
+  routing and test assertions stable across name changes.
 
 - **`superposition.local.yml` local config** — optional repository-root local config for machine-specific `env`, `mounts`, `shell`, and `customizations` enrichment during generated devcontainer output creation, with schema support and Git safety warnings for unignored or already-tracked generated output.
 
 - **`devcontainerGitignore` project-file option** — when enabled in `superposition.yml`,
   generation writes `outputPath/.gitignore` with:
     - `*`
-    - `!.gitignore`
-      This keeps generated devcontainer artifacts out of Git while allowing the ignore file itself
-      to remain tracked.
+- **`ports` field in `superposition.yml`** — first-class project port declarations with stack-specific semantics
+    - `stack: plain`: write a container port expression (`${VAR:-default}` or a number, no colon); resolved at generation time with `superposition.yml env` taking priority over root `.env`, then inline default
+    - `stack: compose`: write a full `HOST:CONTAINER` binding; written **verbatim** to `docker-compose.yml` (no `${VAR}` expansion — Compose resolves at container startup); container port extracted best-effort for `forwardPorts`
+    - `portsAttributes` keyed by container port (not host port)
+    - Superposition.yml `env` entry simultaneously drives `remoteEnv` and plain-stack port resolution — single source of truth
+    - Project `ports` entries are intentionally not shifted by `portOffset`
 
 ### Changed
+
+- **`ports` semantics corrected** — **BREAKING** for any `superposition.yml` that uses `ports` on `stack: compose`
+    - Plain stack: `value` may be a bare container port expression (no colon) **or** a `HOST:CONTAINER` binding (e.g. `"9001:8080"`). When host ≠ container port, the tool adds `-p HOST:CONTAINER` to `devcontainer.json runArgs`. `${VAR}` references are resolved at generation time.
+    - Compose stack: `value` is now written **verbatim** to `docker-compose.yml`; `${VAR}` references are no longer expanded by the tool. `portsAttributes` key is now the extracted container port, not the host port.
+    - **Migration for compose stacks**: existing `"8080:8080"` entries work as before. Bare port expressions on compose stacks (no colon) now throw an error — add the host side: `"8080"` → `"8080:8080"`.
 
 - **PR prerelease publishing** — draft PRs publish npm prereleases only when labeled `publish-prerelease`; ready-for-review PRs continue publishing automatically.
 
