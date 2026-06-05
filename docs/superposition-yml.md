@@ -253,9 +253,12 @@ Declare project-level ports once. Behavior depends on `stack`.
 
 #### `stack: plain` — container port expressions
 
-Write a container port number or `${VAR:-default}` expression. Do **not** use `HOST:CONTAINER`
-format — the tool rejects it with an error. The tool **resolves** `${VAR}` at generation time
-using `superposition.yml env` first, then the root `.env`, then the inline default.
+Write a container port number or `${VAR:-default}` expression. The tool **resolves** `${VAR}` at
+generation time using `superposition.yml env` first, then the root `.env`, then the inline default.
+
+You may also use `HOST:CONTAINER` format (e.g. `9001:8080`). When host and container ports differ,
+the tool adds `-p HOST:CONTAINER` to `devcontainer.json runArgs` so the host binding is honoured.
+The container port always goes into `forwardPorts`.
 
 Because a single `env` entry also drives `remoteEnv`, you get a single source of truth: change
 the value once and both `forwardPorts` and the container's runtime environment stay in sync.
@@ -265,7 +268,8 @@ stack: plain
 env:
     API_PORT: '9001' # sets both remoteEnv.API_PORT and resolves the port expression below
 ports:
-    - ${API_PORT:-8080} # resolves to 9001
+    - ${API_PORT:-8080} # resolves to 9001; forwarded as-is
+    - 9001:8080 # host 9001 → container 8080; adds -p 9001:8080 to runArgs
     - value: ${WEB_PORT:-5173}
       label: Web dev server
       onAutoForward: openBrowser
@@ -275,7 +279,8 @@ Generated `devcontainer.json` (excerpt):
 
 ```json
 {
-    "forwardPorts": [9001, 5173],
+    "forwardPorts": [9001, 8080, 5173],
+    "runArgs": ["-p", "9001:8080"],
     "portsAttributes": {
         "5173": { "label": "Web dev server", "onAutoForward": "openBrowser" }
     }

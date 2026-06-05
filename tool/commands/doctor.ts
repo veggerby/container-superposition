@@ -1253,7 +1253,7 @@ function checkCustomizations(
                     'customizations.dockerComposePatch contains port bindings but top-level ports: is absent.',
                 details: [
                     'Move port bindings to the top-level ports: field.',
-                    'ports: supports validation, auto-forward, and port-offset. See spec 024.',
+                    'ports: supports validation and auto-forward. See spec 024.',
                 ],
                 fixEligibility: 'manual-only',
                 fixable: false,

@@ -1260,7 +1260,10 @@ function hasTopLevelColon(s: string): boolean {
 
 /**
  * Prepare project ports for generation, applying stack-specific semantics:
- * - plain: resolve ${VAR} (superposition env first, root .env second), validate numeric port, reject colon
+ * - plain: resolve ${VAR} (superposition env first, root .env second), validate numeric port(s).
+ *          Bare port expression (no colon) → containerPort only.
+ *          HOST:CONTAINER format (colon present) → both hostPort and containerPort resolved and validated;
+ *          when host ≠ container the caller publishes via runArgs (-p HOST:CONTAINER).
  * - compose: validate colon present, write verbatim, extract container port hint best-effort
  */
 function prepareProjectPorts(

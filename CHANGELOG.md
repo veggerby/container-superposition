@@ -80,10 +80,10 @@ by any selected overlay):` informational block using the same `KEY=VALUE` per-li
 
 ### Changed
 
-- **`ports` semantics corrected** — **BREAKING** for any `superposition.yml` that uses `ports` on `stack: plain`
-    - Plain stack: `value` must now be a bare container port expression (no colon). Any `HOST:CONTAINER` format on plain stack now throws an error at generation time with a clear message.
+- **`ports` semantics corrected** — **BREAKING** for any `superposition.yml` that uses `ports` on `stack: compose`
+    - Plain stack: `value` may be a bare container port expression (no colon) **or** a `HOST:CONTAINER` binding (e.g. `"9001:8080"`). When host ≠ container port, the tool adds `-p HOST:CONTAINER` to `devcontainer.json runArgs`. `${VAR}` references are resolved at generation time.
     - Compose stack: `value` is now written **verbatim** to `docker-compose.yml`; `${VAR}` references are no longer expanded by the tool. `portsAttributes` key is now the extracted container port, not the host port.
-    - **Migration**: change `"8080:8080"` → `"8080"` and `"${API_PORT:-8080}:8080"` → `"${API_PORT:-8080}"` for plain-stack ports.
+    - **Migration for compose stacks**: existing `"8080:8080"` entries work as before. Bare port expressions on compose stacks (no colon) now throw an error — add the host side: `"8080"` → `"8080:8080"`.
 
 - **PR prerelease publishing** — draft PRs publish npm prereleases only when labeled `publish-prerelease`; ready-for-review PRs continue publishing automatically.
 

@@ -18,11 +18,14 @@ A user adding `ports` to `superposition.yml` needs to answer one question first:
 ### `stack: plain` — VS Code forwards container ports
 
 A plain devcontainer has no Docker daemon between the editor and the process. VS Code forwards
-ports from the container to the developer's local machine automatically. There is no host-side
-port binding to configure — only the **container port** matters.
+ports from the container to the developer's local machine automatically.
 
-- Write: a container port number or `${VAR:-default}` expression.
-- Do **not** write `HOST:CONTAINER` — the tool rejects it with an error.
+- Write: a bare container port number or `${VAR:-default}` expression **or** a `HOST:CONTAINER`
+  binding (e.g. `9001:8080`).
+- When a `HOST:CONTAINER` binding is used and host ≠ container port, the tool adds
+  `-p HOST:CONTAINER` to `devcontainer.json runArgs` so the explicit host mapping is applied.
+  When host == container port no extra `runArgs` entry is needed.
+- The container port always goes into `forwardPorts`.
 - Use `env` in `superposition.yml` to drive the port value. That `env` also sets the container
   environment variable, so both `forwardPorts` and the app's runtime config stay in sync from
   a single source of truth.
@@ -44,10 +47,12 @@ the binding string exactly as-is so Compose can perform its own resolution.
 
 ### Format quick-reference
 
-| Stack     | What to write in `value`                    | Tool expands? | Written to compose? | `forwardPorts` key       |
-| --------- | ------------------------------------------- | ------------- | ------------------- | ------------------------ |
-| `plain`   | `"${API_PORT:-8080}"` or `"8080"`           | Yes           | No                  | resolved port            |
-| `compose` | `"${API_PORT:-8080}:8080"` or `"9000:8080"` | No (verbatim) | Yes                 | extracted container port |
+| Stack     | What to write in `value`                                      | Tool expands? | Written to compose? | `forwardPorts` key       |
+| --------- | ------------------------------------------------------------- | ------------- | ------------------- | ------------------------ |
+| `plain`   | `"${API_PORT:-8080}"`, `"8080"`, or `"9001:8080"` (HOST:CONT) | Yes           | No                  | container port           |
+| `compose` | `"${API_PORT:-8080}:8080"` or `"9000:8080"` (must have colon) | No (verbatim) | Yes                 | extracted container port |
+
+For `plain` with `HOST:CONTAINER`: when host ≠ container, `-p HOST:CONTAINER` is added to `runArgs`.
 
 `portsAttributes` is always keyed by the **container port** (the number VS Code forwards),
 never the host port.

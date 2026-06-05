@@ -282,7 +282,7 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
             ports: {
                 type: 'array',
                 description:
-                    'Project port bindings expanded at generation time (supports ${VAR} and ${VAR:-default}) and applied to both devcontainer.json and compose output. These ports are not affected by portOffset.',
+                    'Project port bindings. Applied to devcontainer.json forwardPorts and portsAttributes. Compose-stack bindings are written verbatim to docker-compose.yml (${VAR} is not expanded — Compose resolves at startup). Plain-stack HOST:CONTAINER bindings publish via runArgs (-p HOST:CONTAINER). These ports are not affected by portOffset.',
                 items: {
                     oneOf: [
                         {
@@ -303,7 +303,7 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                                 label: {
                                     type: 'string',
                                     description:
-                                        'Optional devcontainer.json portsAttributes label for the resolved host port',
+                                        'Optional devcontainer.json portsAttributes label for the forwarded container port',
                                 },
                                 onAutoForward: {
                                     type: 'string',

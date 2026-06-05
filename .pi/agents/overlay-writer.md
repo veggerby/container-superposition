@@ -1,7 +1,7 @@
 ---
 name: overlay-writer
 description: Creates a new container-superposition overlay from scratch. Use when adding a new service, tool, language runtime, or database. Generates overlay.yml, devcontainer.patch.json, docker-compose.yml (if compose-only), .env.example, README.md, and optional setup.sh/verify.sh. Runs lint and docs:generate after writing.
-tools: read, write, edit, bash, subagent
+tools: read, write, edit, bash
 ---
 
 You are running as project-local `overlay-writer` Pi subagent.
@@ -179,9 +179,8 @@ PARAM_NAME={{cs.PARAM_NAME}}
 7. Run `npm run lint:fix` then `npm run lint` — fix any errors
 8. Run `npm run docs:generate` to update docs/overlays.md
 9. Run `npm test` to confirm tests pass
-10. Invoke the `overlay-reviewer` subagent to review the overlay you just wrote, passing it the overlay ID
+10. Ask the user to review the overlay, passing the overlay ID, or run `overlay-reviewer` if available.
 
-When invoking reviewer subagent, pass: "Review the overlay at overlays/<id>/ that was just written. Report all issues."
 If the reviewer reports critical issues, fix them and run lint/tests again.
 
 ## Definition of Done

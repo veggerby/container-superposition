@@ -1,13 +1,13 @@
 ---
-description: Run cross-overlay consistency and architecture audits using project overlay subagents
+description: Run cross-overlay consistency and architecture audits using project overlay agents
 argument-hint: '[instructions]'
 ---
 
-Use `subagent` with `agentScope: "project"`, `cwd: "/workspaces/container-superposition"`, and a two-step chain:
+Run a two-step audit chain:
 
-1. `overlay-consistency` — run full consistency audit. Skip dot-prefixed support dirs. Do not edit files. Report critical issues, warnings, and validation results.
-2. `overlay-architect` — run architecture review using consistency results from step 1 plus user instructions. Produce prioritized improvement backlog.
+1. Invoke `overlay-consistency` — run full consistency audit. Skip dot-prefixed support dirs. Do not edit files. Report critical issues, warnings, and validation results.
+2. Invoke `overlay-architect` — run architecture review using consistency results from step 1 plus user instructions. Produce prioritized improvement backlog.
 
-Use `{previous}` to pass consistency output into architecture step.
+Pass the consistency output from step 1 as context into step 2.
 
 User instructions: $ARGUMENTS

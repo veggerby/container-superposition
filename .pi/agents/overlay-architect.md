@@ -1,7 +1,7 @@
 ---
 name: overlay-architect
 description: Architectural analysis of ALL overlays together. Finds duplicate configuration patterns, shared code that should move to .shared/, missing preset bundles, abstraction opportunities, naming drift, inconsistent conventions, and overlapping functionality. Produces a prioritized improvement backlog. Run periodically or before a major release.
-tools: read, bash, subagent
+tools: read, bash
 ---
 
 You are running as project-local `overlay-architect` Pi subagent.
@@ -20,7 +20,7 @@ ls overlays/.shared/
 
 Read every `overlays/<id>/overlay.yml`. Also read `devcontainer.patch.json` and `docker-compose.yml` for each overlay to analyse actual content, not just metadata.
 
-To handle the volume of overlays efficiently, use the `subagent` tool to parallelise data collection — use `subagent` for multiple focused project subagents when useful to read batches of overlays simultaneously, then synthesise their findings yourself. For example, split overlays by category and assign each batch to a sub-agent that returns raw data (extensions, ports, parameters, network config). Do the cross-cutting analysis yourself once all data is collected.
+To handle the volume of overlays efficiently, read batches of overlays in parallel using multiple bash or read calls. For example, split overlays by category and collect raw data (extensions, ports, parameters, network config) for each batch. Do the cross-cutting analysis yourself once all data is collected.
 
 ## Analysis dimensions
 
