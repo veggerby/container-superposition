@@ -58,7 +58,31 @@ describe('publish workflow prerelease gate', () => {
         expect(workflow.jobs.publish.if).toContain("startsWith(github.ref, 'refs/tags/v')");
     });
 
-    it('gates publish-prerelease before publish and comment steps', () => {
+    it('keeps release summary and release PR comment steps in publish job', () => {
+        const { workflow } = loadWorkflow();
+        const releaseJob = workflow.jobs.publish;
+
+        expect(releaseJob.permissions).toEqual({
+            contents: 'write',
+            'id-token': 'write',
+            'pull-requests': 'write',
+        });
+
+        const releaseStepNames = releaseJob.steps?.map((step) => step.name ?? '') ?? [];
+        expect(releaseStepNames).toContain('Publish to npm');
+        expect(releaseStepNames).toContain('Add release commands to workflow summary');
+        expect(releaseStepNames).toContain('Comment on associated PR with release version');
+
+        const publishIndex = releaseStepNames.indexOf('Publish to npm');
+        const summaryIndex = releaseStepNames.indexOf('Add release commands to workflow summary');
+        const commentIndex = releaseStepNames.indexOf(
+            'Comment on associated PR with release version'
+        );
+        expect(summaryIndex).toBeGreaterThan(publishIndex);
+        expect(commentIndex).toBeGreaterThan(publishIndex);
+    });
+
+    it('gates publish-prerelease before publish, summary, and comment steps', () => {
         const { workflow } = loadWorkflow();
         const prereleaseJob = workflow.jobs['publish-prerelease'];
 
@@ -75,14 +99,28 @@ describe('publish workflow prerelease gate', () => {
 
         const prereleaseStepNames = prereleaseJob.steps?.map((step) => step.name ?? '') ?? [];
         expect(prereleaseStepNames).toContain('Publish prerelease to npm');
+        expect(prereleaseStepNames).toContain('Add prerelease commands to workflow summary');
         expect(prereleaseStepNames).toContain('Comment on PR with prerelease version');
         expect(prereleaseStepNames.some((name) => name.toLowerCase().includes('skip'))).toBe(false);
 
+        const publishIndex = prereleaseStepNames.indexOf('Publish prerelease to npm');
+        const summaryIndex = prereleaseStepNames.indexOf(
+            'Add prerelease commands to workflow summary'
+        );
+        const commentIndex = prereleaseStepNames.indexOf('Comment on PR with prerelease version');
+        expect(summaryIndex).toBeGreaterThan(publishIndex);
+        expect(commentIndex).toBeGreaterThan(publishIndex);
+
         const allJobs = Object.entries(workflow.jobs);
-        const commentJobs = allJobs.filter(([, job]) =>
+        const prereleaseCommentJobs = allJobs.filter(([, job]) =>
             job.steps?.some((step) => step.name === 'Comment on PR with prerelease version')
         );
-        expect(commentJobs.map(([name]) => name)).toEqual(['publish-prerelease']);
+        expect(prereleaseCommentJobs.map(([name]) => name)).toEqual(['publish-prerelease']);
+
+        const releaseCommentJobs = allJobs.filter(([, job]) =>
+            job.steps?.some((step) => step.name === 'Comment on associated PR with release version')
+        );
+        expect(releaseCommentJobs.map(([name]) => name)).toEqual(['publish']);
     });
 
     it.each([

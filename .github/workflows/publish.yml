@@ -22,6 +22,7 @@ jobs:
         permissions:
             contents: write # Required to upload superposition.schema.json as a release asset
             id-token: write # Required for npm provenance
+            pull-requests: write # Required to comment on associated PR when release came from one
 
         steps:
             - name: Checkout code
@@ -89,6 +90,94 @@ jobs:
                   echo "Waiting for npm registry to update..."
                   sleep 10
                   npm view container-superposition@$VERSION version || echo "Package published successfully but not yet visible in registry"
+
+            - name: Add release commands to workflow summary
+              run: |
+                  VERSION=${{ steps.version.outputs.version }}
+                  {
+                    echo '## 🚀 Release published to npm'
+                    echo
+                    echo "Version: \`$VERSION\`"
+                    echo
+                    echo 'Install exact version:'
+                    echo
+                    echo '```bash'
+                    echo "npm install container-superposition@$VERSION"
+                    echo '```'
+                    echo
+                    echo 'Run directly:'
+                    echo
+                    echo '```bash'
+                    echo "npx container-superposition@$VERSION regen"
+                    echo '```'
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Resolve released tag commit
+              id: release-commit
+              run: |
+                  SHA=$(git rev-list -n 1 "${GITHUB_REF_NAME}")
+                  echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+            - name: Comment on associated PR with release version
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const version = '${{ steps.version.outputs.version }}';
+                      const releaseCommitSha = '${{ steps.release-commit.outputs.sha }}';
+                      const body = [
+                        '## 🚀 Release published to npm',
+                        '',
+                        'A final release version has been published from this PR:',
+                        '',
+                        '```',
+                        `npm install container-superposition@${version}`,
+                        '```',
+                        '',
+                        'Or run directly:',
+                        '',
+                        '```',
+                        `npx container-superposition@${version} regen`,
+                        '```',
+                      ].join('\n');
+
+                      const { data: pulls } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        commit_sha: releaseCommitSha,
+                      });
+
+                      const pr = pulls.find((candidate) => candidate.merged_at) ?? pulls[0];
+                      if (!pr) {
+                        core.info(`No associated PR found for release commit ${releaseCommitSha}; skipping PR comment.`);
+                        return;
+                      }
+
+                      const { data: comments } = await github.rest.issues.listComments({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: pr.number,
+                      });
+
+                      const existing = comments.find((c) =>
+                        c.user.login === 'github-actions[bot]' &&
+                        c.body.includes('## 🚀 Release published to npm')
+                      );
+
+                      if (existing) {
+                        await github.rest.issues.updateComment({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          comment_id: existing.id,
+                          body,
+                        });
+                      } else {
+                        await github.rest.issues.createComment({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: pr.number,
+                          body,
+                        });
+                      }
 
     publish-prerelease:
         runs-on: ubuntu-latest
@@ -158,6 +247,34 @@ jobs:
 
             - name: Publish prerelease to npm
               run: npm publish --provenance --access public --tag pr-${{ github.event.pull_request.number }}
+
+            - name: Add prerelease commands to workflow summary
+              run: |
+                  VERSION=${{ steps.version.outputs.version }}
+                  PR_NUMBER=${{ github.event.pull_request.number }}
+                  {
+                    echo '## 📦 Prerelease published to npm'
+                    echo
+                    echo "Version: \`$VERSION\`"
+                    echo
+                    echo 'Install exact version:'
+                    echo
+                    echo '```bash'
+                    echo "npm install container-superposition@$VERSION"
+                    echo '```'
+                    echo
+                    echo 'Run directly:'
+                    echo
+                    echo '```bash'
+                    echo "npx container-superposition@$VERSION regen"
+                    echo '```'
+                    echo
+                    echo 'PR dist-tag:'
+                    echo
+                    echo '```bash'
+                    echo "npm install container-superposition@pr-$PR_NUMBER"
+                    echo '```'
+                  } >> "$GITHUB_STEP_SUMMARY"
 
             - name: Comment on PR with prerelease version
               uses: actions/github-script@v7

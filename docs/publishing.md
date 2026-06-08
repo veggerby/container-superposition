@@ -68,12 +68,16 @@ Publishing is **automated via GitHub Actions** when a new release is created.
     - ✅ Verify package contents
     - ✅ Publish to npm with provenance
     - ✅ Verify publication
+    - ✅ Render exact `npm install` and `npx container-superposition@<version> regen` commands in the workflow run summary
+    - ✅ Comment on associated PR with final release commands when the release commit is linked to a PR
 
 ### PR prereleases
 
 Ready for Review PRs publish npm prereleases automatically.
 
 Draft PRs skip prerelease publishing unless labeled `publish-prerelease`. Add `publish-prerelease` to a Draft PR when reviewers need an npm prerelease before the PR is ready. Remove `publish-prerelease` to stop future Draft PR prereleases, or convert a PR to Draft without that label to skip future Draft prerelease publishes.
+
+Successful prerelease runs also render exact `npm install` and `npx container-superposition@<version> regen` commands in the workflow run summary. PR-triggered prerelease publishes still create or update the PR comment with the same runnable commands.
 
 The label does not affect final releases, mergeability, or npm `latest`. Maintainers may create the repository label with this description: `Publish npm prereleases for this PR, including while draft`.
 

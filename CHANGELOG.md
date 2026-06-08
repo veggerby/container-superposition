@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Publish workflow release guidance** — successful npm publish runs now render exact `npm install` and `npx container-superposition@<version> regen` commands in the workflow summary; prerelease runs do same, and final releases also comment on associated PRs when one is found
+
 - **Console output for unlisted parameters** — the `⚠️  Unknown overlay parameters …` warning
   (yellow, comma-separated) is replaced by a neutral `⚙️  Project-only parameters (not declared
 by any selected overlay):` informational block using the same `KEY=VALUE` per-line format as
