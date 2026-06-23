@@ -30,3 +30,6 @@
 | [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                         | Ad-hoc Project Parameters                                         | Final       | SCHEMA-FIELD, CLI-UX |
 | [027-devcontainer-gitignore-content](027-devcontainer-gitignore-content/spec.md)             | devcontainerGitignore — Drop `!.gitignore` from Generated Content | Final       | CLI-UX               |
 | [028-publish-summaries-and-pr-comments](028-publish-summaries-and-pr-comments/spec.md)       | Publish Workflow Summaries and PR Comment Parity                  | Implemented | INFRA-BUILD          |
+| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)                     | Versioned Private Overlay and Preset Catalogs                     | Draft       | PROJECT              |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md) | Discovery Surface and Canonical Docs Alignment                    | Draft       | CLI-UX, DOCS-GUIDE   |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md) | Preset-Led Onboarding for Common Jobs-to-be-Done                | Draft       | CLI-UX, DOCS-GUIDE   |
