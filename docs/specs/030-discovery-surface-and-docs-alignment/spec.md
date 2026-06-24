@@ -136,16 +136,16 @@ Migration-only docs may still mention old patterns when clearly marked as legacy
 
 ## Acceptance Criteria
 
-| # | Criterion |
-|---|---|
-| AC-1 | Default discovery output includes all live user-facing overlay categories, including `messaging`, when applicable to current catalog. |
-| AC-2 | Category-filtered discovery tables render port metadata in human-readable form and never display `[object Object]`. |
+| #    | Criterion                                                                                                                                                                                                                                               |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 | Default discovery output includes all live user-facing overlay categories, including `messaging`, when applicable to current catalog.                                                                                                                   |
+| AC-2 | Category-filtered discovery tables render port metadata in human-readable form and never display `[object Object]`.                                                                                                                                     |
 | AC-3 | `README.md`, `tool/README.md`, `docs/quick-reference.md`, `docs/examples.md`, `docs/team-workflow.md`, and `docs/messaging-quick-start.md` teach current canonical workflow rather than deprecated manifest-first or category-centric primary guidance. |
-| AC-4 | Primary examples use `superposition.yml` plus flat `overlays:` as preferred explicit selection model, with any legacy syntax clearly labeled as migration/compatibility-only if retained. |
-| AC-5 | First-run docs surface `plan`, `plan --verbose`, and `plan --diff` as preview-first workflow before file generation or regeneration. |
-| AC-6 | End-user docs do not present stale flags, stale examples, or implementation internals (`_serviceOrder`) as current recommended workflow. |
-| AC-7 | Changes preserve current command semantics for `init`, `regen`, and `plan`; this spec only changes discovery rendering and user guidance, not planning/generation behavior. |
-| AC-8 | Automated coverage exists for any CLI rendering bug fixed under this spec, including category presence and human-readable field rendering. |
+| AC-4 | Primary examples use `superposition.yml` plus flat `overlays:` as preferred explicit selection model, with any legacy syntax clearly labeled as migration/compatibility-only if retained.                                                               |
+| AC-5 | First-run docs surface `plan`, `plan --verbose`, and `plan --diff` as preview-first workflow before file generation or regeneration.                                                                                                                    |
+| AC-6 | End-user docs do not present stale flags, stale examples, or implementation internals (`_serviceOrder`) as current recommended workflow.                                                                                                                |
+| AC-7 | Changes preserve current command semantics for `init`, `regen`, and `plan`; this spec only changes discovery rendering and user guidance, not planning/generation behavior.                                                                             |
+| AC-8 | Automated coverage exists for any CLI rendering bug fixed under this spec, including category presence and human-readable field rendering.                                                                                                              |
 
 ## ADR Impact
 

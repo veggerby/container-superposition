@@ -128,14 +128,14 @@ catalogs:
 Supported v1 source types:
 
 1. `git`
-   - exact commit required for deterministic replay
-   - tag may be retained as advisory metadata
+    - exact commit required for deterministic replay
+    - tag may be retained as advisory metadata
 2. `archive`
-   - pinned HTTPS artifact
-   - checksum required
+    - pinned HTTPS artifact
+    - checksum required
 3. `path`
-   - local or repo-relative authoring/dev source only
-   - treated as non-portable for shared team config unless explicitly repo-relative
+    - local or repo-relative authoring/dev source only
+    - treated as non-portable for shared team config unless explicitly repo-relative
 
 Unsupported in v1:
 
@@ -245,14 +245,14 @@ Origin metadata must be available to diagnostics and explain/list output when re
 
 ### Risks and mitigations
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Dynamic registry breaks static schema enums | weaker editor UX or false validation | use two-stage validation; relax static enum where needed; keep runtime errors precise |
-| Silent shadowing between built-in and private IDs | wrong overlay/preset resolved | require namespace-qualified external IDs by default; explicit override only |
-| Non-deterministic remote sources | CI drift | require immutable pins and integrity metadata |
-| Credential leakage into config | security issue | only use ambient auth/environment; reject inline secrets |
-| Different commands resolve different registries | trust break | centralize resolution behind one shared effective-registry pipeline |
-| Stale cache causes confusing behavior | hidden drift | identity-addressed cache plus doctor/diagnostic visibility |
+| Risk                                              | Impact                               | Mitigation                                                                            |
+| ------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
+| Dynamic registry breaks static schema enums       | weaker editor UX or false validation | use two-stage validation; relax static enum where needed; keep runtime errors precise |
+| Silent shadowing between built-in and private IDs | wrong overlay/preset resolved        | require namespace-qualified external IDs by default; explicit override only           |
+| Non-deterministic remote sources                  | CI drift                             | require immutable pins and integrity metadata                                         |
+| Credential leakage into config                    | security issue                       | only use ambient auth/environment; reject inline secrets                              |
+| Different commands resolve different registries   | trust break                          | centralize resolution behind one shared effective-registry pipeline                   |
+| Stale cache causes confusing behavior             | hidden drift                         | identity-addressed cache plus doctor/diagnostic visibility                            |
 
 ### Implementation slices
 
@@ -299,19 +299,19 @@ Even if technically possible, v1 does not require:
 
 ## Acceptance Criteria
 
-| # | Criterion |
-|---|---|
-| AC-1 | Product supports project-level declaration of zero or more additional overlay/preset catalogs in canonical `superposition.yml` without changing behavior for projects that omit `catalogs:`. |
-| AC-2 | Shared remote catalog declarations require immutable pinning; floating refs are rejected. |
-| AC-3 | Supported v1 source types are explicitly limited to `git`, `archive`, and `path`, with unsupported kinds rejected clearly. |
-| AC-4 | Credentials are never stored in project file; authentication relies on environment or host tooling. |
-| AC-5 | External catalog overlays/presets are selectable through existing project-file concepts rather than parallel selection model. |
-| AC-6 | Built-in and external catalog collisions fail closed by default; no silent shadowing occurs. |
-| AC-7 | Every command surface that consumes registry data resolves same effective merged registry for same project file. |
-| AC-8 | Generated receipt/manifest records resolved catalog identities sufficient for audit and troubleshooting. |
-| AC-9 | Validation supports dynamic catalog-backed IDs through two-stage resolution and produces actionable errors when referenced items are missing. |
-| AC-10 | Upgrade workflow based on reviewable pin changes is documented, and failures caused by removed/renamed catalog items are surfaced clearly. |
-| AC-11 | Automated tests cover successful resolution plus failure paths for pinning, integrity, collisions, and cross-command consistency. |
+| #     | Criterion                                                                                                                                                                                    |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1  | Product supports project-level declaration of zero or more additional overlay/preset catalogs in canonical `superposition.yml` without changing behavior for projects that omit `catalogs:`. |
+| AC-2  | Shared remote catalog declarations require immutable pinning; floating refs are rejected.                                                                                                    |
+| AC-3  | Supported v1 source types are explicitly limited to `git`, `archive`, and `path`, with unsupported kinds rejected clearly.                                                                   |
+| AC-4  | Credentials are never stored in project file; authentication relies on environment or host tooling.                                                                                          |
+| AC-5  | External catalog overlays/presets are selectable through existing project-file concepts rather than parallel selection model.                                                                |
+| AC-6  | Built-in and external catalog collisions fail closed by default; no silent shadowing occurs.                                                                                                 |
+| AC-7  | Every command surface that consumes registry data resolves same effective merged registry for same project file.                                                                             |
+| AC-8  | Generated receipt/manifest records resolved catalog identities sufficient for audit and troubleshooting.                                                                                     |
+| AC-9  | Validation supports dynamic catalog-backed IDs through two-stage resolution and produces actionable errors when referenced items are missing.                                                |
+| AC-10 | Upgrade workflow based on reviewable pin changes is documented, and failures caused by removed/renamed catalog items are surfaced clearly.                                                   |
+| AC-11 | Automated tests cover successful resolution plus failure paths for pinning, integrity, collisions, and cross-command consistency.                                                            |
 
 ## Architecture Decision Impact
 

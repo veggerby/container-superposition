@@ -110,9 +110,11 @@ This keeps onboarding approachable without hiding resulting stack composition.
 User should quickly answer: “Does one of these common outcomes match my project?”
 
 If yes:
+
 - choose preset path
 
 If no:
+
 - choose direct overlay path
 
 ### Copy contract
@@ -130,15 +132,15 @@ If no:
 
 ## Acceptance Criteria
 
-| # | Criterion |
-|---|---|
-| AC-1 | First-run documentation recommends presets as default starting path for common jobs-to-be-done while preserving direct overlay selection as supported alternative. |
-| AC-2 | README and related getting-started surfaces point users to preset-oriented entry guidance when their use case matches a common preset. |
+| #    | Criterion                                                                                                                                                                              |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 | First-run documentation recommends presets as default starting path for common jobs-to-be-done while preserving direct overlay selection as supported alternative.                     |
+| AC-2 | README and related getting-started surfaces point users to preset-oriented entry guidance when their use case matches a common preset.                                                 |
 | AC-3 | `docs/presets.md` and linked onboarding surfaces explain how users customize after selecting a preset, including `presetChoices` and overlay-level additions/removals where supported. |
-| AC-4 | At least core common scenarios documented by current product have job-oriented preset guidance and, where useful, equivalent explicit overlay/config examples for transparency. |
-| AC-5 | Guidance clearly tells users what to do when no preset fits: use flat `overlays:` or direct interactive overlay selection. |
-| AC-6 | This spec does not remove or hide advanced composability; it changes recommendation order and explanatory copy only. |
-| AC-7 | If interactive questionnaire copy or menu ordering changes under this spec, tests or snapshots cover new recommendation wording/order. |
+| AC-4 | At least core common scenarios documented by current product have job-oriented preset guidance and, where useful, equivalent explicit overlay/config examples for transparency.        |
+| AC-5 | Guidance clearly tells users what to do when no preset fits: use flat `overlays:` or direct interactive overlay selection.                                                             |
+| AC-6 | This spec does not remove or hide advanced composability; it changes recommendation order and explanatory copy only.                                                                   |
+| AC-7 | If interactive questionnaire copy or menu ordering changes under this spec, tests or snapshots cover new recommendation wording/order.                                                 |
 
 ## ADR Impact
 

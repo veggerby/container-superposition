@@ -122,15 +122,15 @@ _No specs yet._
 
 ### CLI-UX
 
-| Spec                                                                                         | Title                                      | Status |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------ | ------ |
-| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                     | Verbose Plan Graph                         | Final  |
-| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                           | Doctor Overlay Dependency Resolution Check | Draft  |
-| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md) | Doctor Compose / Port Cross-Validation     | Draft  |
-| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                         | Doctor `.env.example` Drift Detection      | Draft  |
-| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                 | Doctor Reproducibility Check               | Draft  |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md) | Discovery Surface and Canonical Docs Alignment | Draft |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md) | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft |
+| Spec                                                                                           | Title                                            | Status |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------ |
+| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                       | Verbose Plan Graph                               | Final  |
+| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                             | Doctor Overlay Dependency Resolution Check       | Draft  |
+| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md)   | Doctor Compose / Port Cross-Validation           | Draft  |
+| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                           | Doctor `.env.example` Drift Detection            | Draft  |
+| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                   | Doctor Reproducibility Check                     | Draft  |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)   | Discovery Surface and Canonical Docs Alignment   | Draft  |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md) | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft  |
 
 ---
 
@@ -154,10 +154,10 @@ _No specs yet._
 
 ### DOCS-GUIDE
 
-| Spec | Title | Status |
-| ---- | ----- | ------ |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md) | Discovery Surface and Canonical Docs Alignment | Draft |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md) | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft |
+| Spec                                                                                           | Title                                            | Status |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------ |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)   | Discovery Surface and Canonical Docs Alignment   | Draft  |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md) | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft  |
 
 ### DOCS-API
 
@@ -185,12 +185,12 @@ _No specs yet._
 
 ## PROJECT — Project-level configuration
 
-| Spec                                                                     | Title                                       | Status      |
-| ------------------------------------------------------------------------ | ------------------------------------------- | ----------- |
-| [002-superposition-config-file](002-superposition-config-file/spec.md)   | Project Configuration File                  | Final       |
-| [008-project-file-canonical](008-project-file-canonical/spec.md)         | Project File Canonical Form                 | Approved    |
-| [009-project-env](009-project-env/spec.md)                               | Unified Project-Level Environment Variables | Approved    |
-| [018-init-project-file](018-init-project-file/spec.md)                   | `init --project-file`                       | Final       |
-| [019-project-mounts](019-project-mounts/spec.md)                         | First-Class Mounts Support                  | Approved    |
-| [022-local-superposition-config](022-local-superposition-config/spec.md) | Local Superposition Config                  | Implemented |
-| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md) | Versioned Private Overlay and Preset Catalogs | Draft |
+| Spec                                                                     | Title                                         | Status      |
+| ------------------------------------------------------------------------ | --------------------------------------------- | ----------- |
+| [002-superposition-config-file](002-superposition-config-file/spec.md)   | Project Configuration File                    | Final       |
+| [008-project-file-canonical](008-project-file-canonical/spec.md)         | Project File Canonical Form                   | Approved    |
+| [009-project-env](009-project-env/spec.md)                               | Unified Project-Level Environment Variables   | Approved    |
+| [018-init-project-file](018-init-project-file/spec.md)                   | `init --project-file`                         | Final       |
+| [019-project-mounts](019-project-mounts/spec.md)                         | First-Class Mounts Support                    | Approved    |
+| [022-local-superposition-config](022-local-superposition-config/spec.md) | Local Superposition Config                    | Implemented |
+| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md) | Versioned Private Overlay and Preset Catalogs | Draft       |
