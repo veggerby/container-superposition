@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`git-helpers` GitHub credential helper path** — setup now removes inherited host-specific `gh auth git-credential` helper entries (for example `!/home/linuxbrew/.linuxbrew/bin/gh auth git-credential`) and adds portable `!gh auth git-credential`, fixing `git push` failures when host paths do not exist inside the container
+
 ## [0.1.12] - 2026-06-09
 
 ### Fixed

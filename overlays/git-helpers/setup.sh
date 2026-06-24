@@ -31,6 +31,16 @@ else
     exit 1
 fi
 
+# Normalize GitHub credential helper for container paths
+# Example broken host value: !/home/linuxbrew/.linuxbrew/bin/gh auth git-credential
+if git config --global --get-all credential.helper 2>/dev/null | grep -Fxq '!/home/linuxbrew/.linuxbrew/bin/gh auth git-credential'; then
+    git config --global --fixed-value --unset-all credential.helper '!/home/linuxbrew/.linuxbrew/bin/gh auth git-credential' || true
+fi
+if ! git config --global --get-all credential.helper 2>/dev/null | grep -Fxq '!gh auth git-credential'; then
+    git config --global --add credential.helper '!gh auth git-credential'
+    echo "✓ GitHub credential helper configured for container gh"
+fi
+
 # Set up SSH permissions if .ssh directory exists
 if [ -d "$HOME/.ssh" ]; then
     chmod 700 "$HOME/.ssh"
