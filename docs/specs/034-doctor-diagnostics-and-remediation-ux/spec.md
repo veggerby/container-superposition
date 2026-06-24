@@ -5,343 +5,439 @@
 **Created**: 2026-06-24
 **Author**: PM Agent
 **Status**: Draft
-**Input**: Reverse-spec existing `doctor` command behavior across diagnostics, repair, and dry-run modes.
+**Input**: Redesign `doctor` so diagnostics reduce triage effort, remediation builds trust before writes, and product model stays clear under failure.
 
 ---
 
 ## Request Classification
 
-Reverse-spec existing CLI UX by consolidating current doctor slices and observed implementation. Scope covers read-only diagnostics, `--fix`, and `--fix --dry-run` user experience.
+UX-forward rewrite. Not reverse-spec. Existing checks and fixes remain inputs, but report flow, write confidence, and recovery guidance should intentionally change where current behavior feels checker-centric instead of user-centric.
 
-## Problem Statement
+## Product Outcome
 
-`doctor` now acts as product-wide health gate for generated output and project config. It validates:
+Make `doctor` feel like repo health assistant, not finding dump.
 
-- environment/tooling prerequisites
-- manifest and merge integrity
-- project-file drift
-- parameter correctness and sensitivity risks
-- overlay dependency completeness
-- compose/forward-port consistency
-- `.env.example` drift
-- reproducibility against current project file
+Success signals:
 
-It also offers guided remediation summary, automated fixes for safe cases, and dry-run previews. Behavior spans multiple earlier specs but lacks one consolidated product contract.
+- users know within first screen whether repo is blocked, safe with warnings, or fixable now
+- `--fix` feels reviewable and trustworthy before mutation
+- manual work never gets buried under auto-fix noise
+- repeat users can scan clean output fast while still trusting coverage happened
+
+## Improvement Target Over Current Product
+
+This redesign is deliberate uplift, not documentation of current report shape.
+
+Target outcomes over current product:
+
+- replace checker-centric reading order with action-centric triage
+- replace weak fix-mode trust with mandatory remediation preview before writes
+- replace mixed manual/auto-fix visual weight with explicit action buckets
+- replace terse healthy output with short proof that coverage ran and nothing changed
+- replace mode ambiguity with unmistakable diagnosis, preview-only, and apply-fix framing
+
+## Current UX To Intentionally Supersede
+
+1. Findings are grouped, but action priority still requires too much interpretation.
+2. `--fix` and `--dry-run` are capable, but confidence-before-write contract is weaker than it should be.
+3. Report structure centers check taxonomy more than user action ladder.
+4. Manual-only findings can compete visually with auto-fixable issues.
+5. Clean runs can feel terse in way that reduces trust coverage actually ran.
 
 ## User Goals
 
-### Developer diagnosing setup issue
+### Developer debugging setup
 
-- Run one command and see grouped findings with pass/warn/fail semantics.
-- Understand which issues are safe to auto-fix versus manual.
-- Get actionable next steps for each failure.
+- See top blockers first.
+- Know whether command can fix them.
+- Know exact next command if command cannot fix them.
 
-### Developer using auto-fix
+### Developer using remediation
 
-- Preview planned changes before mutating files.
-- Apply safe repairs in deterministic order.
-- See which findings were fixed, skipped, or still require manual action.
+- Review planned changes before write.
+- Understand what will be fixed, skipped, or left manual.
+- Trust command did not silently mutate unrelated files.
 
-### Team / CI maintainer
+### CI / maintainer
 
-- Use JSON output for machine consumption.
-- Fail builds when environment or generated output has actionable drift.
-- Detect when replay/regeneration needed before merge.
+- Get stable machine-readable status.
+- Distinguish clean, warning, blocking, preview-only, and remediated outcomes.
 
 ## Scope
 
 ### In scope
 
-- Standard `doctor` text and JSON diagnostic report.
-- `--from-project`, `--from-manifest`, `--project-root`, and output-path resolution.
-- `--fix` remediation ordering, summary, and exit disposition.
-- `--fix --dry-run` preview behavior and exit codes.
-- Diagnostic sections for environment, overlays, manifest, merge, ports, project-file drift, parameters, dependencies, port cross-validation, `.env.example` drift, and reproducibility.
+- read-only `doctor`
+- `doctor --fix`
+- `doctor --fix --dry-run`
+- first-screen triage, finding grouping, remediation preview, and final disposition
+- project-file-first recovery guidance inside doctor output
 
-### Non-goals
+### Out of scope
 
-- Interactive `init` / `regen` questionnaire.
-- Discovery/preview commands unrelated to diagnostics.
-- Adopt/migrate conversion flows.
-- Deep implementation details of each checker beyond visible semantics.
+- new checker domains
+- selective per-finding fix targeting
+- interactive `init`/`regen` flow redesign
+- adopt/migrate flows
 
-## Must Preserve
+## Non-Goals
 
-- Read-only `doctor` never mutates files unless `--fix` specified.
-- Dry-run never mutates files.
-- JSON output stays available for diagnostics and fix flows.
-- Automatic fixes remain restricted to safe/unattended cases.
-- Manual-only findings remain visible rather than buried by auto-fix summaries.
+- Preserve current section order because it mirrors implementation
+- Preserve direct write-on-flag behavior if it weakens trust
+- Hide complexity by collapsing meaningful manual work
 
-## Constraints
+## Design Principles
 
-- Must remain non-mutating unless `--fix` explicitly selected.
-- Must keep JSON and text dispositions semantically aligned for CI and humans.
-- Must preserve no-Git-index-mutation rule even when findings identify tracked generated files.
-- Must route remediation guidance through ADR 001 project-file-first authority when repository project file exists.
+1. **Answer blocked status first**.
+2. **Bucket by action, not subsystem**.
+3. **Preview before mutate**.
+4. **Manual work stays visible**.
+5. **Clean runs prove coverage**.
+6. **Mode copy must be unmistakable**.
 
-## Assumptions
+## Canonical Interaction Model
 
-- Existing checker set and remediation registry stay current ownership boundary; this spec unifies outward contract rather than redefining every checker.
-- Section-level suppression of all-pass rows may continue if final summary still proves full coverage ran.
-- Missing `docs/foundation.md` means ADR 001, prior doctor specs, and live command/tests remain current authority.
+### Doctor modes
 
-## Proposed Behavior
+Doctor has three user-visible modes only:
 
-### 1. `doctor` is sectioned diagnostic report, not flat error stream
+- `Diagnosis only`
+- `Preview fix plan only`
+- `Apply safe fixes`
 
-Standard text output MUST group checks into named sections and summarize totals at end.
+Mode label MUST appear first line and MUST govern all copy below it.
 
-Sections SHOULD only surface non-pass findings for noisy categories like dependencies, port cross-validation, `.env.example` drift, and reproducibility, while still surfacing clear pass summaries where helpful.
+### Disposition ladder
 
-Report order SHOULD move from environment blockers to repo drift to generated-output drift so users see highest-leverage actions first.
+Every run MUST resolve to one top-level disposition:
 
-### 2. Source selection matches user intent
+- `Blocked`
+- `Fixable now`
+- `Manual follow-up only`
+- `Healthy`
 
-`doctor` MUST validate mutually exclusive sources and resolve working directory before checks run.
+This disposition appears in first screen and final screen.
 
-Supported modes:
+## Page Contract
 
-- generated output path inspection
-- explicit manifest inspection
-- repository project-file inspection
+### 1. Triage header
 
-Errors for missing project root, missing manifest, or missing project file MUST stop before partial diagnostics.
+First visible output MUST contain five rows in fixed order:
 
-### 3. Auto-fix executes in dependency-aware order
+1. `Mode`
+2. `Disposition`
+3. `Source inspected`
+4. `Counts`
+5. `Recommended next action`
 
-When `--fix` set, tool MUST:
+`Counts` row MUST summarize:
 
-1. run diagnostics first
-2. narrate planned fix actions in text mode
-3. execute automatic remediations in stable order
-4. skip dependent actions when prerequisites fail
-5. re-run checks
-6. print remediation summary with per-finding outcome and overall exit disposition
+- blocking issues
+- safe auto-fixes available
+- manual follow-up items
+- passed checks
 
-Outcome vocabulary MUST distinguish `fixed`, `already compliant`, `skipped`, and `requires manual action`.
+Rules:
 
-### 4. Dry-run previews auto-fix plan without writes
+- first screen fits in one terminal page for typical repos
+- detailed checker names do not appear before triage buckets
+- if source is legacy manifest, framing MUST say compatibility context explicitly
 
-When `--fix --dry-run` set, tool MUST:
+### 2. Action buckets
 
-- run same diagnostics as fix mode
-- list each auto-fixable action with remediation key and planned changes
-- separately list manual-only findings
-- avoid any file writes
-- exit non-zero when any findings remain, zero only when clean
+After triage header, human-readable output MUST present buckets in this order:
 
-### 5. Doctor doubles as project hygiene gate
+1. `Blocking issues`
+2. `Safe auto-fixes available`
+3. `Manual follow-up`
+4. `Passed checks`
 
-Beyond host-environment checks, doctor MUST surface repo and generated-output hygiene issues users can act on before container start or merge:
+Rules:
 
-- project file diverged from manifest
-- unresolved or risky parameters
-- missing required overlays / unknown overlay IDs
-- dead or missing forwarded ports for compose stacks
-- stale `.env.example`
-- generated output no longer reproducible from current project file
+- empty buckets omitted except `Passed checks` on healthy run
+- each finding row shows short title, why it matters, and whether auto-fix exists
+- fixable findings appear before manual-only findings inside mixed domains
+- checker implementation taxonomy stays secondary metadata only
 
-### 6. Text output emphasizes actionability over internals
+### 3. Finding row contract
 
-Each failing or warning finding SHOULD show:
+Each finding row MUST contain, in one compact block:
 
-- one-line finding name and message
-- indented detail steps or context
-- explicit `Fixable with --fix flag` note when applicable
-- recommended next command or manual follow-up when auto-fix cannot finish work
+- severity badge
+- finding title
+- user consequence
+- action status: `auto-fix available`, `manual only`, `already healthy`
+- optional `Learned from` source line for ambiguous config-origin cases
 
-Fix summary SHOULD state changed files or backup path when relevant and show final run disposition.
+If details expand, order MUST be:
 
-## UX Contract
+1. evidence
+2. planned remediation or manual steps
+3. affected files/artifacts
 
-### Canonical interaction model
+### 4. Remediation preview for `--fix` and `--fix --dry-run`
 
-`doctor` has three user-visible modes with same diagnostic core:
+Before any mutation, fix modes MUST print `Fix plan` section with one row per remediation:
 
-1. diagnose only
-2. diagnose, then preview fix plan (`--fix --dry-run`)
-3. diagnose, then apply safe fixes (`--fix`)
+- finding name
+- remediation action
+- files/artifacts expected to change
+- prerequisites or skip conditions
+- safety class
 
-Mode MUST be visible in first lines of output so users never confuse preview with write mode.
+Rules:
 
-### Page contract
+- preview printed in dry-run and live-fix modes
+- dry-run headline MUST say `Preview fix plan only — no files changed`
+- if nothing fixable, fix plan explicitly says so and routes to manual follow-up
 
-#### Report structure
+### 5. Confirmation gate
 
-Text output order MUST be:
+Interactive `doctor --fix` MUST require explicit confirmation after fix plan.
 
-1. source framing and mode
-2. grouped findings by section
-3. remediation plan preview when requested
-4. post-fix outcome summary when writes occurred
-5. final disposition summary with counts and next step
+Choices:
 
-Sections SHOULD follow user action order: environment blockers first, source/config integrity next, generated-output drift last.
+- `Apply fixes`
+- `Cancel`
 
-#### Finding row contract
+Rules:
 
-Each non-pass finding MUST expose:
+- default focus `Cancel`
+- if backup skipped or mutation broad, confirmation copy must restate risk plainly
+- non-interactive mutation may proceed only after same fix plan printed first
 
-- severity/disposition marker
-- stable finding name
-- one-sentence diagnosis
-- detail bullets for evidence or scope
-- fixability state
-- next action when unresolved
+### 6. Post-fix outcome screen
 
-If section has no surfaced findings and product chooses to hide all-pass rows, overall summary still needs enough pass-state context that user knows command completed full check set.
+After remediation attempt, output MUST keep three buckets visible in fixed order:
 
-### Interaction rules
+1. `Fixed now`
+2. `Skipped`
+3. `Still requires manual action`
 
-- Missing or conflicting source inputs fail before any partial diagnostic sections print.
-- `--fix --dry-run` MUST never show success language that implies files changed.
-- `--fix` MUST preview planned automatic actions before execution in text mode.
-- Findings that remain after fix run MUST stay visible in final outcome; fix summary cannot replace them.
-- Manual-only findings MUST never be grouped under fixable wording.
-- If automatic action skipped due to prerequisite failure, output MUST say skipped and name blocking prerequisite.
+Rules:
 
-### State behavior
+- unresolved work can never be collapsed under success banner
+- if fixes applied but blockers remain, final disposition remains `Blocked`
+- if no files changed in dry-run, final screen repeats preview-only status
 
-- Clean: no actionable findings; output ends with safe-to-proceed style disposition.
-- Warning: repo usable but review needed; output names manual or risk-based follow-up.
-- Error: blocking issue remains; output names next command or manual repair path.
-- Dry-run with findings: preview complete, no changes made, non-zero exit implied.
-- Fix-applied: output distinguishes `fixed`, `already compliant`, `skipped`, `requires manual action` per finding.
+### 7. Healthy run screen
 
-These disposition labels are canonical across text summary, JSON status, and docs.
+Healthy runs MUST remain short but confidence-building.
 
-### Copy contract
+Required lines:
 
-- `Fixable with --fix flag` reserved for findings auto-remediable by current command.
-- `Requires manual action` reserved for findings command will not mutate.
-- `Preview only` language required for dry-run mode.
-- Next-step copy routes through current canonical workflow: `regen` or project-file update for reproducibility drift, not manifest-first shortcuts unless source explicitly manifest-driven.
-- Final summary MUST say whether files changed.
+- source inspected
+- checks run count
+- no files changed
+- next safe step
 
-### QA scenario scripts
+Optional cheerful phrasing allowed only after these facts.
 
-1. Missing project file in `--from-project` mode fails before sectioned diagnostics begin.
-2. Clean run ends with counts and explicit safe-to-proceed disposition.
-3. Dry-run with fixable and manual findings shows both groups, states no files changed, exits non-zero.
-4. Fix run previews actions, applies safe subset, re-runs checks, then reports fixed/skipped/manual outcomes.
-5. Reproducibility finding routes user to project-file-first recovery copy.
+## Interaction Rules
+
+### Ordering rules
+
+Detailed findings SHOULD be ordered by actionability:
+
+1. environment blockers
+2. canonical source / config integrity
+3. generated-output drift
+4. hygiene and advisory findings
+
+Within each section:
+
+- fixable first
+- manual-only second
+- passes last or summarized only
+
+### Copy rules
+
+Prefer:
+
+- `Blocking issues`
+- `Safe auto-fixes available`
+- `Preview fix plan only`
+- `Still requires manual action`
+- `No files changed`
+
+Avoid:
+
+- ambiguous `warning` without consequence
+- write-like success language in preview mode
+- manifest-first steady-state guidance when project file exists
+
+### Recovery guidance rules
+
+When issues involve source authority or drift, guidance MUST route toward:
+
+- shared project file review/update
+- `regen` for regeneration from canonical intent
+- `migrate` for legacy manifest bridge when relevant
+- manual Git index cleanup only as explicit manual follow-up
+
+### Empty and edge-state rules
+
+- no project file and no manifest → `doctor` explains what source missing and points to `init`
+- fix mode with only manual issues → no confirm gate, no fake fix plan, route to manual actions
+- dry-run with zero planned fixes → explicitly state `Nothing to apply`
+- failed remediation prerequisite → item moves to `Skipped` with reason
+
+## State Behavior
+
+- first-line mode label must match final-screen mode label exactly
+- text and JSON outputs must encode same disposition states
+- counts in triage header and outcome buckets must reconcile exactly
+- preview plan item names must match post-fix result item names
+- source inspected label persists through entire report
+
+## Worked Examples
+
+### Diagnose-only blocked repo
+
+- first line `Diagnosis only`
+- triage says `Blocked`
+- `Blocking issues` appears first with consequence and manual/auto-fix status
+- footer points to `doctor --fix` or `regen` depending issue class
+
+### Dry-run remediation
+
+- first line `Preview fix plan only`
+- triage says `Fixable now`
+- fix plan lists exact files/artifacts expected to change
+- final state repeats `No files changed`
+
+### Live fix with unresolved follow-up
+
+- first line `Apply safe fixes`
+- confirm gate before writes
+- outcome buckets show `Fixed now`, `Skipped`, `Still requires manual action`
+- final disposition may still be `Blocked`
+
+## QA Scenario Scripts
+
+1. Diagnose-only mixed repo: verify triage header precedes details and buckets appear in action order.
+2. `doctor --fix --dry-run`: verify preview-only wording, fix plan rows, and no write-like success language.
+3. Interactive `doctor --fix`: verify explicit confirmation after fix plan and before writes.
+4. Remediation with partial success: verify `Fixed now`, `Skipped`, and `Still requires manual action` all visible.
+5. Healthy repo: verify source, checks count, no-files-changed, and next step all shown.
+6. Legacy-manifest-only repo: verify compatibility framing and migrate-oriented guidance.
 
 ## Acceptance Criteria
 
 | # | Criterion |
 | --- | --- |
-| AC-1 | Standard `doctor` text output groups findings by diagnostic area and ends with passed/warning/error/fixable summary counts. |
-| AC-2 | `doctor` supports output-path, project-file, and manifest-driven inspection, with clear failures for mutually exclusive or missing sources. |
-| AC-3 | `doctor --fix` executes only automatic remediations, in deterministic prerequisite order, then re-checks and reports per-finding outcomes plus overall exit disposition. |
-| AC-4 | `doctor --fix --dry-run` shows planned actions and manual-only findings without writing files, and exits non-zero when any findings exist. |
-| AC-5 | Diagnostic coverage includes environment, overlays, manifest, merge strategy, port availability, project-file drift, parameters, dependencies, compose/forward-port cross-validation, `.env.example` drift, and reproducibility. |
-| AC-6 | Text findings expose actionable detail lines, explicit fixability notes where safe auto-fix exists, and recommended next command or manual follow-up where it does not. |
-| AC-7 | Clean, warning, error, and post-fix dispositions remain distinguishable in both text and JSON output so humans and CI can tell whether repo is safe to proceed, needs manual work, or was remediated. |
-| AC-8 | JSON output exists for baseline diagnostics, fix runs, and dry-run plan mode. |
-| AC-9 | Automated coverage exists for dependency findings, port cross-validation, reproducibility, dry-run behavior, and fix-run outcomes. |
-| AC-10 | Diagnose, dry-run, and fix modes define distinct first-line framing, disposition vocabulary, and end states so preview, failure, and mutation outcomes cannot be confused. |
-| AC-11 | Ownership is explicit: doctor orchestrates source resolution/reporting/remediation, checkers own findings, remediation registry owns fix metadata, and project-config/replay helpers own underlying state mutation details. |
+| AC-1 | First visible doctor output is triage header with rows in exact order `Mode`, `Disposition`, `Source inspected`, `Counts`, `Recommended next action`, before any checker-detail sections. |
+| AC-2 | `Counts` row always reports blocking issues, safe auto-fixes available, manual follow-up items, and passed checks, and these counts reconcile exactly with later buckets and final outcome buckets. |
+| AC-3 | Human-readable findings render action buckets in exact order `Blocking issues`, `Safe auto-fixes available`, `Manual follow-up`, `Passed checks`, with empty buckets omitted except `Passed checks` on healthy run. |
+| AC-4 | Diagnose-only, `--fix --dry-run`, and `--fix` live-apply modes use exact first-line labels `Diagnosis only`, `Preview fix plan only`, and `Apply safe fixes`, and final screens repeat matching mode labels. |
+| AC-5 | Every fix-capable run prints `Fix plan` before any mutation, with one row per remediation naming finding, action, affected artifacts, prerequisites or skip conditions, and safety class. |
+| AC-6 | Interactive `doctor --fix` offers exactly `Apply fixes` and `Cancel` after fix plan, with default focus `Cancel`; non-interactive mutation still prints identical fix plan before applying changes. |
+| AC-7 | Post-fix output keeps exact bucket order `Fixed now`, `Skipped`, `Still requires manual action`; unresolved blockers remain visible and preserve top-level `Blocked` disposition when applicable. |
+| AC-8 | Healthy runs state source inspected, checks run count, `No files changed`, and next safe step even when no issue buckets are rendered. |
+| AC-9 | Dry-run output explicitly says `Preview fix plan only — no files changed`, shows planned auto-fixes separately from manual-only work, and never uses success language implying fixes were applied. |
+| AC-10 | Recovery guidance for source authority, drift, or compatibility routes toward shared project file review, `regen`, `migrate`, or explicit manual Git cleanup, never stale manifest-first steady-state advice. |
+| AC-11 | Automated coverage exists for triage ordering, count reconciliation, fix-plan preview, confirmation defaults, partial-success outcome buckets, healthy-run trust summary, and JSON/text disposition parity. |
+| AC-12 | Current report structure may change materially when needed to improve triage speed, mutation trust, and workflow teaching; current checker-first grouping is not acceptance authority. |
 
-## Evidence Basis
+## Tradeoffs
 
-- `tool/commands/doctor.ts` — source resolution, section formatting, dry-run branch, fix execution, remediation summary.
-- `tool/__tests__/commands.test.ts` and `tool/__tests__/doctor-checks.test.ts` — diagnostic sections, fix mode, dry-run, parameter and dependency findings, reproducibility, exit behavior.
-- `docs/specs/004-doctor-fix/spec.md` — base auto-repair contract.
-- `docs/specs/013-doctor-dependency-check/spec.md` — dependency findings and fix path.
-- `docs/specs/014-doctor-compose-port-cross-validation/spec.md` — compose/forward-port validation.
-- `docs/specs/016-doctor-reproducibility-check/spec.md` — regen-needed detection.
-- `docs/specs/017-doctor-dry-run/spec.md` — preview-before-fix behavior.
-- `docs/workflows.md` and `docs/README.md` — user-facing placement of doctor in workflow.
+- Stronger preview and confirmation add step to fix mode, but materially improve safety perception.
+- Triage buckets abstract checker taxonomy, but make action clearer.
+- Cleaner healthy output must still prove coverage to avoid false reassurance.
+- Unattended fix flows may need stricter copy or flags; speed tradeoff acceptable for trust gain.
 
-## Evidence Confidence
+## Implementation Gap vs Current Product
 
-**High**
+Deliberate improvements still to build:
 
-Behavior well-covered by code and tests. Remaining uncertainty sits in operating-model and architecture-boundary choices, not in diagnose, dry-run, or fix-mode semantics.
-
-## Implementation-vs-Intent Mismatches
-
-1. Broader docs mention `doctor` as verification step but do not yet expose full `--fix` and `--dry-run` capability surface consistently.
-2. Some sections intentionally suppress all-pass output, which keeps report concise but can make feature discoverability uneven across categories.
-3. Current text-mode UX is action-oriented but still heavily terminal-structured; no higher-level docs summarize remediation ordering or exit-disposition semantics in one place.
+- `tool/commands/doctor.ts` already has rich checker and remediation data, but current report contract does not yet deliver action-bucket triage, stronger mode framing, or mandatory fix-plan-first trust flow.
+- Current outcome reporting does not yet consistently preserve `Fixed now` vs `Skipped` vs `Still requires manual action` bucket visibility.
+- `tool/cli/args.ts` help text still under-teaches diagnosis-only vs preview-only vs apply-fix workflow.
 
 ## Technical Design
 
 ### Architecture Ownership
 
-- `tool/commands/doctor.ts` owns source resolution, mode framing, section ordering, aggregation, exit disposition, fix-plan preview, fix execution ordering, recheck sequencing, and text/JSON report composition.
-- Diagnostic check implementations own evidence gathering and stable finding IDs for their domain, but they do not own cross-command workflow routing.
-- Remediation registry metadata owns fix eligibility, remediation key, safety class, prerequisites, planned changes, and manual fallback contract for each auto-fixable finding.
-- `tool/schema/project-config.ts` owns project-file loading/writing used by project-file drift, parameter, dependency, and reproducibility fixes.
-- Generation/replay helpers own regeneration side effects when remediation chooses regeneration; doctor orchestrates them, not reimplements composition rules.
-- Registry/checker text must consume canonical workflow copy owned by doctor-level reporting contract so finding details cannot drift back to manifest-first guidance.
+- Checker implementations in `tool/commands/doctor.ts` keep diagnostic evidence gathering and remediation execution.
+- New doctor report-model layer should transform raw findings into triage buckets, disposition, counts, fix plan rows, and post-fix outcome buckets.
+- Remediation registry remains safety/source authority for `fixEligibility`, `safetyClass`, prerequisites, and planned artifact changes.
+- Shared artifact-summary helper should be reused with `plan`/`regen`/conversion commands so changed-file language stays consistent.
 
 ### System Boundaries
 
-- Diagnose-only mode never mutates files.
-- Dry-run mode uses same diagnostic core and remediation planning metadata as `--fix`, but never executes writes.
-- `--fix` remains all-or-nothing at command boundary: doctor decides safe subset to apply, then reports skipped/manual remainder. Selective per-finding fix targeting is out of scope for this spec.
-- Doctor may update project file, manifest, generated output, env example, and backup artifacts required by safe remediations. It must not mutate Git index.
-- Doctor output is canonical local and CI health contract for current checker set; wrappers may consume it, but should not redefine disposition vocabulary.
+- Checkers should not decide final bucket placement by printing strings. They emit severity, fixability, evidence, and remediation keys only.
+- Report-model layer owns ordering: environment blockers, source authority/config integrity, generated-output drift, hygiene/advisory.
+- Human-readable output and JSON both serialize same normalized doctor state. Legacy checker-group arrays may remain temporarily for compatibility, but disposition/count/bucket truth must come from normalized state.
+- Fix executor only runs actions marked safe for unattended execution after fix plan is printed.
 
 ### Canonical Data Flow
 
-1. Parse source flags and resolve exactly one inspection authority: output path, manifest, or project file.
-2. Fail fast on missing/conflicting sources before printing partial sections.
-3. Run full diagnostic pass and normalize findings into sectioned report model with stable finding IDs, severity, fixability, and next action.
-4. If diagnose-only, render report and final disposition.
-5. If dry-run, derive remediation plan from same findings, render planned auto-fixes plus manual-only findings, report preview-only disposition, exit based on remaining findings.
-6. If fix mode, render planned actions, execute safe remediations in deterministic prerequisite order, record per-action outcomes, rerun checks, then render post-fix findings plus final outcome summary.
+```mermaid
+flowchart LR
+    A[Doctor options + repo scan] --> B[Run checks]
+    B --> C[Normalized findings]
+    C --> D[Disposition + count reconciler]
+    D --> E[Action buckets]
+    C --> F{fix mode?}
+    F -->|no| G[Triage report]
+    F -->|yes| H[Fix plan builder]
+    H --> I{interactive confirm}
+    I -->|apply| J[Remediation executor]
+    I -->|cancel| K[Preview/cancel outcome]
+    J --> L[Recheck + outcome buckets]
+    G --> M[Human renderer or JSON serializer]
+    H --> M
+    L --> M
+    D --> M
+```
 
-### Interfaces and Invariants
+### Interaction Policy Locks
 
-- Stable interfaces: source options, section names, finding IDs, remediation keys, disposition labels (`clean`, `warning`, `error`, `fixed`, `already compliant`, `skipped`, `requires manual action`), and JSON/text semantic parity.
-- Invariants:
-  - same input state produces same findings before formatting differences
-  - dry-run and fix mode share same remediation eligibility logic
-  - post-fix summary never hides unresolved findings
-  - project-file-first recovery copy is used whenever repo project file is available
-  - hidden all-pass rows are allowed only if overall output still proves full run completed
+- Shared top-level disposition enum: `Blocked`, `Fixable now`, `Manual follow-up only`, `Healthy`.
+- Unattended `doctor --fix` may proceed after identical fix plan is printed. No extra opt-in flag in this spec. Guardrail: only `safe-unattended` remediations auto-run; `requires-manual-action` always stays manual/skip.
+- Interactive `doctor --fix` always confirms after fix plan with default `Cancel`.
+- Dry-run and live-fix use same plan builder and item naming so preview rows reconcile exactly with outcomes.
+
+### JSON Contract Direction
+
+- Add normalized top-level fields for `mode`, `disposition`, `counts`, `actionBuckets`, `fixPlan`, and `outcomeBuckets`.
+- Preserve existing detailed arrays during rollout where practical to avoid breaking current automation/tests.
+- Exit disposition derives from normalized final state, not from text renderer branch logic.
 
 ### Implementation Slices
 
-1. Source-resolution hardening: one authority path, early conflict failures, first-line mode framing.
-2. Diagnostic report contract hardening: stable section order, finding row shape, summary counts, and JSON/text parity.
-3. Remediation-plan hardening: canonical safety classes, prerequisite-aware ordering, planned-change narration, manual-only separation.
-4. Fix-run hardening: execution outcome capture, recheck policy, final disposition contract.
-5. Copy-authority hardening: workflow routing language centralized so checker/remediation text stays project-file-first.
-6. Docs/CI slice: document doctor as canonical health gate and align wrappers/tests with exit-disposition contract.
+1. Extract normalized finding/report-model layer from current checker output.
+2. Add triage header, action buckets, and healthy-run proof output in human renderer.
+3. Add fix-plan builder and confirmation gate before any mutation.
+4. Add post-fix outcome bucket renderer plus count reconciliation.
+5. Extend JSON output with normalized fields and adapt tests/help text.
 
 ### Risk Notes
 
-- Fix preview and fix execution can drift if remediation planning metadata and execution path evolve separately.
-- Checker-specific copy embedded too deep in registry/helpers can bypass top-level workflow routing rules.
-- Terse clean output can obscure trust if summary does not show enough coverage proof for humans and CI maintainers.
-- Future selective-fix feature would complicate dependency ordering and current summary semantics; keep out of current scope.
+- `doctor.ts` already large and multi-purpose. Must isolate transformation layer before editing copy.
+- Count reconciliation easy to break when one finding maps to multiple actions. Need stable finding IDs and remediation IDs.
+- Mixed legacy/new JSON can drift unless one normalized source drives both.
+- Remediation artifact summaries can become vague if executors do not report changed files consistently.
 
 ### Test Plan
 
-- Source-resolution tests for missing project file, missing manifest, conflicting flags, and project-root resolution.
-- Diagnostic tests for section order, stable finding IDs, hidden-pass behavior, summary counts, and JSON/text semantic parity.
-- Dry-run tests for preview-only framing, zero writes, planned auto-fix list, manual-only list, and non-zero exit when findings remain.
-- Fix-run tests for deterministic remediation ordering, prerequisite skip behavior, outcome vocabulary, recheck behavior, and final unresolved-finding visibility.
-- Regression tests for project-file drift, dependency repair, parameter repair, env-example drift, reproducibility drift, and no-Git-index-mutation guidance.
-- CI-consumption tests for exit disposition mapping across clean, warning, error, dry-run-with-findings, and post-fix states.
+- Unit: disposition calculation, bucket placement, count reconciliation, fix-plan item generation, safety-class gating.
+- Integration: triage header ordering, dry-run wording, interactive confirm default, partial-success bucket rendering, healthy-run trust summary.
+- JSON contract: parity between normalized text states and machine states, including fix outcomes and exit disposition.
+- Regression: legacy manifest compatibility guidance, manual-only runs skip fake confirm, failed prerequisites move items to `Skipped`.
 
 ## Architecture Decision Impact
 
-Aligned with ADR 001. `docs/foundation.md` absent; no additional foundation authority to reconcile.
+aligned with current ADRs/foundation
 
-- Governing ADR: `docs/adr/adr001-project-file-first-replay-and-regeneration.md`
-- No ADR amendment needed for this scope.
+Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 
 ## Open Questions
 
-- None blocking for implementation-safe framing. Selective per-finding fix targeting remains future product decision, not current architecture blocker.
+- None blocking for redesign. Future stricter unattended-fix policy can be separate CLI hardening follow-up if trust data says needed.
 
 ## Routing Decision
 
-**PM → Developer**
+**Architect → PM**
 
-Reason: doctor ownership, report/fix flow, invariants, risks, and test strategy now explicit without ADR change.
+Reason: Technical design locked for doctor report-model ownership, unattended safety policy, normalized JSON contract, and shared artifact-summary boundary. Ready for developer implementation planning.

@@ -5,340 +5,454 @@
 **Created**: 2026-06-24
 **Author**: PM Agent
 **Status**: Draft
-**Input**: Reverse-spec existing user-facing CLI behavior for `list`, `explain`, `plan`, and `hash`.
+**Input**: Redesign read-only CLI surfaces so users discover faster, preview earlier, and learn product model without accidental writes.
 
 ---
 
 ## Request Classification
 
-Reverse-spec from current command code, docs, tests, and preset catalog. Scope covers non-destructive inspection commands that help users discover overlays, inspect details, preview generation, compare planned changes, and fingerprint configurations.
+UX-forward rewrite. Not reverse-spec. Current command set stays, but current output and guidance may be intentionally replaced where it under-teaches, over-dumps detail, or routes users toward wrong next step.
 
-## Problem Statement
+## Product Outcome
 
-Product exposes rich read-only command surface, but behavior contract split across docs and implementation. Current commands let users:
+Turn `list`, `explain`, `plan`, and `hash` into one learning ladder:
 
-- discover overlays and presets
-- inspect overlay and preset details
-- preview generation plans and diffs
-- compute deterministic environment fingerprints
+1. find good starting points
+2. inspect impact
+3. preview exact change
+4. prove semantic equivalence
 
-Some output and guidance drift from current product model, especially around category naming, messaging visibility, and rerun hints.
+Success signals:
+
+- first-run users discover viable options without docs dive
+- power users use `plan` before writes by habit
+- next-step hints always teach valid project-file-first workflow
+- text and JSON outputs stay scriptable while human output becomes more decision-oriented
+
+## Improvement Target Over Current Product
+
+This redesign is deliberate uplift, not documentation of current output.
+
+Target outcomes over current product:
+
+- replace catalog-dump discovery with recommendation-led narrowing
+- replace metadata-first inspection with fit-first inspection
+- replace low-prominence previewing with explicit `plan`-first confidence habit
+- replace opaque checksum output with explained semantic fingerprinting
+- replace drifting hints with state-aware, project-file-first next-step routing
+
+## Current UX To Intentionally Supersede
+
+1. `list` behaves like raw catalog dump more than guided discovery surface.
+2. `explain` shows facts but weakly teaches when item is good fit or risky fit.
+3. `plan` exists, but product does not consistently present it as default confidence-building step before writes.
+4. `plan --diff` and `hash` are powerful but feel expert-only and isolated.
+5. Current hints sometimes point to invalid or stale follow-up commands.
+6. Category and metadata rendering drift reduces trust in discovery output.
 
 ## User Goals
 
 ### First-time user
 
-- Discover available overlays and presets without opening source files.
-- Inspect one overlay or preset deeply before selecting it.
-- Preview generated files, ports, and dependencies before running generation.
+- Find likely starting point fast.
+- Understand what overlay or preset adds before committing.
+- Preview write impact without generating files.
 
 ### Returning user
 
-- Compare planned change set against existing `.devcontainer/` output.
-- Understand why dependencies were auto-added or why overlays were skipped.
-- Export machine-readable output for scripts and CI.
+- Compare intended change against current generated output.
+- Understand dependency auto-adds and skips.
+- Verify two configurations are semantically same.
 
-### Team maintainer / automation user
+### Automation user
 
-- Derive stable fingerprint from manifest or explicit selections.
-- Use JSON output for policy checks and tooling.
+- Keep JSON stable.
+- Use hash and plan in scripts without prose pollution.
 
 ## Scope
 
 ### In scope
 
-- `list` grouped and filtered discovery output.
-- `explain` detailed overlay and preset inspection.
-- `plan` normal preview, verbose dependency narration, manifest mode, and `--diff` comparison mode.
-- `hash` manifest/explicit input behavior, auto-added dependency visibility, and optional file write.
-- Help/error messaging and rerun hints attached to these commands.
+- `list`, `explain`, `plan`, `plan --diff`, `hash`
+- shared labels, next-step hints, and preview framing
+- browse, inspect, compare, and fingerprint UX
 
-### Non-goals
+### Out of scope
 
-- Interactive `init` / `regen` questionnaire.
-- Doctor diagnostics and fixes.
-- Adopt/migrate conversion workflows.
-- Underlying overlay composition semantics except where visible in preview output.
+- changing command taxonomy
+- write-path behavior in `init` or `regen`
+- doctor remediation flow
+- adopt/migrate conversion flow
 
-## Must Preserve
+## Non-Goals
 
-- All four commands stay read-only except `hash --write`.
-- JSON output remains available for scripting.
-- Plan preview remains valid from either explicit selections or existing manifest.
-- Preview surfaces stay safe even when current generated output missing, partial, or stale.
-- Fingerprint stays deterministic for same semantic inputs.
+- Preserve current text layout because tests already snapshot it
+- Teach raw catalog structure before user decision needs
+- Use read-only commands as hidden write setup shortcuts
 
-## Constraints
+## Design Principles
 
-- Must remain read-only except explicit `hash --write` artifact creation.
-- Must align next-step guidance with ADR 001 project-file-first routing.
-- Must keep JSON output script-safe even when human-readable recovery guidance changes.
-- Must preserve `custom/` as user-owned preserved area in preview and diff framing.
+1. **Discovery narrows choices**.
+2. **Preview builds trust before write**.
+3. **Inspection answers fit, not only metadata**.
+4. **Fast path stays scriptable**.
+5. **Next-step hints teach valid workflow**.
+6. **Human output may become more opinionated than JSON**.
 
-## Assumptions
+## Canonical Interaction Model
 
-- Command set stays `list`, `explain`, `plan`, `hash`; this spec clarifies contract, not command taxonomy.
-- Preview surfaces may inspect generated output and manifest state, but they do not become remediation flows.
-- Missing `docs/foundation.md` means ADR 001 plus current command/docs evidence remain authority for routing language.
+### Learning ladder
 
-## Proposed Behavior
+- `list` = find starting points
+- `explain` = inspect one option
+- `plan` = preview resolved outcome
+- `hash` = compare semantic identity
 
-### 1. `list` is default discovery index
+### Shared frame
 
-`list` MUST provide two primary modes:
+All human-readable command outputs MUST begin with compact frame containing:
 
-- default grouped-by-category browse mode
-- filtered table mode when category, tags, or stack filter applied
+1. `Mode`
+2. `Source`
+3. `What this helps you decide`
 
-Default mode SHOULD feel catalog-like and show users where overlays live.
+Rules:
 
-Filtered mode SHOULD optimize for quick comparison across IDs, names, categories, ports, and dependencies.
+- frame max 3 short rows
+- no decorative prose before decision frame
+- JSON mode excludes frame entirely
 
-### 2. `explain` is deep inspection surface for both overlays and presets
+### Shared hint footer
 
-`explain <id>` MUST show:
+All human-readable outputs MUST end with exactly one `Next step` section.
 
-- description, category, tags, compatibility
-- requires / suggests / conflicts
-- exposed ports
-- files in overlay directory
-- patch-derived devcontainer features, extensions, env, and compose services when present
-- preset-specific required overlays, user choices, parameterized options, and concrete CLI examples when target is preset
+Rules:
 
-Output SHOULD separate "what this adds" from "what this depends on" so users can scan impact quickly.
+- one recommended next command only
+- hint depends on repo state and source type
+- no invalid flags or stale manifest-first advice
+- if no safe next command exists, footer says `No next step suggested`
 
-If ID unknown, command MUST fail with suggestion to use discovery surface.
+## Command Contracts
 
-### 3. `plan` is safe preview surface before file writes
+### `list`
 
-`plan` MUST support:
+#### Purpose
 
-- explicit overlay-list input
-- manifest-driven input
-- dependency auto-resolution
-- stack-compatibility skip warnings
-- conflict detection before generation
-- file list preview
-- port mapping preview with optional offset
+Help user start. Not dump whole registry without guidance.
 
-When `--verbose` set, `plan` MUST explain why each overlay appears in final result, including direct selection, required dependency, transitive path, skipped overlays, and conflicts.
+#### Default layout
 
-### 4. `plan --diff` compares intention against current generated output
+Default `list` MUST render in three blocks:
 
-Diff mode MUST tell users whether planned output would:
+1. `Recommended starts`
+2. `Browse all overlays`
+3. `How to inspect or preview next`
 
-- create files
-- modify or overwrite files
-- preserve `custom/` files
-- remove stale generated files
-- add or remove overlays
-- add or remove exposed ports
+`Recommended starts` rules:
 
-When no existing generated output exists, diff mode MUST degrade into explicit first-write preview instead of vague empty diff.
+- show common preset-led starts first when available
+- each row contains label, `Best for`, and one-line `Why start here`
+- max 5 rows before `Browse all overlays`
 
-Text mode SHOULD render summary plus inline unified diff where computable.
+`Browse all overlays` rules:
 
-JSON mode SHOULD expose same structural categories without terminal formatting.
+- group by live user-facing category names
+- include all live categories, including `messaging`
+- each item shows id, short description, fit tags if available
+- no `[object Object]`, raw JSON fragments, or hidden categories
 
-### 5. `hash` provides compact reproducibility fingerprint
+Filtered `list` rules:
 
-`hash` MUST accept either:
+- switch to comparison table/card layout
+- keep compact context header like `Filtered by category: messaging`
+- if zero results, show `No matches` plus at least two recovery suggestions
 
-- explicit stack + overlays inputs
-- inferred manifest input when explicit inputs absent
+### `explain <id>`
 
-Command MUST resolve required dependencies before hashing and mark auto-added overlays in human-readable output.
+#### Purpose
 
-Human-readable output SHOULD also state which source was hashed so fingerprints remain explainable in bug reports and CI logs.
+Answer `Why use this?`, `What changes?`, `What risk or tradeoff comes with it?`
 
-`hash --write` MUST persist full fingerprint into `.devcontainer/superposition.hash` or caller-specified output directory.
+#### Layout
 
-## UX Contract
+Human-readable `explain` MUST use fixed section order:
 
-### Canonical interaction model
+1. `Best for`
+2. `Adds`
+3. `Depends on`
+4. `Conflicts with`
+5. `Preview notes`
+6. `Files, services, and ports`
+7. `Try this next`
 
-These commands form one read-only discovery ladder:
+Rules:
 
-1. `list` answers what exists
-2. `explain` answers what one item does
-3. `plan` answers what selected inputs would generate
-4. `plan --diff` answers what would change here
-5. `hash` answers whether two semantic inputs are same configuration
+- `Best for` uses user-job phrasing, not only taxonomy
+- `Adds` summarizes user-visible behavior first, low-level files second
+- empty sections rendered as explicit `none`
+- preset explanations may append `Choices you can make`
+- file/service/port inventory stays skimmable and grouped, not implementation dump
 
-Each command MUST stand alone, but next-step guidance SHOULD move user forward on this ladder rather than sideways to unrelated flows.
+### `plan`
 
-### Page contract
+#### Purpose
 
-#### `list`
+Become standard confidence gate before writes.
 
-- Default view: browseable grouped catalog, with categories visible even when only few overlays exist in group.
-- Filtered view: compact comparison table optimized for scan, not prose.
-- Empty filter result: explicit `No overlays match current filters` style message plus hint to clear or broaden filters.
-- JSON mode: same underlying groups/rows without terminal-only formatting.
+#### Default layout
 
-#### `explain`
+Human-readable `plan` MUST use fixed section order:
 
-- First screenful MUST identify whether target is overlay or preset.
-- Output MUST separate `What this adds`, `Depends on`, and `Conflicts with` style sections so users can scan impact fast.
-- Unknown ID failure MUST suggest `list` as recovery path.
-- If inspected item has no ports, dependencies, conflicts, or patch-derived additions, output says none rather than silently omitting section.
+1. `Resolved intent`
+2. `What changes here`
+3. `Why this plan looks this way`
+4. `Detailed file impact` (collapsed/secondary in TUI, lower-priority in plain text)
+5. `Next step`
 
-#### `plan`
+`Resolved intent` MUST include:
 
-- First block names source: explicit selections or manifest-derived selections.
-- Preview MUST show final resolved overlay set before file list or port list.
-- Warnings for skipped overlays, compatibility exclusions, and conflicts MUST appear before diff/details that depend on final set.
-- `--verbose` adds reasoning depth, not different planning outcome.
-- `--diff` MUST state whether this is first write, update, or cleanup scenario before showing detailed file changes.
+- source of intent
+- final resolved overlays/preset
+- auto-added overlays
+- skipped or conflicting overlays
+- whether plan represents `first write`, `update`, `cleanup`, or `no material change`
 
-#### `hash`
+`What changes here` MUST summarize:
 
-- Human-readable output MUST show fingerprint plus hashed source summary.
-- Auto-added dependencies MUST be called out near source summary, not buried after fingerprint.
-- `--write` success state MUST name file path written.
+- files to create/update/remove
+- services/ports added or removed
+- whether generated output differs from current workspace
 
-### Interaction rules
+`Why this plan looks this way` MUST surface dependency and conflict reasoning in user language before verbose raw explanation.
 
-- Help and footer hints MUST only recommend executable next commands valid for current source model.
-- `plan` next-step guidance depends on context: use `init` for no canonical project state yet, `regen` for repo with canonical project file, `doctor` for verification, not invalid overlay-flag recipes.
-- JSON mode suppresses prose-only recovery nudges inside payload, but command exits and stderr guidance still reflect same recovery path.
-- Diff mode MUST preserve `custom/` framing as preserved user-owned area, not stale generated output.
+### `plan --diff`
+
+Diff mode MUST keep same top summary, then classify file impact into exactly one headline state:
+
+- `First write`
+- `Update existing output`
+- `Cleanup stale generated files`
+- `No material change`
+
+Rules:
+
+- classification appears before any unified diff text
+- if diff verbose enough to scroll, summary still fits within first screenful
+- no diff-only mode may omit source and resolved intent summary
+
+### `hash`
+
+#### Purpose
+
+Explain fingerprint meaning. Not opaque checksum only.
+
+#### Layout
+
+Human-readable `hash` MUST use fixed section order:
+
+1. `Fingerprint`
+2. `Computed from`
+3. `Normalized dependencies`
+4. `How to compare`
+5. `Write location` when `--write`
+6. `Next step`
+
+Rules:
+
+- `Fingerprint` shows short primary value first
+- `Computed from` says manifest/project/CLI source clearly
+- `Normalized dependencies` lists auto-added overlays that affect semantic identity
+- `How to compare` explains equality semantics in one or two lines
+- if writing file, output says exact path and whether file changed or stayed same
+
+## Interaction Rules
+
+### Progressive disclosure rules
+
+- default `list` and `explain` prioritize recommendation and fit over exhaustive metadata
+- `plan` prioritizes outcome summary over raw diff detail
+- raw structured detail remains available in JSON or lower sections, not first screen
+- verbose mode adds reasoning depth; it does not replace top summary
 
 ### Terminology rules
 
-- `category` names MUST match live user-facing taxonomy everywhere filters, tables, and browse headings appear.
-- `preview` means no writes.
-- `first write` means no comparable generated output exists yet.
-- `fingerprint` means deterministic hash of resolved semantic inputs, not raw manifest bytes.
+Use:
 
-### QA scenario scripts
+- `Recommended starts`
+- `Best for`
+- `What changes here`
+- `Preview only`
+- `Fingerprint`
+- `shared project file`
+- `generated output`
 
-1. `list` default mode shows grouped catalog and includes live `messaging` category when catalog contains matching overlays.
-2. `list --category messaging` returns human-readable rows or explicit empty-state message; never `[object Object]`.
-3. `explain <bad-id>` fails with recovery path to discovery.
-4. `plan --diff` in repo without generated output says first-write preview, not empty diff.
-5. `plan` help/success hints never suggest unsupported `init --overlays ...` path.
-6. `hash` human output names hashed source and auto-added dependency overlays before or beside fingerprint.
+Avoid:
+
+- stale category names
+- `manifest` as steady-state primary artifact when project file exists
+- metadata dumps without decision framing
+
+### Empty and error states
+
+- unknown overlay id in `explain` → show `Not found`, suggest `list` and nearest matches if available
+- empty filter results in `list` → show recovery tips: remove filter, inspect categories, or browse defaults
+- `plan` without usable source → explain missing input, route to `init` or add `--overlays`
+- `hash` missing required source → explain exactly what input combo valid
+
+### Next-step routing rules
+
+- no project file yet → prefer preview-safe authoring path, usually `plan` or `init`
+- project file exists and preview matches intent → prefer `regen`
+- legacy manifest source in preview → prefer `migrate`
+- drift or validation concerns → prefer `doctor`
+
+## State Behavior
+
+- command-specific filters and source labels must carry consistently from frame to summary to footer
+- text and JSON views must represent same semantic states even if wording differs
+- `plan` change classification must align with `--diff` and non-diff summaries
+- `hash --write` must report whether write changed file contents or confirmed same fingerprint
+
+## Worked Examples
+
+### First discovery session
+
+- `list` shows recommended starts first
+- user chooses preset or overlay to inspect
+- `explain` teaches fit and tradeoffs
+- footer points to `plan`
+
+### Change review session
+
+- `plan` from project file opens with `update existing output`
+- summary names auto-added dependency and stale file cleanup
+- footer points to `regen`
+
+### CI equivalence check
+
+- `hash --json` stays scriptable
+- human `hash` explains same semantic identity in audit logs
+
+## QA Scenario Scripts
+
+1. Default `list`: verify recommended starts, live categories including `messaging`, and skimmable grouped catalog.
+2. Filtered `list` zero results: verify recovery suggestions and no silent empty table.
+3. `explain` overlay and preset: verify fixed section order, explicit `none` states, fit-first copy.
+4. `plan` from CLI or project file: verify first-screen summary includes source, resolved overlays, auto-adds/skips, change classification.
+5. `plan --diff`: verify classification headline appears before diff text.
+6. `hash --write`: verify source, normalized dependencies, meaning, and exact write location displayed.
 
 ## Acceptance Criteria
 
 | # | Criterion |
 | --- | --- |
-| AC-1 | `list` supports grouped default browse mode and filter-driven table mode, with JSON available in either path. |
-| AC-2 | `list` filtered output renders human-readable port and dependency metadata rather than raw object stringification artifacts. |
-| AC-3 | `explain` surfaces overlay metadata, files, patch-derived behavior, compose services, and preset-specific parameters/examples when applicable. |
-| AC-4 | `plan` supports explicit and manifest inputs, auto-resolves dependencies, warns on stack incompatibility, and fails on unresolved conflicts. |
-| AC-5 | `plan --verbose` exposes machine-readable and human-readable dependency reasoning including direct selections, dependency reasons, paths, and issues. |
-| AC-6 | `plan --diff` reports file, overlay, and port changes versus existing generated output, preserves `custom/` awareness, and explains first-write scenarios when no generated output exists yet. |
-| AC-7 | Preview and explain surfaces use executable next-step guidance aligned with ADR 001 project-file-first workflows; no help or success hint may point users to invalid flag combinations or unsupported commands. |
-| AC-8 | `hash` computes deterministic fingerprint from explicit or manifest inputs, includes auto-added dependencies in human-readable output, states hashed source, and optionally writes hash file. |
-| AC-9 | Unknown overlays or invalid manifest/stack inputs fail with targeted guidance rather than silent fallback. |
-| AC-10 | Automated coverage exists for list filtering, explain content, plan verbose/diff behavior, and hash determinism. |
-| AC-11 | Ownership is explicit: overlay registry owns semantic metadata, command modules own view composition, and shared discovery formatting owns category labels, source labels, and reusable next-step hints. |
-| AC-12 | Category labels, source labels, and preview-result framing stay consistent across text, JSON-adjacent messaging, help copy, and docs updates. |
+| AC-1 | Every human-readable command output begins with compact frame in exact order `Mode`, `Source`, `What this helps you decide`; JSON output excludes this frame entirely. |
+| AC-2 | Default `list` renders exact top-level blocks `Recommended starts`, `Browse all overlays`, and `How to inspect or preview next`, with at most 5 recommended rows before full catalog. |
+| AC-3 | `list` shows all live user-facing categories, including `messaging`, with human-readable item rows and no raw object dumps, hidden categories, or stale category labels. |
+| AC-4 | `explain <id>` renders exact section order `Best for`, `Adds`, `Depends on`, `Conflicts with`, `Preview notes`, `Files, services, and ports`, `Try this next`, with explicit `none` states for empty sections. |
+| AC-5 | Human-readable `plan` renders exact section order `Resolved intent`, `What changes here`, `Why this plan looks this way`, `Detailed file impact`, `Next step`, and first screen includes source, resolved overlays or preset, auto-added overlays, skipped/conflicting overlays, and change classification. |
+| AC-6 | `plan --diff` repeats same top summary and shows one headline classification from exact set `First write`, `Update existing output`, `Cleanup stale generated files`, `No material change` before any unified diff text. |
+| AC-7 | Human-readable `hash` renders exact section order `Fingerprint`, `Computed from`, `Normalized dependencies`, `How to compare`, optional `Write location`, `Next step`, and reports whether `--write` changed file contents or confirmed same fingerprint. |
+| AC-8 | Shared next-step footer appears exactly once per human-readable output, suggests only one valid next command, and never routes to unsupported flag combos or stale manifest-first steady-state workflows. |
+| AC-9 | Product docs, help text, and command hints elevate `plan` as standard preview-before-write step; current low-prominence placement is not acceptance authority. |
+| AC-10 | JSON output remains semantically aligned with text output, including source labeling, change classification, dependency normalization, and next-step state, even when text layout changes materially. |
+| AC-11 | Automated coverage exists for guided `list`, category completeness, explain section ordering, plan summary classification, `plan --diff` headline placement, next-step validity, and hash explanation/write reporting. |
+| AC-12 | Human-readable layouts may change materially when needed to improve discovery, teaching, and preview confidence; current table-first or metadata-first layouts are not acceptance authority. |
 
-## Evidence Basis
+## Tradeoffs
 
-- `tool/commands/list.ts` — grouped browse mode, filtered table, help footer.
-- `tool/commands/explain.ts` — overlay/preset inspection, file and patch extraction, CLI examples.
-- `tool/commands/plan.ts` — plan inputs, verbose reasoning, diff output, rerun hints, compatibility and conflict handling.
-- `tool/commands/hash.ts` — fingerprint inputs, dependency resolution, output/write behavior.
-- `tool/cli/args.ts` — command declarations and available flags.
-- `tool/__tests__/commands.test.ts` — command output, JSON behavior, verbose traces, diff scenarios, hash determinism.
-- `docs/discovery-commands.md`, `docs/presets.md`, `docs/presets-architecture.md`, `docs/README.md` — user-facing explanation and current drift.
+- Guided `list` default adds opinion, but cuts first-run search cost.
+- Fit-first `explain` adds authored copy, but improves selection quality.
+- Heavier `plan` summary adds lines, but shifts trust earlier.
+- Shared text/JSON semantic parity needs stronger view models, but reduces drift.
 
-## Evidence Confidence
+## Implementation Gap vs Current Product
 
-**Medium**
+Deliberate improvements still to build:
 
-Behavior strongly evidenced in code/tests. Lower confidence sits in long-term information architecture choices, not in current browse, inspect, preview, diff, or fingerprint behavior.
-
-## Implementation-vs-Intent Mismatches
-
-1. `list` default browse mode collapses `messaging` into "Database & Messaging" instead of exposing standalone messaging category used elsewhere in questionnaire and schema.
-2. Filter help strings omit `messaging`, though code and schema distinguish it as real category.
-3. `formatAsTable()` joins raw `overlay.ports` values, so rich port objects can render as `[object Object]`.
-4. `plan` success hint emits `init --overlays ...`, but `init` parser does not currently accept `--overlays`; current hint is not valid executable guidance.
-5. `docs/presets.md` and `docs/presets-architecture.md` still state presets are not directly available via CLI, but parser already supports `--preset` and `--preset-param`.
+- `tool/commands/list.ts` still behaves like category dump/table output and lacks `Recommended starts`, richer grouped discovery, and complete fit-first teaching.
+- `tool/commands/explain.ts` still leads with metadata instead of fixed fit-first sections like `Best for` and `Preview notes`.
+- `tool/commands/plan.ts` already computes rich preview data, but current presentation under-emphasizes first-screen change classification and recommendation-led summary.
+- `tool/cli/args.ts` help text still under-routes users toward discovery → preview → write workflow.
 
 ## Technical Design
 
 ### Architecture Ownership
 
-- `tool/commands/list.ts` owns catalog browse and filter presentation only.
-- `tool/commands/explain.ts` owns deep inspection view composition for one overlay or preset.
-- `tool/commands/plan.ts` owns resolved preview graph, verbose dependency reasoning, diff classification, and no-write comparison against current generated output.
-- `tool/commands/hash.ts` owns deterministic fingerprint generation and optional hash-file write only.
-- Overlay registry metadata loaded through schema/questionnaire utilities remains semantic authority for category IDs, dependencies, stack support, tags, and raw ports.
-- Shared human-readable labels, category titles, rerun hints, and port/dependency formatting should come from single discovery/presentation contract rather than each command inventing copy independently.
-- `tool/cli/args.ts` owns CLI surface and help wiring, but command-specific recovery hints belong with command implementations or shared discovery helpers, not parser declarations.
+- `tool/commands/list.ts`, `explain.ts`, `plan.ts`, and `hash.ts` keep command-specific input validation and source loading.
+- New shared read-only UX layer should own compact frame, next-step footer, and command-neutral semantic sections.
+- Overlay metadata, category labels, and fit/recommendation copy should be derived from one metadata adapter over `OverlaysConfig` plus preset definitions, not repeated inside each command.
+- `plan` and `hash` should share one normalization primitive for source labeling, dependency expansion, compatibility filtering, and change/fingerprint semantics.
 
 ### System Boundaries
 
-- Discovery commands stay read-only except `hash --write`.
-- `plan` may read manifest and existing generated output, but it does not mutate project state or remediate drift.
-- `hash` remains separate automation boundary. `plan` preview semantics and `hash` fingerprint semantics must evolve without breaking scriptable fingerprint consumers.
-- `custom/` stays user-owned preserved area in preview and diff framing; discovery commands may report it, not reinterpret it.
+- Human-readable layout may change per command; semantic state must come from shared view models first.
+- JSON output stays script contract. Human renderer consumes normalized state but must not be source of truth for JSON.
+- `list` recommendation ranking belongs in discovery adapter, not in command footer logic.
+- Next-step routing belongs in one hint engine that reads repo/source state and emits exactly one safe suggestion.
 
 ### Canonical Data Flow
 
-1. CLI parser dispatches command and flags.
-2. Command loads overlay registry and optional manifest/generated-output inputs.
-3. Command resolves semantic selection set and dependency effects.
-4. Command converts resolved semantics into command-specific view model:
-   - catalog rows/groups for `list`
-   - metadata sections for `explain`
-   - preview graph, diff buckets, and reasoning trace for `plan`
-   - canonical hash input object for `hash`
-5. Command renders text or JSON from same resolved model so human and script surfaces cannot diverge semantically.
-6. Optional next-step guidance derives from repository context and source model already known to command, never from hardcoded invalid flag recipes.
+```mermaid
+flowchart LR
+    A[Command input] --> B[Source loader / validator]
+    B --> C[Shared semantic normalizer]
+    C --> D{command}
+    D -->|list| E[Discovery view model]
+    D -->|explain| F[Inspection view model]
+    D -->|plan| G[Resolved intent + change summary]
+    D -->|hash| H[Fingerprint summary]
+    E --> I[Human renderer or JSON serializer]
+    F --> I
+    G --> I
+    H --> I
+    C --> J[Next-step hint engine]
+    J --> I
+```
 
-### Interfaces and Invariants
+### Interaction Policy Locks
 
-- Category IDs remain canonical machine values from overlay metadata. User-facing labels may group or title them, but filter names and explain output must not contradict machine taxonomy.
-- `messaging` remains first-class taxonomy value across filters, docs, and outputs. Browse mode may visually group categories only if grouped heading still preserves discoverability of `messaging` as selectable category.
-- `plan --verbose` changes explanation depth only, not overlay resolution outcome.
-- `plan --diff` must classify first-write, update, and cleanup scenarios before showing detailed file changes.
-- `hash` input normalization must resolve dependency additions before hashing and must hash semantic inputs, not raw manifest bytes.
-- JSON and text outputs may differ in formatting, not in resolved overlays, categories, issues, or next-step meaning.
+- All human-readable read-only commands use one shared frame contract and one shared footer contract.
+- `plan` becomes canonical preview semantic source; `hash` reuses same normalized overlays/source labels so equality meaning matches preview meaning.
+- JSON should expose normalized semantic fields additively. Existing fields can remain during rollout, but text/JSON parity must key off normalized source/change-classification fields.
+- Category completeness comes from live registry scan, not hardcoded category arrays in command-local formatting.
 
 ### Implementation Slices
 
-1. Discovery taxonomy alignment: make category labels, filter help, and grouped browse headings consistent, including `messaging`.
-2. Shared presentation helpers: normalize ports, dependency lists, source labels, and next-step hints once for all discovery commands.
-3. `list` hardening: empty states, filtered table formatting, no raw object stringification.
-4. `explain` hardening: stable section order, explicit `none` states, preset-specific parameter/examples contract.
-5. `plan` hardening: repository-context-aware next-step routing, verbose reasoning parity, first-write diff framing, preserved `custom/` messaging.
-6. `hash` hardening: source summary, auto-added dependency visibility, stable optional file-write contract.
+1. Extract shared semantic normalizer for source labels, resolved overlays, compatibility skips, and next-step routing.
+2. Rebuild `list` on discovery metadata adapter with recommendation block plus complete category rendering.
+3. Rebuild `explain` around fit-first inspection sections.
+4. Rebuild `plan` summary and `plan --diff` headline classification on normalized change model.
+5. Rebuild `hash` on shared normalization primitive and add explanation/write reporting.
+6. Align CLI help text and docs to discovery → preview → write ladder.
 
 ### Risk Notes
 
-- Taxonomy drift likely if category titles and filter enums stay duplicated across schema, command help, and docs.
-- Help/footer hints can rot faster than command behavior; invalid runnable examples are high-trust failures.
-- `plan` and `hash` share dependency-resolution concepts but currently own separate logic paths; script-facing determinism risk if they diverge.
-- Diff output can under-report user-owned `custom/` semantics if file buckets classify only generated files.
+- Current command code mixes data derivation and string formatting. Without normalization seam, text/JSON drift will continue.
+- Recommendation copy can become stale if stored in docs only. Must live near overlay/preset metadata adapter.
+- `hash` and `plan` currently resolve dependencies separately. Leaving duplication risks semantic mismatch.
+- Category names already drift (`messaging` gap). Must remove hardcoded category list from `list.ts`.
 
 ### Test Plan
 
-- `list` tests for grouped default browse, `messaging` discoverability, empty filter state, JSON parity, and port/dependency formatting.
-- `explain` tests for overlay vs preset framing, explicit empty sections, files/patch/services visibility, and unknown-ID recovery guidance.
-- `plan` tests for explicit vs manifest sources, verbose reasoning parity, conflict/skip handling, first-write diff framing, update diff framing, and next-step routing based on repo context.
-- `hash` tests for deterministic output, dependency auto-add visibility, manifest vs explicit source summaries, and `--write` path reporting.
-- Regression tests that text and JSON modes share same resolved overlay set and issue classification.
+- Unit: normalization parity between `plan` and `hash`; next-step hint validity; category aggregation including `messaging`.
+- Integration: `list` recommended-start block, zero-result recovery, `explain` section ordering, `plan` first-screen summary, `plan --diff` headline-first behavior, `hash --write` reporting.
+- JSON contract: source labels, normalized dependencies, change classification, and write-change reporting stable across text/JSON.
+- Regression: unknown overlay errors still scriptable, no raw object dumps, no invalid next-step commands.
 
 ## Architecture Decision Impact
 
-Aligned with ADR 001. `docs/foundation.md` absent; no additional foundation authority to reconcile.
+aligned with current ADRs/foundation
 
-- Governing ADR: `docs/adr/adr001-project-file-first-replay-and-regeneration.md`
-- No ADR amendment needed for this scope.
+Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 
 ## Open Questions
 
-- None blocking for implementation-safe framing. Future consolidation of preview and verification surfaces remains optional roadmap work, not current boundary decision.
+- None blocking draft. Future consolidation of `plan` and `doctor` read-only reporting remains separate roadmap choice.
 
 ## Routing Decision
 
-**PM → Developer**
+**Architect → PM**
 
-Reason: taxonomy authority, command boundaries, invariants, slices, and validation surface now locked without ADR change.
+Reason: Technical design locked for shared read-only semantic model, metadata ownership, next-step routing, and `plan`/`hash` parity. Ready for developer implementation planning.

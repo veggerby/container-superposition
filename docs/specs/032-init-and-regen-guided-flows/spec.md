@@ -5,338 +5,475 @@
 **Created**: 2026-06-24
 **Author**: PM Agent
 **Status**: Draft
-**Input**: Reverse-spec existing interactive CLI UX for first-run generation, replay, and local-safety flows.
+**Input**: Redesign `init` and `regen` for lower cognitive load, stronger pre-write confidence, faster repeat-use flow, and clearer product-model teaching.
 
 ---
 
 ## Request Classification
 
-Reverse-spec from existing docs, code, tests, presets, and project-config behavior. Scope narrow to `init` / `regen` user-facing flow, not discovery commands or doctor/adopt workflows.
+UX-forward rewrite. Not reverse-spec. This spec intentionally supersedes parts of current behavior and copy when current UX creates friction or teaches wrong model.
 
-## Problem Statement
+## Product Outcome
 
-`init` and `regen` act as primary onboarding and repeat-use CLI surfaces. Current behavior spans:
+Make `init` feel like guided setup, not questionnaire maze. Make `regen` feel like safe replay, not opaque rewrite. Teach one product model fast:
 
-- first-run guided questionnaire
-- non-interactive replay from project file or manifest
-- automatic project-file persistence on `init`
-- local-only customization safeguards
-- backup, summary, progress, and success guidance
+- choose or confirm shared intent
+- preview what tool will write
+- write with confidence
+- know exact next step
 
-Behavior exists across docs, code, and tests, but intent fragmented and some user-facing guidance drifts from implementation.
+Success signals:
+
+- first-run users reach first good setup with fewer wrong turns
+- repeat users make small changes without re-learning command model
+- users understand project file vs generated output vs local-only customization
+- interactive and unattended runs both show enough pre-write confidence
+
+## Improvement Target Over Current Product
+
+This redesign is deliberate uplift, not documentation of current behavior.
+
+Target outcomes over current product:
+
+- replace implementation-led prompt sequencing with intent-led setup framing
+- replace late, dense summaries with mandatory pre-write confidence review
+- replace separate-feeling `init`/`regen` experiences with one shared setup/replay model
+- replace scattered local-config caveats with one trust contract users can act on
+- replace broad repeat-user walkthroughs with narrow-change fast paths
+
+## Current UX To Intentionally Supersede
+
+1. Prompt order optimizes for implementation inputs, not user intent.
+2. `init` and `regen` feel like separate command families instead of one setup/replay model.
+3. Summary comes too late and teaches too little about source, write scope, and manual follow-up.
+4. Replay and override messaging is technically correct but cognitively dense.
+5. Local-only safety warnings exist, but product model still leaks through scattered notices.
+6. Current docs promise polish like low prompt counts and per-answer confirmation, but actual trust gap is bigger: users need better framing before writes, not more ornament.
 
 ## User Goals
 
 ### First-time user
 
-- Start from preset or manual overlay selection without knowing repo internals.
-- Make stack, image, overlay, output, and editor choices in guided order.
-- See concise summary before files are written.
-- Finish with clear next steps.
+- Start from recommended path fast.
+- Avoid catalog overload.
+- See what will be created before files change.
+- Leave understanding how to make future changes.
 
 ### Returning user
 
-- Re-run from committed project file or existing manifest without re-answering everything.
-- Override small details for one run without mutating source-of-truth unexpectedly.
-- Get backup behavior and replay messaging that explain what happened.
+- Reuse committed setup without re-answering broad questions.
+- Make targeted changes fast.
+- See whether run updates shared intent, local output, or both.
 
-### Team maintainer using local-only config
+### Team maintainer
 
-- Layer local env, mounts, shell, and customizations safely.
-- Avoid accidentally committing local-only generated output.
-- Get explicit warnings when local config is ignored, invalid, or unsafe to share.
+- Keep shared project state canonical.
+- Keep local-only additions safe.
+- Avoid accidental commits of local-only output or ignored files.
 
 ## Scope
 
 ### In scope
 
-- Interactive questionnaire sequence for `init`.
-- Preset-first entry decision, preset expansion, and optional customization.
-- Stack, base image, overlay, conflict-resolution, target, editor, output, and parameter prompts.
-- `init` / `regen` replay modes from project file or manifest.
-- Automatic project-file write/update behavior during `init`.
-- Backup messages, summary box, spinner, success box, warnings, and next steps.
-- Local config detection, gitignore assistance, and tracked-file safety warnings.
-- Source-selection and flag-conflict validation before generation.
+- `init` interactive flow and seeded replay flow
+- `regen` preflight, confirmation, success guidance, and write framing
+- project-file-first teaching inside command UX
+- summary, warning, backup, and next-step contracts
+- local-only config safety framing
+- faster repeat-user branches inside current command family
 
-### Non-goals
+### Out of scope
 
-- Overlay discovery commands (`list`, `explain`, `plan`, `hash`).
-- Doctor diagnostics and repair UX.
-- Adopt and migrate conversion workflows.
-- Overlay composition internals beyond externally visible prompt outcomes.
+- new discovery command taxonomy
+- doctor remediation behavior
+- adopt/migrate conversion flows
+- overlay composition internals beyond user-visible consequences
 
-## Must Preserve
+## Non-Goals
 
-- `superposition.yml` / `.superposition.yml` stays persisted source-of-truth for replay workflows.
-- Presets remain optional; manual overlay composition remains available.
-- Generated output remains normal files users can edit directly.
-- `custom/` remains preserved escape hatch rather than hidden internal mechanism.
-- Non-interactive runs remain possible from persisted input and CLI selections.
+- Preserve current prompt order because code already does it
+- Preserve manifest-first language in steady-state flows
+- Add ornamental CLI chrome without reducing decision load
+- Re-open ADR 001 project-file-first authority
 
-## Constraints
+## Design Principles
 
-- Must align with ADR 001 project-file-first replay authority.
-- Must not auto-mutate Git index; tracked generated files still require manual `git rm --cached` follow-up when needed.
-- Must preserve both interactive and unattended replay paths.
-- Must keep warning, blocked, and success states understandable in plain terminal output without relying on docs lookup.
+1. **Progressive disclosure first** — show posture and recommendation before details.
+2. **Preview before mutation** — confidence must arrive before writes.
+3. **Fast lane for repeat edits** — narrow changes skip broad walkthrough.
+4. **Teach artifact model in-place** — project file, generated output, local-only config each get explicit role.
+5. **One command family, two moments** — `init` chooses or edits intent; `regen` replays intent.
+6. **Warnings must classify action** — blocked, protected, or manual follow-up.
 
-## Assumptions
+## Canonical Interaction Model
 
-- Existing questionnaire, replay, and summary primitives remain ownership boundary for this work; spec clarifies behavior, not command taxonomy.
-- Manifest replay remains compatibility path, not steady-state shared workflow.
-- Missing `docs/foundation.md` means ADR 001 plus live workflow docs remain current authority for cross-feature routing.
+### Shared mental model
 
-## Proposed Behavior
+- `init` = create or edit shared intent
+- `regen` = replay shared intent into generated output
+- `superposition.yml` / `.superposition.yml` = canonical shared project file
+- `.devcontainer/` + `superposition.json` = generated output
+- local-only config = personal enrichment, never equivalent to shared intent
 
-### 1. `init` always frames generation around persisted project state
+### Run posture labels
 
-`init` MUST detect existing repository project files before prompting.
+Every run MUST identify itself with one of these posture labels before prompts or work:
 
-- If exactly one supported project file exists, that file seeds defaults and is updated after run.
-- If both supported project files exist, command fails before prompting.
-- If none exists, `init` writes `.superposition.yml` by default after collecting final answers.
+- `New setup`
+- `Update shared setup`
+- `Replay shared setup`
+- `Legacy compatibility replay`
 
-This makes guided setup and future replay part of one flow, not separate opt-in feature.
+### Confidence ladder
 
-### 2. Questionnaire starts with entry choice, then narrows decisions progressively
+Every write path MUST move through same ladder:
 
-Interactive `init` MUST present choices in roughly this order:
+1. frame run
+2. narrow path
+3. collect only needed inputs
+4. preview write plan
+5. confirm or abort
+6. report exact outcome and next step
 
-1. preset vs custom start
-2. base template
-3. preset expansion choices when applicable
-4. base image / custom image
-5. overlay selection and optional preset/manifest customization
-6. conflict resolution when selection invalid
-7. container name, output path, port offset
-8. editor profile
-9. deployment target only when compatibility warning matters
-10. overlay parameters for selected overlays
+## Page Contract
 
-Prompts SHOULD appear one decision at time and adapt to prior selections.
+### 1. Run framing screen
 
-### 3. Replay modes distinguish source and override intent
+First visible output for both `init` and `regen` MUST contain six rows in fixed order:
 
-Non-interactive and replay flows MUST make source visible before writes begin:
+1. `Mode`
+2. `Source`
+3. `Shared project file`
+4. `Generated output`
+5. `Local-only config`
+6. `Recommended next action`
 
-- manifest replay banner when running from manifest
-- project-file replay banner when running from project file
-- override banner when replay source is reused with one-run overrides
-- targeted failure guidance when source flags conflict or when clean-generation flags are mixed with persisted-source replay
+Rules:
 
-Replay flows MUST support backup creation before overwriting existing generated output, with default behavior differing inside vs outside git repos.
+- no spinner or questionnaire before this screen
+- each row uses short status phrase, not paragraph
+- if source is legacy manifest, framing MUST label compatibility status and point to `migrate`
+- if project file exists, framing MUST say whether this run will update it or only replay it
 
-### 4. Overlay selection auto-resolves dependencies and forces explicit conflict cleanup
+### 2. `init` lane chooser
 
-When users choose overlays manually or customize preset/manifest selections:
+Interactive `init` MUST show lane chooser before domain questions.
 
-- required dependencies are auto-added
-- missing overlays from older manifests are skipped with warning
-- conflicting overlays trigger explicit remove-choice loop
-- user cannot continue until at least one side of conflict is removed
+Layout:
 
-### 5. Local-only config gets explicit safety contract
+- primary card: `Fast start` — recommended preset-led path, prompt estimate, example outcomes
+- secondary card: `Custom build` — direct overlay composition, prompt estimate, best when no preset fits
+- tertiary link-like option when project file exists: `Edit current setup` with targeted change shortcuts
 
-When `superposition.local.yml` exists, generation MUST:
+Copy rules:
 
-- apply only supported local-only fields
-- ensure root `.gitignore` contains local config ignore entry when possible
-- explain whether generated output is safely ignored for new files
-- warn when existing tracked generated files still need manual untracking
-- fail before writes when local config contains unsupported keys
-- warn when ignored dotfile variant `.superposition.local.yml` exists instead of supported filename
+- `Fast start` default focus
+- `Custom build` never hidden behind extra command or docs
+- prompt estimate uses ranges like `~3 decisions`, not inflated counts
 
-### 6. Completion feedback summarizes output and next steps by mode
+### 3. Repeat-user shortcut chooser
 
-Before write, tool MUST show configuration summary that answers three questions clearly: what source was used, what will be written, and what user still needs to do manually.
+When project file exists, `init` MUST offer shortcuts before full review:
 
-During write, tool MUST show spinner-based progress.
+- `Add capability`
+- `Remove capability`
+- `Change runtime or editor`
+- `Adjust parameters`
+- `Review everything`
 
-After success, tool MUST show mode-specific next steps:
+Rules:
 
-- init: copy `.env`, open workspace, reopen in container, run `doctor`
-- regen: rebuild container, test changes, review `custom/`
-- manifest-only / no-scaffold: commit persisted config and use replay commands later
+- shortcuts appear before preset/custom lane if current setup exists
+- each shortcut describes write scope in one line
+- user can escape to full review anytime
+- narrow shortcut must only ask questions needed for chosen change
 
-Warnings about security (`docker-sock`), target mismatch, port-count risk, missing port offset, and tracked generated files that still need manual untracking SHOULD appear in summary output when applicable.
+### 4. Guided question flow
 
-## UX Contract
+Question flow MUST follow intent-first order:
 
-### Canonical interaction model
+1. goal or starting point
+2. base stack/runtime/editor choices
+3. capability adds/removals
+4. required parameters only
+5. optional refinements only when relevant
 
-First visible step depends on mode:
+Rules:
 
-- fresh `init`: start with source-of-truth framing, then entry choice (`Preset` or `Build my own`)
-- `init` with existing project file: show that file will seed answers before first prompt
-- `regen` / replay path: show replay banner before any summary, backup, or write step
-- invalid multi-source input: fail before any prompt or spinner
+- hide downstream prompts until upstream choice makes them relevant
+- optional detail groups collapsed by default behind explicit `Add more detail`
+- for preset path, show preset name and current expansion summary at top of each step
+- every step footer MUST show `Back`, `Skip optional`, `Preview current plan`
 
-Prompt sequence contract:
+### 5. Mandatory preflight
 
-1. choose starting path
-2. answer only branch-specific follow-up prompts
-3. review conflict/dependency consequences immediately after overlay changes
-4. review write summary once, after all decisions collected
-5. enter write phase only after summary shown
+Before any write, `init` and `regen` MUST show same six-section preflight in fixed order:
 
-Questionnaire MUST never ask for information already fixed by chosen source, flags, or prior answers.
+1. `Source`
+2. `Intent`
+3. `Will write`
+4. `Will preserve`
+5. `Manual follow-up`
+6. `Backup plan`
 
-### Interaction rules
+Rules:
 
-- Preset path MUST identify preset as starting point, then separate preset-driven choices from optional custom overlay changes.
-- Manual path MUST present overlay composition as first-class path, not fallback or advanced-only path.
-- Dependency auto-adds MUST be announced in same interaction where selection changes, before user advances.
-- Conflict resolution MUST block forward progress until selection becomes valid.
-- Deployment target prompt appears only when target choice changes compatibility guidance or warning copy.
-- Parameter prompts appear after final overlay set is known.
-- Replay overrides MUST be framed as one-run overrides; copy must not imply persisted source changed unless command will rewrite project file.
+- preflight visible in interactive and non-interactive runs
+- `Will write` must separate `shared project file` from `generated output`
+- `Will preserve` must explicitly mention `custom/`, local-only config, and untouched files when present
+- `Manual follow-up` must only include user actions, never mixed with auto-actions
+- `Backup plan` must say `create`, `skip`, or `not needed`, plus reason
+- if nothing will change, preflight MUST say `No material changes` and success path becomes no-op replay
 
-### State behavior
+### 6. Confirmation gate
 
-- Existing project file seeds defaults; user edits from those defaults rather than re-answering from blank state.
-- Existing manifest replay state stays read-only unless flow explicitly persists updated project state.
-- Summary state MUST persist chosen source, selected overlays, output path, editor, target, backup plan, and outstanding manual follow-up.
-- Local-only config warnings MUST persist into summary and success output when manual cleanup still required.
-- Spinner state MUST communicate write-in-progress only; warnings and decisions belong before or after spinner, not inside it.
+Interactive write paths MUST require explicit confirmation after preflight.
 
-### Copy and feedback contract
+Choices:
 
-- Use `project file` for canonical replay source; use `manifest` only for compatibility or explicit manifest replay.
-- Summary MUST include explicit labels for `Source`, `Will write`, and `Manual follow-up`.
-- If backup will be skipped because repo is under git, say so explicitly.
-- If backup will be created, show destination before writes begin.
-- Success state MUST distinguish `Init complete` from `Regeneration complete`.
-- Local config warnings MUST say whether problem is auto-protected, needs manual untracking, or blocks write.
-- Empty-warning state: if no manual follow-up remains, summary says so instead of leaving section absent.
+- `Write now`
+- `Go back`
+- `Abort`
 
-### QA scenario scripts
+Rules:
 
-1. Fresh repo, no project file: user sees entry choice first, summary names `.superposition.yml` as file to be created, success gives init next steps.
-2. Repo with one project file: user sees seeded-state framing before prompts, summary names same file as update target.
-3. Replay with overrides: banner names replay source and one-run override intent before writes.
-4. Overlay conflict: user cannot exit conflict loop without removing at least one conflicting overlay.
-5. Local config with tracked generated files: warning appears before write, repeats in summary, success still tells user manual untracking remains.
+- default selection `Go back` when mutation scope is broad or backup skipped
+- no hidden Enter-to-continue wording
+- unattended mode may proceed automatically only after identical preflight printed
+
+### 7. Success screen
+
+Success output MUST be short and action-first.
+
+Sections in order:
+
+1. `Changed`
+2. `Preserved`
+3. `Next step`
+4. `Manual review`
+
+Mode-specific rules:
+
+- first-run `init`: next step likely open/generated workspace
+- repeat `init`: next step likely `regen` only if generation intentionally deferred
+- `regen`: next step likely review diff or run `doctor`
+- if project file changed, success MUST remind user shared intent updated
+- do not restate full config or long overlay inventory
+
+## Interaction Rules
+
+### Project-file teaching rules
+
+- When project file exists, never imply manifest or generated output is primary authoring surface.
+- When project file does not exist, `init` MUST explain it will create shared intent first.
+- `regen` MUST never ask discovery questions in normal path.
+- Legacy manifest replay path MUST be visibly marked compatibility-only.
+
+### Local-only config trust contract
+
+Local-only config messaging MUST appear once in framing or preflight, not scattered.
+
+It MUST state:
+
+- file path discovered
+- fields that will apply
+- unsupported fields if any
+- whether run is blocked
+- whether Git ignore safety exists
+- whether tracked-file cleanup remains manual
+
+Allowed dispositions:
+
+- `Applied safely`
+- `Applied with manual follow-up`
+- `Blocked`
+- `Ignored by this run`
+
+### Fast-path rules
+
+- If command-line args fully specify narrow change, skip lane chooser and jump to preflight summary of resolved intent.
+- If `--no-interactive` used with existing project file, output still MUST include framing and preflight.
+- If only one preset clearly matches requested path, tool may recommend it first but must keep `Custom build` accessible.
+
+### Error and empty-state rules
+
+- missing project file on `regen` → explain `No shared setup to replay`, route to `init` or `migrate`
+- conflicting source flags → show blocked state plus valid alternatives
+- unsupported local-only fields → blocked before any write
+- no material diff → success phrased as replay check, not regeneration success theater
+
+## State Behavior
+
+- selected lane persists through run unless user changes it
+- repeat-user shortcut persists only for current run
+- source detection results persist from framing into preflight without relabeling drift
+- `Preview current plan` during question flow opens same preflight structure in preview mode, then returns to flow
+- last-confirmed plan and final write summary must match field names exactly
+
+## Terminology Rules
+
+Use:
+
+- `shared project file`
+- `generated output`
+- `local-only config`
+- `preview before write`
+- `manual follow-up`
+- `compatibility manifest`
+
+Do not use in steady-state project-file flows:
+
+- `manifest replay` as default guidance
+- `questionnaire` in primary user-facing copy
+- `scaffold` when meaning is whole generated output unless already obvious from context
+
+## Worked Examples
+
+### First run, preset-led
+
+- framing says `New setup`
+- lane chooser defaults to `Fast start`
+- user picks job-oriented preset
+- optional details stay collapsed
+- preflight shows project file creation plus generated output creation
+- success says what written, next step to open workspace
+
+### Repeat run, add one capability
+
+- framing says `Update shared setup`
+- shortcut chooser offers `Add capability`
+- user picks one overlay/capability
+- preview shows shared file update plus generated output changes
+- success says capability added, preserved local additions unchanged
+
+### Replay only
+
+- framing says `Replay shared setup`
+- no prompts
+- preflight shows source project file, changed generated files, backup behavior
+- confirm or unattended proceed
+- success points to review or `doctor`
+
+## QA Scenario Scripts
+
+1. First-run interactive `init` with no project file: verify framing precedes lane choice, lane choice precedes questions, preflight precedes write.
+2. Existing project file interactive `init`: verify shortcut chooser appears and `Add capability` path skips unrelated questions.
+3. `regen` with project file and no local config: verify no questionnaire, same preflight sections, concise success.
+4. `regen --from-manifest`: verify compatibility framing and migrate recommendation.
+5. Local-only config with unsupported field: verify single blocked trust contract before write.
+6. No-op replay: verify preflight and success both say no material changes.
 
 ## Acceptance Criteria
 
 | # | Criterion |
 | --- | --- |
-| AC-1 | `init` detects zero/one/two repository project files and behaves as create/update/fail respectively before generation proceeds. |
-| AC-2 | Interactive questionnaire supports preset-first and custom-first starts, with preset-specific follow-up choices only when preset selected. |
-| AC-3 | Overlay selection auto-adds `requires:` dependencies and forces explicit user-driven conflict resolution before continuing. |
-| AC-4 | Replay runs from project file or manifest present distinct non-interactive status banners and preserve one-run CLI overrides without rewriting source selection semantics for future runs. |
-| AC-5 | `init` writes or updates repository project file on successful runs, including final selected overlays, preset metadata, output path, editor, target, and parameters. |
-| AC-6 | Local config flows warn or fail clearly for ignored local config files, unsupported local keys, tracked generated output, and unsafe shareable output when `devcontainerGitignore` is not enabled. |
-| AC-7 | Source-selection conflicts fail before writes with targeted guidance that tells users whether to switch to `init`, `regen`, `--from-project`, or `--from-manifest`. |
-| AC-8 | Backup behavior is visible to user and defaults to skip inside git repos unless explicitly forced. |
-| AC-9 | Summary and success output explicitly state source used, files or directories being updated, manual follow-up for tracked files or `custom/`, and mode-specific next steps. |
-| AC-10 | Automated coverage exists for replay mode, project-file write/update behavior, local-config safety messaging, and summary/next-step behavior. |
-| AC-11 | Ownership is explicit: `run.ts` owns source framing/persistence orchestration, questionnaire owns prompt order and conflict loop, project-config owns persisted config IO, and summary utilities own rendering only. |
-| AC-12 | Empty, warning, and blocked states are defined for fresh init, seeded init, replay, local-config safety, and conflict-resolution paths. |
+| AC-1 | First visible output for `init` and `regen` is framing screen with rows in exact order: `Mode`, `Source`, `Shared project file`, `Generated output`, `Local-only config`, `Recommended next action`, shown before any prompt, questionnaire, or spinner. |
+| AC-2 | Interactive `init` begins with existing-project shortcut chooser when shared project file exists; otherwise it begins with lane choice between `Fast start` and `Custom build`, with `Fast start` default-focused and `Custom build` still directly accessible. |
+| AC-3 | Existing-project shortcut chooser includes `Add capability`, `Remove capability`, `Change runtime or editor`, `Adjust parameters`, and `Review everything`, and narrow-change paths ask only change-relevant questions before preview. |
+| AC-4 | Guided questions follow intent-first order: goal/start point, base stack/runtime/editor, capability adds-removals, required parameters, optional refinements; optional refinements remain hidden until explicitly requested. |
+| AC-5 | Every write-capable path, including non-interactive replay, prints preflight sections in exact order: `Source`, `Intent`, `Will write`, `Will preserve`, `Manual follow-up`, `Backup plan`; `Will write` separates shared project file from generated output. |
+| AC-6 | Interactive mutation paths offer exactly `Write now`, `Go back`, and `Abort` after preflight, with default selection `Go back` whenever mutation scope is broad or backup is skipped. |
+| AC-7 | Normal-case `regen` asks no discovery questions and still classifies write intent as replay, cleanup, update, or no material change before any file mutation. |
+| AC-8 | Local-only config appears in one consolidated trust contract that states discovered path, applied fields, unsupported fields if any, Git-ignore safety state, tracked-file cleanup responsibility, and final disposition (`Applied safely`, `Applied with manual follow-up`, `Blocked`, or `Ignored by this run`). |
+| AC-9 | Success output follows exact order `Changed`, `Preserved`, `Next step`, `Manual review` and restates when shared intent changed versus when only generated output replayed. |
+| AC-10 | Current prompt ordering, copy, and summary behavior are allowed to change materially when needed to reach lower cognitive load and higher pre-write confidence; current sequencing is not acceptance authority. |
+| AC-11 | Automated coverage exists for framing-first entry, repeat-user shortcut entry, progressive-disclosure question order, preflight ordering, confirmation defaults, no-op replay messaging, and local-config trust dispositions. |
+| AC-12 | Docs, help text, and in-product wording align on one mental model: shared project file = canonical team intent, generated output = materialized files, local-only config = personal enrichment. |
 
-## Evidence Basis
+## Tradeoffs
 
-- `tool/cli/run.ts` — source detection, replay banners, project-file write, local safety, summary, spinner, success/error flow.
-- `tool/cli/args.ts` — source-flag conflicts, preset/param parsing, non-interactive gating.
-- `tool/questionnaire/questionnaire.ts` — prompt order, preset/custom entry, dependency/conflict loops, target/editor/parameter prompts.
-- `tool/questionnaire/presets.ts` — preset expansion and non-interactive choice resolution.
-- `tool/schema/project-config.ts` — project/local config loading, validation, answer hydration, persistence.
-- `tool/utils/summary.ts` — warnings, tips, next-step generation.
-- `tool/__tests__/commands.test.ts`, `tool/__tests__/local-config.test.ts`, `tool/__tests__/summary.test.ts`, `tool/__tests__/presets.test.ts` — behavioral coverage for replay, local safety, next steps, preset structure.
-- `docs/ux.md`, `docs/workflows.md`, `docs/presets.md` — user-facing intent and current messaging.
+- More up-front framing adds lines before action, but prevents wrong-path starts.
+- Mandatory preflight adds one interaction step, but creates trust before writes.
+- Shortcut branches add UX complexity, but sharply cut repeat-user effort.
+- Preset-led recommendation adds opinion, but lowers first-run search cost.
 
-## Evidence Confidence
+## Implementation Gap vs Current Product
 
-**Medium-High**
+Deliberate improvements still to build:
 
-Core flow strongly evidenced by code and tests. Lower confidence only on prompt-budget policy, not on source framing, replay, local-safety, or summary-state behavior.
-
-## Implementation-vs-Intent Mismatches
-
-1. `docs/ux.md` promises 5–8 questions and per-question confirmation/checkmarks; current questionnaire can exceed that and does not print confirmation after every answer.
-2. `docs/ux.md` describes non-interactive mode as distinct blue-box flow; current implementation has several replay/status variants, plus automatic project-file write behavior not called out there.
-3. `tool/utils/summary.ts` still recommends committing `superposition.json` in some flows, while broader docs now push project-file-first workflow.
+- `tool/commands/plan.ts` already supports strong planning logic, but current first-screen framing and change classification are below this spec's confidence-gate contract.
+- `tool/cli/args.ts` help text still under-teaches shared project file vs generated output roles and must be raised to same product model.
+- Current `init` / `regen` experience remains more input-centric than framing-first; this spec authorizes material sequencing change to close that gap.
 
 ## Technical Design
 
 ### Architecture Ownership
 
-- `tool/cli/run.ts` owns mode selection, source discovery, source-conflict failures, replay framing, backup policy messaging, local-config safety messaging, project-file persistence after successful `init`, and success-path routing.
-- `tool/questionnaire/questionnaire.ts` owns interactive decision order, seeded defaults, preset/custom branching, dependency auto-add notices, conflict-resolution loop, and parameter prompting after final overlay set is known.
-- `tool/questionnaire/presets.ts` owns preset expansion and preset-choice hydration only. It must not choose replay mode or persistence behavior.
-- `tool/schema/project-config.ts` owns project-file discovery, read/write, manifest/project answer hydration, local-config validation, and canonical serialization of persisted selection.
-- `tool/utils/summary.ts` owns rendering of summary, warnings, tips, and next steps from already-resolved run state. It must not rediscover source mode or invent workflow routing from partial inputs.
-- `tool/cli/args.ts` owns flag exclusivity and CLI surface declaration. It must not duplicate source-resolution behavior already owned by `run.ts`.
+- `tool/cli/run.ts` keeps command orchestration, source discovery, and write sequencing for `init`/`regen`.
+- New shared CLI UX layer should own framing, preflight, confirmation, success rendering, and posture/change classification.
+- `tool/questionnaire/**` owns question collection only. It must not decide write copy, success copy, or replay posture labels.
+- `tool/schema/project-config.ts` remains authority for project-file discovery, local-only config loading, supported-field validation, and materialization rules.
+- `tool/questionnaire/composer.ts` remains write planner/executor for generated output. It must not print UX summaries directly.
 
 ### System Boundaries
 
-- Canonical replay authority stays repository project file when present.
-- Manifest replay remains compatibility input only; it may seed answers, but it does not redefine steady-state source-of-truth semantics.
-- Local-only config may enrich generated output, but it does not write back into shared project-file state or manifest state.
-- Generated `.devcontainer/` output remains materialized artifact, not canonical source.
-- Git safety stops at warnings, ignore-file updates, and manual untrack guidance. No automatic Git index mutation.
+- One normalized run model should feed both `init` and `regen`.
+- Renderer consumes normalized model; renderer must not inspect filesystem directly.
+- Local-only config trust contract reuses validation from project-config layer, then maps result into one consolidated UX block.
+- Existing `utils/summary.ts` becomes legacy output path for old flows only; redesigned `init`/`regen` should use new success contract instead of extending summary blob further.
 
 ### Canonical Data Flow
 
-1. Resolve project root and parse CLI flags.
-2. Detect persisted sources: project file first, manifest only when explicitly requested or used for legacy compatibility flow.
-3. Load shared project config and local config before questionnaire so defaults and safety messages use final repository context.
-4. Hydrate answer defaults from project file or manifest, then merge CLI overrides.
-5. Run questionnaire only for decisions still unset; questionnaire owns preset expansion, overlay dependency resolution, and conflict cleanup.
-6. Materialize final answer set, then validate source conflicts, local-config safety, and output-path/backup plan before writes.
-7. Show summary with explicit `Source`, `Will write`, and `Manual follow-up` sections.
-8. If write proceeds, generate output, write/update project file for successful `init`, preserve shared customizations, then emit mode-specific success guidance.
+```mermaid
+flowchart LR
+    A[CLI args + repo scan] --> B[Source detection]
+    B --> C[Run posture classifier]
+    C --> D[Framing view model]
+    D --> E{init?}
+    E -->|yes| F[Lane/shortcut chooser + questionnaire]
+    E -->|no| G[Replay plan builder]
+    F --> H[Resolved intent]
+    G --> H
+    H --> I[Write plan + preservation plan + backup plan]
+    I --> J[Preflight renderer]
+    J --> K{interactive confirm}
+    K -->|confirm| L[Project-file write + generation]
+    K -->|abort/back| M[Stop]
+    L --> N[Success view model]
+    N --> O[Success renderer]
+```
 
-### Interfaces and Invariants
+### Interaction Policy Locks
 
-- Input sources: CLI flags, repository project file, optional local config, optional manifest, interactive answers.
-- Output artifacts: repository project file, generated `.devcontainer/`, optional `superposition.json`, optional backups, optional root `.gitignore` entry for local config.
-- Invariants:
-  - successful `init` persists canonical shared selection back to repository project file unless command is explicitly manifest-only or no-scaffold path already defined elsewhere
-  - replay banners and summary framing use one source label for entire run
-  - questionnaire never re-asks value fixed by source or flag
-  - dependency auto-add may happen automatically; conflict removal always requires explicit user choice
-  - local-only values never become shared persisted defaults
+- Posture labels come from shared classifier with exact enum: `New setup`, `Update shared setup`, `Replay shared setup`, `Legacy compatibility replay`.
+- Non-interactive runs print same framing and preflight, then continue without new opt-in flag. Reason: preserve unattended replay path. Safety comes from mandatory preview, clear scope classification, and unchanged/no-op detection.
+- Interactive confirmation defaults live in UX layer: broad mutation or skipped backup => default `Go back`; otherwise default `Write now` allowed.
+- Unsupported local-only config stays blocked before any write. Supported local-only config may enrich run, but trust contract prints once only.
 
 ### Implementation Slices
 
-1. Source-of-truth framing hardening: unify project-file detection, manifest-compatibility messaging, and invalid multi-source failures.
-2. Questionnaire contract hardening: seeded-init framing, preset/custom branch order, dependency/conflict loop, parameter-after-final-selection rule.
-3. Summary contract hardening: explicit source/write/manual-follow-up sections plus backup visibility.
-4. Local-config safety hardening: unsupported-key failure, ignored-dotfile warning, tracked-generated-file warning, gitignore assistance.
-5. Success/next-step hardening: mode-specific copy aligned with project-file-first replay.
-6. Docs cleanup slice: stale architecture/workflow copy updated to same source model.
+1. Add shared run-classification + artifact/trust-contract view-model layer.
+2. Refactor `run.ts` to render framing first for both `init` and `regen` before questionnaire or spinner.
+3. Add existing-project shortcut chooser and narrow question branches for `init`.
+4. Replace current summary/backup messaging with mandatory preflight + confirmation gate.
+5. Replace post-write summary with new success screen and align help/docs text.
 
 ### Risk Notes
 
-- `write-manifest-only` and `--no-scaffold` paths can drift from normal `init` persistence rules if summary and success copy branch late.
-- Existing docs still contain manifest-first language; implementation-safe framing depends on docs cleanup landing with command-copy cleanup.
-- Source framing currently spans `args.ts`, `run.ts`, and `summary.ts`; duplicated copy risks inconsistent replay guidance.
-- Seeded questionnaire defaults can silently mask one-run overrides if precedence order is not regression-tested.
+- `run.ts` already mixes discovery, prompting, writing, and summary. Refactor risk high unless new view-model seam added first.
+- Shortcut lanes can drift from full questionnaire rules. Mitigation: shortcut output must resolve through same normalized intent builder as full flow.
+- Local config notices already scattered in `run.ts`. Must delete old duplicated warnings once trust-contract renderer lands.
+- Spinner currently starts before final confidence step. Must move spinner after confirmation to satisfy framing/preflight-first contract.
 
 ### Test Plan
 
-- Command tests for zero/one/two project-file detection, seeded `init`, manifest replay, project replay, and source-conflict failures.
-- Questionnaire tests for preset/custom entry, dependency auto-add announcement, blocking conflict loop, and parameter prompt ordering.
-- Local-config tests for unsupported keys, ignored filename warning, gitignore assistance, tracked generated output warning, and non-persistence of local-only values.
-- Summary tests for explicit source/write/manual-follow-up sections, backup shown/skipped behavior, and mode-specific next steps.
-- Regression tests for `write-manifest-only` and `--no-scaffold` so source framing and persistence semantics stay coherent.
+- Unit: posture classifier, write-scope classifier, backup-plan classifier, local-config disposition mapper.
+- Integration: `init` first-run ordering, existing-project shortcut ordering, `regen` no-question path, no-op replay messaging.
+- Interaction: confirmation default selection, `Preview current plan` round-trip, unsupported local config block.
+- Regression: manifest compatibility replay framing, project-file update reminder, shared field labels stable between preflight and success.
 
 ## Architecture Decision Impact
 
-Aligned with ADR 001. `docs/foundation.md` absent; no additional foundation authority to reconcile.
+aligned with current ADRs/foundation
 
-- Governing ADR: `docs/adr/adr001-project-file-first-replay-and-regeneration.md`
-- No ADR amendment needed for this scope.
+Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 
 ## Open Questions
 
-- Prompt-budget language remains UX guidance, not architecture invariant. Questionnaire branching may reduce prompts, but exact count is not contractual.
-- Repository still needs stale `docs/architecture.md` replacement or rewrite so docs authority matches ADR 001 and workflow docs.
+- None blocking draft. Exact prompt count remains UX tuning detail, not spec constraint.
 
 ## Routing Decision
 
-**PM → Developer**
+**Architect → PM**
 
-Reason: ownership, data flow, invariants, slices, risks, and test surface now implementation-safe under ADR 001.
+Reason: Technical design locked for shared run model, renderer boundary, non-interactive policy, and local-config ownership. Ready for developer implementation planning.
