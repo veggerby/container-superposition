@@ -33,3 +33,7 @@
 | [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)                       | Versioned Private Overlay and Preset Catalogs                     | Draft       | PROJECT              |
 | [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)   | Discovery Surface and Canonical Docs Alignment                    | Draft       | CLI-UX, DOCS-GUIDE   |
 | [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md) | Preset-Led Onboarding for Common Jobs-to-be-Done                  | Draft       | CLI-UX, DOCS-GUIDE   |
+| [032-init-and-regen-guided-flows](032-init-and-regen-guided-flows/spec.md)                     | Init and Regen Guided Flows                                       | Draft       | CLI-UX               |
+| [033-cli-discovery-preview-and-fingerprint](033-cli-discovery-preview-and-fingerprint/spec.md) | CLI Discovery, Preview, and Fingerprint Commands                  | Draft       | CLI-UX               |
+| [034-doctor-diagnostics-and-remediation-ux](034-doctor-diagnostics-and-remediation-ux/spec.md) | Doctor Diagnostics and Remediation UX                             | Draft       | CLI-UX               |
+| [035-adopt-and-migrate-conversion-workflows](035-adopt-and-migrate-conversion-workflows/spec.md) | Adopt and Migrate Conversion Workflows                          | Draft       | CLI-UX               |
