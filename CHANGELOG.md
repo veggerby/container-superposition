@@ -9,11 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`git-helpers` GitHub credential helper path** — generated containers now replace broken host-specific `gh auth git-credential` helper paths (for example `/home/linuxbrew/.linuxbrew/bin/gh`) with portable `!gh auth git-credential`, fixing `git push` failures when host Homebrew paths do not exist inside container
-
-### Fixed
-
-- **`git-helpers` overlay repairs stale host GitHub CLI credential helpers** — setup now removes inherited `/home/linuxbrew/.linuxbrew/bin/gh auth git-credential` entries from global Git config inside container and adds `!gh auth git-credential`, so `git push` works when host `.gitconfig` points at a non-container `gh` binary.
+- **`git-helpers` GitHub credential helper path** — setup now removes inherited host-specific `gh auth git-credential` helper entries (for example `!/home/linuxbrew/.linuxbrew/bin/gh auth git-credential`) and adds portable `!gh auth git-credential`, fixing `git push` failures when host paths do not exist inside the container
 
 ## [0.1.12] - 2026-06-09
 
