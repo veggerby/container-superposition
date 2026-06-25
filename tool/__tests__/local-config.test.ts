@@ -39,6 +39,14 @@ function runCli(args: string[], cwd: string): { stdout: string; stderr: string; 
     };
 }
 
+function combinedOutput(result: { stdout: string; stderr: string }): string {
+    return `${result.stdout}\n${result.stderr}`;
+}
+
+function countOccurrences(text: string, token: string): number {
+    return text.split(token).length - 1;
+}
+
 describe('Local superposition config', () => {
     const overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
     let repoDir: string;
@@ -195,7 +203,7 @@ describe('Local superposition config', () => {
         ).toContain('.devcontainer/devcontainer.json');
     });
 
-    it('fresh init applies local mount without existing shared project config', () => {
+    it('fresh init prints local trust contract once and applies local mount', () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.local.yml'),
             yaml.dump({
@@ -204,8 +212,14 @@ describe('Local superposition config', () => {
         );
 
         const result = runCli(['init', '--stack', 'plain', '--language', 'nodejs'], repoDir);
+        const output = combinedOutput(result);
         expect(result.status).toBe(0);
-        expect(result.stderr).toContain('Local config detected: superposition.local.yml');
+        expect(countOccurrences(output, 'Local-only config trust')).toBe(1);
+        expect(output).toContain('path: superposition.local.yml');
+        expect(output).toContain('applied fields:');
+        expect(output).toContain('mounts');
+        expect(output).toContain('disposition: Applied safely');
+        expect(output).not.toContain('Local config detected: superposition.local.yml');
         expect(fs.readFileSync(path.join(repoDir, '.gitignore'), 'utf8')).toContain(
             'superposition.local.yml'
         );
@@ -236,7 +250,7 @@ describe('Local superposition config', () => {
         expect(fs.readFileSync(outputFile, 'utf8')).toBe('{"before":true}\n');
     });
 
-    it('regen emits local safety messages and adds root gitignore entry', () => {
+    it('regen prints local trust contract once and adds root gitignore entry', () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
             yaml.dump({ stack: 'plain', overlays: ['nodejs'], devcontainerGitignore: true })
@@ -249,9 +263,15 @@ describe('Local superposition config', () => {
         );
 
         const result = runCli(['regen'], repoDir);
+        const output = combinedOutput(result);
         expect(result.status).toBe(0);
-        expect(result.stdout).toContain('Local config detected: superposition.local.yml');
-        expect(result.stdout).toContain('Generated .devcontainer output is ignored for new files.');
+        expect(countOccurrences(output, 'Local-only config trust')).toBe(1);
+        expect(output).toContain('path: superposition.local.yml');
+        expect(output).toContain('applied fields:');
+        expect(output).toContain('mounts');
+        expect(output).toContain('git-ignore safety: present');
+        expect(output).toContain('disposition: Applied safely');
+        expect(output).not.toContain('Local config detected: superposition.local.yml');
         expect(fs.readFileSync(path.join(repoDir, '.gitignore'), 'utf8')).toContain(
             'superposition.local.yml'
         );
@@ -297,7 +317,7 @@ describe('Local superposition config', () => {
         expect(fs.readFileSync(outputFile, 'utf8')).toBe('{"before":true}\n');
     });
 
-    it('keeps root output tracked-file warning repo-relative', () => {
+    it('marks tracked-file cleanup as manual in single trust contract', () => {
         execFileSync('git', ['init'], { cwd: repoDir, stdio: 'ignore' });
         execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: repoDir });
         execFileSync('git', ['config', 'user.name', 'Test'], { cwd: repoDir });
@@ -314,12 +334,16 @@ describe('Local superposition config', () => {
         fs.writeFileSync(path.join(repoDir, 'superposition.local.yml'), 'env:\n  DEBUG: "true"\n');
 
         const result = runCli(['regen'], repoDir);
+        const output = combinedOutput(result);
         expect(result.status).toBe(0);
-        expect(result.stderr).toContain('git rm -r --cached -- .');
-        expect(result.stderr).not.toContain(`git rm -r --cached -- ${repoDir}`);
+        expect(countOccurrences(output, 'Local-only config trust')).toBe(1);
+        expect(output).toContain('tracked-file cleanup: manual follow-up');
+        expect(output).toContain('disposition: Applied with manual follow-up');
+        expect(output).not.toContain('Local config detected: superposition.local.yml');
+        expect(output).not.toContain('git rm -r --cached --');
     });
 
-    it('warns when local config exists without devcontainerGitignore', () => {
+    it('keeps single trust contract when local config exists without devcontainerGitignore', () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
             yaml.dump({ stack: 'plain', overlays: ['nodejs'] })
@@ -327,10 +351,12 @@ describe('Local superposition config', () => {
         fs.writeFileSync(path.join(repoDir, 'superposition.local.yml'), 'env:\n  DEBUG: "true"\n');
 
         const result = runCli(['regen'], repoDir);
+        const output = combinedOutput(result);
         expect(result.status).toBe(0);
-        expect(result.stderr).toContain(
-            'Generated .devcontainer output may include local-only settings.'
-        );
-        expect(result.stderr).toContain('set devcontainerGitignore: true in superposition.yml');
+        expect(countOccurrences(output, 'Local-only config trust')).toBe(1);
+        expect(output).toContain('git-ignore safety: present');
+        expect(output).toContain('tracked-file cleanup: not needed');
+        expect(output).toContain('disposition: Applied safely');
+        expect(output).not.toContain('Local config detected: superposition.local.yml');
     });
 });

@@ -4,20 +4,20 @@ title: Project-file-first replay and regeneration workflow
 status: proposed
 date: 2026-06-24
 relationships:
-  - type: relates-to
-    spec: docs/specs/002-superposition-config-file/spec.md
-  - type: relates-to
-    spec: docs/specs/022-local-superposition-config/spec.md
-  - type: relates-to
-    spec: docs/specs/030-discovery-surface-and-docs-alignment/spec.md
-  - type: relates-to
-    spec: docs/specs/032-init-and-regen-guided-flows/spec.md
-  - type: relates-to
-    spec: docs/specs/033-cli-discovery-preview-and-fingerprint/spec.md
-  - type: relates-to
-    spec: docs/specs/034-doctor-diagnostics-and-remediation-ux/spec.md
-  - type: relates-to
-    spec: docs/specs/035-adopt-and-migrate-conversion-workflows/spec.md
+    - type: relates-to
+      spec: docs/specs/002-superposition-config-file/spec.md
+    - type: relates-to
+      spec: docs/specs/022-local-superposition-config/spec.md
+    - type: relates-to
+      spec: docs/specs/030-discovery-surface-and-docs-alignment/spec.md
+    - type: relates-to
+      spec: docs/specs/032-init-and-regen-guided-flows/spec.md
+    - type: relates-to
+      spec: docs/specs/033-cli-discovery-preview-and-fingerprint/spec.md
+    - type: relates-to
+      spec: docs/specs/034-doctor-diagnostics-and-remediation-ux/spec.md
+    - type: relates-to
+      spec: docs/specs/035-adopt-and-migrate-conversion-workflows/spec.md
 ---
 
 # Context

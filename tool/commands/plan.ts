@@ -8,8 +8,13 @@ import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import type { DevContainer, OverlayMetadata, OverlaysConfig, Stack } from '../schema/types.js';
+import { findProjectConfig } from '../schema/project-config.js';
 import { extractPorts } from '../utils/port-utils.js';
 import { applyOverlay } from '../questionnaire/composer.js';
+import { classifyChangeSet } from '../ux/semantics/change-class.js';
+import { describeSource } from '../ux/semantics/source.js';
+import { resolveNextStep } from '../ux/semantics/next-step.js';
+import { renderFrame, renderList, renderNextStep, renderSection } from '../ux/renderers/common.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -563,165 +568,51 @@ export function generatePlanDiff(
 /**
  * Format a PlanDiffResult as colored terminal text.
  */
-function formatDiffAsText(diff: PlanDiffResult, contextLines = 3): string {
-    const sep = chalk.dim('─'.repeat(57));
+function formatDiffAsText(diff: PlanDiffResult, headline: string, summary: string): string {
     const lines: string[] = [];
-
+    lines.push(summary);
     lines.push('');
     lines.push(
-        boxen(chalk.bold('📋 Plan Diff'), {
-            padding: 0.5,
-            borderColor: 'cyan',
-            borderStyle: 'round',
-        })
+        renderSection('Detailed file impact', [
+            headline,
+            `files to create: ${diff.created.length}`,
+            `files to update: ${diff.modified.length + diff.overwritten.length}`,
+            `files to remove: ${diff.removed.length}`,
+            `files unchanged: ${diff.unchanged.length}`,
+            `preserved custom files: ${diff.preserved.length}`,
+        ])
     );
 
-    if (!diff.hasExistingConfig) {
+    const withDiff = diff.modified.filter((entry) => entry.diff);
+    if (diff.created.length > 0) {
+        lines.push('');
+        lines.push(renderSection('Created files', renderList(diff.created)));
+    }
+    if (diff.overwritten.length > 0) {
         lines.push('');
         lines.push(
-            chalk.yellow(`  ⚠  No existing configuration found at ${chalk.bold(diff.existingPath)}`)
+            renderSection(
+                'Updated files without content diff',
+                renderList(diff.overwritten.map((file) => `${file} (content not compared)`))
+            )
         );
-        lines.push(chalk.dim('  All files will be created fresh.'));
-        lines.push('');
-    } else {
-        lines.push('');
-        lines.push(chalk.dim(`  Comparing planned output vs ${chalk.bold(diff.existingPath)}`));
-        lines.push('');
     }
-
-    // ── File summary ─────────────────────────────────────────────────────────
-    if (diff.created.length > 0) {
-        lines.push(chalk.bold.green('Files to be created:'));
-        for (const f of diff.created) {
-            lines.push(`  ${chalk.green('+')} ${f} ${chalk.dim('(no existing file)')}`);
-        }
-        lines.push('');
-    }
-
-    if (diff.modified.length > 0) {
-        lines.push(chalk.bold.yellow('Files to be modified:'));
-        for (const f of diff.modified) {
-            lines.push(`  ${chalk.yellow('~')} ${f.path}`);
-        }
-        lines.push('');
-    }
-
-    if (diff.overwritten.length > 0) {
-        lines.push(chalk.bold.yellow('Files to be overwritten:'));
-        for (const f of diff.overwritten) {
-            lines.push(`  ${chalk.yellow('~')} ${f} ${chalk.dim('(content not compared)')}`);
-        }
-        lines.push('');
-    }
-
-    if (diff.unchanged.length > 0) {
-        lines.push(chalk.bold('Files unchanged:'));
-        for (const f of diff.unchanged) {
-            lines.push(`  ${chalk.gray('=')} ${chalk.dim(f)}`);
-        }
-        lines.push('');
-    }
-
-    if (diff.preserved.length > 0) {
-        lines.push(chalk.bold('Files preserved (custom):'));
-        for (const f of diff.preserved) {
-            lines.push(`  ${chalk.cyan('•')} ${f}`);
-        }
-        lines.push('');
-    }
-
     if (diff.removed.length > 0) {
-        lines.push(chalk.bold.red('Files to be removed:'));
-        for (const f of diff.removed) {
-            lines.push(`  ${chalk.red('-')} ${f}`);
-        }
         lines.push('');
+        lines.push(renderSection('Removed files', renderList(diff.removed)));
     }
-
-    // ── File content diffs ────────────────────────────────────────────────────
-    const withDiff = diff.modified.filter((f) => f.diff);
+    if (diff.preserved.length > 0) {
+        lines.push('');
+        lines.push(renderSection('Preserved files', renderList(diff.preserved)));
+    }
     if (withDiff.length > 0) {
-        lines.push(sep);
-
-        for (const f of withDiff) {
-            lines.push('');
-            lines.push(chalk.bold(`📄 ${path.basename(f.path)} diff`));
-            lines.push('');
-
-            for (const line of f.diff!.split('\n')) {
-                if (line.startsWith('---') || line.startsWith('+++')) {
-                    lines.push(chalk.dim(line));
-                } else if (line.startsWith('@@')) {
-                    lines.push(chalk.cyan(line));
-                } else if (line.startsWith('+')) {
-                    lines.push(chalk.green(line));
-                } else if (line.startsWith('-')) {
-                    lines.push(chalk.red(line));
-                } else {
-                    lines.push(chalk.dim(line));
-                }
-            }
-            lines.push('');
+        lines.push('');
+        lines.push('Unified diff');
+        for (const entry of withDiff) {
+            lines.push(entry.path);
+            lines.push(entry.diff ?? '');
         }
     }
-
-    // ── Overlay changes ───────────────────────────────────────────────────────
-    const { overlayChanges, portChanges } = diff;
-    const hasOverlayChanges = overlayChanges.added.length > 0 || overlayChanges.removed.length > 0;
-
-    if (diff.hasExistingConfig && hasOverlayChanges) {
-        lines.push(sep);
-        lines.push('');
-        lines.push(chalk.bold('📦 Overlays'));
-        lines.push('');
-
-        if (overlayChanges.added.length > 0) {
-            lines.push(chalk.bold('Added:'));
-            for (const o of overlayChanges.added) {
-                const cat = o.category ? chalk.dim(` (${o.category})`) : '';
-                lines.push(`  ${chalk.green('+')} ${chalk.cyan(o.id)}${cat}`);
-            }
-            lines.push('');
-        }
-
-        if (overlayChanges.removed.length > 0) {
-            lines.push(chalk.bold('Removed:'));
-            for (const o of overlayChanges.removed) {
-                const cat = o.category ? chalk.dim(` (${o.category})`) : '';
-                lines.push(`  ${chalk.red('-')} ${chalk.cyan(o.id)}${cat}`);
-            }
-            lines.push('');
-        }
-    }
-
-    // ── Port changes ──────────────────────────────────────────────────────────
-    const hasPortChanges = portChanges.added.length > 0 || portChanges.removed.length > 0;
-
-    if (diff.hasExistingConfig && hasPortChanges) {
-        lines.push(sep);
-        lines.push('');
-        lines.push(chalk.bold('🌐 Port changes'));
-        lines.push('');
-
-        if (portChanges.added.length > 0) {
-            lines.push(chalk.bold('Added:'));
-            for (const p of portChanges.added) {
-                lines.push(`  ${chalk.green('+')} ${chalk.cyan(p.overlay)}: ${p.port}`);
-            }
-            lines.push('');
-        }
-
-        if (portChanges.removed.length > 0) {
-            lines.push(chalk.bold('Removed:'));
-            for (const p of portChanges.removed) {
-                lines.push(`  ${chalk.red('-')} ${chalk.cyan(p.overlay)}: ${p.port}`);
-            }
-            lines.push('');
-        }
-    }
-
-    lines.push(sep);
-
     return lines.join('\n');
 }
 
@@ -1029,124 +920,61 @@ function getPortMappings(
 /**
  * Format plan as text
  */
-function formatAsText(plan: PlanResult, overlaysConfig: OverlaysConfig): string {
-    const lines: string[] = [];
-    const overlayMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
+function formatAsText(
+    plan: PlanResult,
+    overlaysConfig: OverlaysConfig,
+    headline: string,
+    nextStep: string
+): string {
+    const source = describeSource({
+        manifestPath: plan.inputMode === 'manifest' ? 'superposition.json' : undefined,
+        hasCliSelection: plan.inputMode === 'overlay-list',
+    });
+    const frame = renderFrame([
+        { label: 'Mode', value: 'Preview only' },
+        { label: 'Source', value: `${source.label} — ${source.detail}` },
+        {
+            label: 'What this helps you decide',
+            value: 'whether this resolved intent is ready before write',
+        },
+    ]);
 
-    lines.push(
-        boxen(chalk.bold('Generation Plan'), {
-            padding: 0.5,
-            borderColor: 'cyan',
-            borderStyle: 'round',
-        })
-    );
+    const resolvedIntent = [
+        `source of intent: ${source.label}`,
+        `stack: ${plan.stack}`,
+        `resolved overlays: ${plan.selectedOverlays.join(', ') || 'none'}`,
+        `auto-added overlays: ${plan.autoAddedOverlays.join(', ') || 'none'}`,
+        `skipped or conflicting overlays: ${plan.conflicts.map((item) => `${item.overlay} vs ${item.conflictsWith.join(', ')}`).join('; ') || 'none'}`,
+        `change classification: ${headline}`,
+    ];
 
-    // Stack
-    lines.push('');
-    lines.push(chalk.bold('Stack:') + ` ${plan.stack}`);
+    const changes = [
+        `files to create/update: ${plan.files.length}`,
+        `services/ports added: ${plan.portMappings.reduce((count, item) => count + item.ports.length, 0)}`,
+        `generated output differs from current workspace: preview required`,
+    ];
 
-    // Overlays
-    lines.push('');
-    lines.push(
-        chalk.bold(
-            plan.inputMode === 'manifest' ? 'Overlays Loaded from Manifest:' : 'Overlays Selected:'
-        )
-    );
-    for (const id of plan.selectedOverlays) {
-        const overlay = overlayMap.get(id);
-        const name = overlay ? ` (${overlay.name})` : '';
-        lines.push(`  ✓ ${chalk.cyan(id)}${chalk.gray(name)}`);
-    }
+    const reasons = [
+        `dependency auto-adds: ${plan.autoAddedOverlays.join(', ') || 'none'}`,
+        `conflicts: ${plan.conflicts.length > 0 ? 'present' : 'none'}`,
+        ...(plan.verbose?.issues.map((issue) => issue.message) ?? []),
+    ];
 
-    // Auto-added dependencies
-    if (plan.autoAddedOverlays.length > 0) {
-        lines.push('');
-        lines.push(chalk.bold('Auto-Added Dependencies:'));
-        for (const id of plan.autoAddedOverlays) {
-            const overlay = overlayMap.get(id);
-            const name = overlay ? ` (${overlay.name})` : '';
-            lines.push(`  ${chalk.yellow('+')} ${chalk.cyan(id)}${chalk.gray(name)}`);
-        }
-    }
+    const fileImpact = renderList(plan.files.map((file) => path.relative(process.cwd(), file)));
 
-    if (plan.verbose) {
-        lines.push('');
-        lines.push(chalk.bold('Dependency Resolution:'));
-        for (const explanation of plan.verbose.includedOverlays) {
-            const overlay = overlayMap.get(explanation.id);
-            const name = overlay ? ` (${overlay.name})` : '';
-            lines.push(`  ${chalk.cyan(explanation.id)}${chalk.gray(name)}`);
-
-            for (const reason of explanation.reasons) {
-                lines.push(`    - ${reason.message}`);
-                if (reason.path.length > 1) {
-                    lines.push(`    - path: ${reason.path.join(' -> ')}`);
-                }
-            }
-        }
-
-        if (plan.verbose.issues.length > 0) {
-            lines.push('');
-            lines.push(chalk.bold('Resolution Notes:'));
-            for (const issue of plan.verbose.issues) {
-                lines.push(`  - ${issue.message}`);
-                if (issue.path && issue.path.length > 0) {
-                    lines.push(`    path: ${issue.path.join(' -> ')}`);
-                }
-            }
-        }
-    }
-
-    // Conflicts
-    if (plan.conflicts.length > 0) {
-        lines.push('');
-        lines.push(chalk.bold.red('⚠ Conflicts Detected:'));
-        for (const conflict of plan.conflicts) {
-            lines.push(
-                `  ${chalk.red('✗')} ${chalk.cyan(conflict.overlay)} conflicts with: ${conflict.conflictsWith.join(', ')}`
-            );
-        }
-        lines.push('');
-        lines.push(chalk.yellow('  These conflicts must be resolved before generation.'));
-    }
-
-    // Port mappings
-    if (plan.portMappings.length > 0) {
-        lines.push('');
-        lines.push(chalk.bold('Port Mappings:'));
-        if (plan.portOffset > 0) {
-            lines.push(chalk.dim(`  (Offset: +${plan.portOffset})`));
-        }
-        for (const mapping of plan.portMappings) {
-            for (let i = 0; i < mapping.ports.length; i++) {
-                const original = mapping.ports[i];
-                const offset = mapping.offsetPorts[i];
-                const arrow = plan.portOffset > 0 ? ` → ${offset}` : '';
-                lines.push(`  ${chalk.cyan(mapping.overlay)}: ${original}${arrow}`);
-            }
-        }
-    }
-
-    // Files
-    lines.push('');
-    lines.push(chalk.bold('Files to Create/Modify:'));
-    const grouped = new Map<string, string[]>();
-    for (const file of plan.files) {
-        const dir = path.dirname(file);
-        if (!grouped.has(dir)) {
-            grouped.set(dir, []);
-        }
-        grouped.get(dir)!.push(path.basename(file));
-    }
-
-    for (const [dir, files] of grouped) {
-        lines.push(`  ${chalk.dim(dir)}/`);
-        for (const file of files) {
-            lines.push(`    📄 ${file}`);
-        }
-    }
-
-    return lines.join('\n');
+    return [
+        frame,
+        '',
+        renderSection('Resolved intent', resolvedIntent),
+        '',
+        renderSection('What changes here', changes),
+        '',
+        renderSection('Why this plan looks this way', reasons),
+        '',
+        renderSection('Detailed file impact', fileImpact),
+        '',
+        nextStep,
+    ].join('\n');
 }
 
 /**
@@ -1391,67 +1219,63 @@ export async function planCommand(
                 : undefined,
         };
 
+        const diffResult = generatePlanDiff(
+            plan,
+            overlaysConfig,
+            overlaysDir,
+            outputPath,
+            options.diffContext ?? 3
+        );
+        const changeClass = classifyChangeSet({
+            hasExistingOutput: diffResult.hasExistingConfig,
+            created: diffResult.created.length,
+            updated: diffResult.modified.length + diffResult.overwritten.length,
+            removed: diffResult.removed.length,
+            unchanged: diffResult.unchanged.length,
+        });
+        const nextStepModel = resolveNextStep({
+            command: 'plan',
+            repoHasProjectFile: findProjectConfig(process.cwd()).length > 0,
+            sourceKind: inputMode === 'manifest' ? 'manifest' : 'cli',
+            changeClass,
+        });
+        const nextStep = renderNextStep(nextStepModel);
+        const normalizedPlan = {
+            ...plan,
+            source: describeSource({
+                manifestPath: inputMode === 'manifest' ? 'superposition.json' : undefined,
+                hasCliSelection: inputMode === 'overlay-list',
+            }),
+            changeClass,
+            nextStep: nextStepModel,
+            diff: diffResult,
+        };
+
         // ── Diff mode ─────────────────────────────────────────────────────────
         if (options.diff) {
-            const contextLines = options.diffContext ?? 3;
-            const diffResult = generatePlanDiff(
-                plan,
-                overlaysConfig,
-                overlaysDir,
-                outputPath,
-                contextLines
-            );
-
             if (options.diffFormat === 'json' || options.json) {
-                console.log(JSON.stringify(diffResult, null, 2));
+                console.log(JSON.stringify(normalizedPlan, null, 2));
                 return;
             }
 
-            console.log(formatDiffAsText(diffResult, contextLines));
-
-            // Still show run hint if no conflicts
+            const summary = formatAsText(plan, overlaysConfig, changeClass, nextStep);
+            console.log(formatDiffAsText(diffResult, changeClass, summary));
             if (conflicts.length > 0) {
-                console.log(
-                    chalk.yellow(
-                        '⚠ Cannot proceed with generation due to conflicts. Remove conflicting overlays.\n'
-                    )
-                );
                 process.exit(1);
-            } else {
-                const rerunHint = options.fromManifest
-                    ? `container-superposition init --from-manifest ${options.fromManifest} --no-interactive`
-                    : `container-superposition init --stack ${stack} --overlays ${options.overlays}${portOffset > 0 ? ` --port-offset ${portOffset}` : ''}`;
-                console.log(chalk.dim(`  Run: ${rerunHint}\n`));
             }
             return;
         }
 
         // ── Normal mode ───────────────────────────────────────────────────────
-        // Output as JSON
         if (options.json) {
-            console.log(JSON.stringify(plan, null, 2));
+            console.log(JSON.stringify(normalizedPlan, null, 2));
             return;
         }
 
-        // Output as formatted text
-        console.log('\n' + formatAsText(plan, overlaysConfig) + '\n');
+        console.log('\n' + formatAsText(plan, overlaysConfig, changeClass, nextStep) + '\n');
 
-        // Summary
         if (conflicts.length > 0) {
-            console.log(
-                chalk.yellow(
-                    '⚠ Cannot proceed with generation due to conflicts. Remove conflicting overlays.\n'
-                )
-            );
             process.exit(1);
-        } else {
-            const rerunHint = options.fromManifest
-                ? `container-superposition init --from-manifest ${options.fromManifest} --no-interactive`
-                : `container-superposition init --stack ${stack} --overlays ${options.overlays}${portOffset > 0 ? ` --port-offset ${portOffset}` : ''}`;
-            console.log(
-                chalk.green('✓ No conflicts detected. Ready to generate!\n') +
-                    chalk.dim(`  Run: ${rerunHint}\n`)
-            );
         }
     } catch (error) {
         console.error(chalk.red('✗ Error creating plan:'), error);

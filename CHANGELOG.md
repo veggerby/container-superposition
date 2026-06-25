@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CLI UX model unified across init/regen/list/explain/plan/hash/doctor/adopt/migrate** — human-readable command output now starts from shared framing, preview/review, and single next-step guidance built from normalized semantics instead of command-local copy. `list` now highlights recommended starts and live categories including `messaging`; `plan`/`hash` share normalized preview semantics; `doctor` shows action-first triage and fix-plan preview; `adopt`/`migrate` teach canonical vs compatibility vs preservation artifact roles.
+
 ### Fixed
 
+- **Guided write review now gates init, doctor, and adopt mutations** — `init` now starts with lane or shortcut entry points and requires explicit `Write now` / `Go back` / `Abort` after preflight, `doctor --fix` now previews remediation rows before explicit `Apply fixes` / `Cancel`, and `adopt` now uses explicit `Write conversion artifacts` / `Cancel` approval with matching JSON artifact review data
+- **Preview and diagnostics output no longer duplicate or show empty action buckets** — `plan --diff` now prints exactly one `Next step`, `list --category` help includes `messaging`, and healthy `doctor` runs omit empty issue buckets while keeping trust-building pass output
 - **`git-helpers` GitHub credential helper path** — setup now removes inherited host-specific `gh auth git-credential` helper entries (for example `!/home/linuxbrew/.linuxbrew/bin/gh auth git-credential`) and adds portable `!gh auth git-credential`, fixing `git push` failures when host paths do not exist inside the container
+- **Local-only trust messaging now appears once in `init` and `regen`** — guided flows no longer print late duplicate `Local config detected...` notices after framing; single consolidated trust contract now covers both commands, with regression coverage counting combined stdout and stderr output
 
 ## [0.1.12] - 2026-06-09
 

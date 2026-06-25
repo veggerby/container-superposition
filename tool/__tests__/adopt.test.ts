@@ -13,10 +13,10 @@ import {
 } from '../commands/adopt.js';
 import { createBackup } from '../utils/backup.js';
 
-// Mock @inquirer/prompts so individual tests can control confirm() behaviour.
-// Default: resolve false (user declines) — tests that need confirmation must override with
-// vi.mocked(confirm).mockResolvedValueOnce(true).
-vi.mock('@inquirer/prompts', () => ({ confirm: vi.fn().mockResolvedValue(false) }));
+// Mock @inquirer/prompts so individual tests can control select() behaviour.
+// Default: resolve Cancel — tests that need write approval must override with
+// vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts').
+vi.mock('@inquirer/prompts', () => ({ select: vi.fn().mockResolvedValue('Cancel') }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,8 +91,8 @@ describe('adoptCommand', () => {
             const output = consoleLogSpy.mock.calls.join('\n');
             // The `node` feature should map to `nodejs` (not `bun`)
             expect(output).toContain('nodejs');
-            expect(output).toContain('exact');
-            expect(output).toContain('Suggested command:');
+            expect(output).toContain('Confidence: High confidence');
+            expect(output).toContain('Will become managed overlays');
             expect(output).toContain('--dry-run');
             expect(fs.existsSync(path.join(tmpDir, 'superposition.json'))).toBe(false);
         });
@@ -108,7 +108,7 @@ describe('adoptCommand', () => {
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, dryRun: true });
 
             const output = consoleLogSpy.mock.calls.join('\n');
-            expect(output).toContain('Items with no overlay equivalent');
+            expect(output).toContain('Will be preserved in custom/');
             expect(output).toContain('some-custom-feature');
         });
     });
@@ -154,6 +154,26 @@ describe('adoptCommand', () => {
 
             const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
             expect(parsed.unmatchedItems.length).toBeGreaterThan(0);
+        });
+
+        it('includes artifactWrites in JSON output', async () => {
+            writeDevcontainerJson(tmpDir, {
+                features: {
+                    'ghcr.io/devcontainers/features/node:1': {},
+                },
+            });
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, json: true });
+
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(Array.isArray(parsed.artifactWrites)).toBe(true);
+            expect(parsed.artifactWrites[0]).toMatchObject({
+                artifact: expect.any(String),
+                role: expect.any(String),
+                action: expect.any(String),
+                overwriteRisk: expect.any(String),
+                backup: expect.any(String),
+            });
         });
     });
 
@@ -502,7 +522,8 @@ describe('adoptCommand', () => {
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, dryRun: true });
             const output = consoleLogSpy.mock.calls.join('\n');
-            expect(output).toContain('No recognisable overlay patterns');
+            expect(output).toContain('Confidence: No viable conversion');
+            expect(output).toContain('use init instead');
         });
     });
 
@@ -526,7 +547,7 @@ describe('adoptCommand', () => {
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: devcontainerDir });
 
             const output = consoleLogSpy.mock.calls.join('\n');
-            expect(output).toContain('already exist');
+            expect(output).toContain('Blocked: existing conversion artifacts detected');
             expect(output).toContain('--force');
 
             // Existing file must NOT have been overwritten
@@ -545,9 +566,11 @@ describe('adoptCommand', () => {
                 features: { 'ghcr.io/devcontainers/features/node:1': {} },
             });
 
-            // Mock confirm to auto-accept so the manifest is actually written
-            const { confirm } = await import('@inquirer/prompts');
-            vi.mocked(confirm).mockResolvedValueOnce(true);
+            // Mock explicit write approval so artifacts are actually written
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts');
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
@@ -568,8 +591,10 @@ describe('adoptCommand', () => {
                 customizations: { vscode: { extensions: ['my-org.custom-ext'] } },
             });
 
-            const { confirm } = await import('@inquirer/prompts');
-            vi.mocked(confirm).mockResolvedValueOnce(true);
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts');
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
@@ -686,8 +711,10 @@ describe('adoptCommand', () => {
                 ].join('\n')
             );
 
-            const { confirm } = await import('@inquirer/prompts');
-            vi.mocked(confirm).mockResolvedValueOnce(true);
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts');
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
@@ -739,8 +766,10 @@ describe('adoptCommand', () => {
             });
             fs.writeFileSync(path.join(tmpDir, 'superposition.yml'), 'stack: compose\n');
 
-            const { confirm } = await import('@inquirer/prompts');
-            vi.mocked(confirm).mockResolvedValueOnce(true);
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts');
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
@@ -774,6 +803,31 @@ describe('adoptCommand', () => {
             expect(fs.readFileSync(path.join(tmpDir, '.superposition.yml'), 'utf8')).toBe(
                 'stack: compose\n'
             );
+        });
+
+        it('uses explicit write conversion artifacts or cancel choices', async () => {
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
+                features: { 'ghcr.io/devcontainers/features/node:1': {} },
+            });
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Cancel');
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
+                dir: devcontainerDir,
+                force: true,
+            });
+
+            const prompt = vi.mocked(select).mock.calls.at(-1)?.[0] as any;
+            expect(prompt.choices.map((choice: any) => choice.name)).toEqual([
+                'Write conversion artifacts',
+                'Cancel',
+            ]);
+            expect(prompt.default).toBe('Cancel');
         });
     });
 

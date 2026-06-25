@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-06-24
 **Author**: PM Agent
-**Status**: Draft
+**Status**: Final
 **Input**: Redesign `adopt` and `migrate` so conversion feels trustworthy, teaches artifact roles clearly, and avoids surprise writes or false confidence.
 
 ---
@@ -334,20 +334,20 @@ Avoid:
 
 ## Acceptance Criteria
 
-| # | Criterion |
-| --- | --- |
-| AC-1 | `adopt` first visible output is confidence header with rows in exact order `Mode`, `Source analyzed`, `Confidence`, `What will become managed`, `What will be preserved`, `Recommendation`, shown before raw detection evidence. |
-| AC-2 | Human-readable `adopt` analysis renders exact section order `Will become managed overlays`, `Will be preserved in custom/`, `Will still need manual review`, `Artifacts that would be written`, and `Why confidence is not higher` when confidence is not high, with explicit `none` states where relevant. |
-| AC-3 | `adopt` confidence classes map to recommendation states exactly as specified, and `Low confidence` / `No viable conversion` paths stop before confirmation or write by default and route users to `init`. |
-| AC-4 | Any write-capable `adopt` mode prints artifact-role review before mutation, with columns `Artifact`, `Role`, `Action`, `Overwrite risk`, `Backup`, covering shared project file, compatibility manifest when applicable, preservation artifacts, and backup state. |
-| AC-5 | Interactive live-write `adopt` offers exactly `Write conversion artifacts` and `Cancel` after artifact review, with default focus `Cancel`; analysis-only and dry-run modes never prompt for confirmation. |
-| AC-6 | `adopt` success output follows exact order `Written now`, `Preserved`, `Still needs review`, `Generated output status`, `Next step`, and never implies fully validated conversion when preservation or manual review remains. |
-| AC-7 | `migrate` first visible output is bridge header with rows in exact order `Mode`, `Legacy source found`, `Will write`, `Generated output`, `Recommended next action`, and `Generated output` explicitly says unchanged by this command. |
-| AC-8 | `migrate` always shows write review before project-file mutation, including source manifest path, target project file path, overwrite guard state, and note that generated output stays unchanged until `regen`. |
-| AC-9 | `migrate` success output states project file created or updated, generated output unchanged, `regen` as default next command, and optional `doctor` follow-up. |
-| AC-10 | Both commands use project-file-first artifact language that keeps compatibility manifest secondary and preservation artifacts distinct from managed overlays, even if current docs or copy differ. |
-| AC-11 | JSON output remains available for `adopt` analysis and semantically aligned with confidence, managed/preserved/manual-review, and artifact-write structures used in human-readable output. |
-| AC-12 | Automated coverage exists for confidence-header visibility, low-confidence stop behavior, artifact-role review, overwrite guards, migrate bridge review, generated-output-unchanged messaging, and success follow-up guidance. |
+| #     | Criterion                                                                                                                                                                                                                                                                                                   |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1  | `adopt` first visible output is confidence header with rows in exact order `Mode`, `Source analyzed`, `Confidence`, `What will become managed`, `What will be preserved`, `Recommendation`, shown before raw detection evidence.                                                                            |
+| AC-2  | Human-readable `adopt` analysis renders exact section order `Will become managed overlays`, `Will be preserved in custom/`, `Will still need manual review`, `Artifacts that would be written`, and `Why confidence is not higher` when confidence is not high, with explicit `none` states where relevant. |
+| AC-3  | `adopt` confidence classes map to recommendation states exactly as specified, and `Low confidence` / `No viable conversion` paths stop before confirmation or write by default and route users to `init`.                                                                                                   |
+| AC-4  | Any write-capable `adopt` mode prints artifact-role review before mutation, with columns `Artifact`, `Role`, `Action`, `Overwrite risk`, `Backup`, covering shared project file, compatibility manifest when applicable, preservation artifacts, and backup state.                                          |
+| AC-5  | Interactive live-write `adopt` offers exactly `Write conversion artifacts` and `Cancel` after artifact review, with default focus `Cancel`; analysis-only and dry-run modes never prompt for confirmation.                                                                                                  |
+| AC-6  | `adopt` success output follows exact order `Written now`, `Preserved`, `Still needs review`, `Generated output status`, `Next step`, and never implies fully validated conversion when preservation or manual review remains.                                                                               |
+| AC-7  | `migrate` first visible output is bridge header with rows in exact order `Mode`, `Legacy source found`, `Will write`, `Generated output`, `Recommended next action`, and `Generated output` explicitly says unchanged by this command.                                                                      |
+| AC-8  | `migrate` always shows write review before project-file mutation, including source manifest path, target project file path, overwrite guard state, and note that generated output stays unchanged until `regen`.                                                                                            |
+| AC-9  | `migrate` success output states project file created or updated, generated output unchanged, `regen` as default next command, and optional `doctor` follow-up.                                                                                                                                              |
+| AC-10 | Both commands use project-file-first artifact language that keeps compatibility manifest secondary and preservation artifacts distinct from managed overlays, even if current docs or copy differ.                                                                                                          |
+| AC-11 | JSON output remains available for `adopt` analysis and semantically aligned with confidence, managed/preserved/manual-review, and artifact-write structures used in human-readable output.                                                                                                                  |
+| AC-12 | Automated coverage exists for confidence-header visibility, low-confidence stop behavior, artifact-role review, overwrite guards, migrate bridge review, generated-output-unchanged messaging, and success follow-up guidance.                                                                              |
 
 ## Tradeoffs
 
@@ -465,3 +465,9 @@ Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 **Architect → PM**
 
 Reason: Technical design locked for conversion-planner ownership, low-confidence stop policy, shared artifact-role model, and migrate bridge behavior. Ready for developer implementation planning.
+
+## Implementation Notes
+
+Implemented adopt confidence classification, low-confidence stop path, artifact-role review, conversion success framing, and migrate bridge framing/review/success. Shared artifact helpers now power conversion review rows. Added focused conversion UX tests in `tool/__tests__/ux-renderers.test.ts` and updated adopt tests.
+
+Follow-up fix pass: added `artifactWrites` to `adopt --json`, switched live-write approval to explicit `Write conversion artifacts` / `Cancel`, and added regression coverage in `tool/__tests__/adopt.test.ts`.

@@ -1,14 +1,11 @@
-/**
- * Hash command - deterministic environment fingerprint
- */
-
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import chalk from 'chalk';
-import boxen from 'boxen';
 import type { OverlaysConfig, Stack } from '../schema/types.js';
 import { getToolVersion } from '../utils/version.js';
+import { describeSource } from '../ux/semantics/source.js';
+import { resolveNextStep } from '../ux/semantics/next-step.js';
+import { renderFrame, renderList, renderNextStep, renderSection } from '../ux/renderers/common.js';
 
 interface HashOptions {
     stack?: Stack;
@@ -31,69 +28,41 @@ export interface HashResult {
     hashFull: string;
 }
 
-/**
- * Resolve overlay dependencies recursively (same logic as plan command)
- */
 function resolveDependencies(
     selectedIds: string[],
     overlaysConfig: OverlaysConfig
-): {
-    resolved: string[];
-    autoAdded: string[];
-} {
-    const overlayMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
+): { resolved: string[]; autoAdded: string[] } {
+    const overlayMap = new Map(overlaysConfig.overlays.map((overlay) => [overlay.id, overlay]));
     const resolved = new Set<string>(selectedIds);
     const autoAdded: string[] = [];
-
-    const processDeps = (id: string) => {
+    const visit = (id: string) => {
         const overlay = overlayMap.get(id);
-        if (!overlay || !overlay.requires) return;
-
-        for (const reqId of overlay.requires) {
-            if (!resolved.has(reqId)) {
-                resolved.add(reqId);
-                autoAdded.push(reqId);
-                processDeps(reqId);
-            }
+        for (const required of overlay?.requires ?? []) {
+            if (resolved.has(required)) continue;
+            resolved.add(required);
+            autoAdded.push(required);
+            visit(required);
         }
     };
-
-    for (const id of selectedIds) {
-        processDeps(id);
-    }
-
-    return {
-        resolved: Array.from(resolved),
-        autoAdded,
-    };
+    selectedIds.forEach(visit);
+    return { resolved: [...resolved], autoAdded };
 }
 
-/**
- * Find superposition.json manifest in common locations
- */
 function findManifest(manifestPath?: string): string | null {
     const candidates = manifestPath
         ? [manifestPath]
         : [
               'superposition.json',
               '.devcontainer/superposition.json',
-              '../superposition.json',
-              path.join(process.cwd(), 'superposition.json'),
               path.join(process.cwd(), '.devcontainer', 'superposition.json'),
           ];
-
-    for (const p of candidates) {
-        const resolved = path.resolve(p);
-        if (fs.existsSync(resolved)) {
-            return resolved;
-        }
+    for (const candidate of candidates) {
+        const resolved = path.resolve(candidate);
+        if (fs.existsSync(resolved)) return resolved;
     }
     return null;
 }
 
-/**
- * Compute the canonical hash for a given configuration
- */
 export function computeHash(
     stack: string,
     overlays: string[],
@@ -101,8 +70,6 @@ export function computeHash(
     base: string,
     toolVersion: string
 ): { hash: string; hashFull: string } {
-    // Canonical object – keys alphabetically sorted, overlays sorted
-    // toolVersion must already be truncated to major.minor by the caller
     const canonical = {
         base,
         overlays: [...overlays].sort(),
@@ -110,16 +77,10 @@ export function computeHash(
         stack,
         tool: toolVersion,
     };
-
-    const json = JSON.stringify(canonical);
-    const hashFull = crypto.createHash('sha256').update(json).digest('hex');
-    const hash = hashFull.slice(0, 8);
-    return { hash, hashFull };
+    const hashFull = crypto.createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+    return { hash: hashFull.slice(0, 8), hashFull };
 }
 
-/**
- * Execute the hash command
- */
 export async function hashCommand(
     overlaysConfig: OverlaysConfig,
     _overlaysDir: string,
@@ -130,209 +91,149 @@ export async function hashCommand(
         let selectedOverlays: string[];
         let preset: string | null = null;
         let base: string;
+        let manifestPath: string | undefined;
 
-        // Try loading from manifest if no explicit overlays/stack provided
         if (!options.stack && !options.overlays) {
-            const manifestPath = findManifest(options.manifest);
+            manifestPath = findManifest(options.manifest) ?? undefined;
             if (!manifestPath) {
-                console.error(chalk.red('✗ No manifest found and no --stack/--overlays provided.'));
-                console.log(
-                    chalk.dim(
-                        '  Provide --stack and --overlays, or run from a directory with superposition.json'
-                    )
-                );
-                process.exit(1);
-            }
-
-            let rawManifest: unknown;
-            try {
-                rawManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-            } catch (err) {
                 console.error(
-                    chalk.red(
-                        `✗ Failed to read manifest: ${err instanceof Error ? err.message : String(err)}`
-                    )
+                    'Missing input: provide --stack and --overlays, or run from repo with superposition.json.'
                 );
                 process.exit(1);
             }
-
-            if (typeof rawManifest !== 'object' || rawManifest === null) {
-                console.error(chalk.red('✗ Invalid manifest: expected a JSON object'));
-                process.exit(1);
-            }
-
-            const manifest = rawManifest as Record<string, unknown>;
-
-            if (!manifest.baseTemplate || typeof manifest.baseTemplate !== 'string') {
-                console.error(chalk.red('✗ Invalid manifest: missing or invalid "baseTemplate"'));
-                process.exit(1);
-            }
-
-            const validStacksForManifest: Stack[] = ['plain', 'compose'];
-            if (!validStacksForManifest.includes(manifest.baseTemplate as Stack)) {
-                console.error(
-                    chalk.red(
-                        `✗ Invalid manifest: "baseTemplate" must be one of: ${validStacksForManifest.join(', ')}`
-                    )
-                );
-                process.exit(1);
-            }
-
-            if (!Array.isArray(manifest.overlays)) {
-                console.error(chalk.red('✗ Invalid manifest: "overlays" must be an array'));
-                process.exit(1);
-            }
-
-            if (!manifest.overlays.every((o: unknown) => typeof o === 'string')) {
-                console.error(
-                    chalk.red('✗ Invalid manifest: "overlays" must be an array of strings')
-                );
-                process.exit(1);
-            }
-
-            stack = manifest.baseTemplate;
-            selectedOverlays = manifest.overlays as string[];
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<
+                string,
+                unknown
+            >;
+            stack = String(manifest.baseTemplate ?? 'compose');
+            selectedOverlays = Array.isArray(manifest.overlays)
+                ? manifest.overlays.map(String)
+                : [];
             preset = typeof manifest.preset === 'string' ? manifest.preset : null;
             base =
-                options.base ??
-                (typeof manifest.baseImage === 'string' ? manifest.baseImage : 'bookworm');
+                typeof manifest.baseImage === 'string'
+                    ? manifest.baseImage
+                    : (options.base ?? 'bookworm');
         } else {
-            // Explicit CLI options
-            if (!options.stack) {
-                console.error(chalk.red('✗ --stack is required when not reading from manifest'));
-                console.log(
-                    chalk.dim(
-                        '  Example: container-superposition hash --stack compose --overlays postgres,redis'
-                    )
-                );
+            if (!options.stack || !options.overlays) {
+                console.error('Missing input: --stack and --overlays must be provided together.');
                 process.exit(1);
             }
-
-            const validStacks: Stack[] = ['plain', 'compose'];
-            if (!validStacks.includes(options.stack)) {
-                console.error(chalk.red(`✗ Invalid --stack value: ${options.stack}`));
-                console.log(chalk.dim(`  Valid values are: ${validStacks.join(', ')}`));
-                process.exit(1);
-            }
-
-            if (!options.overlays) {
-                console.error(chalk.red('✗ --overlays is required when not reading from manifest'));
-                console.log(
-                    chalk.dim(
-                        '  Example: container-superposition hash --stack compose --overlays postgres,redis'
-                    )
-                );
-                process.exit(1);
-            }
-
             stack = options.stack;
             selectedOverlays = options.overlays
                 .split(',')
-                .map((o) => o.trim())
+                .map((item) => item.trim())
                 .filter(Boolean);
             preset = options.preset ?? null;
             base = options.base ?? 'bookworm';
         }
 
-        // Validate overlays exist
-        const overlayMap = new Map(overlaysConfig.overlays.map((o) => [o.id, o]));
-        for (const id of selectedOverlays) {
-            if (!overlayMap.has(id)) {
-                console.error(chalk.red(`✗ Unknown overlay: ${id}`));
-                console.log(
-                    chalk.dim('\n💡 Use "container-superposition list" to see available overlays\n')
-                );
+        const overlayMap = new Map(overlaysConfig.overlays.map((overlay) => [overlay.id, overlay]));
+        for (const overlayId of selectedOverlays) {
+            if (!overlayMap.has(overlayId)) {
+                console.error(`Unknown overlay: ${overlayId}`);
                 process.exit(1);
             }
         }
 
-        // Resolve dependencies
         const { resolved, autoAdded } = resolveDependencies(selectedOverlays, overlaysConfig);
-
-        // Apply stack-compatibility filtering (mirrors plan/init behavior)
-        const incompatible: string[] = [];
-        const compatibleResolved = resolved.filter((id) => {
-            const overlay = overlayMap.get(id);
-            if (!overlay) return false;
-            if (overlay.supports && overlay.supports.length > 0) {
-                const ok = overlay.supports.includes(stack as Stack);
-                if (!ok) incompatible.push(id);
-                return ok;
-            }
-            return true;
-        });
-
-        for (const id of incompatible) {
-            console.warn(
-                chalk.yellow(
-                    `⚠ Overlay "${id}" does not support stack "${stack}" and will be excluded from the hash.`
-                )
+        const compatibleResolved = resolved.filter((overlayId) => {
+            const overlay = overlayMap.get(overlayId);
+            return (
+                !overlay?.supports ||
+                overlay.supports.length === 0 ||
+                overlay.supports.includes(stack as Stack)
             );
+        });
+        const sortedOverlays = [...compatibleResolved].sort();
+        const tool = getToolVersion().split('.').slice(0, 2).join('.');
+        const { hash, hashFull } = computeHash(stack, sortedOverlays, preset, base, tool);
+        const source = describeSource({ manifestPath, hasCliSelection: !manifestPath });
+        const nextStepModel = resolveNextStep({ command: 'hash' });
+
+        const writeLocation = options.write
+            ? path.join(
+                  options.output
+                      ? path.resolve(options.output)
+                      : path.join(process.cwd(), '.devcontainer'),
+                  'superposition.hash'
+              )
+            : null;
+
+        let writeChanged: boolean | null = null;
+        if (writeLocation) {
+            fs.mkdirSync(path.dirname(writeLocation), { recursive: true });
+            const prior = fs.existsSync(writeLocation)
+                ? fs.readFileSync(writeLocation, 'utf8')
+                : null;
+            const nextValue = `${hashFull}\n`;
+            writeChanged = prior !== nextValue;
+            fs.writeFileSync(writeLocation, nextValue, 'utf8');
         }
 
-        // Sort resolved overlays alphabetically for canonical representation
-        const sortedOverlays = [...compatibleResolved].sort();
-
-        // Truncate tool version to major.minor for hash stability across patches
-        const fullToolVersion = getToolVersion();
-        const toolMajorMinor = fullToolVersion.split('.').slice(0, 2).join('.');
-
-        const { hash, hashFull } = computeHash(stack, sortedOverlays, preset, base, toolMajorMinor);
-
-        const result: HashResult = {
+        const model = {
+            source,
             stack,
             overlays: sortedOverlays,
+            normalizedDependencies: autoAdded.filter((overlayId) =>
+                sortedOverlays.includes(overlayId)
+            ),
             preset,
             base,
-            tool: toolMajorMinor,
+            tool,
             hash,
             hashFull,
+            writeLocation,
+            writeChanged,
+            nextStep: nextStepModel,
         };
 
         if (options.json) {
-            console.log(JSON.stringify(result, null, 2));
-        } else {
-            // Human-readable output
-            const overlayDisplay = sortedOverlays
-                .map((id) => (autoAdded.includes(id) ? `${id} (auto)` : id))
-                .join(', ');
+            console.log(JSON.stringify(model, null, 2));
+            return;
+        }
 
-            const lines = [
-                `stack        ${chalk.cyan(stack)}`,
-                `overlays     ${chalk.cyan(overlayDisplay || '(none)')}`,
-                `preset       ${chalk.cyan(preset ?? '(none)')}`,
-                `base         ${chalk.cyan(base)}`,
-                `tool         ${chalk.cyan(toolMajorMinor)}`,
+        const frame = renderFrame([
+            { label: 'Mode', value: 'Fingerprint' },
+            { label: 'Source', value: `${source.label} — ${source.detail}` },
+            {
+                label: 'What this helps you decide',
+                value: 'whether two resolved intents are semantically same',
+            },
+        ]);
+        const sections = [
+            renderSection('Fingerprint', [`short value: ${hash}`, `full value: ${hashFull}`]),
+            '',
+            renderSection('Computed from', [
+                `source: ${source.label}`,
+                `stack: ${stack}`,
+                `base image: ${base}`,
+                `tool major.minor: ${tool}`,
+            ]),
+            '',
+            renderSection(
+                'Normalized dependencies',
+                renderList(model.normalizedDependencies, 'none')
+            ),
+            '',
+            renderSection('How to compare', [
+                'matching fingerprints mean same normalized intent after dependency expansion',
+                'different fingerprints mean stack, base, preset, or overlays differ semantically',
+            ]),
+        ];
+        if (writeLocation) {
+            sections.push(
                 '',
-                `hash         ${chalk.green.bold(hash)}`,
-            ];
-
-            const box = boxen(lines.join('\n'), {
-                title: 'Environment Fingerprint',
-                padding: 1,
-                borderStyle: 'round',
-                borderColor: 'cyan',
-            });
-
-            console.log('\n' + box + '\n');
+                renderSection('Write location', [
+                    `path: ${writeLocation}`,
+                    `state: ${writeChanged ? 'changed file contents' : 'confirmed same fingerprint'}`,
+                ])
+            );
         }
-
-        // --write flag: write hash to .devcontainer/superposition.hash
-        if (options.write) {
-            const outputDir = options.output
-                ? path.resolve(options.output)
-                : path.join(process.cwd(), '.devcontainer');
-
-            fs.mkdirSync(outputDir, { recursive: true });
-            const hashFilePath = path.join(outputDir, 'superposition.hash');
-            fs.writeFileSync(hashFilePath, hashFull + '\n', 'utf-8');
-
-            if (!options.json) {
-                console.log(chalk.green(`✓ Hash written to ${hashFilePath}`));
-            }
-        }
+        sections.push('', renderNextStep(nextStepModel));
+        console.log([frame, '', ...sections].join('\n'));
     } catch (error) {
-        console.error(chalk.red('✗ Error computing hash:'), error);
+        console.error(error);
         process.exit(1);
     }
 }

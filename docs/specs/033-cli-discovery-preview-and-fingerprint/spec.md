@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-06-24
 **Author**: PM Agent
-**Status**: Draft
+**Status**: Final
 **Input**: Redesign read-only CLI surfaces so users discover faster, preview earlier, and learn product model without accidental writes.
 
 ---
@@ -345,20 +345,20 @@ Avoid:
 
 ## Acceptance Criteria
 
-| # | Criterion |
-| --- | --- |
-| AC-1 | Every human-readable command output begins with compact frame in exact order `Mode`, `Source`, `What this helps you decide`; JSON output excludes this frame entirely. |
-| AC-2 | Default `list` renders exact top-level blocks `Recommended starts`, `Browse all overlays`, and `How to inspect or preview next`, with at most 5 recommended rows before full catalog. |
-| AC-3 | `list` shows all live user-facing categories, including `messaging`, with human-readable item rows and no raw object dumps, hidden categories, or stale category labels. |
-| AC-4 | `explain <id>` renders exact section order `Best for`, `Adds`, `Depends on`, `Conflicts with`, `Preview notes`, `Files, services, and ports`, `Try this next`, with explicit `none` states for empty sections. |
-| AC-5 | Human-readable `plan` renders exact section order `Resolved intent`, `What changes here`, `Why this plan looks this way`, `Detailed file impact`, `Next step`, and first screen includes source, resolved overlays or preset, auto-added overlays, skipped/conflicting overlays, and change classification. |
-| AC-6 | `plan --diff` repeats same top summary and shows one headline classification from exact set `First write`, `Update existing output`, `Cleanup stale generated files`, `No material change` before any unified diff text. |
-| AC-7 | Human-readable `hash` renders exact section order `Fingerprint`, `Computed from`, `Normalized dependencies`, `How to compare`, optional `Write location`, `Next step`, and reports whether `--write` changed file contents or confirmed same fingerprint. |
-| AC-8 | Shared next-step footer appears exactly once per human-readable output, suggests only one valid next command, and never routes to unsupported flag combos or stale manifest-first steady-state workflows. |
-| AC-9 | Product docs, help text, and command hints elevate `plan` as standard preview-before-write step; current low-prominence placement is not acceptance authority. |
-| AC-10 | JSON output remains semantically aligned with text output, including source labeling, change classification, dependency normalization, and next-step state, even when text layout changes materially. |
-| AC-11 | Automated coverage exists for guided `list`, category completeness, explain section ordering, plan summary classification, `plan --diff` headline placement, next-step validity, and hash explanation/write reporting. |
-| AC-12 | Human-readable layouts may change materially when needed to improve discovery, teaching, and preview confidence; current table-first or metadata-first layouts are not acceptance authority. |
+| #     | Criterion                                                                                                                                                                                                                                                                                                   |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1  | Every human-readable command output begins with compact frame in exact order `Mode`, `Source`, `What this helps you decide`; JSON output excludes this frame entirely.                                                                                                                                      |
+| AC-2  | Default `list` renders exact top-level blocks `Recommended starts`, `Browse all overlays`, and `How to inspect or preview next`, with at most 5 recommended rows before full catalog.                                                                                                                       |
+| AC-3  | `list` shows all live user-facing categories, including `messaging`, with human-readable item rows and no raw object dumps, hidden categories, or stale category labels.                                                                                                                                    |
+| AC-4  | `explain <id>` renders exact section order `Best for`, `Adds`, `Depends on`, `Conflicts with`, `Preview notes`, `Files, services, and ports`, `Try this next`, with explicit `none` states for empty sections.                                                                                              |
+| AC-5  | Human-readable `plan` renders exact section order `Resolved intent`, `What changes here`, `Why this plan looks this way`, `Detailed file impact`, `Next step`, and first screen includes source, resolved overlays or preset, auto-added overlays, skipped/conflicting overlays, and change classification. |
+| AC-6  | `plan --diff` repeats same top summary and shows one headline classification from exact set `First write`, `Update existing output`, `Cleanup stale generated files`, `No material change` before any unified diff text.                                                                                    |
+| AC-7  | Human-readable `hash` renders exact section order `Fingerprint`, `Computed from`, `Normalized dependencies`, `How to compare`, optional `Write location`, `Next step`, and reports whether `--write` changed file contents or confirmed same fingerprint.                                                   |
+| AC-8  | Shared next-step footer appears exactly once per human-readable output, suggests only one valid next command, and never routes to unsupported flag combos or stale manifest-first steady-state workflows.                                                                                                   |
+| AC-9  | Product docs, help text, and command hints elevate `plan` as standard preview-before-write step; current low-prominence placement is not acceptance authority.                                                                                                                                              |
+| AC-10 | JSON output remains semantically aligned with text output, including source labeling, change classification, dependency normalization, and next-step state, even when text layout changes materially.                                                                                                       |
+| AC-11 | Automated coverage exists for guided `list`, category completeness, explain section ordering, plan summary classification, `plan --diff` headline placement, next-step validity, and hash explanation/write reporting.                                                                                      |
+| AC-12 | Human-readable layouts may change materially when needed to improve discovery, teaching, and preview confidence; current table-first or metadata-first layouts are not acceptance authority.                                                                                                                |
 
 ## Tradeoffs
 
@@ -456,3 +456,9 @@ Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 **Architect → PM**
 
 Reason: Technical design locked for shared read-only semantic model, metadata ownership, next-step routing, and `plan`/`hash` parity. Ready for developer implementation planning.
+
+## Implementation Notes
+
+Implemented shared discovery/inspection/preview/fingerprint framing through new `tool/ux/semantics/*` and `tool/ux/renderers/common.ts`. Refactored `list`, `explain`, `plan`, `hash`, and CLI help text onto shared source/next-step/change semantics. Added focused UX contract tests in `tool/__tests__/ux-renderers.test.ts`.
+
+Follow-up fix pass: removed duplicate `Next step` in `plan --diff`, aligned `plan` next-step routing with live project-file repo state, and updated `list --category` help text to include `messaging`. Added regression coverage in `tool/__tests__/ux-renderers.test.ts`.

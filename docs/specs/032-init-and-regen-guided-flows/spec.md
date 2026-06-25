@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-06-24
 **Author**: PM Agent
-**Status**: Draft
+**Status**: Final
 **Input**: Redesign `init` and `regen` for lower cognitive load, stronger pre-write confidence, faster repeat-use flow, and clearer product-model teaching.
 
 ---
@@ -365,20 +365,20 @@ Do not use in steady-state project-file flows:
 
 ## Acceptance Criteria
 
-| # | Criterion |
-| --- | --- |
-| AC-1 | First visible output for `init` and `regen` is framing screen with rows in exact order: `Mode`, `Source`, `Shared project file`, `Generated output`, `Local-only config`, `Recommended next action`, shown before any prompt, questionnaire, or spinner. |
-| AC-2 | Interactive `init` begins with existing-project shortcut chooser when shared project file exists; otherwise it begins with lane choice between `Fast start` and `Custom build`, with `Fast start` default-focused and `Custom build` still directly accessible. |
-| AC-3 | Existing-project shortcut chooser includes `Add capability`, `Remove capability`, `Change runtime or editor`, `Adjust parameters`, and `Review everything`, and narrow-change paths ask only change-relevant questions before preview. |
-| AC-4 | Guided questions follow intent-first order: goal/start point, base stack/runtime/editor, capability adds-removals, required parameters, optional refinements; optional refinements remain hidden until explicitly requested. |
-| AC-5 | Every write-capable path, including non-interactive replay, prints preflight sections in exact order: `Source`, `Intent`, `Will write`, `Will preserve`, `Manual follow-up`, `Backup plan`; `Will write` separates shared project file from generated output. |
-| AC-6 | Interactive mutation paths offer exactly `Write now`, `Go back`, and `Abort` after preflight, with default selection `Go back` whenever mutation scope is broad or backup is skipped. |
-| AC-7 | Normal-case `regen` asks no discovery questions and still classifies write intent as replay, cleanup, update, or no material change before any file mutation. |
-| AC-8 | Local-only config appears in one consolidated trust contract that states discovered path, applied fields, unsupported fields if any, Git-ignore safety state, tracked-file cleanup responsibility, and final disposition (`Applied safely`, `Applied with manual follow-up`, `Blocked`, or `Ignored by this run`). |
-| AC-9 | Success output follows exact order `Changed`, `Preserved`, `Next step`, `Manual review` and restates when shared intent changed versus when only generated output replayed. |
-| AC-10 | Current prompt ordering, copy, and summary behavior are allowed to change materially when needed to reach lower cognitive load and higher pre-write confidence; current sequencing is not acceptance authority. |
-| AC-11 | Automated coverage exists for framing-first entry, repeat-user shortcut entry, progressive-disclosure question order, preflight ordering, confirmation defaults, no-op replay messaging, and local-config trust dispositions. |
-| AC-12 | Docs, help text, and in-product wording align on one mental model: shared project file = canonical team intent, generated output = materialized files, local-only config = personal enrichment. |
+| #     | Criterion                                                                                                                                                                                                                                                                                                          |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AC-1  | First visible output for `init` and `regen` is framing screen with rows in exact order: `Mode`, `Source`, `Shared project file`, `Generated output`, `Local-only config`, `Recommended next action`, shown before any prompt, questionnaire, or spinner.                                                           |
+| AC-2  | Interactive `init` begins with existing-project shortcut chooser when shared project file exists; otherwise it begins with lane choice between `Fast start` and `Custom build`, with `Fast start` default-focused and `Custom build` still directly accessible.                                                    |
+| AC-3  | Existing-project shortcut chooser includes `Add capability`, `Remove capability`, `Change runtime or editor`, `Adjust parameters`, and `Review everything`, and narrow-change paths ask only change-relevant questions before preview.                                                                             |
+| AC-4  | Guided questions follow intent-first order: goal/start point, base stack/runtime/editor, capability adds-removals, required parameters, optional refinements; optional refinements remain hidden until explicitly requested.                                                                                       |
+| AC-5  | Every write-capable path, including non-interactive replay, prints preflight sections in exact order: `Source`, `Intent`, `Will write`, `Will preserve`, `Manual follow-up`, `Backup plan`; `Will write` separates shared project file from generated output.                                                      |
+| AC-6  | Interactive mutation paths offer exactly `Write now`, `Go back`, and `Abort` after preflight, with default selection `Go back` whenever mutation scope is broad or backup is skipped.                                                                                                                              |
+| AC-7  | Normal-case `regen` asks no discovery questions and still classifies write intent as replay, cleanup, update, or no material change before any file mutation.                                                                                                                                                      |
+| AC-8  | Local-only config appears in one consolidated trust contract that states discovered path, applied fields, unsupported fields if any, Git-ignore safety state, tracked-file cleanup responsibility, and final disposition (`Applied safely`, `Applied with manual follow-up`, `Blocked`, or `Ignored by this run`). |
+| AC-9  | Success output follows exact order `Changed`, `Preserved`, `Next step`, `Manual review` and restates when shared intent changed versus when only generated output replayed.                                                                                                                                        |
+| AC-10 | Current prompt ordering, copy, and summary behavior are allowed to change materially when needed to reach lower cognitive load and higher pre-write confidence; current sequencing is not acceptance authority.                                                                                                    |
+| AC-11 | Automated coverage exists for framing-first entry, repeat-user shortcut entry, progressive-disclosure question order, preflight ordering, confirmation defaults, no-op replay messaging, and local-config trust dispositions.                                                                                      |
+| AC-12 | Docs, help text, and in-product wording align on one mental model: shared project file = canonical team intent, generated output = materialized files, local-only config = personal enrichment.                                                                                                                    |
 
 ## Tradeoffs
 
@@ -477,3 +477,11 @@ Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 **Architect → PM**
 
 Reason: Technical design locked for shared run model, renderer boundary, non-interactive policy, and local-config ownership. Ready for developer implementation planning.
+
+## Implementation Notes
+
+Implemented shared run framing, preflight, local-config trust block, and success sections in `tool/cli/run.ts` via shared UX semantics/renderers. Added renderer-focused tests in `tool/__tests__/ux-renderers.test.ts`.
+
+Follow-up fix pass: added init lane chooser, repeat-user shortcuts, preflight confirmation gate (`Write now` / `Go back` / `Abort`), and helper coverage in `tool/__tests__/qa-blockers.test.ts`. Removed duplicate late local-config safety messaging so trust contract stays consolidated in framing/preflight.
+
+QA blocker fix: removed `printLocalConfigTrustNotice()` from normal `init`/`regen` execution, updated `tool/__tests__/local-config.test.ts` to assert single-placement trust messaging across combined stdout/stderr, and added CLI regression coverage in `tool/__tests__/qa-blockers.test.ts` for both `init` and `regen`. Validation: targeted Vitest, `npm run lint`, full `npm test`.

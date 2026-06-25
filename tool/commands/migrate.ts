@@ -1,16 +1,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import chalk from 'chalk';
-import { loadManifest } from '../schema/manifest-migrations.js';
-import { buildAnswersFromManifest } from '../schema/project-config.js';
-import { mergeAnswers } from '../questionnaire/answers.js';
 import {
     findManifestFile,
     findProjectConfig,
+    buildAnswersFromManifest,
     buildProjectConfigSelectionFromAnswers,
     writeProjectConfig,
 } from '../schema/project-config.js';
+import { loadManifest } from '../schema/manifest-migrations.js';
+import { mergeAnswers } from '../questionnaire/answers.js';
 import { loadOverlaysConfigWrapper } from '../questionnaire/questionnaire.js';
+import { buildArtifactRow } from '../ux/semantics/artifacts.js';
+import { resolveNextStep } from '../ux/semantics/next-step.js';
+import {
+    renderArtifactTable,
+    renderFrame,
+    renderNextStep,
+    renderSection,
+} from '../ux/renderers/common.js';
 
 export interface MigrateOptions {
     fromManifest?: string;
@@ -20,19 +27,12 @@ export interface MigrateOptions {
 
 export async function migrateCommand(options: MigrateOptions): Promise<void> {
     const manifestPath = findManifestFile(options.fromManifest);
-
     if (!manifestPath) {
-        console.error(chalk.red('✗ Error: No superposition.json manifest found'));
-        console.error(
-            chalk.gray('  Searched in: superposition.json, .devcontainer/superposition.json')
-        );
-        console.error(
-            chalk.dim('  Use --from-manifest <path> to specify the manifest location explicitly.')
-        );
+        console.error('No legacy source found: superposition.json missing.');
+        console.error('Run `cs init` to create shared project file instead.');
         process.exit(1);
     }
 
-    const manifestDir = path.dirname(manifestPath);
     const loadedManifest = loadManifest(manifestPath);
     if (!loadedManifest) {
         process.exit(1);
@@ -45,9 +45,7 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
         const discovered = findProjectConfig(process.cwd());
         if (discovered.length > 1) {
             console.error(
-                chalk.red(
-                    '✗ Found both supported project config files (.superposition.yml and superposition.yml) in the repository root. Keep only one, or use --output to specify the target path.'
-                )
+                'Blocked: found both .superposition.yml and superposition.yml. Keep one.'
             );
             process.exit(1);
         }
@@ -56,36 +54,68 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
 
     if (fs.existsSync(projectFilePath) && !options.force) {
         console.error(
-            chalk.red(
-                `✗ Project file already exists: ${path.relative(process.cwd(), projectFilePath)}`
-            )
+            `Blocked: project file already exists at ${path.relative(process.cwd(), projectFilePath)}.`
         );
-        console.error(chalk.gray('  Use --force to overwrite the existing project file.'));
+        console.error('Use --force to bypass overwrite guard only.');
         process.exit(1);
     }
 
-    const relativeManifestDir = path.relative(process.cwd(), manifestDir);
-    const portableManifestDir = relativeManifestDir.startsWith('.')
-        ? relativeManifestDir
-        : `./${relativeManifestDir}`;
-    const migrateOverlaysConfig = loadOverlaysConfigWrapper();
+    const overlaysConfig = loadOverlaysConfigWrapper();
     const manifestAnswers = buildAnswersFromManifest(
         loadedManifest,
-        migrateOverlaysConfig,
-        portableManifestDir
+        overlaysConfig,
+        path.dirname(manifestPath)
     );
     const answers = mergeAnswers(manifestAnswers);
     const projectSelection = buildProjectConfigSelectionFromAnswers(answers);
+    const nextStep = resolveNextStep({ command: 'migrate' });
+
+    const frame = renderFrame([
+        { label: 'Mode', value: 'Legacy bridge' },
+        { label: 'Legacy source found', value: path.relative(process.cwd(), manifestPath) },
+        { label: 'Will write', value: path.relative(process.cwd(), projectFilePath) },
+        { label: 'Generated output', value: 'unchanged by this command' },
+        { label: 'Recommended next action', value: nextStep.command ?? 'No next step suggested' },
+    ]);
+
+    const artifactRows = [
+        buildArtifactRow({
+            artifact: path.relative(process.cwd(), projectFilePath),
+            role: 'Canonical shared intent',
+            action: fs.existsSync(projectFilePath) ? 'overwrite' : 'create',
+            backupDisposition: 'not needed',
+            backupReason: 'migrate writes project file only',
+        }),
+    ];
+
+    console.log(
+        [
+            frame,
+            '',
+            renderSection('Write review', [
+                `source manifest path: ${path.relative(process.cwd(), manifestPath)}`,
+                `target project file path: ${path.relative(process.cwd(), projectFilePath)}`,
+                `overwrite guard state: ${fs.existsSync(projectFilePath) ? (options.force ? 'force bypass active' : 'would block without --force') : 'clear'}`,
+                'compatibility note: generated output stays same until `cs regen`',
+            ]),
+            '',
+            renderArtifactTable(artifactRows),
+        ].join('\n')
+    );
 
     writeProjectConfig(projectFilePath, projectSelection);
 
     console.log(
-        chalk.green(`✓ Project file created: ${path.relative(process.cwd(), projectFilePath)}`)
+        [
+            '',
+            renderSection('Bridge success', [
+                `project file created or updated: ${path.relative(process.cwd(), projectFilePath)}`,
+                'generated output unchanged',
+                `next command: ${nextStep.command ?? 'cs regen'}`,
+                'optional validation follow-up: cs doctor',
+            ]),
+            '',
+            renderNextStep(nextStep),
+        ].join('\n')
     );
-    console.log(
-        chalk.dim(
-            '  Run `cs regen` (or `npx container-superposition regen`) to regenerate your devcontainer.'
-        )
-    );
-    process.exit(0);
 }
