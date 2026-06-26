@@ -9,7 +9,7 @@ vi.mock('@inquirer/prompts', () => ({
     select: vi.fn().mockResolvedValue('Cancel'),
 }));
 
-import { buildInitEntryChoices, buildWriteConfirmationPrompt } from '../cli/run.js';
+import { buildInitEntryChoices, buildShortcutOverlayChoices } from '../cli/run.js';
 import { renderDoctorReportModel, doctorCommand } from '../commands/doctor.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import { select } from '@inquirer/prompts';
@@ -69,7 +69,33 @@ describe('QA blocker regressions', () => {
         });
     });
 
-    it('init entry choices expose lane chooser and repeat-user shortcuts', () => {
+    it('shortcut add-capability choices are stack-aware and grouped', () => {
+        const overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+        const plainChoices = buildShortcutOverlayChoices({
+            stack: 'plain',
+            overlays: overlaysConfig.overlays,
+            selectedOverlayIds: ['nodejs'],
+        });
+        const plainNames = plainChoices
+            .filter((choice: any) => choice.name)
+            .map((choice: any) => choice.name);
+        expect(plainNames).not.toContain('PostgreSQL');
+
+        const composeChoices = buildShortcutOverlayChoices({
+            stack: 'compose',
+            overlays: overlaysConfig.overlays,
+            selectedOverlayIds: ['nodejs'],
+        });
+        const composeNames = composeChoices
+            .filter((choice: any) => choice.name)
+            .map((choice: any) => choice.name);
+        expect(composeNames).toContain('PostgreSQL');
+        expect(
+            composeChoices.some((choice: any) => choice.separator?.includes('Data services'))
+        ).toBe(true);
+    });
+
+    it('init entry choices expose lane chooser, current-setup review, and preview/write exit', () => {
         expect(buildInitEntryChoices(false).map((choice) => choice.name)).toEqual([
             'Fast start',
             'Custom build',
@@ -79,21 +105,10 @@ describe('QA blocker regressions', () => {
             'Remove capability',
             'Change runtime or editor',
             'Adjust parameters',
-            'Review everything',
+            'Review current setup',
+            'Edit full setup',
+            'Preview and write',
         ]);
-    });
-
-    it('write confirmation prompt uses exact choices and safe default', () => {
-        const prompt = buildWriteConfirmationPrompt({
-            shouldBackup: false,
-            mutationScope: 'broad',
-        });
-        expect(prompt.choices.map((choice) => choice.name)).toEqual([
-            'Write now',
-            'Go back',
-            'Abort',
-        ]);
-        expect(prompt.default).toBe('Go back');
     });
 
     it('healthy doctor report omits empty action buckets', () => {
@@ -143,6 +158,51 @@ describe('QA blocker regressions', () => {
                 'Cancel',
             ]);
             expect(prompt.default).toBe('Cancel');
+        } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('update mode uses compact header and avoids immediate duplicate setup summary', () => {
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'init-update-summary-'));
+        try {
+            fs.writeFileSync(
+                path.join(tmpDir, '.superposition.yml'),
+                'stack: plain\noverlays: [nodejs, postgres]\neditor: jetbrains\n'
+            );
+            fs.writeFileSync(
+                path.join(tmpDir, 'superposition.local.yml'),
+                'mounts:\n  - source: ${HOME}/.codex\n    destination: /home/vscode/.codex\n'
+            );
+            const result = runCli(['init', '--stack', 'plain', '--language', 'nodejs'], tmpDir);
+            const output = `${result.stdout}\n${result.stderr}`;
+            expect(result.status).toBe(0);
+            expect(output).toContain('Update shared setup');
+            expect(output).toContain('Project file: .superposition.yml');
+            expect(output).toContain('Local config: Applied safely');
+            expect(output).toContain('Current shared setup');
+            expect(countOccurrences(output, 'Current shared setup')).toBe(1);
+            expect(output).toContain('stack: plain');
+            expect(output).toContain('language: nodejs');
+            expect(output).toContain('data services: postgres');
+            expect(output).toContain('editor: jetbrains');
+            expect(output).not.toContain('Recommended next action: No next step suggested');
+            expect(output).not.toContain('Source: shared project file');
+            expect(output).not.toContain('Local-only config trust');
+        } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('interactive init no longer offers write-now/go-back/abort chooser', () => {
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'init-no-confirm-'));
+        try {
+            const result = runCli(['init', '--stack', 'plain', '--language', 'nodejs'], tmpDir);
+            const output = `${result.stdout}\n${result.stderr}`;
+            expect(result.status).toBe(0);
+            expect(output).not.toContain('Write now');
+            expect(output).not.toContain('Go back');
+            expect(output).not.toContain('Abort');
         } finally {
             fs.rmSync(tmpDir, { recursive: true, force: true });
         }
