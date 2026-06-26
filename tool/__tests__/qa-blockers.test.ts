@@ -133,6 +133,53 @@ describe('QA blocker regressions', () => {
         expect(output).toContain('Passed checks');
     });
 
+    it('doctor defaults to selected overlays only unless --all-overlays is used', async () => {
+        const overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-selected-overlays-'));
+        try {
+            fs.writeFileSync(
+                path.join(tmpDir, '.superposition.yml'),
+                'stack: plain\noverlays: [nodejs]\n'
+            );
+            fs.mkdirSync(path.join(tmpDir, '.devcontainer'), { recursive: true });
+            fs.writeFileSync(
+                path.join(tmpDir, '.devcontainer', 'superposition.json'),
+                JSON.stringify({
+                    baseTemplate: 'plain',
+                    baseImage: 'bookworm',
+                    overlays: ['nodejs'],
+                })
+            );
+            fs.writeFileSync(path.join(tmpDir, '.devcontainer', 'devcontainer.json'), '{}\n');
+
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                    projectRoot: tmpDir,
+                    fromProject: true,
+                });
+            } catch {}
+
+            const defaultOutput = logSpy.mock.calls.flat().join('\n');
+            expect(defaultOutput).toContain('Overlay: nodejs');
+            expect(defaultOutput).not.toContain('Overlay: postgres');
+
+            logSpy.mockClear();
+
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                    projectRoot: tmpDir,
+                    fromProject: true,
+                    allOverlays: true,
+                });
+            } catch {}
+
+            const catalogOutput = logSpy.mock.calls.flat().join('\n');
+            expect(catalogOutput).toContain('Overlay: postgres');
+        } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
     it('interactive doctor --fix asks Apply fixes or Cancel after fix plan', async () => {
         const overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-confirm-'));

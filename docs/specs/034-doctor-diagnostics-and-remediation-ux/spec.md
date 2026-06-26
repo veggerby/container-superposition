@@ -70,6 +70,7 @@ Target outcomes over current product:
 - read-only `doctor`
 - `doctor --fix`
 - `doctor --fix --dry-run`
+- selected-overlay health by default, with explicit opt-in full-catalog validation
 - first-screen triage, finding grouping, remediation preview, and final disposition
 - project-file-first recovery guidance inside doctor output
 
@@ -142,6 +143,16 @@ Rules:
 - first screen fits in one terminal page for typical repos
 - detailed checker names do not appear before triage buckets
 - if source is legacy manifest, framing MUST say compatibility context explicitly
+
+### Overlay validation scope
+
+Default `doctor` MUST validate only overlays selected for current project or manifest context, plus any generated/dependency-derived context needed for that run.
+
+Rules:
+
+- default human-readable output MUST NOT list every overlay in repository as passed noise
+- repo-wide overlay catalog validation is opt-in behavior, not default diagnosis surface
+- if product exposes full-catalog validation, it MUST be explicit in command wording or flag naming
 
 ### 2. Action buckets
 
@@ -324,20 +335,21 @@ When issues involve source authority or drift, guidance MUST route toward:
 
 ## Acceptance Criteria
 
-| #     | Criterion                                                                                                                                                                                                           |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AC-1  | First visible doctor output is triage header with rows in exact order `Mode`, `Disposition`, `Source inspected`, `Counts`, `Recommended next action`, before any checker-detail sections.                           |
-| AC-2  | `Counts` row always reports blocking issues, safe auto-fixes available, manual follow-up items, and passed checks, and these counts reconcile exactly with later buckets and final outcome buckets.                 |
-| AC-3  | Human-readable findings render action buckets in exact order `Blocking issues`, `Safe auto-fixes available`, `Manual follow-up`, `Passed checks`, with empty buckets omitted except `Passed checks` on healthy run. |
-| AC-4  | Diagnose-only, `--fix --dry-run`, and `--fix` live-apply modes use exact first-line labels `Diagnosis only`, `Preview fix plan only`, and `Apply safe fixes`, and final screens repeat matching mode labels.        |
-| AC-5  | Every fix-capable run prints `Fix plan` before any mutation, with one row per remediation naming finding, action, affected artifacts, prerequisites or skip conditions, and safety class.                           |
-| AC-6  | Interactive `doctor --fix` offers exactly `Apply fixes` and `Cancel` after fix plan, with default focus `Cancel`; non-interactive mutation still prints identical fix plan before applying changes.                 |
-| AC-7  | Post-fix output keeps exact bucket order `Fixed now`, `Skipped`, `Still requires manual action`; unresolved blockers remain visible and preserve top-level `Blocked` disposition when applicable.                   |
-| AC-8  | Healthy runs state source inspected, checks run count, `No files changed`, and next safe step even when no issue buckets are rendered.                                                                              |
-| AC-9  | Dry-run output explicitly says `Preview fix plan only — no files changed`, shows planned auto-fixes separately from manual-only work, and never uses success language implying fixes were applied.                  |
-| AC-10 | Recovery guidance for source authority, drift, or compatibility routes toward shared project file review, `regen`, `migrate`, or explicit manual Git cleanup, never stale manifest-first steady-state advice.       |
-| AC-11 | Automated coverage exists for triage ordering, count reconciliation, fix-plan preview, confirmation defaults, partial-success outcome buckets, healthy-run trust summary, and JSON/text disposition parity.         |
-| AC-12 | Current report structure may change materially when needed to improve triage speed, mutation trust, and workflow teaching; current checker-first grouping is not acceptance authority.                              |
+| #     | Criterion                                                                                                                                                                                                               |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1  | First visible doctor output is triage header with rows in exact order `Mode`, `Disposition`, `Source inspected`, `Counts`, `Recommended next action`, before any checker-detail sections.                               |
+| AC-2  | `Counts` row always reports blocking issues, safe auto-fixes available, manual follow-up items, and passed checks, and these counts reconcile exactly with later buckets and final outcome buckets.                     |
+| AC-3  | Human-readable findings render action buckets in exact order `Blocking issues`, `Safe auto-fixes available`, `Manual follow-up`, `Passed checks`, with empty buckets omitted except `Passed checks` on healthy run.     |
+| AC-3a | Default `doctor` overlay validation output is limited to selected/current-context overlays rather than all repository overlays; repo-wide overlay catalog validation appears only through explicit opt-in mode or flag. |
+| AC-4  | Diagnose-only, `--fix --dry-run`, and `--fix` live-apply modes use exact first-line labels `Diagnosis only`, `Preview fix plan only`, and `Apply safe fixes`, and final screens repeat matching mode labels.            |
+| AC-5  | Every fix-capable run prints `Fix plan` before any mutation, with one row per remediation naming finding, action, affected artifacts, prerequisites or skip conditions, and safety class.                               |
+| AC-6  | Interactive `doctor --fix` offers exactly `Apply fixes` and `Cancel` after fix plan, with default focus `Cancel`; non-interactive mutation still prints identical fix plan before applying changes.                     |
+| AC-7  | Post-fix output keeps exact bucket order `Fixed now`, `Skipped`, `Still requires manual action`; unresolved blockers remain visible and preserve top-level `Blocked` disposition when applicable.                       |
+| AC-8  | Healthy runs state source inspected, checks run count, `No files changed`, and next safe step even when no issue buckets are rendered.                                                                                  |
+| AC-9  | Dry-run output explicitly says `Preview fix plan only — no files changed`, shows planned auto-fixes separately from manual-only work, and never uses success language implying fixes were applied.                      |
+| AC-10 | Recovery guidance for source authority, drift, or compatibility routes toward shared project file review, `regen`, `migrate`, or explicit manual Git cleanup, never stale manifest-first steady-state advice.           |
+| AC-11 | Automated coverage exists for triage ordering, count reconciliation, fix-plan preview, confirmation defaults, partial-success outcome buckets, healthy-run trust summary, and JSON/text disposition parity.             |
+| AC-12 | Current report structure may change materially when needed to improve triage speed, mutation trust, and workflow teaching; current checker-first grouping is not acceptance authority.                                  |
 
 ## Tradeoffs
 
@@ -445,5 +457,7 @@ Reason: Technical design locked for doctor report-model ownership, unattended sa
 ## Implementation Notes
 
 Implemented doctor triage framing, action buckets, dry-run fix-plan rendering, normalized disposition/count fields, and post-fix outcome buckets on top of existing check/remediation execution. Added JSON parity coverage and UX output assertions in `tool/__tests__/ux-renderers.test.ts`.
+
+Follow-up UX refinement: default doctor now limits overlay validation reporting to selected/current-context overlays; explicit `--all-overlays` opt-in keeps repo-wide catalog validation available for maintainers.
 
 Follow-up fix pass: omitted empty healthy-run action buckets, expanded fix-plan rows with action/artifact/prerequisite detail, and added interactive `Apply fixes` / `Cancel` confirmation before live remediation. Added regression coverage in `tool/__tests__/qa-blockers.test.ts`.

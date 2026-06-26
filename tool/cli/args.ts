@@ -244,6 +244,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             'Run project-file and manifest discovery relative to a different repository root'
         )
         .option('--fix', 'Apply automatic fixes where possible')
+        .option(
+            '--all-overlays',
+            'Include repo-wide overlay catalog validation, not only selected overlays'
+        )
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();

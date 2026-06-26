@@ -74,6 +74,7 @@ interface DoctorOptions {
     fix?: boolean;
     dryRun?: boolean;
     json?: boolean;
+    allOverlays?: boolean;
 }
 
 interface RemediationPlan {
@@ -684,7 +685,7 @@ function validateOverlayManifest(overlayDir: string, overlayId: string): CheckRe
 /**
  * Validate all overlays
  */
-function checkOverlays(overlaysDir: string): CheckResult[] {
+function checkOverlays(overlaysDir: string, overlayIds?: string[]): CheckResult[] {
     const results: CheckResult[] = [];
 
     if (!fs.existsSync(overlaysDir)) {
@@ -698,18 +699,24 @@ function checkOverlays(overlaysDir: string): CheckResult[] {
     }
 
     const entries = fs.readdirSync(overlaysDir, { withFileTypes: true });
+    const requested = overlayIds ? new Set(overlayIds) : null;
     const overlayDirs = entries.filter(
-        (entry) => entry.isDirectory() && !entry.name.startsWith('.')
+        (entry) =>
+            entry.isDirectory() &&
+            !entry.name.startsWith('.') &&
+            (!requested || requested.has(entry.name))
     );
 
     if (overlayDirs.length === 0) {
-        return [
-            {
-                name: 'Overlays',
-                status: 'warn',
-                message: 'No overlays found',
-            },
-        ];
+        return overlayIds && overlayIds.length > 0
+            ? []
+            : [
+                  {
+                      name: 'Overlays',
+                      status: 'warn',
+                      message: 'No overlays found',
+                  },
+              ];
     }
 
     for (const dir of overlayDirs) {
@@ -724,6 +731,44 @@ function checkOverlays(overlaysDir: string): CheckResult[] {
 /**
  * Check if a port is in use (cross-platform using Node.js net module)
  */
+function resolveDoctorOverlayIds(
+    overlaysConfig: OverlaysConfig,
+    workingDir: string,
+    outputPath: string,
+    explicitManifestPath?: string,
+    preferProjectFile = false
+): string[] {
+    if (preferProjectFile) {
+        try {
+            const projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+            if (projectConfig?.selection.overlays) {
+                return [...projectConfig.selection.overlays];
+            }
+        } catch {}
+    }
+
+    const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
+    if (fs.existsSync(manifestPath)) {
+        try {
+            const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { overlays?: unknown };
+            if (Array.isArray(raw.overlays)) {
+                return raw.overlays.filter((value): value is string => typeof value === 'string');
+            }
+        } catch {}
+    }
+
+    if (!preferProjectFile) {
+        try {
+            const projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+            if (projectConfig?.selection.overlays) {
+                return [...projectConfig.selection.overlays];
+            }
+        } catch {}
+    }
+
+    return [];
+}
+
 function isPortInUse(port: number): boolean {
     try {
         const server = net.createServer();
@@ -3324,7 +3369,8 @@ async function executeFixRun(
     overlaysDir: string,
     requestedJson: boolean,
     explicitManifestPath?: string,
-    workingDir: string = process.cwd()
+    workingDir: string = process.cwd(),
+    allOverlays = false
 ): Promise<FixRun> {
     const initialFindings = reportToFindings(report);
 
@@ -3406,7 +3452,16 @@ async function executeFixRun(
     const envChecks = checkEnvironment(outputPath, explicitManifestPath);
     const manifestChecks = checkManifest(outputPath, explicitManifestPath);
     const mergeChecks = checkMergeStrategy(outputPath);
-    const overlayChecks = checkOverlays(overlaysDir);
+    const selectedOverlayIds = resolveDoctorOverlayIds(
+        overlaysConfig,
+        workingDir,
+        outputPath,
+        explicitManifestPath,
+        false
+    );
+    const overlayChecks = allOverlays
+        ? checkOverlays(overlaysDir)
+        : checkOverlays(overlaysDir, selectedOverlayIds);
     const finalManifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, finalManifestPath);
     const finalDriftChecks = checkProjectFileDrift(overlaysConfig, workingDir, finalManifestPath);
@@ -3737,7 +3792,16 @@ export async function doctorCommand(
     }
 
     const environmentChecks = checkEnvironment(outputPath, explicitManifestPath);
-    const overlayChecks = checkOverlays(overlaysDir);
+    const selectedOverlayIds = resolveDoctorOverlayIds(
+        overlaysConfig,
+        workingDir,
+        outputPath,
+        explicitManifestPath,
+        Boolean(options.fromProject)
+    );
+    const overlayChecks = options.allOverlays
+        ? checkOverlays(overlaysDir)
+        : checkOverlays(overlaysDir, selectedOverlayIds);
     const manifestChecks = checkManifest(outputPath, explicitManifestPath);
     const mergeChecks = checkMergeStrategy(outputPath);
     const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
@@ -3913,7 +3977,8 @@ export async function doctorCommand(
             overlaysDir,
             options.json ?? false,
             explicitManifestPath,
-            workingDir
+            workingDir,
+            options.allOverlays ?? false
         );
 
         if (options.json) {
