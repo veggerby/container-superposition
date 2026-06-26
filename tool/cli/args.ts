@@ -196,7 +196,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     // Plan command
     program
         .command('plan')
-        .description('Preview resolved intent and generated-output impact before any write')
+        .description('Preview current setup, planned changes, and watch-outs before any write')
         .option('--stack <type>', 'Base template: plain, compose')
         .option('--overlays <list>', 'Comma-separated list of overlay IDs')
         .option(
@@ -232,7 +232,9 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     // Doctor command
     program
         .command('doctor')
-        .description('Diagnose repo health, preview safe fixes, or apply them with review first')
+        .description(
+            'Diagnose project health by default; use --all-overlays for maintainer catalog validation'
+        )
         .option('-o, --output <path>', 'Devcontainer path to validate (default: ./.devcontainer)')
         .option(
             '--from-manifest <path>',
@@ -258,7 +260,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     program
         .command('adopt')
         .description(
-            'Analyse existing generated output, rate conversion confidence, and review artifacts before write'
+            'Adopt handwritten devcontainer setup into managed shared intent with confidence and write review'
         )
         .option(
             '-d, --dir <path>',
@@ -315,7 +317,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     program
         .command('migrate')
         .description(
-            'Bridge from compatibility manifest to canonical shared project file without changing generated output'
+            'Migrate legacy manifest workflow to canonical shared project file without changing generated output'
         )
         .option(
             '--from-manifest <path>',

@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { OverlaysConfig, Stack } from '../schema/types.js';
+import { findProjectConfig } from '../schema/project-config.js';
 import { getToolVersion } from '../utils/version.js';
 import { describeSource } from '../ux/semantics/source.js';
 import { resolveNextStep } from '../ux/semantics/next-step.js';
@@ -193,15 +194,26 @@ export async function hashCommand(
             return;
         }
 
+        const currentSetup = manifestPath
+            ? 'compatibility manifest present'
+            : findProjectConfig(process.cwd()).length > 0
+              ? 'shared project file present'
+              : 'CLI selection only';
         const frame = renderFrame([
             { label: 'Mode', value: 'Fingerprint' },
             { label: 'Source', value: `${source.label} — ${source.detail}` },
+            { label: 'Current setup', value: currentSetup },
             {
                 label: 'What this helps you decide',
                 value: 'whether two resolved intents are semantically same',
             },
         ]);
         const sections = [
+            renderSection('Comparison summary', [
+                'use this to compare normalized intent across runs, repos, or CI checks',
+                'equal values mean same resolved overlays, stack, preset, base image, and tool line',
+            ]),
+            '',
             renderSection('Fingerprint', [`short value: ${hash}`, `full value: ${hashFull}`]),
             '',
             renderSection('Computed from', [
@@ -216,9 +228,14 @@ export async function hashCommand(
                 renderList(model.normalizedDependencies, 'none')
             ),
             '',
+            renderSection('What equal values mean', [
+                'same value = same normalized intent after dependency expansion',
+                'different value = stack, base, preset, or overlays differ semantically',
+            ]),
+            '',
             renderSection('How to compare', [
-                'matching fingerprints mean same normalized intent after dependency expansion',
-                'different fingerprints mean stack, base, preset, or overlays differ semantically',
+                'compare two hash outputs directly in CI, audit logs, or review notes',
+                'write hash file when you want stable replay/equivalence checks on disk',
             ]),
         ];
         if (writeLocation) {

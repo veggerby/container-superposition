@@ -6,7 +6,8 @@ export type RunPosture =
 
 export type ChangeClass =
     | 'First write'
-    | 'Update existing output'
+    | 'Change intent and regenerate'
+    | 'Replay canonical intent'
     | 'Cleanup stale generated files'
     | 'No material change';
 
@@ -16,9 +17,13 @@ export type LocalConfigDisposition =
     | 'Blocked'
     | 'Ignored by this run';
 
-export type DoctorMode = 'Diagnosis only' | 'Preview fix plan only' | 'Apply safe fixes';
+export type DoctorMode =
+    | 'Project diagnosis'
+    | 'Project fix preview'
+    | 'Project safe fixes'
+    | 'Catalog validation';
 
-export type DoctorDisposition = 'Blocked' | 'Fixable now' | 'Manual follow-up only' | 'Healthy';
+export type DoctorDisposition = 'Blocked' | 'Needs action' | 'Can fix now' | 'Healthy';
 
 export type AdoptConfidence =
     | 'High confidence'

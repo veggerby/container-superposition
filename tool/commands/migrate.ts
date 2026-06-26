@@ -71,9 +71,13 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
     const nextStep = resolveNextStep({ command: 'migrate' });
 
     const frame = renderFrame([
-        { label: 'Mode', value: 'Legacy bridge' },
-        { label: 'Legacy source found', value: path.relative(process.cwd(), manifestPath) },
-        { label: 'Will write', value: path.relative(process.cwd(), projectFilePath) },
+        { label: 'Mode', value: 'Migrate legacy manifest workflow' },
+        {
+            label: 'This path is for',
+            value: 'legacy manifest-only repos moving to canonical shared project file',
+        },
+        { label: 'Source analyzed', value: path.relative(process.cwd(), manifestPath) },
+        { label: 'What will be written', value: path.relative(process.cwd(), projectFilePath) },
         { label: 'Generated output', value: 'unchanged by this command' },
         { label: 'Recommended next action', value: nextStep.command ?? 'No next step suggested' },
     ]);
@@ -92,6 +96,11 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
         [
             frame,
             '',
+            renderSection('Why migrate fits this repo', [
+                'manifest already describes legacy intent',
+                'migrate writes canonical shared project file without replaying generated output',
+            ]),
+            '',
             renderSection('Write review', [
                 `source manifest path: ${path.relative(process.cwd(), manifestPath)}`,
                 `target project file path: ${path.relative(process.cwd(), projectFilePath)}`,
@@ -100,6 +109,11 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
             ]),
             '',
             renderArtifactTable(artifactRows),
+            '',
+            renderSection('What stays unchanged', [
+                'existing generated output',
+                'devcontainer artifacts until replay with `cs regen`',
+            ]),
         ].join('\n')
     );
 
@@ -108,12 +122,19 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
     console.log(
         [
             '',
-            renderSection('Bridge success', [
+            renderSection('Written now', [
                 `project file created or updated: ${path.relative(process.cwd(), projectFilePath)}`,
-                'generated output unchanged',
-                `next command: ${nextStep.command ?? 'cs regen'}`,
-                'optional validation follow-up: cs doctor',
             ]),
+            '',
+            renderSection('Generated output status', ['unchanged by migrate']),
+            '',
+            renderSection('Next checklist', [
+                `1. run ${nextStep.command ?? 'cs regen'}`,
+                '2. inspect regenerated output',
+                '3. commit canonical shared project file once replay looks right',
+            ]),
+            '',
+            renderSection('Optional validation', ['run `cs doctor` after replay']),
             '',
             renderNextStep(nextStep),
         ].join('\n')

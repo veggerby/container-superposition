@@ -41,8 +41,10 @@ describe('UX contracts', () => {
         const output = logSpy.mock.calls.join('\n');
         expect(output).toContain('Mode: Discovery');
         expect(output).toContain('Source: CLI selection');
+        expect(output).toContain('Current setup');
         expect(output).toContain('What this helps you decide');
         expect(output).toContain('Recommended starts');
+        expect(output).toContain('Common goals');
         expect(output).toContain('Browse all overlays');
         expect(output).toContain('messaging');
         expect(output.match(/Next step/g)?.length).toBe(1);
@@ -52,12 +54,15 @@ describe('UX contracts', () => {
         await explainCommand(overlaysConfig, OVERLAYS_DIR, 'nodejs', {});
         const output = logSpy.mock.calls.join('\n');
         expect(output).toContain('Mode: Inspection');
+        expect(output).toContain('Current setup');
         expect(output).toContain('Best for');
-        expect(output).toContain('Adds');
+        expect(output).toContain('Why pick this over nearby options');
+        expect(output).toContain('What it adds');
+        expect(output).toContain('What to watch out for');
         expect(output).toContain('Depends on');
         expect(output).toContain('Conflicts with');
         expect(output).toContain('none');
-        expect(output).toContain('Preview notes');
+        expect(output).toContain('Preview this change');
         expect(output).toContain('Files, services, and ports');
         expect(output).toContain('Try this next');
         expect(output.match(/Next step/g)?.length).toBe(1);
@@ -75,7 +80,9 @@ describe('UX contracts', () => {
             const output = logSpy.mock.calls.join('\n');
             expect(output).toContain('Mode: Preview only');
             expect(output).toContain('Resolved intent');
-            expect(output).toContain('What changes here');
+            expect(output).toContain('Current setup');
+            expect(output).toContain('Planned changes');
+            expect(output).toContain('Watch-outs');
             expect(output).toContain('Why this plan looks this way');
             expect(output).toContain('Detailed file impact');
             expect(output).toContain('First write');
@@ -101,10 +108,12 @@ describe('UX contracts', () => {
             });
             const output = logSpy.mock.calls.join('\n');
             expect(output).toContain('Mode: Fingerprint');
+            expect(output).toContain('Comparison summary');
             expect(output).toContain('Fingerprint');
             expect(output).toContain('Computed from');
             expect(output).toContain('Normalized dependencies');
             expect(output).toContain('prometheus');
+            expect(output).toContain('What equal values mean');
             expect(output).toContain('How to compare');
             expect(output).toContain('Write location');
             expect(output).toContain('changed file contents');
@@ -131,13 +140,14 @@ describe('UX contracts', () => {
                 });
             } catch {}
             const output = logSpy.mock.calls.join('\n');
-            expect(output).toContain('Mode: Preview fix plan only');
-            expect(output).toContain('Disposition:');
-            expect(output).toContain('Counts:');
-            expect(output).toContain('Blocking issues');
-            expect(output).toContain('Safe auto-fixes available');
+            expect(output).toContain('Mode: Project fix preview');
+            expect(output).toContain('Verdict:');
+            expect(output).toContain('Scope:');
+            expect(output).toContain('Counts');
+            expect(output).toContain('Do now');
+            expect(output).toContain('Can fix now');
             expect(output).toContain('Fix plan');
-            expect(output).toContain('Preview fix plan only — no files changed');
+            expect(output).toContain('Project fix preview — No files changed');
 
             logSpy.mockClear();
             try {
@@ -150,7 +160,7 @@ describe('UX contracts', () => {
                 });
             } catch {}
             const json = JSON.parse(logSpy.mock.calls[0][0]);
-            expect(json.mode).toBe('Preview fix plan only');
+            expect(json.mode).toBe('Project fix preview');
             expect(json.disposition).toBeDefined();
             expect(json.counts).toBeDefined();
             expect(Array.isArray(json.fixPlan)).toBe(true);
@@ -178,14 +188,16 @@ describe('UX contracts', () => {
         try {
             await migrateCommand({});
             const output = logSpy.mock.calls.join('\n');
-            expect(output).toContain('Mode: Legacy bridge');
+            expect(output).toContain('Mode: Migrate legacy manifest workflow');
             expect(output).toContain('Generated output: unchanged by this command');
             expect(output).toContain('Write review');
             expect(output).toContain(
                 'compatibility note: generated output stays same until `cs regen`'
             );
-            expect(output).toContain('Bridge success');
-            expect(output).toContain('generated output unchanged');
+            expect(output).toContain('Why migrate fits this repo');
+            expect(output).toContain('Written now');
+            expect(output).toContain('Generated output status');
+            expect(output).toContain('unchanged by migrate');
         } finally {
             process.chdir(originalCwd);
             fs.rmSync(repoDir, { recursive: true, force: true });

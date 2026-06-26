@@ -920,19 +920,23 @@ function getPortMappings(
 /**
  * Format plan as text
  */
-function formatAsText(
-    plan: PlanResult,
-    overlaysConfig: OverlaysConfig,
-    headline: string,
-    nextStep: string
-): string {
+function formatAsText(input: {
+    plan: PlanResult;
+    headline: string;
+    nextStep: string;
+    repoHasProjectFile: boolean;
+    currentSetup: string;
+    plannedChanges: string[];
+    watchOuts: string[];
+}): string {
     const source = describeSource({
-        manifestPath: plan.inputMode === 'manifest' ? 'superposition.json' : undefined,
-        hasCliSelection: plan.inputMode === 'overlay-list',
+        manifestPath: input.plan.inputMode === 'manifest' ? 'superposition.json' : undefined,
+        hasCliSelection: input.plan.inputMode === 'overlay-list',
     });
     const frame = renderFrame([
         { label: 'Mode', value: 'Preview only' },
         { label: 'Source', value: `${source.label} — ${source.detail}` },
+        { label: 'Current setup', value: input.currentSetup },
         {
             label: 'What this helps you decide',
             value: 'whether this resolved intent is ready before write',
@@ -941,39 +945,39 @@ function formatAsText(
 
     const resolvedIntent = [
         `source of intent: ${source.label}`,
-        `stack: ${plan.stack}`,
-        `resolved overlays: ${plan.selectedOverlays.join(', ') || 'none'}`,
-        `auto-added overlays: ${plan.autoAddedOverlays.join(', ') || 'none'}`,
-        `skipped or conflicting overlays: ${plan.conflicts.map((item) => `${item.overlay} vs ${item.conflictsWith.join(', ')}`).join('; ') || 'none'}`,
-        `change classification: ${headline}`,
-    ];
-
-    const changes = [
-        `files to create/update: ${plan.files.length}`,
-        `services/ports added: ${plan.portMappings.reduce((count, item) => count + item.ports.length, 0)}`,
-        `generated output differs from current workspace: preview required`,
+        `stack: ${input.plan.stack}`,
+        `resolved overlays: ${input.plan.selectedOverlays.join(', ') || 'none'}`,
+        `auto-added overlays: ${input.plan.autoAddedOverlays.join(', ') || 'none'}`,
+        `skipped or conflicting overlays: ${input.plan.conflicts.map((item) => `${item.overlay} vs ${item.conflictsWith.join(', ')}`).join('; ') || 'none'}`,
+        `change classification: ${input.headline}`,
     ];
 
     const reasons = [
-        `dependency auto-adds: ${plan.autoAddedOverlays.join(', ') || 'none'}`,
-        `conflicts: ${plan.conflicts.length > 0 ? 'present' : 'none'}`,
-        ...(plan.verbose?.issues.map((issue) => issue.message) ?? []),
+        `dependency auto-adds: ${input.plan.autoAddedOverlays.join(', ') || 'none'}`,
+        `conflicts: ${input.plan.conflicts.length > 0 ? 'present' : 'none'}`,
+        ...(input.plan.verbose?.issues.map((issue) => issue.message) ?? []),
     ];
 
-    const fileImpact = renderList(plan.files.map((file) => path.relative(process.cwd(), file)));
+    const fileImpact = renderList(
+        input.plan.files.map((file) => path.relative(process.cwd(), file))
+    );
 
     return [
         frame,
         '',
         renderSection('Resolved intent', resolvedIntent),
         '',
-        renderSection('What changes here', changes),
+        renderSection('Current setup', input.currentSetup),
+        '',
+        renderSection('Planned changes', input.plannedChanges),
+        '',
+        renderSection('Watch-outs', renderList(input.watchOuts, 'none')),
         '',
         renderSection('Why this plan looks this way', reasons),
         '',
         renderSection('Detailed file impact', fileImpact),
         '',
-        nextStep,
+        input.nextStep,
     ].join('\n');
 }
 
@@ -1226,16 +1230,26 @@ export async function planCommand(
             outputPath,
             options.diffContext ?? 3
         );
-        const changeClass = classifyChangeSet({
+        const repoHasProjectFile = findProjectConfig(process.cwd()).length > 0;
+        const baseChangeClass = classifyChangeSet({
             hasExistingOutput: diffResult.hasExistingConfig,
             created: diffResult.created.length,
             updated: diffResult.modified.length + diffResult.overwritten.length,
             removed: diffResult.removed.length,
             unchanged: diffResult.unchanged.length,
         });
+        const changeClass =
+            baseChangeClass === 'Change intent and regenerate' &&
+            repoHasProjectFile &&
+            diffResult.hasExistingConfig &&
+            inputMode === 'overlay-list' &&
+            diffResult.overlayChanges.removed.length === 0 &&
+            diffResult.overlayChanges.added.length === 0
+                ? 'Replay canonical intent'
+                : baseChangeClass;
         const nextStepModel = resolveNextStep({
             command: 'plan',
-            repoHasProjectFile: findProjectConfig(process.cwd()).length > 0,
+            repoHasProjectFile,
             sourceKind: inputMode === 'manifest' ? 'manifest' : 'cli',
             changeClass,
         });
@@ -1258,7 +1272,42 @@ export async function planCommand(
                 return;
             }
 
-            const summary = formatAsText(plan, overlaysConfig, changeClass, nextStep);
+            const currentSetup = [
+                repoHasProjectFile ? 'shared project file present' : 'no shared project file yet',
+                diffResult.hasExistingConfig
+                    ? 'generated output present'
+                    : 'generated output missing',
+                changeClass === 'Replay canonical intent'
+                    ? 'intent unchanged; replay would reconcile generated output'
+                    : 'preview compares target intent against current output',
+            ].join('; ');
+            const plannedChanges = [
+                `${changeClass}`,
+                `files to create: ${diffResult.created.length}`,
+                `files to update: ${diffResult.modified.length + diffResult.overwritten.length}`,
+                `files to remove: ${diffResult.removed.length}`,
+                `services/ports added: ${plan.portMappings.reduce((count, item) => count + item.ports.length, 0)}`,
+            ];
+            const watchOuts = [
+                plan.autoAddedOverlays.length > 0
+                    ? `auto-added overlays: ${plan.autoAddedOverlays.join(', ')}`
+                    : null,
+                plan.conflicts.length > 0
+                    ? `conflicts skipped: ${plan.conflicts.map((item) => `${item.overlay} vs ${item.conflictsWith.join(', ')}`).join('; ')}`
+                    : null,
+                diffResult.removed.length > 0
+                    ? `stale generated files would be cleaned up: ${diffResult.removed.length}`
+                    : null,
+            ].filter((item): item is string => Boolean(item));
+            const summary = formatAsText({
+                plan,
+                headline: changeClass,
+                nextStep,
+                repoHasProjectFile,
+                currentSetup,
+                plannedChanges,
+                watchOuts,
+            });
             console.log(formatDiffAsText(diffResult, changeClass, summary));
             if (conflicts.length > 0) {
                 process.exit(1);
@@ -1272,7 +1321,45 @@ export async function planCommand(
             return;
         }
 
-        console.log('\n' + formatAsText(plan, overlaysConfig, changeClass, nextStep) + '\n');
+        const currentSetup = [
+            repoHasProjectFile ? 'shared project file present' : 'no shared project file yet',
+            diffResult.hasExistingConfig ? 'generated output present' : 'generated output missing',
+            changeClass === 'Replay canonical intent'
+                ? 'intent unchanged; replay would reconcile generated output'
+                : 'preview compares target intent against current output',
+        ].join('; ');
+        const plannedChanges = [
+            `${changeClass}`,
+            `files to create: ${diffResult.created.length}`,
+            `files to update: ${diffResult.modified.length + diffResult.overwritten.length}`,
+            `files to remove: ${diffResult.removed.length}`,
+            `services/ports added: ${plan.portMappings.reduce((count, item) => count + item.ports.length, 0)}`,
+        ];
+        const watchOuts = [
+            plan.autoAddedOverlays.length > 0
+                ? `auto-added overlays: ${plan.autoAddedOverlays.join(', ')}`
+                : null,
+            plan.conflicts.length > 0
+                ? `conflicts skipped: ${plan.conflicts.map((item) => `${item.overlay} vs ${item.conflictsWith.join(', ')}`).join('; ')}`
+                : null,
+            diffResult.removed.length > 0
+                ? `stale generated files would be cleaned up: ${diffResult.removed.length}`
+                : null,
+        ].filter((item): item is string => Boolean(item));
+
+        console.log(
+            '\n' +
+                formatAsText({
+                    plan,
+                    headline: changeClass,
+                    nextStep,
+                    repoHasProjectFile,
+                    currentSetup,
+                    plannedChanges,
+                    watchOuts,
+                }) +
+                '\n'
+        );
 
         if (conflicts.length > 0) {
             process.exit(1);

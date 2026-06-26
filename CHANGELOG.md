@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **CLI UX model unified across init/regen/list/explain/plan/hash/doctor/adopt/migrate** — human-readable command output now starts from shared framing, preview/review, and single next-step guidance built from normalized semantics instead of command-local copy. `list` now highlights recommended starts and live categories including `messaging`; `plan`/`hash` share normalized preview semantics; `doctor` shows action-first triage and fix-plan preview; `adopt`/`migrate` teach canonical vs compatibility vs preservation artifact roles.
+- **Second-pass read-only and conversion UX pass** — `list`, `explain`, `plan`, `hash`, `doctor`, `adopt`, and `migrate` now show clearer first-screen context such as `Current setup`, project-vs-catalog scope, lane selection, planned changes, watch-outs, comparison meaning, and ordered next checklists. `plan` can now label reconciliation previews as `Replay canonical intent`; `doctor` defaults to project-health framing while `--all-overlays` is explicitly maintainer-style catalog validation.
 
 ### Fixed
 

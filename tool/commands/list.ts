@@ -1,4 +1,5 @@
 import type { OverlayMetadata, OverlaysConfig } from '../schema/types.js';
+import { findProjectConfig } from '../schema/project-config.js';
 import { describeSource } from '../ux/semantics/source.js';
 import { resolveNextStep } from '../ux/semantics/next-step.js';
 import { renderFrame, renderList, renderNextStep, renderSection } from '../ux/renderers/common.js';
@@ -25,6 +26,10 @@ const CATEGORY_TITLES: Record<string, string> = {
     dev: 'dev',
     preset: 'preset',
 };
+
+function summarizeCurrentSetup(): string {
+    return findProjectConfig(process.cwd()).length > 0 ? 'shared project file present' : 'none yet';
+}
 
 function buildRecommendedStarts(overlaysConfig: OverlaysConfig): RecommendedStart[] {
     const presetIds = new Set(
@@ -87,6 +92,26 @@ function renderBrowseAll(overlays: OverlayMetadata[]): string {
         .join('\n\n');
 }
 
+function buildCommonGoals(overlaysConfig: OverlaysConfig): string[] {
+    const ids = new Set(overlaysConfig.overlays.map((overlay) => overlay.id));
+    const goals = [
+        ids.has('web-api')
+            ? 'build HTTP service fast → start with `web-api`, then inspect data/service add-ons'
+            : null,
+        ids.has('frontend')
+            ? 'ship browser app quickly → start with `frontend`, then preview local-only add-ons'
+            : null,
+        ids.has('microservice')
+            ? 'compose app plus dependencies → start with `microservice`, then preview service drift'
+            : null,
+        ids.has('local-llm')
+            ? 'run local AI tooling → start with `local-llm`, then inspect model/runtime overlays'
+            : null,
+    ].filter((goal): goal is string => Boolean(goal));
+
+    return goals.slice(0, 4);
+}
+
 function renderFiltered(overlays: OverlayMetadata[], options: ListOptions): string {
     const filters = [
         options.category ? `category: ${options.category}` : null,
@@ -96,25 +121,39 @@ function renderFiltered(overlays: OverlayMetadata[], options: ListOptions): stri
 
     if (overlays.length === 0) {
         return [
-            `Filtered by ${filters.join(', ')}`,
+            renderSection('Filter summary', `Filtered by ${filters.join(', ')}`),
             '',
             renderSection('No matches', [
                 'remove one filter and try again',
+                'drop category filter to widen results',
                 'inspect live categories with `cs list`',
                 'browse recommended starts before narrowing further',
+            ]),
+            '',
+            renderSection('How to widen or inspect next', [
+                'run `cs list` with no filters',
+                'run `cs explain <id>` once one result looks close',
             ]),
         ].join('\n');
     }
 
     return [
-        `Filtered by ${filters.join(', ')}`,
+        renderSection('Filter summary', `Filtered by ${filters.join(', ')}`),
         '',
-        renderList(
-            overlays.map(
-                (overlay) =>
-                    `${overlay.id} | ${overlay.name} | ${overlay.category} | ${overlay.description}`
+        renderSection(
+            'Best matches',
+            renderList(
+                overlays.map(
+                    (overlay) =>
+                        `${overlay.id} — ${overlay.description}${overlay.tags && overlay.tags.length > 0 ? ` [${overlay.tags.join(', ')}]` : ''}`
+                )
             )
         ),
+        '',
+        renderSection('How to widen or inspect next', [
+            'remove one filter to widen choices',
+            'run `cs explain <id>` for fit and watch-outs',
+        ]),
     ].join('\n');
 }
 
@@ -146,6 +185,7 @@ export async function listCommand(overlaysConfig: OverlaysConfig, options: ListO
         const frame = renderFrame([
             { label: 'Mode', value: 'Discovery' },
             { label: 'Source', value: `${source.label} — ${source.detail}` },
+            { label: 'Current setup', value: summarizeCurrentSetup() },
             {
                 label: 'What this helps you decide',
                 value: 'where to start before inspection or preview',
@@ -161,10 +201,12 @@ export async function listCommand(overlaysConfig: OverlaysConfig, options: ListO
                           renderList(
                               model.recommendedStarts.map(
                                   (item) =>
-                                      `${item.label} | Best for: ${item.bestFor} | Why start here: ${item.why}`
+                                      `${item.label} | Best for: ${item.bestFor} | Includes: managed starter path | Why start here: ${item.why}`
                               )
                           )
                       ),
+                      '',
+                      renderSection('Common goals', renderList(buildCommonGoals(overlaysConfig))),
                       '',
                       renderSection(
                           'Browse all overlays',
@@ -172,7 +214,7 @@ export async function listCommand(overlaysConfig: OverlaysConfig, options: ListO
                       ),
                       '',
                       renderSection('How to inspect or preview next', [
-                          'Use `cs explain <id>` for fit and tradeoffs.',
+                          'Use `cs explain <id>` for fit, differences, and watch-outs.',
                           'Use `cs plan ...` before any write.',
                       ]),
                   ].join('\n');

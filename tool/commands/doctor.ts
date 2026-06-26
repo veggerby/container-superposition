@@ -3508,7 +3508,7 @@ async function executeFixRun(
  */
 function buildDoctorDisposition(
     findings: DiagnosticFinding[]
-): 'Blocked' | 'Fixable now' | 'Manual follow-up only' | 'Healthy' {
+): 'Blocked' | 'Needs action' | 'Can fix now' | 'Healthy' {
     const failing = findings.filter((finding) => finding.status === 'fail');
     const autoFixable = findings.filter(
         (finding) => finding.status !== 'pass' && finding.fixEligibility === 'automatic'
@@ -3521,20 +3521,21 @@ function buildDoctorDisposition(
         return 'Blocked';
     }
     if (autoFixable.length > 0) {
-        return 'Fixable now';
+        return 'Can fix now';
     }
     if (manual.length > 0) {
-        return 'Manual follow-up only';
+        return 'Needs action';
     }
     return 'Healthy';
 }
 
 export function renderDoctorReportModel(input: {
-    mode: 'Diagnosis only' | 'Preview fix plan only' | 'Apply safe fixes';
+    mode: DoctorMode;
     outputPath: string;
     findings: DiagnosticFinding[];
     fixPlan?: RemediationPlan[];
     executions?: FixExecution[];
+    scope: string;
 }): string {
     const disposition = buildDoctorDisposition(input.findings);
     const blocking = input.findings.filter((finding) => finding.status === 'fail');
@@ -3548,11 +3549,15 @@ export function renderDoctorReportModel(input: {
 
     const frame = renderFrame([
         { label: 'Mode', value: input.mode },
-        { label: 'Disposition', value: disposition },
+        { label: 'Verdict', value: disposition },
+        { label: 'Scope', value: input.scope },
         { label: 'Source inspected', value: input.outputPath },
         {
-            label: 'Counts',
-            value: `blocking issues ${blocking.length}; safe auto-fixes available ${autoFixable.length}; manual follow-up items ${manual.length}; passed checks ${passed.length}`,
+            label: 'What needs attention',
+            value:
+                disposition === 'Healthy'
+                    ? 'nothing blocking; checks completed cleanly'
+                    : `${blocking.length} blocking, ${autoFixable.length} safe fix now, ${manual.length} manual follow-up`,
         },
         {
             label: 'Recommended next action',
@@ -3562,12 +3567,14 @@ export function renderDoctorReportModel(input: {
         },
     ]);
 
-    const body: string[] = [];
+    const body: string[] = [
+        `Counts\nblocking: ${blocking.length} | fix now: ${autoFixable.length} | manual: ${manual.length} | healthy: ${passed.length}`,
+    ];
 
     if (blocking.length > 0) {
         body.push(
             renderSection(
-                'Blocking issues',
+                'Do now',
                 renderList(
                     blocking.map(
                         (finding) =>
@@ -3583,7 +3590,7 @@ export function renderDoctorReportModel(input: {
         if (body.length > 0) body.push('');
         body.push(
             renderSection(
-                'Safe auto-fixes available',
+                'Can fix now',
                 renderList(
                     autoFixable.map(
                         (finding) => `${finding.name} — ${finding.message} — auto-fix available`
@@ -3598,7 +3605,7 @@ export function renderDoctorReportModel(input: {
         if (body.length > 0) body.push('');
         body.push(
             renderSection(
-                'Manual follow-up',
+                'Review next',
                 renderList(
                     manual.map((finding) => `${finding.name} — ${finding.message} — manual only`),
                     'none'
@@ -3607,17 +3614,28 @@ export function renderDoctorReportModel(input: {
         );
     }
 
-    if (passed.length > 0 || disposition === 'Healthy') {
+    if (disposition === 'Healthy') {
+        if (body.length > 0) body.push('');
+        body.push(
+            renderSection('Healthy checks', [
+                `${passed.length} checks already healthy`,
+                'No files changed',
+            ])
+        );
+    } else if (passed.length > 0 && input.mode === 'Catalog validation') {
         if (body.length > 0) body.push('');
         body.push(
             renderSection(
-                'Passed checks',
+                'Healthy checks',
                 renderList(
                     passed.map((finding) => `${finding.name} — already healthy`),
                     'none'
                 )
             )
         );
+    } else if (passed.length > 0) {
+        if (body.length > 0) body.push('');
+        body.push(renderSection('Healthy checks', [`${passed.length} checks already healthy`]));
     }
 
     if (input.fixPlan) {
@@ -3664,7 +3682,7 @@ export function renderDoctorReportModel(input: {
             ),
             '',
             renderSection(
-                'Still requires manual action',
+                'Still needs action',
                 renderList(
                     input.executions
                         .filter((execution) => execution.outcome === 'requires-manual-action')
@@ -3684,12 +3702,13 @@ export function renderDoctorReportModel(input: {
     return [frame, '', ...body].join('\n');
 }
 
-function formatFixRunText(fixRun: FixRun): string {
+function formatFixRunText(fixRun: FixRun, scope: string): string {
     return renderDoctorReportModel({
-        mode: 'Apply safe fixes',
+        mode: 'Project safe fixes',
         outputPath: fixRun.outputPath,
         findings: fixRun.finalFindings,
         executions: fixRun.executions,
+        scope,
     });
 }
 
@@ -3777,11 +3796,13 @@ export async function doctorCommand(
         outputPath = path.resolve(workingDir, options.output || './.devcontainer');
     }
 
-    const doctorMode: DoctorMode = options.fix
-        ? options.dryRun
-            ? 'Preview fix plan only'
-            : 'Apply safe fixes'
-        : 'Diagnosis only';
+    const doctorMode: DoctorMode = options.allOverlays
+        ? 'Catalog validation'
+        : options.fix
+          ? options.dryRun
+              ? 'Project fix preview'
+              : 'Project safe fixes'
+          : 'Project diagnosis';
 
     // ── Validate --dry-run flag ───────────────────────────────────────────────
     if (options.dryRun && !options.fix) {
@@ -3802,6 +3823,11 @@ export async function doctorCommand(
     const overlayChecks = options.allOverlays
         ? checkOverlays(overlaysDir)
         : checkOverlays(overlaysDir, selectedOverlayIds);
+    const doctorScope = options.allOverlays
+        ? 'full overlay catalog'
+        : options.fromManifest
+          ? `legacy manifest context (${selectedOverlayIds.length} selected overlays)`
+          : `selected overlays for current project (${selectedOverlayIds.length})`;
     const manifestChecks = checkManifest(outputPath, explicitManifestPath);
     const mergeChecks = checkMergeStrategy(outputPath);
     const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
@@ -3880,9 +3906,10 @@ export async function doctorCommand(
                                     (finding) => finding.status === 'pass'
                                 ),
                             },
+                            scope: doctorScope,
                             fixPlan: plannedActions,
                             previewOnly: true,
-                            note: 'Preview fix plan only — no files changed',
+                            note: 'Project fix preview — No files changed',
                         },
                         null,
                         2
@@ -3895,9 +3922,10 @@ export async function doctorCommand(
                         outputPath,
                         findings,
                         fixPlan: plannedActions,
+                        scope: doctorScope,
                     })
                 );
-                console.log('Preview fix plan only — no files changed');
+                console.log('Project fix preview — No files changed');
             }
 
             process.exit(autoFixable.length > 0 || manualOnly.length > 0 ? 1 : 0);
@@ -3910,6 +3938,7 @@ export async function doctorCommand(
                     outputPath,
                     findings,
                     fixPlan: plannedActions,
+                    scope: doctorScope,
                 })
             );
         }
@@ -3942,22 +3971,23 @@ export async function doctorCommand(
                                     (finding) => finding.status === 'pass'
                                 ),
                             },
+                            scope: doctorScope,
                             fixPlan: plannedActions,
-                            note: 'Nothing to apply',
+                            note: 'Nothing safe to apply',
                         },
                         null,
                         2
                     )
                 );
             } else {
-                console.log('Nothing to apply');
+                console.log('Nothing safe to apply');
             }
             process.exit(manualOnly.length > 0 ? 1 : 0);
         }
 
         if (!options.json && process.stdin.isTTY && process.stdout.isTTY) {
             const confirmation = (await select({
-                message: 'Preview fix plan — choose next action',
+                message: 'Project fix preview — choose next action',
                 choices: [
                     { name: 'Apply fixes', value: 'Apply fixes' },
                     { name: 'Cancel', value: 'Cancel' },
@@ -3988,6 +4018,7 @@ export async function doctorCommand(
                         ...fixRun,
                         mode: doctorMode,
                         disposition: buildDoctorDisposition(fixRun.finalFindings),
+                        scope: doctorScope,
                         counts: {
                             blockingIssues: fixRun.finalFindings.filter(
                                 (finding) => finding.status === 'fail'
@@ -4013,7 +4044,7 @@ export async function doctorCommand(
                 )
             );
         } else {
-            console.log(formatFixRunText(fixRun));
+            console.log(formatFixRunText(fixRun, doctorScope));
             console.log('');
         }
 
@@ -4027,6 +4058,7 @@ export async function doctorCommand(
                     ...report,
                     mode: doctorMode,
                     disposition: buildDoctorDisposition(findings),
+                    scope: doctorScope,
                     counts: {
                         blockingIssues: findings.filter((finding) => finding.status === 'fail')
                             .length,
@@ -4061,7 +4093,14 @@ export async function doctorCommand(
             )
         );
     } else {
-        console.log(renderDoctorReportModel({ mode: doctorMode, outputPath, findings }));
+        console.log(
+            renderDoctorReportModel({
+                mode: doctorMode,
+                outputPath,
+                findings,
+                scope: doctorScope,
+            })
+        );
         console.log('');
     }
 

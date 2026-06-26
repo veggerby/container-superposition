@@ -23,5 +23,5 @@ export function classifyChangeSet(input: {
         return 'Cleanup stale generated files';
     }
 
-    return 'Update existing output';
+    return 'Change intent and regenerate';
 }

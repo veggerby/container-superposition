@@ -1344,34 +1344,46 @@ export async function adoptCommand(
     }
 
     const header = renderFrame([
-        { label: 'Mode', value: options.dryRun ? 'Conversion analysis only' : 'Conversion review' },
+        {
+            label: 'Mode',
+            value: options.dryRun
+                ? 'Adopt existing handwritten setup'
+                : 'Adopt existing handwritten setup',
+        },
+        {
+            label: 'This path is for',
+            value: 'existing handwritten devcontainer setup you want tool to map into managed intent',
+        },
         { label: 'Source analyzed', value: path.relative(process.cwd(), devcontainerJsonPath) },
-        { label: 'Confidence', value: confidenceModel.confidence },
         {
-            label: 'What will become managed',
-            value: analysis.suggestedOverlays.join(', ') || 'none',
+            label: 'What will be written',
+            value: options.dryRun
+                ? 'nothing yet — preview only'
+                : [
+                      path.relative(process.cwd(), projectFilePath),
+                      path.relative(process.cwd(), manifestPath),
+                  ].join(', '),
         },
+        { label: 'Generated output', value: 'unchanged by this command' },
         {
-            label: 'What will be preserved',
-            value:
-                analysis.unmatchedItems.length > 0
-                    ? `${analysis.unmatchedItems.length} item(s) in custom/`
-                    : 'none',
+            label: 'Recommended next action',
+            value: nextStepModel.command ?? 'No next step suggested',
         },
-        { label: 'Recommendation', value: confidenceModel.recommendation },
     ]);
 
     console.log(
         [
             header,
             '',
-            renderSection(
-                'Will become managed overlays',
-                renderList(analysis.suggestedOverlays, 'none')
-            ),
+            renderSection('Confidence', [
+                confidenceModel.confidence,
+                `recommendation: ${confidenceModel.recommendation}`,
+            ]),
+            '',
+            renderSection('Will become managed', renderList(analysis.suggestedOverlays, 'none')),
             '',
             renderSection(
-                'Will be preserved in custom/',
+                'Will be preserved',
                 renderList(
                     analysis.unmatchedItems.map((item) => `${item.source} — ${item.reason}`),
                     'none'
@@ -1379,26 +1391,9 @@ export async function adoptCommand(
             ),
             '',
             renderSection(
-                'Will still need manual review',
+                'Needs manual review',
                 renderList(
                     analysis.unmatchedItems.map((item) => item.source),
-                    'none'
-                )
-            ),
-            '',
-            renderSection(
-                'Artifacts that would be written',
-                renderList(
-                    [
-                        path.relative(process.cwd(), projectFilePath),
-                        path.relative(process.cwd(), manifestPath),
-                        ...(analysis.customDevcontainerPatch
-                            ? [path.relative(process.cwd(), customPatchPath)]
-                            : []),
-                        ...(analysis.customComposePatch
-                            ? [path.relative(process.cwd(), customComposePath)]
-                            : []),
-                    ],
                     'none'
                 )
             ),
@@ -1418,20 +1413,43 @@ export async function adoptCommand(
         confidenceModel.confidence === 'Low confidence' ||
         confidenceModel.confidence === 'No viable conversion'
     ) {
-        console.log(['', renderNextStep(nextStepModel)].join('\n'));
+        console.log(
+            [
+                '',
+                renderSection(
+                    'Why conversion stopped',
+                    renderList(confidenceModel.reasons, 'none')
+                ),
+                '',
+                renderSection(
+                    'Write review',
+                    [
+                        'Not recommended to write from this analysis.',
+                        renderArtifactTable(artifactRows),
+                    ].join('\n')
+                ),
+                '',
+                renderNextStep(nextStepModel),
+            ].join('\n')
+        );
         return;
     }
 
-    console.log(
-        [
-            '',
-            renderSection('Artifacts that would be written', renderArtifactTable(artifactRows)),
-        ].join('\n')
-    );
+    console.log(['', renderSection('Write review', renderArtifactTable(artifactRows))].join('\n'));
 
     if (options.dryRun) {
         console.log(
-            ['', '(--dry-run: no files written)', '', renderNextStep(nextStepModel)].join('\n')
+            [
+                '',
+                '(--dry-run: no files written)',
+                '',
+                renderSection('Next step', [
+                    'review project file ownership model before replay',
+                    nextStepModel.command ?? 'No next step suggested',
+                ]),
+                '',
+                renderNextStep(nextStepModel),
+            ].join('\n')
         );
         return;
     }
@@ -1541,8 +1559,10 @@ export async function adoptCommand(
                 ])
             ),
             '',
+            renderSection('Managed going forward', renderList(analysis.suggestedOverlays, 'none')),
+            '',
             renderSection(
-                'Preserved',
+                'Preserved for now',
                 renderList(
                     analysis.unmatchedItems.map((item) => item.source),
                     'none'
@@ -1560,6 +1580,12 @@ export async function adoptCommand(
             renderSection('Generated output status', [
                 'generated output unchanged',
                 'review before replay',
+            ]),
+            '',
+            renderSection('Next checklist', [
+                '1. review generated project file and preserved custom artifacts',
+                '2. run `cs regen` to replay canonical intent',
+                '3. run `cs doctor` after replay',
             ]),
             '',
             renderNextStep(nextStepModel),

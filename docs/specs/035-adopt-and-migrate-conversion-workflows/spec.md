@@ -4,199 +4,197 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-06-24
 **Author**: PM Agent
-**Status**: Final
-**Input**: Redesign `adopt` and `migrate` so conversion feels trustworthy, teaches artifact roles clearly, and avoids surprise writes or false confidence.
+**Status**: Implemented
+**Input**: Second-pass UX/design rewrite for `adopt` and `migrate` so conversion path selection, write safety, artifact ownership, and post-conversion next steps feel clearer and lower-risk than current first-pass implementation.
 
 ---
 
 ## Request Classification
 
-UX-forward rewrite. Not reverse-spec. Current conversion behavior is useful but artifact framing, confidence signaling, and write flow should intentionally change where current UX feels implementation-led instead of trust-led.
+UX-forward rewrite. Not reverse-spec. Existing detection and conversion behavior remain inputs. Human-readable framing, path selection, confidence teaching, write review, and recovery guidance may change materially where current first-pass implementation still feels implementation-led instead of trust-led.
 
 ## Product Outcome
 
-Make conversion commands answer three questions fast:
+Make `adopt` and `migrate` answer six questions quickly:
 
-- Can tool map enough of my existing setup?
-- What will stay managed vs preserved?
-- What exactly will be written before anything changes?
+1. Which command should I use for this repo?
+2. What source did tool inspect?
+3. How much of current setup can tool manage confidently?
+4. What will stay preserved outside managed overlays?
+5. What exact files will be written or left unchanged?
+6. What command should I run next after conversion?
 
 Success signals:
 
-- teams with existing hand-written devcontainers trust `adopt` analysis before write
-- manifest-first repos understand `migrate` as low-risk bridge, not regeneration
-- artifact roles become teachable in one pass: canonical, compatibility, preservation
+- users no longer need prior product knowledge to distinguish `adopt` from `migrate`
+- low-confidence adoption feels safely stopped, not awkwardly half-inviting write
+- migration feels like safe bridge to canonical project file, not hidden write utility
+- post-conversion handoff is obvious: review, replay, validate
 
 ## Improvement Target Over Current Product
 
-This redesign is deliberate uplift, not documentation of current conversion output.
+This is deliberate uplift over current first-pass conversion redesign and over prior spec text.
 
-Target outcomes over current product:
+Target outcomes:
 
-- replace analysis-heavy but trust-light adoption with explicit confidence ladder and stop states
-- replace artifact dumps with role-based review of canonical, compatibility, preservation, and generated artifacts
-- replace weak pre-write review with mandatory artifact review before mutation
-- replace utility-like migration messaging with bridge framing and replay handoff
-- replace ambiguous success copy with explicit generated-output-changed versus unchanged teaching
+- replace command-name knowledge requirement with explicit path-selection teaching
+- replace artifact-role review that still reads technically with more obvious ownership story
+- replace write review that lists artifacts but under-teaches preservation and overwrite consequences
+- replace migration success that is correct but still terse with stronger `generated output unchanged` and `what next` framing
+- replace confidence label alone with clearer outcome classes: managed, preserved, manual, and blocked
 
 ## Current UX To Intentionally Supersede
 
-1. `adopt` analysis is informative, but confidence level and conversion quality are not prominent enough.
-2. Current artifact story still feels like implementation dump: project file, manifest, `custom/` patches, overwrite rules, backups.
-3. Conversion write path needs stronger pre-write review and sharper low-confidence stop behavior.
-4. `migrate` is strategically important but feels like technical utility instead of default bridge out of legacy workflow.
-5. Current docs still foreground optional or deprecated flags in ways that dilute canonical model.
+1. `adopt` has confidence framing, but user still must infer whether command is good idea for their repo.
+2. `migrate` shows bridge framing, but command still assumes user already knows when manifest-only repo should choose it.
+3. Artifact-role tables exist, but still feel like tool internals more than ownership contract.
+4. Adoption stop states are safer than before, but not yet maximally clear on why write is blocked and what safer path is.
+5. Success screens tell truth, but can teach stronger post-conversion checklist and recovery path.
+6. Conversion terms `managed`, `preserved`, `compatibility`, `generated output`, and `replay` still need tighter first-screen teaching.
 
-## User Goals
+## Primary User Questions
 
-### Existing repo maintainer
+### Existing handwritten repo maintainer
 
-- Know whether adoption is safe enough to try.
-- See what will map cleanly and what will fall back to preservation.
-- Avoid surprise overwrite of current artifacts.
+- Should I use `adopt` or start fresh with `init`?
+- What parts of my current setup will tool actually manage?
+- What will it preserve untouched?
 
-### Manifest-first team
+### Manifest-first repo maintainer
 
-- Create canonical project file with minimal ceremony.
-- Understand that generated output stays unchanged until replay.
-- Get clear handoff to next command.
+- Is `migrate` safe?
+- Will command regenerate my workspace right now?
+- What should I do immediately after project file is written?
 
-### Automation / reviewer
+### Reviewer / CI user
 
-- Consume analysis as JSON.
-- Audit artifact roles and write consequences.
+- What files were written?
+- What remained manual?
+- Was generated output changed or not?
 
 ## Scope
 
 ### In scope
 
-- `adopt` analysis, dry-run, JSON, confirmation, write framing, overwrite/backup messaging
-- `migrate` source discovery, overwrite guard, artifact framing, and next-step guidance
-- artifact-role teaching inside both commands
+- `adopt` analysis, dry-run, confirmation, live write, JSON shape, and success framing
+- `migrate` path discovery, overwrite guard, review, confirmation policy, and success framing
+- command-selection teaching and artifact ownership language shared across both commands
 
 ### Out of scope
 
 - redesign of overlay-detection heuristics
-- new regeneration flow behavior
-- doctor validation after conversion
-- removal of compatibility manifest as product artifact without separate ADR follow-up
+- new conversion algorithms
+- doctor checks after conversion beyond routing guidance
+- removal of compatibility manifest artifact as product behavior
 
 ## Non-Goals
 
-- Preserve current artifact narration because implementation already writes those files
-- Let write mode proceed on weak confidence without stronger warning or stop
-- Blur line between canonical project file and preservation patches
+- Preserve current first-pass artifact narration because implementation already exists
+- Let low-confidence adopt paths feel like normal write candidates
+- Treat preservation artifacts as equivalent to managed overlay intent
 
 ## Design Principles
 
-1. **Conversion trust before convenience**.
-2. **Show match quality, not only matched items**.
-3. **Artifact roles must be explicit**.
-4. **Low-confidence conversion stops early**.
-5. **Migration feels like safe bridge, not scary rewrite**.
-6. **Preview before any write**.
+1. **Choose right path before showing write details**.
+2. **Trust before convenience**.
+3. **Managed vs preserved must be unmistakable**.
+4. **Low confidence stops early and clearly**.
+5. **Migration is bridge, not replay**.
+6. **Success includes next checklist, not only write confirmation**.
 
 ## Canonical Interaction Model
 
-### Artifact role model
+### Conversion path selector
 
-Commands MUST teach same three artifact roles everywhere:
+Both conversion commands MUST teach their lane explicitly.
 
-- `Canonical shared intent` = repository project file
-- `Compatibility artifact` = manifest kept for transition or compatibility
-- `Preservation artifacts` = `custom/` patches or unmatched user customizations carried forward
+Shared lane definitions:
 
-Generated output is separate from all three and may remain unchanged until replay.
+- `Adopt existing handwritten setup` = infer managed overlays from current devcontainer artifacts
+- `Migrate legacy manifest workflow` = create canonical project file from existing `superposition.json`
 
-### Confidence ladder
+Rules:
 
-`adopt` MUST classify analysis into one of:
+- first screen of both commands must include one-line `This path is for...`
+- if user appears to be in wrong lane, command must say so and route to better command
+- command help text must explain lane choice before flags
+
+### Artifact ownership model
+
+Commands MUST teach same ownership labels everywhere:
+
+- `Canonical shared intent` = project file
+- `Compatibility artifact` = manifest retained for bridge/compatibility
+- `Preserved customization` = `custom/` patches or unmatched config carried forward
+- `Generated output` = `.devcontainer/` artifacts produced by replay, possibly unchanged by conversion step
+
+### Adoption confidence ladder
+
+`adopt` MUST classify into exact states:
 
 - `High confidence`
 - `Mixed confidence`
 - `Low confidence`
 - `No viable conversion`
 
-Each class maps to recommendation:
+And outcome framing:
 
-- `safe to review`
-- `review carefully`
-- `use init instead`
-- `use init instead`
+- `managed confidently`
+- `preserved safely`
+- `needs manual review`
+- `stop and use init instead`
 
 ## Page Contract
 
-### `adopt` step 1: conversion confidence header
+### Shared first-screen contract
 
-First visible output MUST contain six rows in fixed order:
+Both `adopt` and `migrate` MUST begin with fixed-order rows:
 
 1. `Mode`
-2. `Source analyzed`
-3. `Confidence`
-4. `What will become managed`
-5. `What will be preserved`
-6. `Recommendation`
+2. `This path is for`
+3. `Source analyzed`
+4. `What will be written`
+5. `Generated output`
+6. `Recommended next action`
 
 Rules:
 
-- header appears before raw detection evidence
-- counts may appear inside rows, not as separate dump
-- if confidence low or no viable conversion, recommendation MUST stop write path by default
+- `Generated output` must explicitly say `unchanged by this command` when true
+- if command is analysis-only, `What will be written` may say `nothing yet — preview only`
+- lane-teaching row required even for experienced users
 
-### `adopt` step 2: outcome-shape review
+### `adopt` analysis contract
 
-Human-readable analysis MUST present sections in fixed order:
+After shared first screen, human-readable `adopt` MUST render sections in exact order:
 
-1. `Will become managed overlays`
-2. `Will be preserved in custom/`
-3. `Will still need manual review`
-4. `Artifacts that would be written`
-5. `Why confidence is not higher` when not high confidence
+1. `Confidence`
+2. `Will become managed`
+3. `Will be preserved`
+4. `Needs manual review`
+5. `Why confidence is not higher` when confidence is not high
+6. `Write review`
+7. `Next step`
 
 Rules:
 
-- managed section groups by user-visible capability where possible, not only detection source type
-- preserved section explains preservation reason, not only file name
-- manual review section distinguishes unknown, ambiguous, and unsupported cases
+- `Will become managed` groups by capability/value first, not detection source type
+- `Will be preserved` explains reason for preservation, not only file path
+- `Needs manual review` distinguishes unknown, ambiguous, and unsupported cases
+- `Write review` teaches ownership role, action, overwrite risk, backup disposition, and generated-output effect
 - explicit `none` states required
 
-### `adopt` step 3: low-confidence stop state
+### `adopt` stop-state contract
 
-When confidence is `Low confidence` or `No viable conversion`, default behavior MUST be stop after analysis.
+When confidence is `Low confidence` or `No viable conversion`:
 
-Stop-state contract:
+- no write confirmation prompt
+- `Recommended next action` routes to `init`
+- output includes `Why conversion stopped` section
+- write review may still show hypothetical artifact targets, but must be visibly labeled `Not recommended to write from this analysis`
 
-- no confirmation prompt
-- no suggestion that write is normal next step
-- recommended path = `init`
-- optional force/override path, if retained, must be visibly exceptional and high-friction
+### `adopt` confirmation gate
 
-### `adopt` step 4: mandatory artifact review before write
-
-Before any write, `adopt` MUST show artifact-role table with columns:
-
-- `Artifact`
-- `Role`
-- `Action`
-- `Overwrite risk`
-- `Backup`
-
-Required rows when applicable:
-
-- shared project file
-- compatibility manifest
-- preservation artifacts in `custom/`
-- backup directory or backup skipped state
-
-Rules:
-
-- table appears in dry-run and live-write modes
-- overwrite risk says `new`, `update`, `overwrite existing`, or `unchanged`
-- backup cell says `create`, `skip`, or `not needed`, plus reason
-
-### `adopt` step 5: confirmation gate
-
-Interactive live write mode MUST require explicit confirmation after artifact review.
+Interactive live-write `adopt` MUST require explicit confirmation after write review.
 
 Choices:
 
@@ -205,62 +203,65 @@ Choices:
 
 Rules:
 
-- analysis-only and dry-run modes never ask for confirmation
 - default focus `Cancel`
-- if overwrite risk exists and backup skipped, confirmation copy must restate that plainly
+- confirmation copy must restate overwrite risk and backup state plainly
 - non-interactive live-write without clear approval must abort safely
 
-### `adopt` step 6: success screen
+### `adopt` success contract
 
-Success output MUST use fixed sections in order:
+Success output MUST render sections in exact order:
 
 1. `Written now`
-2. `Preserved`
-3. `Still needs review`
-4. `Generated output status`
-5. `Next step`
+2. `Managed going forward`
+3. `Preserved for now`
+4. `Still needs review`
+5. `Generated output status`
+6. `Next checklist`
 
 Rules:
 
-- `Generated output status` must explicitly say whether output changed or stayed unchanged
-- success may never imply fully validated conversion when preservation/manual review remain
-- if compatibility manifest written, role stays secondary and transition-oriented
+- `Generated output status` must explicitly say changed or unchanged
+- `Next checklist` contains ordered follow-up steps, not one generic hint only
+- success may not imply conversion fully validated when preserved/manual items remain
 
-### `migrate` step 1: bridge header
+### `migrate` review contract
 
-First visible `migrate` output MUST contain five rows in fixed order:
+After shared first screen, `migrate` MUST render sections in exact order:
 
-1. `Mode`
-2. `Legacy source found`
-3. `Will write`
-4. `Generated output`
-5. `Recommended next action`
+1. `Why migrate fits this repo`
+2. `Write review`
+3. `What stays unchanged`
+4. `Next step`
 
 Rules:
 
-- `Mode` label = `Legacy bridge`
-- `Generated output` row MUST say `unchanged by this command`
-- no regeneration-like success copy before write
+- `Why migrate fits this repo` explains manifest-only/legacy source relationship in plain language
+- `Write review` includes source manifest path, target project file path, overwrite guard state, and generated-output effect
+- `What stays unchanged` explicitly names generated output and compatibility expectations until `regen`
 
-### `migrate` step 2: write review
+### `migrate` confirmation policy
 
-Before writing project file, `migrate` MUST show compact review:
+`migrate` currently may remain non-interactive for scripting simplicity, but if human-readable mode detects overwrite risk plus `--force`, it MUST restate that risk prominently before write.
 
-- source manifest path
-- target project file path
-- overwrite guard state
-- compatibility note: generated output stays same until `regen`
+Rules:
 
-Interactive confirmation optional if command remains simple, but review screen mandatory.
+- overwrite guard remains blocking unless `--force`
+- if future interactive confirmation added, same exact `Write conversion artifacts` / `Cancel` choices must be used for consistency
 
-### `migrate` step 3: bridge success
+### `migrate` success contract
 
-Success screen MUST say, in order:
+Success output MUST render sections in exact order:
 
-1. project file created or updated
-2. generated output unchanged
-3. next command: `regen`
-4. optional validation follow-up: `doctor`
+1. `Written now`
+2. `Generated output status`
+3. `Next checklist`
+4. `Optional validation`
+
+Rules:
+
+- `Generated output status` must say `unchanged by migrate`
+- `Next checklist` must lead with `regen`
+- optional validation should route to `doctor` after replay, not before by default
 
 ## Interaction Rules
 
@@ -268,206 +269,161 @@ Success screen MUST say, in order:
 
 Prefer:
 
-- `Will become managed overlays`
+- `This path is for`
+- `Will become managed`
 - `Will be preserved`
-- `Compatibility artifact`
+- `Needs manual review`
 - `Generated output unchanged`
+- `Next checklist`
 - `Review before replay`
 
 Avoid:
 
-- implying one-to-one perfect conversion when preservation exists
-- implying migration regenerated workspace
-- foregrounding deprecated flags or legacy-first workflows
+- implying migration regenerated workspace immediately
+- implying preserved customizations are equivalent to managed overlays
+- implying low-confidence adopt is normal write path
 
-### Artifact teaching rules
+### Recovery guidance rules
 
-- project file always presented as canonical shared intent
-- compatibility manifest explicitly secondary when present
-- preservation artifacts never described as equivalent to managed overlays
-- conversion output must say what remains outside tool confidence envelope
+- low-confidence adopt → route to `init`
+- existing project file overwrite block in `migrate` → route to explicit overwrite review or alternate output path
+- adopt with many preserved/manual items → route to review project file, inspect `custom/`, then `regen`, then `doctor`
 
 ### Empty and error states
 
 - no manifest for `migrate` → explain missing legacy source and route to `init`
-- existing project file without force → blocked with overwrite guidance
-- `adopt` source directory missing → blocked before analysis with path correction hint
-- `adopt` zero strong matches → stop state, route to `init`
-
-## State Behavior
-
-- confidence label persists from header to analysis summary to final decision screen
-- artifact names and roles must match between preview and success output
-- text and JSON analysis must align on managed/preserved/manual-review/confidence structure
-- `migrate` must never relabel unchanged generated output as written output
+- missing/invalid source directory for `adopt` → block before analysis with path correction hint
+- zero strong matches in `adopt` → stop state with `init` guidance
+- both project file variants present → blocked with explicit ownership conflict guidance
 
 ## Worked Examples
 
-### Strong adopt conversion
+### High-confidence adopt
 
-- header says `High confidence`
-- outcome review shows most capabilities managed, small preserved patch set
-- artifact review lists project file, compatibility manifest, `custom/`, backup plan
-- success says generated output status and next step `regen`
+- first screen says path is for handwritten devcontainer adoption
+- analysis clearly separates managed capabilities from preserved custom patches
+- write review shows project file, compatibility artifact, preserved customization artifacts, backups, and generated-output effect
+- success ends with checklist: review project file, `regen`, then `doctor`
 
-### Weak adopt conversion
+### Low-confidence adopt
 
-- header says `Low confidence`
-- analysis explains ambiguous mapping and large manual review area
-- run stops before confirmation
-- next step says use `init`
+- first screen still teaches lane
+- confidence section says write not recommended
+- `Why conversion stopped` explains ambiguity/unsupported patterns
+- next action routes to `init`
 
-### Simple migrate bridge
+### Manifest-only migrate
 
-- bridge header says legacy source found and generated output unchanged
-- write review shows target project file path
-- success points straight to `regen`, optional `doctor` after replay
+- first screen says path is for legacy manifest workflow
+- write review makes clear project file written, generated output unchanged
+- success checklist leads directly to `regen`
 
 ## QA Scenario Scripts
 
-1. High-confidence `adopt --dry-run`: verify confidence header, outcome-shape sections, artifact-role review, and no confirmation.
-2. Low-confidence `adopt`: verify stop-before-write behavior and `init` routing.
-3. Interactive `adopt` with overwrite risk and no backup: verify explicit risk in artifact review and confirmation gate.
-4. `adopt` success with preservation artifacts: verify generated output status and manual-review reminders.
-5. `migrate` with discovered manifest: verify bridge framing and explicit `generated output unchanged` messaging.
-6. `migrate` overwrite block: verify no write and clear force guidance.
+1. `adopt --dry-run` high confidence: verify shared first screen, confidence sections, ownership-aware write review, and no confirmation.
+2. `adopt` low confidence: verify stop state, `Why conversion stopped`, and `init` routing.
+3. Interactive `adopt` with overwrite risk/no backup: verify explicit risk wording and confirmation gate.
+4. `adopt` success with preserved artifacts: verify `Managed going forward`, `Preserved for now`, `Generated output status`, and ordered checklist.
+5. `migrate` normal run: verify lane-teaching first screen, write review, generated-output-unchanged messaging, and checklist starting with `regen`.
+6. `migrate --force` overwrite path: verify prominent overwrite-risk review before write.
 
 ## Acceptance Criteria
 
-| #     | Criterion                                                                                                                                                                                                                                                                                                   |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AC-1  | `adopt` first visible output is confidence header with rows in exact order `Mode`, `Source analyzed`, `Confidence`, `What will become managed`, `What will be preserved`, `Recommendation`, shown before raw detection evidence.                                                                            |
-| AC-2  | Human-readable `adopt` analysis renders exact section order `Will become managed overlays`, `Will be preserved in custom/`, `Will still need manual review`, `Artifacts that would be written`, and `Why confidence is not higher` when confidence is not high, with explicit `none` states where relevant. |
-| AC-3  | `adopt` confidence classes map to recommendation states exactly as specified, and `Low confidence` / `No viable conversion` paths stop before confirmation or write by default and route users to `init`.                                                                                                   |
-| AC-4  | Any write-capable `adopt` mode prints artifact-role review before mutation, with columns `Artifact`, `Role`, `Action`, `Overwrite risk`, `Backup`, covering shared project file, compatibility manifest when applicable, preservation artifacts, and backup state.                                          |
-| AC-5  | Interactive live-write `adopt` offers exactly `Write conversion artifacts` and `Cancel` after artifact review, with default focus `Cancel`; analysis-only and dry-run modes never prompt for confirmation.                                                                                                  |
-| AC-6  | `adopt` success output follows exact order `Written now`, `Preserved`, `Still needs review`, `Generated output status`, `Next step`, and never implies fully validated conversion when preservation or manual review remains.                                                                               |
-| AC-7  | `migrate` first visible output is bridge header with rows in exact order `Mode`, `Legacy source found`, `Will write`, `Generated output`, `Recommended next action`, and `Generated output` explicitly says unchanged by this command.                                                                      |
-| AC-8  | `migrate` always shows write review before project-file mutation, including source manifest path, target project file path, overwrite guard state, and note that generated output stays unchanged until `regen`.                                                                                            |
-| AC-9  | `migrate` success output states project file created or updated, generated output unchanged, `regen` as default next command, and optional `doctor` follow-up.                                                                                                                                              |
-| AC-10 | Both commands use project-file-first artifact language that keeps compatibility manifest secondary and preservation artifacts distinct from managed overlays, even if current docs or copy differ.                                                                                                          |
-| AC-11 | JSON output remains available for `adopt` analysis and semantically aligned with confidence, managed/preserved/manual-review, and artifact-write structures used in human-readable output.                                                                                                                  |
-| AC-12 | Automated coverage exists for confidence-header visibility, low-confidence stop behavior, artifact-role review, overwrite guards, migrate bridge review, generated-output-unchanged messaging, and success follow-up guidance.                                                                              |
+| #     | Criterion                                                                                                                                                                                                                                                    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AC-1  | Both `adopt` and `migrate` begin human-readable output with shared first-screen rows in exact order `Mode`, `This path is for`, `Source analyzed`, `What will be written`, `Generated output`, `Recommended next action`.                                    |
+| AC-2  | `adopt` analysis renders exact section order `Confidence`, `Will become managed`, `Will be preserved`, `Needs manual review`, conditional `Why confidence is not higher`, `Write review`, `Next step`, with explicit `none` states where relevant.           |
+| AC-3  | `adopt` low-confidence and no-viable states stop before confirmation or write, render `Why conversion stopped`, visibly label any artifact preview as not recommended to write, and route users to `init`.                                                   |
+| AC-4  | `adopt` write review teaches artifact ownership and consequence using canonical/compatibility/preserved/generated roles plus action, overwrite risk, backup disposition, and generated-output effect for each relevant artifact row.                         |
+| AC-5  | Interactive live-write `adopt` offers exactly `Write conversion artifacts` and `Cancel` after write review with default focus `Cancel`; analysis-only and dry-run modes never prompt for confirmation.                                                       |
+| AC-6  | `adopt` success renders exact section order `Written now`, `Managed going forward`, `Preserved for now`, `Still needs review`, `Generated output status`, `Next checklist`, and never implies fully validated conversion when preserved/manual items remain. |
+| AC-7  | `migrate` renders exact section order `Why migrate fits this repo`, `Write review`, `What stays unchanged`, `Next step` after shared first screen, and clearly teaches that generated output remains unchanged until `regen`.                                |
+| AC-8  | `migrate` success renders exact section order `Written now`, `Generated output status`, `Next checklist`, `Optional validation`, with `regen` as first checklist item and `doctor` positioned as follow-up after replay.                                     |
+| AC-9  | Both commands use consistent lane-teaching and artifact-ownership language so users can tell `adopt existing handwritten setup` from `migrate legacy manifest workflow` without prior docs knowledge.                                                        |
+| AC-10 | Generated-output status is stated explicitly on every write-capable preview/success surface and never conflated with project-file or compatibility-artifact writes.                                                                                          |
+| AC-11 | JSON output for `adopt` remains semantically aligned with human-readable confidence, managed/preserved/manual-review, and artifact-write structures used in text output.                                                                                     |
+| AC-12 | Automated coverage exists for shared first-screen lane teaching, low-confidence stop behavior, ownership-aware write review, overwrite-risk messaging, migrate generated-output-unchanged teaching, and ordered next-checklist guidance.                     |
 
 ## Tradeoffs
 
-- Stronger confidence gating may stop some conversions earlier, but prevents false-success trust breaks.
-- More artifact explanation adds output length, but reduces canonical-vs-compatibility confusion.
-- Making `migrate` more prominent may de-emphasize familiar manifest habits; acceptable because product model already changed.
-- Dual-artifact write story remains inherently complex while compatibility manifest stays standard output; copy must absorb that honestly.
+- More lane-teaching adds repeated copy, but removes command-selection ambiguity.
+- Stronger stop states block some eager power users, but reduce false-confidence conversions.
+- Ordered next checklists add output length, but improve safe follow-through.
+- More explicit ownership language requires careful consistency across commands, but reduces canonical-vs-preserved confusion.
 
 ## Implementation Gap vs Current Product
 
 Deliberate improvements still to build:
 
-- `tool/commands/adopt.ts` already performs deep analysis, but current UX under-surfaces confidence ladder, low-confidence stop behavior, and artifact-role review before write.
-- `tool/commands/migrate.ts` still reads like utility output and does not yet teach bridge framing, generated-output-unchanged status, or review-before-write contract strongly enough.
-- `tool/cli/args.ts` help text still under-teaches migration as bridge and adoption as confidence-rated conversion.
+- `tool/commands/adopt.ts` now exposes confidence and artifact review, but still under-teaches lane choice, preservation meaning, and post-success checklist.
+- `tool/commands/migrate.ts` correctly teaches bridge basics, but still writes immediately after review and under-explains lane choice and unchanged-generated-output consequences.
+- shared artifact rows exist, but current copy still reads technically rather than as ownership model.
+- CLI help text still under-explains when to choose `adopt` vs `migrate` vs `init`.
 
 ## Technical Design
 
 ### Architecture Ownership
 
-- `tool/commands/adopt.ts` keeps detection, unmatched-item extraction, and conversion write execution.
-- New conversion-planner layer should own confidence classification, managed/preserved/manual-review grouping, artifact-role review rows, and stop-state decisions.
-- `tool/commands/migrate.ts` keeps manifest loading and project-file materialization, but should consume shared artifact-role and overwrite-guard helpers.
-- Shared artifact metadata model should be reused by `adopt`, `migrate`, `regen`, and `doctor` for canonical/compatibility/preservation/generated artifact labels.
+- command modules keep source loading, detection, write execution, and overwrite guard behavior.
+- shared conversion view model owns lane-teaching copy, ownership labels, generated-output status, and ordered next checklists.
+- adopt planner owns confidence classification and managed/preserved/manual groupings.
+- shared artifact review helper owns role/action/risk/backup/generated-effect rows.
 
 ### System Boundaries
 
-- Detection engine reports evidence only. Confidence class must not be inferred by renderer ad hoc.
-- Confidence classification belongs in conversion planner, not presentation, because stop-state/write-eligibility depends on it.
-- `--force` remains overwrite guard only. It must not silently become low-confidence bypass.
-- This spec does not introduce low-confidence live-write override. Low-confidence and no-viable states stop after analysis and route to `init`.
-
-### Canonical Data Flow
-
-```mermaid
-flowchart LR
-    A[Existing devcontainer or manifest] --> B{command}
-    B -->|adopt| C[Detection + unmatched analysis]
-    C --> D[Conversion planner]
-    D --> E[Confidence classification]
-    E --> F{confidence high or mixed?}
-    F -->|no| G[Stop state + init routing]
-    F -->|yes| H[Artifact-role review]
-    H --> I{interactive confirm if live write}
-    I -->|confirm| J[Write project file / manifest / custom patches]
-    J --> K[Conversion success model]
-    B -->|migrate| L[Manifest loader + project selection builder]
-    L --> M[Artifact review + overwrite guard]
-    M --> N[Write project file]
-    N --> O[Bridge success model]
-```
-
-### Interaction Policy Locks
-
-- `adopt` confidence enum: `High confidence`, `Mixed confidence`, `Low confidence`, `No viable conversion`.
-- Recommendation mapping locked in planner: high→safe to review; mixed→review carefully; low/no-viable→use `init` instead.
-- Low-confidence/default-stop behavior is hard stop in this spec. No confirmation prompt, no write path.
-- `migrate` always prints review screen before write; generated output stays explicitly unchanged until later `regen`.
-- `migrate` does not add interactive confirmation in this redesign to preserve scripting simplicity; overwrite guard remains explicit and blocking unless `--force`.
-
-### Artifact Model
-
-Each write-capable conversion command should emit shared artifact rows with:
-
-- artifact path
-- role: canonical / compatibility / preservation / generated / backup
-- action: create / update / overwrite / unchanged / skip
-- overwrite risk
-- backup disposition and reason
-
-This same artifact model should feed `regen` preflight and doctor remediation summaries later.
-
-### JSON Contract Direction
-
-- `adopt --json` should gain normalized `confidence`, `managed`, `preserved`, `manualReview`, and `artifactWrites` fields while retaining raw detections/unmatched evidence.
-- `migrate` may stay text-first for now, but internal review model should still be structured so later JSON expansion is cheap.
+- lane selection guidance belongs in command/view-model layer, not docs only.
+- confidence class remains planner-owned because stop-state behavior depends on it.
+- text and JSON must derive from same adopt confidence/grouping/artifact model.
+- migrate may stay text-first operationally, but should still use shared structured review model.
 
 ### Implementation Slices
 
-1. Add conversion planner and confidence classifier over current adopt analysis output.
-2. Add adopt confidence header, outcome-shape sections, and low-confidence stop state.
-3. Add shared artifact-role review table plus overwrite/backup summaries.
-4. Add adopt success screen with explicit generated-output status.
-5. Rebuild migrate framing/review/success on bridge model and shared artifact helpers.
-6. Align CLI help/docs to bridge/conversion language.
-
-### Risk Notes
-
-- `adopt.ts` currently mixes analysis, printing, prompting, and writes. Must split planner from executor first.
-- Confidence thresholds can feel arbitrary if not evidence-backed. Planner should expose reason strings and counts, not only label.
-- Dual-artifact story remains cognitively heavy while compatibility manifest is standard output. Shared artifact roles reduce drift risk.
-- Preventing low-confidence writes changes current power-user escape hatches. Safer default deliberate; document clearly.
+1. Add shared lane-teaching and next-checklist model for conversion commands.
+2. Rework `adopt` analysis sections around managed/preserved/manual/outcome framing.
+3. Add stronger stop-state copy and hypothetical-but-not-recommended artifact review for low-confidence adopt.
+4. Rework success screens around ordered checklists and generated-output status.
+5. Rework `migrate` framing around lane fit, unchanged output, and post-write checklist.
+6. Align help/docs for `adopt` vs `migrate` vs `init` command choice.
 
 ### Test Plan
 
-- Unit: confidence classification, recommendation mapping, artifact-row generation, overwrite-guard decisions.
-- Integration: high-confidence dry-run review, low-confidence stop-without-confirm, overwrite-risk confirmation wording, migrate bridge review, success generated-output-unchanged messaging.
-- JSON contract: adopt normalized fields align with raw detections and preserved/manual-review counts.
-- Regression: `--force` only affects overwrite block, not confidence stop; project file remains canonical output; compatibility manifest stays secondary in copy.
+- Unit: lane-selection messaging, confidence-to-stop-state mapping, checklist generation, artifact ownership labels.
+- Integration: high-confidence adopt dry run, low-confidence adopt stop, overwrite-risk confirm wording, migrate bridge framing, success checklist ordering.
+- JSON contract: adopt normalized fields remain aligned with human-readable groupings and artifact review structures.
 
 ## Architecture Decision Impact
 
 aligned with current ADRs/foundation
 
-Future change to stop writing compatibility manifest by default remains separate ADR/product decision.
+Future decision about retiring compatibility manifest by default remains separate ADR/product work.
 
 Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 
 ## Open Questions
 
-- Whether long-term `adopt` should make compatibility manifest optional remains open. Not blocker for current UX redesign because artifact role can already be made secondary and explicit.
+- None blocking. Whether `migrate` should later gain explicit interactive confirmation can stay separate follow-up; overwrite review and bridge teaching are higher-priority now.
 
 ## Routing Decision
 
-**Architect → PM**
+**PM → Developer**
 
-Reason: Technical design locked for conversion-planner ownership, low-confidence stop policy, shared artifact-role model, and migrate bridge behavior. Ready for developer implementation planning.
+Reason: UX contract, lane-teaching model, stop-state rules, and artifact-ownership wording are concrete enough for implementation.
 
 ## Implementation Notes
 
-Implemented adopt confidence classification, low-confidence stop path, artifact-role review, conversion success framing, and migrate bridge framing/review/success. Shared artifact helpers now power conversion review rows. Added focused conversion UX tests in `tool/__tests__/ux-renderers.test.ts` and updated adopt tests.
+Implemented second-pass conversion UX across `adopt` and `migrate`.
 
-Follow-up fix pass: added `artifactWrites` to `adopt --json`, switched live-write approval to explicit `Write conversion artifacts` / `Cancel`, and added regression coverage in `tool/__tests__/adopt.test.ts`.
+Changes shipped:
+
+- both commands now lead with lane-teaching frame including `This path is for`
+- `adopt` analysis now separates `Confidence`, `Will become managed`, `Will be preserved`, and `Needs manual review`
+- low-confidence `adopt` now renders explicit `Why conversion stopped` plus not-recommended write review
+- `adopt` success now includes `Managed going forward`, `Preserved for now`, and ordered `Next checklist`
+- `migrate` now teaches lane fit, unchanged generated output, and replay-first checklist more explicitly
+- CLI help text updated to distinguish handwritten adoption vs legacy manifest migration
+
+Validation run:
+
+- `npm run lint:fix`
+- `npm run lint`
+- `npm test`

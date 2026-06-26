@@ -91,8 +91,10 @@ describe('adoptCommand', () => {
             const output = consoleLogSpy.mock.calls.join('\n');
             // The `node` feature should map to `nodejs` (not `bun`)
             expect(output).toContain('nodejs');
-            expect(output).toContain('Confidence: High confidence');
-            expect(output).toContain('Will become managed overlays');
+            expect(output).toContain('This path is for');
+            expect(output).toContain('Confidence');
+            expect(output).toContain('High confidence');
+            expect(output).toContain('Will become managed');
             expect(output).toContain('--dry-run');
             expect(fs.existsSync(path.join(tmpDir, 'superposition.json'))).toBe(false);
         });
@@ -108,7 +110,7 @@ describe('adoptCommand', () => {
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, dryRun: true });
 
             const output = consoleLogSpy.mock.calls.join('\n');
-            expect(output).toContain('Will be preserved in custom/');
+            expect(output).toContain('Will be preserved');
             expect(output).toContain('some-custom-feature');
         });
     });
@@ -522,7 +524,8 @@ describe('adoptCommand', () => {
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, dryRun: true });
             const output = consoleLogSpy.mock.calls.join('\n');
-            expect(output).toContain('Confidence: No viable conversion');
+            expect(output).toContain('Confidence');
+            expect(output).toContain('No viable conversion');
             expect(output).toContain('use init instead');
         });
     });

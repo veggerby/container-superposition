@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import yaml from 'js-yaml';
 import type { OverlaysConfig, PresetParameter, OverlayMetadata } from '../schema/types.js';
+import { findProjectConfig } from '../schema/project-config.js';
 import { describeSource } from '../ux/semantics/source.js';
 import { resolveNextStep } from '../ux/semantics/next-step.js';
 import { renderFrame, renderList, renderNextStep, renderSection } from '../ux/renderers/common.js';
@@ -36,6 +37,10 @@ function loadPresetDefinition(overlaysDir: string, presetId: string): Record<str
     const presetPath = path.join(overlaysDir, '.presets', `${presetId}.yml`);
     if (!fs.existsSync(presetPath)) return null;
     return (yaml.load(fs.readFileSync(presetPath, 'utf8')) as Record<string, any>) ?? null;
+}
+
+function summarizeCurrentSetup(): string {
+    return findProjectConfig(process.cwd()).length > 0 ? 'shared project file present' : 'none yet';
 }
 
 function inferBestFor(overlay: OverlayMetadata): string {
@@ -74,14 +79,19 @@ function buildExplainModel(
             ? [`VS Code extensions: ${patch.customizations.vscode.extensions.join(', ')}`]
             : []),
     ];
-    const previewNotes = [
+    const watchOuts = [
         overlay.supports && overlay.supports.length > 0
-            ? `supports: ${overlay.supports.join(', ')}`
-            : 'supports: plain, compose',
+            ? `stack fit: ${overlay.supports.join(', ')}`
+            : 'stack fit: plain, compose',
         overlay.conflicts && overlay.conflicts.length > 0
             ? `conflicts to watch: ${overlay.conflicts.join(', ')}`
-            : 'conflicts to watch: none',
-    ];
+            : null,
+        services.length > 0 ? `starts sidecar services: ${services.join(', ')}` : null,
+        overlay.ports && overlay.ports.length > 0
+            ? `opens ports: ${overlay.ports.join(', ')}`
+            : null,
+    ].filter((item): item is string => Boolean(item));
+    const previewCommand = `cs plan --stack ${overlay.supports?.[0] ?? 'compose'} --overlays ${overlay.id}`;
     const filesServicesPorts = [
         ...(files.length > 0 ? files.map((file) => `file: ${file}`) : []),
         ...(services.length > 0 ? services.map((service) => `service: ${service}`) : []),
@@ -92,12 +102,19 @@ function buildExplainModel(
         id: overlay.id,
         name: overlay.name,
         bestFor: inferBestFor(overlay),
+        whyPickThis: overlay.tags?.length
+            ? `best fit when you want ${overlay.tags.join(', ')} without hand-assembling nearby options`
+            : `best fit when you want ${overlay.name.toLowerCase()} with managed defaults`,
         adds,
+        watchOuts,
         dependsOn: overlay.requires ?? [],
         conflictsWith: overlay.conflicts ?? [],
-        previewNotes,
+        previewThisChange: [
+            previewCommand,
+            'likely outcome: preview resolved change before any write',
+        ],
         filesServicesPorts,
-        tryThisNext: `cs plan --stack ${overlay.supports?.[0] ?? 'compose'} --overlays ${overlay.id}`,
+        tryThisNext: previewCommand,
         files,
         devcontainerPatch: patch,
         dockerComposeServices: services,
@@ -142,6 +159,7 @@ export async function explainCommand(
         const frame = renderFrame([
             { label: 'Mode', value: 'Inspection' },
             { label: 'Source', value: `${source.label} — ${source.detail}` },
+            { label: 'Current setup', value: summarizeCurrentSetup() },
             {
                 label: 'What this helps you decide',
                 value: 'whether this overlay or preset fits before preview',
@@ -151,13 +169,20 @@ export async function explainCommand(
         const sections = [
             renderSection('Best for', model.overlay.bestFor),
             '',
-            renderSection('Adds', renderList(model.overlay.adds, 'none')),
+            renderSection('Why pick this over nearby options', model.overlay.whyPickThis),
+            '',
+            renderSection('What it adds', renderList(model.overlay.adds, 'none')),
+            '',
+            renderSection('What to watch out for', renderList(model.overlay.watchOuts, 'none')),
             '',
             renderSection('Depends on', renderList(model.overlay.dependsOn, 'none')),
             '',
             renderSection('Conflicts with', renderList(model.overlay.conflictsWith, 'none')),
             '',
-            renderSection('Preview notes', renderList(model.overlay.previewNotes, 'none')),
+            renderSection(
+                'Preview this change',
+                renderList(model.overlay.previewThisChange, 'none')
+            ),
             '',
             renderSection(
                 'Files, services, and ports',

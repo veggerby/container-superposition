@@ -113,8 +113,9 @@ describe('QA blocker regressions', () => {
 
     it('healthy doctor report omits empty action buckets', () => {
         const output = renderDoctorReportModel({
-            mode: 'Diagnosis only',
+            mode: 'Project diagnosis',
             outputPath: '.devcontainer',
+            scope: 'selected overlays for current project (1)',
             findings: [
                 {
                     id: 'ok',
@@ -127,10 +128,10 @@ describe('QA blocker regressions', () => {
                 },
             ],
         });
-        expect(output).not.toContain('Blocking issues');
-        expect(output).not.toContain('Safe auto-fixes available');
-        expect(output).not.toContain('Manual follow-up');
-        expect(output).toContain('Passed checks');
+        expect(output).not.toContain('Do now');
+        expect(output).not.toContain('Can fix now');
+        expect(output).not.toContain('Review next');
+        expect(output).toContain('Healthy checks');
     });
 
     it('doctor defaults to selected overlays only unless --all-overlays is used', async () => {
@@ -160,7 +161,7 @@ describe('QA blocker regressions', () => {
             } catch {}
 
             const defaultOutput = logSpy.mock.calls.flat().join('\n');
-            expect(defaultOutput).toContain('Overlay: nodejs');
+            expect(defaultOutput).toContain('Scope: selected overlays for current project (1)');
             expect(defaultOutput).not.toContain('Overlay: postgres');
 
             logSpy.mockClear();
@@ -174,6 +175,8 @@ describe('QA blocker regressions', () => {
             } catch {}
 
             const catalogOutput = logSpy.mock.calls.flat().join('\n');
+            expect(catalogOutput).toContain('Mode: Catalog validation');
+            expect(catalogOutput).toContain('Scope: full overlay catalog');
             expect(catalogOutput).toContain('Overlay: postgres');
         } finally {
             fs.rmSync(tmpDir, { recursive: true, force: true });
