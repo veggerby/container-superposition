@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-06-24
 **Author**: PM Agent
-**Status**: Implemented
+**Status**: Final
 **Input**: Second-pass UX/design rewrite for `list`, `explain`, `plan`, and `hash` so read-only commands answer source, current setup, planned change, risk, and next action faster than current first-pass implementation.
 
 ---
@@ -398,6 +398,12 @@ Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 **PM → Developer**
 
 Reason: Product, UX, and technical seams are explicit enough for implementation. Main remaining work is command/view-model refactor and copy/layout execution.
+
+**QA Status**: Passed
+
+## QA Feedback
+
+Resolved. Command-level coverage now asserts shared frame order, guided discovery blocks, inspection/watch-out ordering, plan summary and replay headline surfacing, hash equality teaching, JSON parity, and next-step presence.
 
 ## Implementation Notes
 

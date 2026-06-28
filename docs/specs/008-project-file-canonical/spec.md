@@ -3,7 +3,7 @@
 **Spec ID**: `008-project-file-canonical`
 **Created**: 2026-03-26
 **Author**: PM Agent
-**Status**: Approved
+**Status**: Final
 **Input**: GitHub issue #134 — make `superposition.yml` the required canonical input for all generation flows
 
 ## Overview

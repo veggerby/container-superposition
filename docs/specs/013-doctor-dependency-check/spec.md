@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Approved
+**Status**: Final
 **Input**: Feature assessment — `cs doctor` does not validate that selected overlays satisfy their own dependency requirements; missing `requires:` entries are only caught at regen time.
 
 ## Problem Statement

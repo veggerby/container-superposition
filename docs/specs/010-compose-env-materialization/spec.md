@@ -2,7 +2,7 @@
 
 **Spec ID**: `010-compose-env-materialization`
 **Created**: 2026-03-29
-**Status**: Approved
+**Status**: Final
 **Input**: User request
 
 ## User Scenarios & Testing

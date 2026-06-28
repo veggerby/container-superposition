@@ -1,5 +1,7 @@
 # Spec 020: JSON Schema for `superposition.yml`
 
+**Status**: Final
+
 ## Overview
 
 Introduce a JSON Schema for `superposition.yml` / `.superposition.yml` project files. The schema

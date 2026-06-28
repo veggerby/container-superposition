@@ -12,6 +12,7 @@ vi.mock('@inquirer/prompts', () => ({
 import { buildInitEntryChoices, buildShortcutOverlayChoices } from '../cli/run.js';
 import { renderDoctorReportModel, doctorCommand } from '../commands/doctor.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
+import { composeDevContainer } from '../questionnaire/composer.js';
 import { select } from '@inquirer/prompts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -134,6 +135,101 @@ describe('QA blocker regressions', () => {
         expect(output).toContain('Healthy checks');
     });
 
+    it('healthy doctor command reports no files changed end-to-end', async () => {
+        const overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-healthy-e2e-'));
+        const outputPath = path.join(tmpDir, '.devcontainer');
+        try {
+            fs.writeFileSync(
+                path.join(tmpDir, '.superposition.yml'),
+                'stack: plain\noverlays: [nodejs]\noutputPath: .devcontainer\n'
+            );
+            await composeDevContainer(
+                {
+                    stack: 'plain',
+                    baseImage: 'bookworm',
+                    language: ['nodejs'],
+                    needsDocker: false,
+                    database: [],
+                    playwright: false,
+                    cloudTools: [],
+                    devTools: [],
+                    observability: [],
+                    outputPath,
+                } as any,
+                OVERLAYS_DIR,
+                { isRegen: true }
+            );
+
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                    projectRoot: tmpDir,
+                    fromProject: true,
+                });
+            } catch {}
+            const output = logSpy.mock.calls.flat().join('\n');
+            expect(output).toContain('Verdict: Healthy');
+            expect(output).toContain('Healthy checks');
+            expect(output).toContain('No files changed');
+            expect(output).toContain('Next step');
+            expect(output).not.toContain('Overlay: postgres');
+        } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('doctor post-fix outcome keeps action buckets in stable order', () => {
+        const output = renderDoctorReportModel({
+            mode: 'Project safe fixes',
+            outputPath: '.devcontainer',
+            scope: 'selected overlays for current project (1)',
+            findings: [
+                {
+                    id: 'broken',
+                    category: 'environment',
+                    name: 'Node.js version',
+                    status: 'fail',
+                    message: 'old version',
+                    fixEligibility: 'automatic',
+                    recheckScope: 'environment',
+                },
+                {
+                    id: 'ok',
+                    category: 'environment',
+                    name: 'Docker daemon',
+                    status: 'pass',
+                    message: 'healthy',
+                    fixEligibility: 'not-applicable',
+                    recheckScope: 'environment',
+                },
+            ],
+            executions: [
+                { remediationKey: 'a', findingId: 'one', outcome: 'fixed', reason: 'done' } as any,
+                {
+                    remediationKey: 'b',
+                    findingId: 'two',
+                    outcome: 'skipped',
+                    reason: 'blocked',
+                } as any,
+                {
+                    remediationKey: 'c',
+                    findingId: 'three',
+                    outcome: 'requires-manual-action',
+                    reason: 'manual',
+                } as any,
+            ],
+        });
+        expect(output).toContain('Fixed now');
+        expect(output).toContain('Skipped');
+        expect(output).toContain('Still needs action');
+        expect(output).toContain('Healthy checks');
+        expect(output).toContain('Next step');
+        expect(output.indexOf('Fixed now')).toBeLessThan(output.indexOf('Skipped'));
+        expect(output.indexOf('Skipped')).toBeLessThan(output.indexOf('Still needs action'));
+        expect(output.indexOf('Still needs action')).toBeLessThan(output.indexOf('Healthy checks'));
+        expect(output.indexOf('Healthy checks')).toBeLessThan(output.indexOf('Next step'));
+    });
+
     it('doctor defaults to selected overlays only unless --all-overlays is used', async () => {
         const overlaysConfig = loadOverlaysConfig(OVERLAYS_DIR, INDEX_YML_PATH);
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-selected-overlays-'));
@@ -181,6 +277,28 @@ describe('QA blocker regressions', () => {
         } finally {
             fs.rmSync(tmpDir, { recursive: true, force: true });
         }
+    });
+
+    it('doctor finding rows keep consequence text and next-action guidance visible', () => {
+        const output = renderDoctorReportModel({
+            mode: 'Project diagnosis',
+            outputPath: '.devcontainer',
+            scope: 'selected overlays for current project (1)',
+            findings: [
+                {
+                    id: 'dep',
+                    category: 'dependencies',
+                    name: 'Missing required overlay: prometheus',
+                    status: 'fail',
+                    message:
+                        'Overlay "grafana" requires "prometheus" which is not in your project file',
+                    fixEligibility: 'automatic',
+                    recheckScope: 'project-config',
+                },
+            ],
+        });
+        expect(output).toContain('which is not in your project file');
+        expect(output).toContain('Recommended next action: cs doctor --fix');
     });
 
     it('interactive doctor --fix asks Apply fixes or Cancel after fix plan', async () => {

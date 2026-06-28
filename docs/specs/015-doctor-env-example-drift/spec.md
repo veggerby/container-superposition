@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Approved
+**Status**: Final
 **Input**: Feature assessment — `cs doctor` does not detect when `.env.example` is stale: missing keys for parameters added by new overlays, or keys left over from overlays that were removed.
 
 ## Problem Statement

@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-06-24
 **Author**: PM Agent
-**Status**: Implemented
+**Status**: Final
 **Input**: Second-pass UX/design rewrite for `doctor` so diagnosis feels like project-health triage first, remediation feels reviewable before write, and maintainer-only catalog validation stays explicitly separate from normal project diagnosis.
 
 ---
@@ -443,6 +443,12 @@ Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 **PM → Developer**
 
 Reason: UX contract, scope behavior, bucket model, and technical seams are explicit enough for implementation without new architecture discovery.
+
+**QA Status**: Passed
+
+## QA Feedback
+
+Resolved. Coverage now asserts verdict header framing, project-scoped default behavior, healthy compact output, fix-preview parity, confirmation defaults, post-fix outcome ordering, and JSON/text scope alignment.
 
 ## Implementation Notes
 

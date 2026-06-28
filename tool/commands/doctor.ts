@@ -3571,71 +3571,75 @@ export function renderDoctorReportModel(input: {
         `Counts\nblocking: ${blocking.length} | fix now: ${autoFixable.length} | manual: ${manual.length} | healthy: ${passed.length}`,
     ];
 
-    if (blocking.length > 0) {
-        body.push(
-            renderSection(
-                'Do now',
-                renderList(
-                    blocking.map(
-                        (finding) =>
-                            `${finding.name} — ${finding.message} — ${finding.fixEligibility === 'automatic' ? 'auto-fix available' : 'manual only'}`
-                    ),
-                    'none'
+    if (!input.executions) {
+        if (blocking.length > 0) {
+            body.push(
+                renderSection(
+                    'Do now',
+                    renderList(
+                        blocking.map(
+                            (finding) =>
+                                `${finding.name} — ${finding.message} — ${finding.fixEligibility === 'automatic' ? 'auto-fix available' : 'manual only'}`
+                        ),
+                        'none'
+                    )
                 )
-            )
-        );
-    }
+            );
+        }
 
-    if (autoFixable.length > 0) {
-        if (body.length > 0) body.push('');
-        body.push(
-            renderSection(
-                'Can fix now',
-                renderList(
-                    autoFixable.map(
-                        (finding) => `${finding.name} — ${finding.message} — auto-fix available`
-                    ),
-                    'none'
+        if (autoFixable.length > 0) {
+            if (body.length > 0) body.push('');
+            body.push(
+                renderSection(
+                    'Can fix now',
+                    renderList(
+                        autoFixable.map(
+                            (finding) => `${finding.name} — ${finding.message} — auto-fix available`
+                        ),
+                        'none'
+                    )
                 )
-            )
-        );
-    }
+            );
+        }
 
-    if (manual.length > 0) {
-        if (body.length > 0) body.push('');
-        body.push(
-            renderSection(
-                'Review next',
-                renderList(
-                    manual.map((finding) => `${finding.name} — ${finding.message} — manual only`),
-                    'none'
+        if (manual.length > 0) {
+            if (body.length > 0) body.push('');
+            body.push(
+                renderSection(
+                    'Review next',
+                    renderList(
+                        manual.map(
+                            (finding) => `${finding.name} — ${finding.message} — manual only`
+                        ),
+                        'none'
+                    )
                 )
-            )
-        );
-    }
+            );
+        }
 
-    if (disposition === 'Healthy') {
-        if (body.length > 0) body.push('');
-        body.push(
-            renderSection('Healthy checks', [
-                `${passed.length} checks already healthy`,
-                'No files changed',
-            ])
-        );
-    } else if (passed.length > 0 && input.mode === 'Catalog validation') {
-        if (body.length > 0) body.push('');
-        body.push(
-            renderSection(
-                'Healthy checks',
-                renderList(
-                    passed.map((finding) => `${finding.name} — already healthy`),
-                    'none'
+        if (disposition === 'Healthy') {
+            if (body.length > 0) body.push('');
+            body.push(
+                renderSection('Healthy checks', [
+                    `${passed.length} checks already healthy`,
+                    'No files changed',
+                ])
+            );
+        } else if (passed.length > 0 && input.mode === 'Catalog validation') {
+            if (body.length > 0) body.push('');
+            body.push(
+                renderSection(
+                    'Healthy checks',
+                    renderList(
+                        passed.map((finding) => `${finding.name} — already healthy`),
+                        'none'
+                    )
                 )
-            )
-        );
-    } else if (passed.length > 0) {
-        if (body.length > 0) body.push('');
-        body.push(renderSection('Healthy checks', [`${passed.length} checks already healthy`]));
+            );
+        } else if (passed.length > 0) {
+            if (body.length > 0) body.push('');
+            body.push(renderSection('Healthy checks', [`${passed.length} checks already healthy`]));
+        }
     }
 
     if (input.fixPlan) {
@@ -3691,6 +3695,13 @@ export function renderDoctorReportModel(input: {
                 )
             )
         );
+
+        if (passed.length > 0) {
+            body.push(
+                '',
+                renderSection('Healthy checks', [`${passed.length} checks already healthy`])
+            );
+        }
     }
 
     body.push(
@@ -3908,7 +3919,9 @@ export async function doctorCommand(
                             },
                             scope: doctorScope,
                             fixPlan: plannedActions,
+                            plannedActions,
                             previewOnly: true,
+                            dryRun: true,
                             note: 'Project fix preview — No files changed',
                         },
                         null,

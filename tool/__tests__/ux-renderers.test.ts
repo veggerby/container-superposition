@@ -8,8 +8,10 @@ import { listCommand } from '../commands/list.js';
 import { explainCommand } from '../commands/explain.js';
 import { planCommand } from '../commands/plan.js';
 import { hashCommand } from '../commands/hash.js';
-import { doctorCommand } from '../commands/doctor.js';
+import { doctorCommand, renderDoctorReportModel } from '../commands/doctor.js';
 import { migrateCommand } from '../commands/migrate.js';
+import { composeDevContainer } from '../questionnaire/composer.js';
+import { classifyChangeSet } from '../ux/semantics/change-class.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,11 +45,35 @@ describe('UX contracts', () => {
         expect(output).toContain('Source: CLI selection');
         expect(output).toContain('Current setup');
         expect(output).toContain('What this helps you decide');
+        expect(output.indexOf('Mode: Discovery')).toBeLessThan(
+            output.indexOf('Source: CLI selection')
+        );
+        expect(output.indexOf('Source: CLI selection')).toBeLessThan(
+            output.indexOf('Current setup')
+        );
+        expect(output.indexOf('Current setup')).toBeLessThan(
+            output.indexOf('What this helps you decide')
+        );
         expect(output).toContain('Recommended starts');
         expect(output).toContain('Common goals');
         expect(output).toContain('Browse all overlays');
+        expect(output).toContain('How to inspect or preview next');
         expect(output).toContain('messaging');
+        expect(output.indexOf('Mode: Discovery')).toBeLessThan(
+            output.indexOf('Recommended starts')
+        );
         expect(output.match(/Next step/g)?.length).toBe(1);
+    });
+
+    it('filtered list zero-result path shows recovery suggestions', async () => {
+        await listCommand(overlaysConfig, { category: 'nonexistent' as any });
+        const output = logSpy.mock.calls.join('\n');
+        expect(output).toContain('Filter summary');
+        expect(output).toContain('No matches');
+        expect(output).toContain('How to widen or inspect next');
+        expect(output).toContain('remove one filter and try again');
+        expect(output).toContain('drop category filter to widen results');
+        expect(output).toContain('inspect live categories with `cs list`');
     });
 
     it('explain shows fixed sections with explicit none states and next step footer', async () => {
@@ -59,6 +85,9 @@ describe('UX contracts', () => {
         expect(output).toContain('Why pick this over nearby options');
         expect(output).toContain('What it adds');
         expect(output).toContain('What to watch out for');
+        expect(output.indexOf('Best for')).toBeLessThan(
+            output.indexOf('Why pick this over nearby options')
+        );
         expect(output).toContain('Depends on');
         expect(output).toContain('Conflicts with');
         expect(output).toContain('none');
@@ -97,6 +126,91 @@ describe('UX contracts', () => {
         }
     });
 
+    it('plan can surface replay canonical intent when reconciling drift', async () => {
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ux-plan-replay-'));
+        const outputPath = path.join(tmpDir, '.devcontainer');
+        try {
+            fs.writeFileSync(
+                path.join(tmpDir, '.superposition.yml'),
+                'stack: plain\noverlays: [nodejs]\noutputPath: .devcontainer\n'
+            );
+            fs.mkdirSync(outputPath, { recursive: true });
+            fs.writeFileSync(
+                path.join(outputPath, 'superposition.json'),
+                JSON.stringify({ baseTemplate: 'plain', overlays: ['nodejs'] })
+            );
+            fs.writeFileSync(
+                path.join(outputPath, 'devcontainer.json'),
+                JSON.stringify({ name: 'tampered' })
+            );
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'plain',
+                overlays: 'nodejs',
+                diff: true,
+                output: outputPath,
+            });
+            const output = logSpy.mock.calls.join('\n');
+            expect(output).toContain('Replay canonical intent');
+            expect(output).toContain('Current setup');
+            expect(output).toContain('intent unchanged; replay would reconcile generated output');
+        } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('change classification helper covers no-material-change and cleanup states', () => {
+        expect(
+            classifyChangeSet({
+                hasExistingOutput: true,
+                created: 0,
+                updated: 0,
+                removed: 0,
+                unchanged: 3,
+            })
+        ).toBe('No material change');
+        expect(
+            classifyChangeSet({
+                hasExistingOutput: true,
+                created: 0,
+                updated: 0,
+                removed: 2,
+                unchanged: 0,
+            })
+        ).toBe('Cleanup stale generated files');
+    });
+
+    it('read-only commands expose aligned JSON semantics', async () => {
+        logSpy.mockClear();
+        await listCommand(overlaysConfig, { json: true });
+        const listJson = JSON.parse(logSpy.mock.calls.at(-1)?.[0]);
+        expect(listJson.source.label).toBeDefined();
+        expect(listJson.nextStep.command).toBeDefined();
+
+        logSpy.mockClear();
+        await explainCommand(overlaysConfig, OVERLAYS_DIR, 'nodejs', { json: true });
+        const explainJson = JSON.parse(logSpy.mock.calls.at(-1)?.[0]);
+        expect(explainJson.source.label).toBeDefined();
+        expect(explainJson.overlay.id).toBe('nodejs');
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ux-plan-json-'));
+        try {
+            logSpy.mockClear();
+            await planCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres',
+                diff: true,
+                output: path.join(tmpDir, 'dc'),
+                json: true,
+            });
+            const planJson = JSON.parse(logSpy.mock.calls.at(-1)?.[0]);
+            expect(planJson.source.label).toBeDefined();
+            expect(planJson.changeClass).toBeDefined();
+            expect(planJson.nextStep.command).toBeDefined();
+        } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
     it('hash explains fingerprint meaning and write location state', async () => {
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ux-hash-'));
         try {
@@ -110,6 +224,9 @@ describe('UX contracts', () => {
             expect(output).toContain('Mode: Fingerprint');
             expect(output).toContain('Comparison summary');
             expect(output).toContain('Fingerprint');
+            expect(output.indexOf('Comparison summary')).toBeLessThan(
+                output.indexOf('\nFingerprint\n')
+            );
             expect(output).toContain('Computed from');
             expect(output).toContain('Normalized dependencies');
             expect(output).toContain('prometheus');
@@ -143,7 +260,14 @@ describe('UX contracts', () => {
             expect(output).toContain('Mode: Project fix preview');
             expect(output).toContain('Verdict:');
             expect(output).toContain('Scope:');
+            expect(output).toContain('Source inspected:');
+            expect(output).toContain('What needs attention:');
+            expect(output).toContain('Recommended next action:');
             expect(output).toContain('Counts');
+            expect(output).toContain('blocking:');
+            expect(output).toContain('fix now:');
+            expect(output).toContain('manual:');
+            expect(output).toContain('healthy:');
             expect(output).toContain('Do now');
             expect(output).toContain('Can fix now');
             expect(output).toContain('Fix plan');
@@ -169,6 +293,49 @@ describe('UX contracts', () => {
         }
     });
 
+    it('doctor project diagnosis and safe-fix modes are labeled explicitly', async () => {
+        const diagnosisOutput = renderDoctorReportModel({
+            mode: 'Project diagnosis',
+            outputPath: '.devcontainer',
+            scope: 'selected overlays for current project (1)',
+            findings: [],
+        });
+        const safeFixOutput = renderDoctorReportModel({
+            mode: 'Project safe fixes',
+            outputPath: '.devcontainer',
+            scope: 'selected overlays for current project (1)',
+            findings: [],
+            executions: [],
+        });
+        expect(diagnosisOutput).toContain('Mode: Project diagnosis');
+        expect(safeFixOutput).toContain('Mode: Project safe fixes');
+    });
+
+    it('doctor catalog validation mode is labeled explicitly', async () => {
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ux-doctor-catalog-'));
+        try {
+            fs.mkdirSync(path.join(tmpDir, '.devcontainer'), { recursive: true });
+            try {
+                await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                    projectRoot: tmpDir,
+                    allOverlays: true,
+                });
+            } catch {}
+            const output = logSpy.mock.calls.join('\n');
+            expect(output).toContain('Mode: Catalog validation');
+            expect(output).toContain('Scope: full overlay catalog');
+        } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('CLI help text teaches discovery to preview workflow', async () => {
+        const argsSource = fs.readFileSync(path.join(REPO_ROOT, 'tool', 'cli', 'args.ts'), 'utf8');
+        expect(argsSource).toContain('Discover recommended starts');
+        expect(argsSource).toContain('Preview current setup, planned changes, and watch-outs');
+        expect(argsSource).toContain('Diagnose project health by default');
+    });
+
     it('migrate prints bridge framing and generated-output-unchanged success', async () => {
         const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ux-migrate-'));
         const manifestPath = path.join(repoDir, 'superposition.json');
@@ -189,14 +356,27 @@ describe('UX contracts', () => {
             await migrateCommand({});
             const output = logSpy.mock.calls.join('\n');
             expect(output).toContain('Mode: Migrate legacy manifest workflow');
+            expect(output).toContain(
+                'This path is for: legacy manifest-only repos moving to canonical shared project file'
+            );
+            expect(output.indexOf('Mode: Migrate legacy manifest workflow')).toBeLessThan(
+                output.indexOf('This path is for')
+            );
+            expect(output.indexOf('This path is for')).toBeLessThan(
+                output.indexOf('Source analyzed')
+            );
             expect(output).toContain('Generated output: unchanged by this command');
             expect(output).toContain('Write review');
             expect(output).toContain(
                 'compatibility note: generated output stays same until `cs regen`'
             );
             expect(output).toContain('Why migrate fits this repo');
+            expect(output).toContain('What stays unchanged');
             expect(output).toContain('Written now');
             expect(output).toContain('Generated output status');
+            expect(output).toContain('Next checklist');
+            expect(output).toContain('Optional validation');
+            expect(output).toContain('1. run cs regen');
             expect(output).toContain('unchanged by migrate');
         } finally {
             process.chdir(originalCwd);

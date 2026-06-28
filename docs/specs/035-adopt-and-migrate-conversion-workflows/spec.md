@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-06-24
 **Author**: PM Agent
-**Status**: Implemented
+**Status**: Final
 **Input**: Second-pass UX/design rewrite for `adopt` and `migrate` so conversion path selection, write safety, artifact ownership, and post-conversion next steps feel clearer and lower-risk than current first-pass implementation.
 
 ---
@@ -408,6 +408,12 @@ Known repo gap: `docs/foundation.md` absent. ADR 001 remains authority.
 **PM → Developer**
 
 Reason: UX contract, lane-teaching model, stop-state rules, and artifact-ownership wording are concrete enough for implementation.
+
+**QA Status**: Passed
+
+## QA Feedback
+
+Resolved. Coverage now asserts shared lane-teaching rows, low-confidence stop behavior, ownership-aware write review, exact confirmation choices/defaults, success checklist ordering, migrate unchanged-generated-output teaching, and adopt JSON parity.
 
 ## Implementation Notes
 
