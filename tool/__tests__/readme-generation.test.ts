@@ -167,7 +167,7 @@ describe('README Generation', () => {
         fs.rmSync(outputPath, { recursive: true });
     });
 
-    it('should include references to overlay documentation', async () => {
+    it('should include GitHub documentation links for overlay and project references', async () => {
         const outputPath = path.join(TEST_OUTPUT_DIR, 'test-references');
 
         if (fs.existsSync(outputPath)) {
@@ -196,7 +196,19 @@ describe('README Generation', () => {
         expect(readme).toContain('## References');
         expect(readme).toContain('nodejs');
         expect(readme).toContain('postgres');
-        expect(readme).toContain('../overlays/');
+        expect(readme).toContain(
+            'https://github.com/veggerby/container-superposition/blob/main/overlays/nodejs/README.md'
+        );
+        expect(readme).toContain(
+            'https://github.com/veggerby/container-superposition/blob/main/overlays/postgres/README.md'
+        );
+        expect(readme).toContain(
+            'https://github.com/veggerby/container-superposition/blob/main/README.md'
+        );
+        expect(readme).toContain(
+            'https://github.com/veggerby/container-superposition/blob/main/docs/README.md'
+        );
+        expect(readme).not.toContain('../overlays/');
 
         // Clean up
         fs.rmSync(outputPath, { recursive: true });

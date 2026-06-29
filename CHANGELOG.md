@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Preview and diagnostics output no longer duplicate or show empty action buckets** — `plan --diff` now prints exactly one `Next step`, `list --category` help includes `messaging`, and healthy `doctor` runs omit empty issue buckets while keeping trust-building pass output
 - **`git-helpers` GitHub credential helper path** — setup now removes inherited host-specific `gh auth git-credential` helper entries (for example `!/home/linuxbrew/.linuxbrew/bin/gh auth git-credential`) and adds portable `!gh auth git-credential`, fixing `git push` failures when host paths do not exist inside the container
 - **Local-only trust messaging now appears once in `init` and `regen`** — guided flows no longer print late duplicate `Local config detected...` notices after framing; single consolidated trust contract now covers both commands, with regression coverage counting combined stdout and stderr output
+- **Generated README docs links now use stable GitHub URLs** — generated `README.md` overlay and project documentation links now resolve from repository base URL detected once from package metadata, instead of using `.devcontainer`-relative paths that break outside standard layouts
 
 ## [0.1.12] - 2026-06-09
 
