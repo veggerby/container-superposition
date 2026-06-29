@@ -4,7 +4,7 @@
 **Taxonomy**: `INFRA-BUILD`
 **Created**: 2026-06-08
 **Author**: PM Agent
-**Status**: Implemented
+**Status**: Final
 **Input**: On publish, show install / npx commands in workflow output itself, not only prerelease PR comment. Keep PR comment behavior when a PR exists.
 
 ## Problem Statement

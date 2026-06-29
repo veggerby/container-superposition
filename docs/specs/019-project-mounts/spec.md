@@ -2,7 +2,7 @@
 
 **Spec ID**: `019-project-mounts`
 **Created**: 2026-05-03
-**Status**: Approved
+**Status**: Final
 **Input**: User request
 
 ## Overview

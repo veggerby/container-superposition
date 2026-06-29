@@ -10,6 +10,7 @@ import { execSync } from 'child_process';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import * as yaml from 'js-yaml';
+import { select } from '@inquirer/prompts';
 import type {
     OverlaysConfig,
     SuperpositionManifest,
@@ -43,14 +44,22 @@ import {
 import { MERGE_STRATEGY } from '../utils/merge.js';
 import { extractPorts } from '../utils/port-utils.js';
 import { parseSimpleEnvFile } from '../utils/env-file.js';
+import { appendGitignoreSection } from '../utils/gitignore.js';
+import { isPathIgnored, listTrackedFilesUnder } from '../utils/git.js';
 import { composeDevContainer } from '../questionnaire/composer.js';
 import { mergeAnswers } from '../questionnaire/answers.js';
 import {
     loadProjectConfig,
+    loadLocalProjectConfig,
+    applyLocalConfigToAnswers,
+    materializeLocalCustomizationConfig,
     buildAnswersFromProjectConfig,
     buildProjectConfigSelectionFromAnswers,
     writeProjectConfig,
 } from '../schema/project-config.js';
+import { resolveNextStep } from '../ux/semantics/next-step.js';
+import type { DoctorMode } from '../ux/semantics/types.js';
+import { renderFrame, renderList, renderNextStep, renderSection } from '../ux/renderers/common.js';
 import {
     collectOverlayParameters,
     resolveParameters,
@@ -67,12 +76,15 @@ interface DoctorOptions {
     fix?: boolean;
     dryRun?: boolean;
     json?: boolean;
+    allOverlays?: boolean;
 }
 
 interface RemediationPlan {
     findingName: string;
     remediationKey: string;
+    remediationAction: string;
     plannedChanges: string[];
+    prerequisitesOrSkipConditions: string[];
     safetyClass: string;
 }
 
@@ -238,6 +250,46 @@ const REMEDIATION_REGISTRY = new Map<string, RemediationAction>([
             preconditions: ['Project file (.superposition.yml) must exist'],
             plannedChanges: ['Regenerate devcontainer configuration from current project file'],
             manualFallback: ['Run "cs regen" to regenerate the devcontainer configuration'],
+        },
+    ],
+    [
+        'local-config-gitignore',
+        {
+            key: 'local-config-gitignore',
+            findingId: 'local-config-gitignore-missing',
+            safetyClass: 'safe-unattended',
+            executionKind: 'shell-command',
+            preconditions: ['superposition.local.yml must exist'],
+            plannedChanges: ['Append superposition.local.yml to root .gitignore'],
+            manualFallback: [
+                'Add "superposition.local.yml" to root .gitignore so local-only config stays untracked',
+            ],
+        },
+    ],
+    [
+        'tracked-generated-output-manual',
+        {
+            key: 'tracked-generated-output-manual',
+            findingId: 'tracked-generated-output',
+            safetyClass: 'requires-manual-action',
+            executionKind: 'no-op',
+            preconditions: [],
+            plannedChanges: [],
+            manualFallback: ['Run git rm -r --cached -- <outputPath> to untrack generated output'],
+        },
+    ],
+    [
+        'tracked-local-config-manual',
+        {
+            key: 'tracked-local-config-manual',
+            findingId: 'tracked-local-config',
+            safetyClass: 'requires-manual-action',
+            executionKind: 'no-op',
+            preconditions: [],
+            plannedChanges: [],
+            manualFallback: [
+                'Run git rm --cached -- superposition.local.yml to untrack local-only config',
+            ],
         },
     ],
 ]);
@@ -675,7 +727,7 @@ function validateOverlayManifest(overlayDir: string, overlayId: string): CheckRe
 /**
  * Validate all overlays
  */
-function checkOverlays(overlaysDir: string): CheckResult[] {
+function checkOverlays(overlaysDir: string, overlayIds?: string[]): CheckResult[] {
     const results: CheckResult[] = [];
 
     if (!fs.existsSync(overlaysDir)) {
@@ -689,18 +741,24 @@ function checkOverlays(overlaysDir: string): CheckResult[] {
     }
 
     const entries = fs.readdirSync(overlaysDir, { withFileTypes: true });
+    const requested = overlayIds ? new Set(overlayIds) : null;
     const overlayDirs = entries.filter(
-        (entry) => entry.isDirectory() && !entry.name.startsWith('.')
+        (entry) =>
+            entry.isDirectory() &&
+            !entry.name.startsWith('.') &&
+            (!requested || requested.has(entry.name))
     );
 
     if (overlayDirs.length === 0) {
-        return [
-            {
-                name: 'Overlays',
-                status: 'warn',
-                message: 'No overlays found',
-            },
-        ];
+        return overlayIds && overlayIds.length > 0
+            ? []
+            : [
+                  {
+                      name: 'Overlays',
+                      status: 'warn',
+                      message: 'No overlays found',
+                  },
+              ];
     }
 
     for (const dir of overlayDirs) {
@@ -715,6 +773,44 @@ function checkOverlays(overlaysDir: string): CheckResult[] {
 /**
  * Check if a port is in use (cross-platform using Node.js net module)
  */
+function resolveDoctorOverlayIds(
+    overlaysConfig: OverlaysConfig,
+    workingDir: string,
+    outputPath: string,
+    explicitManifestPath?: string,
+    preferProjectFile = false
+): string[] {
+    if (preferProjectFile) {
+        try {
+            const projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+            if (projectConfig?.selection.overlays) {
+                return [...projectConfig.selection.overlays];
+            }
+        } catch {}
+    }
+
+    const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
+    if (fs.existsSync(manifestPath)) {
+        try {
+            const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { overlays?: unknown };
+            if (Array.isArray(raw.overlays)) {
+                return raw.overlays.filter((value): value is string => typeof value === 'string');
+            }
+        } catch {}
+    }
+
+    if (!preferProjectFile) {
+        try {
+            const projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+            if (projectConfig?.selection.overlays) {
+                return [...projectConfig.selection.overlays];
+            }
+        } catch {}
+    }
+
+    return [];
+}
+
 function isPortInUse(port: number): boolean {
     try {
         const server = net.createServer();
@@ -2069,7 +2165,16 @@ async function checkReproducibility(
                 overlaysConfig,
                 PRESETS_DIR
             );
-            answers = mergeAnswers(withPreset, { outputPath: tmpDir });
+            const localProjectConfig = loadLocalProjectConfig(workingDir);
+            const mergedAnswers = mergeAnswers(withPreset, { outputPath: tmpDir });
+            if (localProjectConfig) {
+                answers = applyLocalConfigToAnswers(mergedAnswers, localProjectConfig.selection);
+                answers.customizations = materializeLocalCustomizationConfig(
+                    localProjectConfig.selection.customizations
+                );
+            } else {
+                answers = mergedAnswers;
+            }
         } catch (err) {
             return [
                 {
@@ -2223,6 +2328,97 @@ async function checkReproducibility(
             }
         }
     }
+}
+
+function renderGitSafetyPath(projectRoot: string, targetPath: string): string {
+    const absolute = path.isAbsolute(targetPath) ? targetPath : path.join(projectRoot, targetPath);
+    const relative = path.relative(projectRoot, absolute);
+    if (relative === '') {
+        return '.';
+    }
+    if (!relative.startsWith('..') && !path.isAbsolute(relative)) {
+        return relative;
+    }
+    return absolute;
+}
+
+function checkGitTrackingSafety(
+    overlaysConfig: OverlaysConfig,
+    outputPath: string,
+    workingDir: string,
+    allOverlays = false
+): CheckResult[] {
+    if (allOverlays) return [];
+
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch {
+        return [];
+    }
+    if (!projectConfig) return [];
+
+    const results: CheckResult[] = [];
+    const displayOutputPath = renderGitSafetyPath(workingDir, outputPath);
+
+    if (projectConfig.selection.devcontainerGitignore === true) {
+        const trackedOutput = listTrackedFilesUnder(workingDir, outputPath);
+        if (trackedOutput.ok && (trackedOutput.value?.length ?? 0) > 0) {
+            results.push({
+                name: 'Generated output tracked by Git',
+                findingId: 'tracked-generated-output',
+                status: 'warn',
+                message: `Generated output under "${displayOutputPath}" is still tracked by Git even though devcontainerGitignore is enabled. Run git rm -r --cached -- ${displayOutputPath}`,
+                details: [
+                    'Ignore rules protect new files only; already-tracked files stay tracked.',
+                    `Run: git rm -r --cached -- ${displayOutputPath}`,
+                ],
+                fixEligibility: 'manual-only',
+                remediationKey: 'tracked-generated-output-manual',
+            });
+        }
+    }
+
+    const localConfigPath = path.join(workingDir, 'superposition.local.yml');
+    if (!fs.existsSync(localConfigPath)) {
+        return results;
+    }
+
+    const localIgnored = isPathIgnored(workingDir, 'superposition.local.yml');
+    if (localIgnored.ok && localIgnored.value === false) {
+        results.push({
+            name: 'Local config not ignored by Git',
+            findingId: 'local-config-gitignore-missing',
+            status: 'warn',
+            message: 'superposition.local.yml exists but is not ignored by Git',
+            details: [
+                'Local-only config should stay untracked in shared repositories.',
+                'Run doctor --fix to append superposition.local.yml to root .gitignore.',
+            ],
+            fixEligibility: 'automatic',
+            remediationKey: 'local-config-gitignore',
+            fixable: true,
+        });
+    }
+
+    const trackedLocalConfig = listTrackedFilesUnder(workingDir, 'superposition.local.yml');
+    if (trackedLocalConfig.ok && (trackedLocalConfig.value?.length ?? 0) > 0) {
+        results.push({
+            name: 'Local-only config tracked by Git',
+            findingId: 'tracked-local-config',
+            status: 'warn',
+            message:
+                'superposition.local.yml is tracked by Git. Run git rm --cached -- superposition.local.yml',
+            details: [
+                'Local-only config should not stay committed to shared history.',
+                'Run: git rm --cached -- superposition.local.yml',
+            ],
+            fixEligibility: 'manual-only',
+            remediationKey: 'tracked-local-config-manual',
+        });
+    }
+
+    return results;
 }
 
 /**
@@ -2597,7 +2793,8 @@ function orderFindingsForRemediation(findings: DiagnosticFinding[]): DiagnosticF
         'env-example-regen': 5,
         'reproducibility-regen': 6,
         'node-version-fix': 7,
-        'docker-repair': 8,
+        'local-config-gitignore': 8,
+        'docker-repair': 9,
     };
     return [...findings].sort((a, b) => {
         const pa = PRIORITY[a.remediationKey ?? ''] ?? 99;
@@ -3173,6 +3370,49 @@ async function executeParametersRegen(
 /**
  * Execute a single remediation action and return its execution record.
  */
+function executeLocalConfigGitignoreFix(workingDir: string): FixExecution {
+    const localConfigPath = path.join(workingDir, 'superposition.local.yml');
+    if (!fs.existsSync(localConfigPath)) {
+        return {
+            findingId: 'local-config-gitignore-missing',
+            remediationKey: 'local-config-gitignore',
+            attempted: false,
+            outcome: 'skipped',
+            reason: 'Skipped because superposition.local.yml does not exist',
+            rechecked: false,
+        };
+    }
+
+    const gitignorePath = path.join(workingDir, '.gitignore');
+    try {
+        const written = appendGitignoreSection(
+            gitignorePath,
+            'container-superposition local config',
+            ['superposition.local.yml']
+        );
+        return {
+            findingId: 'local-config-gitignore-missing',
+            remediationKey: 'local-config-gitignore',
+            attempted: true,
+            outcome: written ? 'fixed' : 'already-compliant',
+            reason: written
+                ? 'Appended superposition.local.yml to root .gitignore'
+                : 'Root .gitignore already ignores superposition.local.yml',
+            changedFiles: written ? ['.gitignore'] : [],
+            rechecked: true,
+        };
+    } catch (err) {
+        return {
+            findingId: 'local-config-gitignore-missing',
+            remediationKey: 'local-config-gitignore',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to update root .gitignore: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+}
+
 async function executeSingleFix(
     finding: DiagnosticFinding,
     outputPath: string,
@@ -3227,6 +3467,8 @@ async function executeSingleFix(
             );
         case 'node-version-fix':
             return executeNodeVersionFix();
+        case 'local-config-gitignore':
+            return executeLocalConfigGitignoreFix(workingDir);
         case 'docker-repair': {
             return {
                 findingId: finding.id,
@@ -3306,7 +3548,8 @@ async function executeFixRun(
     overlaysDir: string,
     requestedJson: boolean,
     explicitManifestPath?: string,
-    workingDir: string = process.cwd()
+    workingDir: string = process.cwd(),
+    allOverlays = false
 ): Promise<FixRun> {
     const initialFindings = reportToFindings(report);
 
@@ -3388,7 +3631,16 @@ async function executeFixRun(
     const envChecks = checkEnvironment(outputPath, explicitManifestPath);
     const manifestChecks = checkManifest(outputPath, explicitManifestPath);
     const mergeChecks = checkMergeStrategy(outputPath);
-    const overlayChecks = checkOverlays(overlaysDir);
+    const selectedOverlayIds = resolveDoctorOverlayIds(
+        overlaysConfig,
+        workingDir,
+        outputPath,
+        explicitManifestPath,
+        false
+    );
+    const overlayChecks = allOverlays
+        ? checkOverlays(overlaysDir)
+        : checkOverlays(overlaysDir, selectedOverlayIds);
     const finalManifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
     const portChecks = checkPorts(overlaysConfig, finalManifestPath);
     const finalDriftChecks = checkProjectFileDrift(overlaysConfig, workingDir, finalManifestPath);
@@ -3402,6 +3654,12 @@ async function executeFixRun(
         overlaysDir,
         workingDir
     );
+    const finalGitSafetyChecks = checkGitTrackingSafety(
+        overlaysConfig,
+        outputPath,
+        workingDir,
+        allOverlays
+    );
     const finalFindings = [
         ...checksToFindings(envChecks, 'environment', 'environment'),
         ...checksToFindings(manifestChecks, 'manifest', 'manifest'),
@@ -3414,6 +3672,7 @@ async function executeFixRun(
         ...checksToFindings(finalPortCrossChecks, 'ports', 'full'),
         ...checksToFindings(finalEnvDriftChecks, 'manifest', 'full'),
         ...checksToFindings(finalReproChecks, 'manifest', 'full'),
+        ...checksToFindings(finalGitSafetyChecks, 'manifest', 'full'),
     ];
 
     const summary = buildOutcomeSummary(executions);
@@ -3433,100 +3692,221 @@ async function executeFixRun(
 /**
  * Format the fix run result as user-readable text.
  */
-function formatFixRunText(fixRun: FixRun): string {
-    const lines: string[] = [];
+function buildDoctorDisposition(
+    findings: DiagnosticFinding[]
+): 'Blocked' | 'Needs action' | 'Can fix now' | 'Healthy' {
+    const failing = findings.filter((finding) => finding.status === 'fail');
+    const autoFixable = findings.filter(
+        (finding) => finding.status !== 'pass' && finding.fixEligibility === 'automatic'
+    );
+    const manual = findings.filter(
+        (finding) => finding.status !== 'pass' && finding.fixEligibility === 'manual-only'
+    );
 
-    const hasIssues = fixRun.finalFindings.some((f) => f.status === 'warn' || f.status === 'fail');
-    if (fixRun.executions.length === 0 && !hasIssues) {
-        lines.push(
-            chalk.green('\n✓ No remediation needed — all checked items are already compliant.')
-        );
-        return lines.join('\n');
+    if (failing.length > 0 && autoFixable.length === 0) {
+        return 'Blocked';
+    }
+    if (autoFixable.length > 0) {
+        return 'Can fix now';
+    }
+    if (manual.length > 0) {
+        return 'Needs action';
+    }
+    return 'Healthy';
+}
+
+export function renderDoctorReportModel(input: {
+    mode: DoctorMode;
+    outputPath: string;
+    findings: DiagnosticFinding[];
+    fixPlan?: RemediationPlan[];
+    executions?: FixExecution[];
+    scope: string;
+}): string {
+    const disposition = buildDoctorDisposition(input.findings);
+    const blocking = input.findings.filter((finding) => finding.status === 'fail');
+    const autoFixable = input.findings.filter(
+        (finding) => finding.status !== 'pass' && finding.fixEligibility === 'automatic'
+    );
+    const manual = input.findings.filter(
+        (finding) => finding.status !== 'pass' && finding.fixEligibility === 'manual-only'
+    );
+    const passed = input.findings.filter((finding) => finding.status === 'pass');
+
+    const frame = renderFrame([
+        { label: 'Mode', value: input.mode },
+        { label: 'Verdict', value: disposition },
+        { label: 'Scope', value: input.scope },
+        { label: 'Source inspected', value: input.outputPath },
+        {
+            label: 'What needs attention',
+            value:
+                disposition === 'Healthy'
+                    ? 'nothing blocking; checks completed cleanly'
+                    : `${blocking.length} blocking, ${autoFixable.length} safe fix now, ${manual.length} manual follow-up`,
+        },
+        {
+            label: 'Recommended next action',
+            value:
+                resolveNextStep({ command: 'doctor', hasBlockingIssues: blocking.length > 0 })
+                    .command ?? 'No next step suggested',
+        },
+    ]);
+
+    const body: string[] = [
+        `Counts\nblocking: ${blocking.length} | fix now: ${autoFixable.length} | manual: ${manual.length} | healthy: ${passed.length}`,
+    ];
+
+    if (!input.executions) {
+        if (blocking.length > 0) {
+            body.push(
+                renderSection(
+                    'Do now',
+                    renderList(
+                        blocking.map(
+                            (finding) =>
+                                `${finding.name} — ${finding.message} — ${finding.fixEligibility === 'automatic' ? 'auto-fix available' : 'manual only'}`
+                        ),
+                        'none'
+                    )
+                )
+            );
+        }
+
+        if (autoFixable.length > 0) {
+            if (body.length > 0) body.push('');
+            body.push(
+                renderSection(
+                    'Can fix now',
+                    renderList(
+                        autoFixable.map(
+                            (finding) => `${finding.name} — ${finding.message} — auto-fix available`
+                        ),
+                        'none'
+                    )
+                )
+            );
+        }
+
+        if (manual.length > 0) {
+            if (body.length > 0) body.push('');
+            body.push(
+                renderSection(
+                    'Review next',
+                    renderList(
+                        manual.map(
+                            (finding) => `${finding.name} — ${finding.message} — manual only`
+                        ),
+                        'none'
+                    )
+                )
+            );
+        }
+
+        if (disposition === 'Healthy') {
+            if (body.length > 0) body.push('');
+            body.push(
+                renderSection('Healthy checks', [
+                    `${passed.length} checks already healthy`,
+                    'No files changed',
+                ])
+            );
+        } else if (passed.length > 0 && input.mode === 'Catalog validation') {
+            if (body.length > 0) body.push('');
+            body.push(
+                renderSection(
+                    'Healthy checks',
+                    renderList(
+                        passed.map((finding) => `${finding.name} — already healthy`),
+                        'none'
+                    )
+                )
+            );
+        } else if (passed.length > 0) {
+            if (body.length > 0) body.push('');
+            body.push(renderSection('Healthy checks', [`${passed.length} checks already healthy`]));
+        }
     }
 
-    if (fixRun.executions.length === 0 && hasIssues) {
-        lines.push(
-            chalk.yellow(
-                '\n⚠ No automatic remediation available. Review the findings above for manual action.'
+    if (input.fixPlan) {
+        body.push(
+            '',
+            renderSection(
+                'Fix plan',
+                renderList(
+                    input.fixPlan.map(
+                        (item) =>
+                            `${item.findingName} | action ${item.remediationAction} | artifacts ${item.plannedChanges.join('; ') || 'no file changes'} | prerequisites/skip ${item.prerequisitesOrSkipConditions.join('; ') || 'none'} | safety class ${item.safetyClass}`
+                    ),
+                    'Nothing to apply'
+                )
             )
         );
-        return lines.join('\n');
     }
 
-    lines.push(chalk.bold('\nRemediation Summary:'));
+    if (input.executions) {
+        body.push(
+            '',
+            renderSection(
+                'Fixed now',
+                renderList(
+                    input.executions
+                        .filter(
+                            (execution) =>
+                                execution.outcome === 'fixed' ||
+                                execution.outcome === 'already-compliant'
+                        )
+                        .map((execution) => `${execution.remediationKey} — ${execution.reason}`),
+                    'none'
+                )
+            ),
+            '',
+            renderSection(
+                'Skipped',
+                renderList(
+                    input.executions
+                        .filter((execution) => execution.outcome === 'skipped')
+                        .map((execution) => `${execution.remediationKey} — ${execution.reason}`),
+                    'none'
+                )
+            ),
+            '',
+            renderSection(
+                'Still needs action',
+                renderList(
+                    input.executions
+                        .filter((execution) => execution.outcome === 'requires-manual-action')
+                        .map((execution) => `${execution.remediationKey} — ${execution.reason}`),
+                    'none'
+                )
+            )
+        );
 
-    for (const ex of fixRun.executions) {
-        const finding = fixRun.initialFindings.find((f) => f.id === ex.findingId);
-        const name = finding?.name ?? ex.findingId;
-
-        let icon: string;
-        let outcomeLabel: string;
-        switch (ex.outcome) {
-            case 'fixed':
-                icon = chalk.green('✓');
-                outcomeLabel = chalk.green('fixed');
-                break;
-            case 'already-compliant':
-                icon = chalk.green('✓');
-                outcomeLabel = chalk.green('already compliant');
-                break;
-            case 'skipped':
-                icon = chalk.yellow('→');
-                outcomeLabel = chalk.yellow('skipped');
-                break;
-            default:
-                icon = chalk.red('✗');
-                outcomeLabel = chalk.red('requires manual action');
-        }
-
-        lines.push(`  ${icon} ${chalk.white(name)}: ${outcomeLabel}`);
-        lines.push(`    ${chalk.dim('Reason:')} ${chalk.dim(ex.reason)}`);
-
-        if (ex.changedFiles && ex.changedFiles.length > 0) {
-            lines.push(`    ${chalk.dim('Changed:')} ${chalk.dim(ex.changedFiles.join(', '))}`);
-        }
-        if (ex.backupPath) {
-            lines.push(`    ${chalk.dim('Backup:')}  ${chalk.dim(ex.backupPath)}`);
-        }
-
-        // Show manual fallback for requires-manual-action
-        if (ex.outcome === 'requires-manual-action') {
-            const action = REMEDIATION_REGISTRY.get(ex.remediationKey);
-            if (action && action.manualFallback.length > 0) {
-                lines.push(`    ${chalk.dim('Manual steps:')}`);
-                for (const step of action.manualFallback) {
-                    lines.push(`      ${chalk.dim('·')} ${chalk.dim(step)}`);
-                }
-            }
+        if (passed.length > 0) {
+            body.push(
+                '',
+                renderSection('Healthy checks', [`${passed.length} checks already healthy`])
+            );
         }
     }
 
-    // Overall disposition
-    lines.push('');
-    const { summary, exitDisposition } = fixRun;
-    lines.push(chalk.bold('Fix Run Result:'));
-    if (summary.fixed > 0) {
-        lines.push(`  ${chalk.green('✓')} ${summary.fixed} fixed`);
-    }
-    if (summary.alreadyCompliant > 0) {
-        lines.push(`  ${chalk.green('✓')} ${summary.alreadyCompliant} already compliant`);
-    }
-    if (summary.skipped > 0) {
-        lines.push(`  ${chalk.yellow('→')} ${summary.skipped} skipped`);
-    }
-    if (summary.requiresManualAction > 0) {
-        lines.push(`  ${chalk.red('✗')} ${summary.requiresManualAction} require manual action`);
-    }
+    body.push(
+        '',
+        renderNextStep(
+            resolveNextStep({ command: 'doctor', hasBlockingIssues: blocking.length > 0 })
+        )
+    );
+    return [frame, '', ...body].join('\n');
+}
 
-    const dispositionColour =
-        exitDisposition === 'success'
-            ? chalk.green
-            : exitDisposition === 'repaired-with-warnings'
-              ? chalk.yellow
-              : chalk.red;
-    lines.push(`\n  ${dispositionColour('Exit status:')} ${dispositionColour(exitDisposition)}`);
-
-    return lines.join('\n');
+function formatFixRunText(fixRun: FixRun, scope: string): string {
+    return renderDoctorReportModel({
+        mode: 'Project safe fixes',
+        outputPath: fixRun.outputPath,
+        findings: fixRun.finalFindings,
+        executions: fixRun.executions,
+        scope,
+    });
 }
 
 /**
@@ -3613,16 +3993,13 @@ export async function doctorCommand(
         outputPath = path.resolve(workingDir, options.output || './.devcontainer');
     }
 
-    if (!options.json) {
-        console.log(
-            '\n' +
-                boxen(chalk.bold('🔍 Running diagnostics...'), {
-                    padding: 0.5,
-                    borderColor: 'cyan',
-                    borderStyle: 'round',
-                })
-        );
-    }
+    const doctorMode: DoctorMode = options.allOverlays
+        ? 'Catalog validation'
+        : options.fix
+          ? options.dryRun
+              ? 'Project fix preview'
+              : 'Project safe fixes'
+          : 'Project diagnosis';
 
     // ── Validate --dry-run flag ───────────────────────────────────────────────
     if (options.dryRun && !options.fix) {
@@ -3632,9 +4009,22 @@ export async function doctorCommand(
         process.exit(1);
     }
 
-    // Run all checks
     const environmentChecks = checkEnvironment(outputPath, explicitManifestPath);
-    const overlayChecks = checkOverlays(overlaysDir);
+    const selectedOverlayIds = resolveDoctorOverlayIds(
+        overlaysConfig,
+        workingDir,
+        outputPath,
+        explicitManifestPath,
+        Boolean(options.fromProject)
+    );
+    const overlayChecks = options.allOverlays
+        ? checkOverlays(overlaysDir)
+        : checkOverlays(overlaysDir, selectedOverlayIds);
+    const doctorScope = options.allOverlays
+        ? 'full overlay catalog'
+        : options.fromManifest
+          ? `legacy manifest context (${selectedOverlayIds.length} selected overlays)`
+          : `selected overlays for current project (${selectedOverlayIds.length})`;
     const manifestChecks = checkManifest(outputPath, explicitManifestPath);
     const mergeChecks = checkMergeStrategy(outputPath);
     const manifestPath = explicitManifestPath ?? path.join(outputPath, 'superposition.json');
@@ -3650,8 +4040,13 @@ export async function doctorCommand(
         overlaysDir,
         workingDir
     );
+    const gitSafetyChecks = checkGitTrackingSafety(
+        overlaysConfig,
+        outputPath,
+        workingDir,
+        options.allOverlays ?? false
+    );
 
-    // Generate report
     const report = generateReport(
         environmentChecks,
         overlayChecks,
@@ -3663,97 +4058,151 @@ export async function doctorCommand(
         dependenciesChecks,
         portCrossValidationChecks,
         envExampleDriftChecks,
-        reproducibilityChecks
+        [...reproducibilityChecks, ...gitSafetyChecks]
     );
+    const findings = reportToFindings(report);
 
     if (options.fix) {
-        // ── Fix flow ──────────────────────────────────────────────────────────
-        if (!options.json) {
-            // Print diagnostic findings first (as normal)
-            console.log(formatAsText(report));
-        }
+        const autoFixable = findings.filter(
+            (finding) => finding.fixEligibility === 'automatic' && finding.status !== 'pass'
+        );
+        const manualOnly = findings.filter(
+            (finding) => finding.fixEligibility === 'manual-only' && finding.status !== 'pass'
+        );
+        const plannedActions: RemediationPlan[] = autoFixable.map((finding) => {
+            const action = REMEDIATION_REGISTRY.get(finding.remediationKey ?? '');
+            return {
+                findingName: finding.name,
+                remediationKey: finding.remediationKey ?? '',
+                remediationAction: action?.executionKind ?? 'no-op',
+                plannedChanges: action?.plannedChanges ?? [],
+                prerequisitesOrSkipConditions: action?.preconditions ?? [],
+                safetyClass: action?.safetyClass ?? 'safe-unattended',
+            };
+        });
 
-        // ── Dry-run branch ────────────────────────────────────────────────────
         if (options.dryRun) {
-            const allFindings = reportToFindings(report);
-            const autoFixable = allFindings.filter(
-                (f) => f.fixEligibility === 'automatic' && f.status !== 'pass'
-            );
-            const manualOnly = allFindings.filter(
-                (f) => f.fixEligibility === 'manual-only' && f.status !== 'pass'
-            );
-
             if (options.json) {
-                const plannedActions: RemediationPlan[] = autoFixable.map((f) => {
-                    const action = REMEDIATION_REGISTRY.get(f.remediationKey ?? '');
-                    return {
-                        findingName: f.name,
-                        remediationKey: f.remediationKey ?? '',
-                        plannedChanges: action?.plannedChanges ?? [],
-                        safetyClass: action?.safetyClass ?? 'safe-unattended',
-                    };
-                });
                 console.log(
                     JSON.stringify(
                         {
-                            dryRun: true,
+                            ...report,
+                            mode: doctorMode,
+                            disposition: buildDoctorDisposition(findings),
+                            counts: {
+                                blockingIssues: findings.filter(
+                                    (finding) => finding.status === 'fail'
+                                ).length,
+                                safeAutoFixesAvailable: autoFixable.length,
+                                manualFollowUpItems: manualOnly.length,
+                                passedChecks: findings.filter(
+                                    (finding) => finding.status === 'pass'
+                                ).length,
+                            },
+                            actionBuckets: {
+                                blockingIssues: findings.filter(
+                                    (finding) => finding.status === 'fail'
+                                ),
+                                safeAutoFixesAvailable: autoFixable,
+                                manualFollowUp: manualOnly,
+                                passedChecks: findings.filter(
+                                    (finding) => finding.status === 'pass'
+                                ),
+                            },
+                            scope: doctorScope,
+                            fixPlan: plannedActions,
                             plannedActions,
-                            manualFindings: manualOnly.map((f) => ({
-                                name: f.name,
-                                message: f.message,
-                            })),
+                            previewOnly: true,
+                            dryRun: true,
+                            note: 'Project fix preview — No files changed',
                         },
                         null,
                         2
                     )
                 );
             } else {
-                if (autoFixable.length === 0) {
-                    console.log(
-                        chalk.green(
-                            '\nDoctor dry-run — no auto-fixable findings. Nothing to apply.'
-                        )
-                    );
-                } else {
-                    console.log(chalk.bold('\nDoctor dry-run — changes that --fix would apply:'));
-                    console.log(chalk.dim('══════════════════════════════════════════════════'));
-                    autoFixable.forEach((f, i) => {
-                        const action = REMEDIATION_REGISTRY.get(f.remediationKey ?? '');
-                        console.log(
-                            `\n  [${i + 1}] ${chalk.cyan(f.remediationKey ?? '')} (${chalk.dim(action?.safetyClass ?? '')})`
-                        );
-                        console.log(`      Finding: ${chalk.white(`"${f.message}"`)}`);
-                        console.log(`      Would:`);
-                        for (const change of action?.plannedChanges ?? []) {
-                            console.log(`        ${chalk.dim('•')} ${chalk.dim(change)}`);
-                        }
-                    });
-                    console.log(chalk.dim('\n──────────────────────────────────────────────────'));
-                    console.log(
-                        `  ${chalk.yellow(`${autoFixable.length} fix action(s) would be applied.`)} Run without --dry-run to apply.`
-                    );
-                }
-
-                if (manualOnly.length > 0) {
-                    console.log(
-                        chalk.bold('\nFindings that require manual action (not auto-fixable):')
-                    );
-                    for (const f of manualOnly) {
-                        console.log(
-                            `  ${chalk.red('✗')} ${chalk.white(f.name)} — ${chalk.gray(f.message)}`
-                        );
-                        const action = REMEDIATION_REGISTRY.get(f.remediationKey ?? '');
-                        if (action?.manualFallback.length) {
-                            for (const step of action.manualFallback) {
-                                console.log(`    ${chalk.dim('→')} ${chalk.dim(step)}`);
-                            }
-                        }
-                    }
-                }
+                console.log(
+                    renderDoctorReportModel({
+                        mode: doctorMode,
+                        outputPath,
+                        findings,
+                        fixPlan: plannedActions,
+                        scope: doctorScope,
+                    })
+                );
+                console.log('Project fix preview — No files changed');
             }
 
-            const hasAnyFindings = autoFixable.length > 0 || manualOnly.length > 0;
-            process.exit(hasAnyFindings ? 1 : 0);
+            process.exit(autoFixable.length > 0 || manualOnly.length > 0 ? 1 : 0);
+        }
+
+        if (!options.json) {
+            console.log(
+                renderDoctorReportModel({
+                    mode: doctorMode,
+                    outputPath,
+                    findings,
+                    fixPlan: plannedActions,
+                    scope: doctorScope,
+                })
+            );
+        }
+
+        if (plannedActions.length === 0) {
+            if (options.json) {
+                console.log(
+                    JSON.stringify(
+                        {
+                            ...report,
+                            mode: doctorMode,
+                            disposition: buildDoctorDisposition(findings),
+                            counts: {
+                                blockingIssues: findings.filter(
+                                    (finding) => finding.status === 'fail'
+                                ).length,
+                                safeAutoFixesAvailable: autoFixable.length,
+                                manualFollowUpItems: manualOnly.length,
+                                passedChecks: findings.filter(
+                                    (finding) => finding.status === 'pass'
+                                ).length,
+                            },
+                            actionBuckets: {
+                                blockingIssues: findings.filter(
+                                    (finding) => finding.status === 'fail'
+                                ),
+                                safeAutoFixesAvailable: autoFixable,
+                                manualFollowUp: manualOnly,
+                                passedChecks: findings.filter(
+                                    (finding) => finding.status === 'pass'
+                                ),
+                            },
+                            scope: doctorScope,
+                            fixPlan: plannedActions,
+                            note: 'Nothing safe to apply',
+                        },
+                        null,
+                        2
+                    )
+                );
+            } else {
+                console.log('Nothing safe to apply');
+            }
+            process.exit(manualOnly.length > 0 ? 1 : 0);
+        }
+
+        if (!options.json && process.stdin.isTTY && process.stdout.isTTY) {
+            const confirmation = (await select({
+                message: 'Project fix preview — choose next action',
+                choices: [
+                    { name: 'Apply fixes', value: 'Apply fixes' },
+                    { name: 'Cancel', value: 'Cancel' },
+                ],
+                default: 'Cancel',
+            })) as string;
+            if (confirmation !== 'Apply fixes') {
+                console.log('Cancel');
+                process.exit(0);
+            }
         }
 
         const fixRun = await executeFixRun(
@@ -3763,40 +4212,102 @@ export async function doctorCommand(
             overlaysDir,
             options.json ?? false,
             explicitManifestPath,
-            workingDir
+            workingDir,
+            options.allOverlays ?? false
         );
 
         if (options.json) {
-            console.log(JSON.stringify(fixRun, null, 2));
+            console.log(
+                JSON.stringify(
+                    {
+                        ...fixRun,
+                        mode: doctorMode,
+                        disposition: buildDoctorDisposition(fixRun.finalFindings),
+                        scope: doctorScope,
+                        counts: {
+                            blockingIssues: fixRun.finalFindings.filter(
+                                (finding) => finding.status === 'fail'
+                            ).length,
+                            safeAutoFixesAvailable: fixRun.finalFindings.filter(
+                                (finding) =>
+                                    finding.status !== 'pass' &&
+                                    finding.fixEligibility === 'automatic'
+                            ).length,
+                            manualFollowUpItems: fixRun.finalFindings.filter(
+                                (finding) =>
+                                    finding.status !== 'pass' &&
+                                    finding.fixEligibility === 'manual-only'
+                            ).length,
+                            passedChecks: fixRun.finalFindings.filter(
+                                (finding) => finding.status === 'pass'
+                            ).length,
+                        },
+                        fixPlan: plannedActions,
+                    },
+                    null,
+                    2
+                )
+            );
         } else {
-            console.log(formatFixRunText(fixRun));
+            console.log(formatFixRunText(fixRun, doctorScope));
             console.log('');
         }
 
-        if (fixRun.exitDisposition === 'unresolved-failures') {
-            process.exit(1);
-        } else {
-            process.exit(0);
-        }
-    } else {
-        // ── Normal diagnostic output (unchanged) ─────────────────────────────
-        if (options.json) {
-            console.log(JSON.stringify(report, null, 2));
-        } else {
-            console.log(formatAsText(report));
-        }
-
-        // Exit with appropriate code
-        const hasErrors = report.summary.errors > 0;
-
-        if (!options.json) {
-            console.log(''); // Empty line at end
-        }
-
-        if (hasErrors) {
-            process.exit(1);
-        } else {
-            process.exit(0);
-        }
+        process.exit(fixRun.exitDisposition === 'unresolved-failures' ? 1 : 0);
     }
+
+    if (options.json) {
+        console.log(
+            JSON.stringify(
+                {
+                    ...report,
+                    mode: doctorMode,
+                    disposition: buildDoctorDisposition(findings),
+                    scope: doctorScope,
+                    counts: {
+                        blockingIssues: findings.filter((finding) => finding.status === 'fail')
+                            .length,
+                        safeAutoFixesAvailable: findings.filter(
+                            (finding) =>
+                                finding.status !== 'pass' && finding.fixEligibility === 'automatic'
+                        ).length,
+                        manualFollowUpItems: findings.filter(
+                            (finding) =>
+                                finding.status !== 'pass' &&
+                                finding.fixEligibility === 'manual-only'
+                        ).length,
+                        passedChecks: findings.filter((finding) => finding.status === 'pass')
+                            .length,
+                    },
+                    actionBuckets: {
+                        blockingIssues: findings.filter((finding) => finding.status === 'fail'),
+                        safeAutoFixesAvailable: findings.filter(
+                            (finding) =>
+                                finding.status !== 'pass' && finding.fixEligibility === 'automatic'
+                        ),
+                        manualFollowUp: findings.filter(
+                            (finding) =>
+                                finding.status !== 'pass' &&
+                                finding.fixEligibility === 'manual-only'
+                        ),
+                        passedChecks: findings.filter((finding) => finding.status === 'pass'),
+                    },
+                },
+                null,
+                2
+            )
+        );
+    } else {
+        console.log(
+            renderDoctorReportModel({
+                mode: doctorMode,
+                outputPath,
+                findings,
+                scope: doctorScope,
+            })
+        );
+        console.log('');
+    }
+
+    process.exit(report.summary.errors > 0 ? 1 : 0);
 }

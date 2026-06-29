@@ -60,7 +60,7 @@ describe('Project Env', () => {
         expect(answers.projectEnv).toEqual(loaded?.selection.env);
     });
 
-    it('accepts deprecated customizations.environment but serializes envTemplate', () => {
+    it('accepts deprecated customizations.environment, warns, but serializes envTemplate', () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
             yaml.dump({
@@ -74,10 +74,14 @@ describe('Project Env', () => {
             })
         );
 
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
         const loaded = loadProjectConfig(overlaysConfig, repoDir);
         expect(loaded?.selection.customizations?.envTemplate).toEqual({
             PROJECT_FLAG: 'enabled',
         });
+        expect(warnSpy).toHaveBeenCalled();
+        expect(warnSpy.mock.calls.flat().join('\n')).toContain('customizations.environment');
 
         const serialized = serializeProjectConfig(loaded!.selection);
         expect(serialized).toContain('envTemplate:');
@@ -158,6 +162,33 @@ describe('Project Env', () => {
 
         const composeEnvFile = fs.readFileSync(path.join(outputPath, '.env'), 'utf8');
         expect(composeEnvFile).toContain('API_TOKEN=from-root');
+        expect(composeEnvFile).toContain('APP_NAME=compose-demo');
+    });
+
+    it('omits unresolved ${NAME} project env entries from materialized compose .env when root .env is missing', async () => {
+        const outputPath = path.join(repoDir, '.devcontainer');
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'compose',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            projectEnv: {
+                API_TOKEN: { value: '${API_TOKEN}' },
+                APP_NAME: { value: 'compose-demo' },
+            },
+        };
+
+        await composeDevContainer(answers);
+
+        const composeEnvFile = fs.readFileSync(path.join(outputPath, '.env'), 'utf8');
+        expect(composeEnvFile).not.toContain('API_TOKEN=');
         expect(composeEnvFile).toContain('APP_NAME=compose-demo');
     });
 

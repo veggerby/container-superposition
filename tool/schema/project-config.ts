@@ -605,6 +605,11 @@ function parseCustomizations(value: unknown): ProjectConfigCustomizationsInput |
     }
 
     const record = expectPlainObject(value, 'customizations');
+    if (record.environment !== undefined) {
+        console.warn(
+            'Deprecated project config field: customizations.environment. Use customizations.envTemplate instead.'
+        );
+    }
     const envTemplate = {
         ...(parseEnvTemplate(record.environment, 'customizations.environment') ?? {}),
         ...(parseEnvTemplate(record.envTemplate, 'customizations.envTemplate') ?? {}),

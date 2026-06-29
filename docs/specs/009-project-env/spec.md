@@ -2,7 +2,7 @@
 
 **Spec ID**: `009-project-env`
 **Created**: 2026-03-29
-**Status**: Approved
+**Status**: Final
 **Input**: User request
 
 ## User Scenarios & Testing

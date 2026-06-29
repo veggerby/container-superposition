@@ -211,7 +211,7 @@ export function generateServicesMarkdown(
     overlays: OverlayMetadata[],
     portOffset: number,
     envVars: Record<string, string>,
-    generatedAt: string = new Date().toISOString()
+    generatedAt?: string
 ): string {
     const serviceOverlays = overlays.filter((o) => o.ports && o.ports.length > 0);
 
@@ -468,7 +468,11 @@ export function generateServicesMarkdown(
     // Footer
     lines.push('---');
     lines.push('');
-    lines.push(`Generated from overlays on ${generatedAt}`);
+    lines.push(
+        generatedAt
+            ? `Generated from overlays on ${generatedAt}`
+            : 'Generated from selected overlays.'
+    );
     lines.push('');
 
     return lines.join('\n');

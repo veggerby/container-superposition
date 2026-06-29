@@ -13,10 +13,10 @@ import {
 } from '../commands/adopt.js';
 import { createBackup } from '../utils/backup.js';
 
-// Mock @inquirer/prompts so individual tests can control confirm() behaviour.
-// Default: resolve false (user declines) — tests that need confirmation must override with
-// vi.mocked(confirm).mockResolvedValueOnce(true).
-vi.mock('@inquirer/prompts', () => ({ confirm: vi.fn().mockResolvedValue(false) }));
+// Mock @inquirer/prompts so individual tests can control select() behaviour.
+// Default: resolve Cancel — tests that need write approval must override with
+// vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts').
+vi.mock('@inquirer/prompts', () => ({ select: vi.fn().mockResolvedValue('Cancel') }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,8 +91,22 @@ describe('adoptCommand', () => {
             const output = consoleLogSpy.mock.calls.join('\n');
             // The `node` feature should map to `nodejs` (not `bun`)
             expect(output).toContain('nodejs');
-            expect(output).toContain('exact');
-            expect(output).toContain('Suggested command:');
+            expect(output).toContain('Mode: Adopt existing handwritten setup');
+            expect(output).toContain('This path is for');
+            expect(output).toContain(
+                'This path is for: existing handwritten devcontainer setup you want tool to map into managed intent'
+            );
+            expect(output).toContain('What will be written');
+            expect(output).toContain('Generated output: unchanged by this command');
+            expect(output).toContain('Confidence');
+            expect(output).toContain('High confidence');
+            expect(output).toContain('Will become managed');
+            expect(output.indexOf('Mode: Adopt existing handwritten setup')).toBeLessThan(
+                output.indexOf('This path is for')
+            );
+            expect(output.indexOf('Confidence')).toBeLessThan(
+                output.indexOf('Will become managed')
+            );
             expect(output).toContain('--dry-run');
             expect(fs.existsSync(path.join(tmpDir, 'superposition.json'))).toBe(false);
         });
@@ -108,7 +122,7 @@ describe('adoptCommand', () => {
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, dryRun: true });
 
             const output = consoleLogSpy.mock.calls.join('\n');
-            expect(output).toContain('Items with no overlay equivalent');
+            expect(output).toContain('Will be preserved');
             expect(output).toContain('some-custom-feature');
         });
     });
@@ -154,6 +168,54 @@ describe('adoptCommand', () => {
 
             const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
             expect(parsed.unmatchedItems.length).toBeGreaterThan(0);
+        });
+
+        it('includes artifactWrites in JSON output', async () => {
+            writeDevcontainerJson(tmpDir, {
+                features: {
+                    'ghcr.io/devcontainers/features/node:1': {},
+                },
+            });
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, json: true });
+
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(Array.isArray(parsed.artifactWrites)).toBe(true);
+            expect(parsed.artifactWrites[0]).toMatchObject({
+                artifact: expect.any(String),
+                role: expect.any(String),
+                action: expect.any(String),
+                overwriteRisk: expect.any(String),
+                backup: expect.any(String),
+            });
+        });
+
+        it('includes confidence and ownership parity fields in JSON output', async () => {
+            writeDevcontainerJson(tmpDir, {
+                features: {
+                    'ghcr.io/devcontainers/features/node:1': {},
+                    'ghcr.io/corp/custom-tool:1': {},
+                },
+            });
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, json: true });
+
+            const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+            expect(parsed.confidence).toBeDefined();
+            expect(typeof parsed.recommendation).toBe('string');
+            expect(Array.isArray(parsed.confidenceReasons)).toBe(true);
+            expect(Array.isArray(parsed.managed)).toBe(true);
+            expect(parsed.managed).toContain('nodejs');
+            expect(Array.isArray(parsed.preserved)).toBe(true);
+            expect(Array.isArray(parsed.manualReview)).toBe(true);
+            expect(parsed.preserved[0]).toMatchObject({
+                source: expect.any(String),
+                reason: expect.any(String),
+            });
+            expect(parsed.manualReview[0]).toMatchObject({
+                source: expect.any(String),
+                reason: expect.any(String),
+            });
         });
     });
 
@@ -502,7 +564,24 @@ describe('adoptCommand', () => {
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: tmpDir, dryRun: true });
             const output = consoleLogSpy.mock.calls.join('\n');
-            expect(output).toContain('No recognisable overlay patterns');
+            expect(output).toContain('Confidence');
+            expect(output).toContain('No viable conversion');
+            expect(output).toContain('Why conversion stopped');
+            expect(output).toContain('Not recommended to write from this analysis.');
+            expect(output).toContain('Why confidence is not higher');
+            expect(output).toContain('use init instead');
+            expect(output.indexOf('Confidence')).toBeLessThan(
+                output.indexOf('Will become managed')
+            );
+            expect(output.indexOf('Will become managed')).toBeLessThan(
+                output.indexOf('Will be preserved')
+            );
+            expect(output.indexOf('Will be preserved')).toBeLessThan(
+                output.indexOf('Needs manual review')
+            );
+            expect(output.indexOf('Needs manual review')).toBeLessThan(
+                output.indexOf('Why confidence is not higher')
+            );
         });
     });
 
@@ -526,7 +605,7 @@ describe('adoptCommand', () => {
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, { dir: devcontainerDir });
 
             const output = consoleLogSpy.mock.calls.join('\n');
-            expect(output).toContain('already exist');
+            expect(output).toContain('Blocked: existing conversion artifacts detected');
             expect(output).toContain('--force');
 
             // Existing file must NOT have been overwritten
@@ -545,9 +624,11 @@ describe('adoptCommand', () => {
                 features: { 'ghcr.io/devcontainers/features/node:1': {} },
             });
 
-            // Mock confirm to auto-accept so the manifest is actually written
-            const { confirm } = await import('@inquirer/prompts');
-            vi.mocked(confirm).mockResolvedValueOnce(true);
+            // Mock explicit write approval so artifacts are actually written
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts');
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
@@ -559,6 +640,33 @@ describe('adoptCommand', () => {
             expect(fs.existsSync(path.join(devcontainerDir, 'superposition.json'))).toBe(false);
         });
 
+        it('shows ownership-aware write review before confirmation', async () => {
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
+                features: { 'ghcr.io/devcontainers/features/node:1': {} },
+            });
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Cancel');
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
+                dir: devcontainerDir,
+                force: true,
+            });
+
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Write review');
+            expect(output).toContain('Canonical shared intent');
+            expect(output).toContain('Compatibility artifact');
+            expect(output).toContain('Overwrite risk');
+            expect(output).toContain('Backup');
+            expect(output).toContain('Mode: Adopt existing handwritten setup');
+            expect(output).toContain('Generated output: unchanged by this command');
+        });
+
         it('writes a project file by default', async () => {
             const devcontainerDir = path.join(tmpDir, '.devcontainer');
             fs.mkdirSync(devcontainerDir);
@@ -568,8 +676,10 @@ describe('adoptCommand', () => {
                 customizations: { vscode: { extensions: ['my-org.custom-ext'] } },
             });
 
-            const { confirm } = await import('@inquirer/prompts');
-            vi.mocked(confirm).mockResolvedValueOnce(true);
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts');
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
@@ -595,6 +705,20 @@ describe('adoptCommand', () => {
                 fs.readFileSync(path.join(tmpDir, 'superposition.json'), 'utf8')
             );
             expect(manifest.containerName).toBe('Adopted Workspace');
+
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('Written now');
+            expect(output).toContain('Managed going forward');
+            expect(output).toContain('Preserved for now');
+            expect(output).toContain('Still needs review');
+            expect(output).toContain('Generated output status');
+            expect(output).toContain('Next checklist');
+            expect(output.indexOf('Written now')).toBeLessThan(
+                output.indexOf('Managed going forward')
+            );
+            expect(output.indexOf('Managed going forward')).toBeLessThan(
+                output.indexOf('Preserved for now')
+            );
         });
 
         it('filters template and overlay defaults out of generated project-file customizations', async () => {
@@ -686,8 +810,10 @@ describe('adoptCommand', () => {
                 ].join('\n')
             );
 
-            const { confirm } = await import('@inquirer/prompts');
-            vi.mocked(confirm).mockResolvedValueOnce(true);
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts');
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
@@ -739,8 +865,10 @@ describe('adoptCommand', () => {
             });
             fs.writeFileSync(path.join(tmpDir, 'superposition.yml'), 'stack: compose\n');
 
-            const { confirm } = await import('@inquirer/prompts');
-            vi.mocked(confirm).mockResolvedValueOnce(true);
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Write conversion artifacts');
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
                 dir: devcontainerDir,
@@ -774,6 +902,31 @@ describe('adoptCommand', () => {
             expect(fs.readFileSync(path.join(tmpDir, '.superposition.yml'), 'utf8')).toBe(
                 'stack: compose\n'
             );
+        });
+
+        it('uses explicit write conversion artifacts or cancel choices', async () => {
+            const devcontainerDir = path.join(tmpDir, '.devcontainer');
+            fs.mkdirSync(devcontainerDir);
+            writeDevcontainerJson(devcontainerDir, {
+                features: { 'ghcr.io/devcontainers/features/node:1': {} },
+            });
+            Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+            Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+
+            const { select } = await import('@inquirer/prompts');
+            vi.mocked(select).mockResolvedValueOnce('Cancel');
+
+            await adoptCommand(overlaysConfig, OVERLAYS_DIR, {
+                dir: devcontainerDir,
+                force: true,
+            });
+
+            const prompt = vi.mocked(select).mock.calls.at(-1)?.[0] as any;
+            expect(prompt.choices.map((choice: any) => choice.name)).toEqual([
+                'Write conversion artifacts',
+                'Cancel',
+            ]);
+            expect(prompt.default).toBe('Cancel');
         });
     });
 

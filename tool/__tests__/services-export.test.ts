@@ -2,7 +2,7 @@
  * Tests for services export utilities (services.md and env.local.example generation)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -177,7 +177,20 @@ describe('generateServicesMarkdown', () => {
         expect(result).toContain('.env.example');
     });
 
-    it('should include generated timestamp', () => {
+    it('should be deterministic by default across regen runs', () => {
+        vi.useFakeTimers();
+        try {
+            vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+            const first = generateServicesMarkdown([postgresOverlay], 0, {});
+            vi.setSystemTime(new Date('2026-01-02T00:00:00.000Z'));
+            const second = generateServicesMarkdown([postgresOverlay], 0, {});
+            expect(second).toBe(first);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('should include generated timestamp when explicitly provided', () => {
         const ts = '2026-01-01T00:00:00.000Z';
         const result = generateServicesMarkdown([postgresOverlay], 0, {}, ts);
         expect(result).toContain(ts);

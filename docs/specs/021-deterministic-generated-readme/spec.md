@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-05-06
 **Author**: Codex
-**Status**: Approved
+**Status**: Final
 **Input**: Bug report — `cs doctor` reproducibility checks can fail on a clean project because generated `README.md` content includes the current date in its header.
 
 ## Problem Statement

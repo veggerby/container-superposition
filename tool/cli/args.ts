@@ -45,13 +45,13 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
 
     program
         .name('container-superposition')
-        .description('Composable devcontainer scaffolds')
+        .description('Shared project file first devcontainer generation and replay')
         .version(getToolVersion());
 
     // Init command (default)
     program
         .command('init', { isDefault: true })
-        .description('Initialize a new devcontainer configuration')
+        .description('Create or edit shared project file, then preview and write generated output')
         .option('--from-project', 'Load configuration from the repository project file')
         .option(
             '--project-root <path>',
@@ -132,7 +132,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     program
         .command('regen')
         .description(
-            'Regenerate devcontainer from a project file or existing superposition.json manifest'
+            'Replay shared project file into generated output; manifest path stays compatibility-only'
         )
         .option('--from-project', 'Load configuration from the repository project file')
         .option(
@@ -168,10 +168,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
 
     program
         .command('list')
-        .description('List available overlays and presets')
+        .description('Discover recommended starts, then browse overlays and presets')
         .option(
             '--category <type>',
-            'Filter by category: language, database, observability, cloud, dev, preset'
+            'Filter by category: language, database, messaging, observability, cloud, dev, preset'
         )
         .option('--tags <list>', 'Filter by tags (comma-separated)')
         .option('--supports <stack>', 'Filter by stack support: plain, compose')
@@ -185,7 +185,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     // Explain command
     program
         .command('explain <overlay>')
-        .description('Show detailed information about an overlay')
+        .description('Inspect fit, tradeoffs, and preview notes for one overlay or preset')
         .option('--json', 'Output as JSON for scripting')
         .action(async (overlayId, options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
@@ -196,7 +196,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     // Plan command
     program
         .command('plan')
-        .description('Preview what will be generated before creating devcontainer')
+        .description('Preview current setup, planned changes, and watch-outs before any write')
         .option('--stack <type>', 'Base template: plain, compose')
         .option('--overlays <list>', 'Comma-separated list of overlay IDs')
         .option(
@@ -232,7 +232,9 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     // Doctor command
     program
         .command('doctor')
-        .description('Check environment and validate configuration')
+        .description(
+            'Diagnose project health by default; use --all-overlays for maintainer catalog validation'
+        )
         .option('-o, --output <path>', 'Devcontainer path to validate (default: ./.devcontainer)')
         .option(
             '--from-manifest <path>',
@@ -244,6 +246,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             'Run project-file and manifest discovery relative to a different repository root'
         )
         .option('--fix', 'Apply automatic fixes where possible')
+        .option(
+            '--all-overlays',
+            'Include repo-wide overlay catalog validation, not only selected overlays'
+        )
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
@@ -254,7 +260,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     program
         .command('adopt')
         .description(
-            'Analyse an existing .devcontainer/ and suggest an equivalent overlay-based configuration'
+            'Adopt handwritten devcontainer setup into managed shared intent with confidence and write review'
         )
         .option(
             '-d, --dir <path>',
@@ -292,7 +298,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     // Hash command
     program
         .command('hash')
-        .description('Compute a deterministic fingerprint for a given configuration')
+        .description('Compute semantic fingerprint for resolved intent and compare meaning safely')
         .option('--stack <type>', 'Base template: plain, compose')
         .option('--overlays <list>', 'Comma-separated list of overlay IDs')
         .option('--preset <id>', 'Preset ID (optional)')
@@ -311,7 +317,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     program
         .command('migrate')
         .description(
-            'Create a superposition.yml project file from an existing superposition.json manifest'
+            'Migrate legacy manifest workflow to canonical shared project file without changing generated output'
         )
         .option(
             '--from-manifest <path>',

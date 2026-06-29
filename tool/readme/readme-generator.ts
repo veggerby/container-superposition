@@ -30,6 +30,7 @@ const REPO_ROOT =
     ) ?? REPO_ROOT_CANDIDATES[0];
 
 const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
+const DEFAULT_GITHUB_DOCS_BASE_URL = 'https://github.com/veggerby/container-superposition';
 
 interface OverlayDocs {
     id: string;
@@ -273,25 +274,35 @@ function generateQuickStart(answers: QuestionnaireAnswers): string {
 }
 
 /**
- * Compute relative path from output directory to repo root for documentation links.
- * If output is outside the repo, falls back to assuming standard .devcontainer location.
+ * Resolve repository documentation base URL once from package.json.
  */
-function getRelativePathToRepo(outputPath: string): string {
-    const normalizedOutput = path.normalize(outputPath);
-    const normalizedRepo = path.normalize(REPO_ROOT);
-
-    // Check if output path is inside the repository
-    if (normalizedOutput.startsWith(normalizedRepo)) {
-        // Compute proper relative path
-        return path.posix.relative(
-            path.posix.normalize(outputPath.replace(/\\/g, '/')),
-            path.posix.normalize(REPO_ROOT.replace(/\\/g, '/'))
-        );
-    } else {
-        // Output is outside repo - assume standard .devcontainer location for links
-        // This is a reasonable fallback since overlays won't be accessible anyway
-        return '..';
+function resolveDocsBaseUrl(): string {
+    const packageJsonPath = path.join(REPO_ROOT, 'package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+        return DEFAULT_GITHUB_DOCS_BASE_URL;
     }
+
+    try {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as {
+            repository?: { url?: string } | string;
+        };
+        const repository = packageJson.repository;
+        const repositoryUrl = typeof repository === 'string' ? repository : repository?.url;
+
+        if (!repositoryUrl) {
+            return DEFAULT_GITHUB_DOCS_BASE_URL;
+        }
+
+        return repositoryUrl.replace(/^git\+/, '').replace(/\.git$/, '');
+    } catch {
+        return DEFAULT_GITHUB_DOCS_BASE_URL;
+    }
+}
+
+const DOCS_BASE_URL = resolveDocsBaseUrl();
+
+function buildBlobUrl(...segments: string[]): string {
+    return [DOCS_BASE_URL, 'blob', 'main', ...segments.map(encodeURIComponent)].join('/');
 }
 
 /**
@@ -299,15 +310,11 @@ function getRelativePathToRepo(outputPath: string): string {
  */
 function generateServices(
     overlayDocs: OverlayDocs[],
-    overlayMetadata: Map<string, OverlayMetadata>,
-    outputPath: string
+    overlayMetadata: Map<string, OverlayMetadata>
 ): string {
     if (overlayDocs.length === 0) {
         return '';
     }
-
-    // Compute relative path from output directory to repo root
-    const relativeToRepo = getRelativePathToRepo(outputPath);
 
     const parts: string[] = [];
     parts.push('## Services and Tools');
@@ -369,13 +376,8 @@ function generateServices(
                 parts.push('');
             }
 
-            // Add link to full README using computed relative path
-            const overlayReadmePath = path.posix.join(
-                relativeToRepo,
-                'overlays',
-                docs.id,
-                'README.md'
-            );
+            // Add link to full README using repository docs base URL
+            const overlayReadmePath = buildBlobUrl('overlays', docs.id, 'README.md');
             parts.push(
                 `*For complete documentation, see [${docs.name} overlay](${overlayReadmePath})*`
             );
@@ -444,10 +446,7 @@ function generateTroubleshooting(overlayDocs: OverlayDocs[]): string {
 /**
  * Generate references section
  */
-function generateReferences(overlayIds: string[], outputPath: string): string {
-    // Compute relative path from output directory to repo root
-    const relativeToRepo = getRelativePathToRepo(outputPath);
-
+function generateReferences(overlayIds: string[]): string {
     const parts: string[] = [];
     parts.push('## References');
     parts.push('');
@@ -455,20 +454,15 @@ function generateReferences(overlayIds: string[], outputPath: string): string {
     parts.push('');
 
     for (const overlayId of overlayIds) {
-        const overlayReadmePath = path.posix.join(
-            relativeToRepo,
-            'overlays',
-            overlayId,
-            'README.md'
-        );
+        const overlayReadmePath = buildBlobUrl('overlays', overlayId, 'README.md');
         parts.push(`- [${overlayId}](${overlayReadmePath})`);
     }
 
     parts.push('');
     parts.push('**Project Documentation:**');
     parts.push('');
-    const mainReadmePath = path.posix.join(relativeToRepo, 'README.md');
-    const docsReadmePath = path.posix.join(relativeToRepo, 'docs', 'README.md');
+    const mainReadmePath = buildBlobUrl('README.md');
+    const docsReadmePath = buildBlobUrl('docs', 'README.md');
     parts.push(`- [Container Superposition](${mainReadmePath})`);
     parts.push(`- [Documentation](${docsReadmePath})`);
     parts.push('');
@@ -509,7 +503,7 @@ export function generateReadme(
 
     // 4. Services and Tools section
     if (overlayDocs.length > 0) {
-        parts.push(generateServices(overlayDocs, overlayMetadata, outputPath));
+        parts.push(generateServices(overlayDocs, overlayMetadata));
     }
 
     // 5. Environment Variables section
@@ -525,7 +519,7 @@ export function generateReadme(
     }
 
     // 7. References
-    parts.push(generateReferences(overlays, outputPath));
+    parts.push(generateReferences(overlays));
 
     // Write README.md
     const readmePath = path.join(outputPath, 'README.md');

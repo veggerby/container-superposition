@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import yaml from 'js-yaml';
-import { confirm } from '@inquirer/prompts';
+import { select } from '@inquirer/prompts';
 import type {
     DevContainer,
     OverlayId,
@@ -25,6 +25,16 @@ import { applyOverlay } from '../questionnaire/composer.js';
 import { deepMerge } from '../utils/merge.js';
 import { getToolVersion } from '../utils/version.js';
 import { isInsideGitRepo, createBackup, ensureBackupPatternsInGitignore } from '../utils/backup.js';
+import { buildArtifactRow } from '../ux/semantics/artifacts.js';
+import { resolveNextStep } from '../ux/semantics/next-step.js';
+import {
+    renderArtifactTable,
+    renderFrame,
+    renderList,
+    renderNextStep,
+    renderSection,
+} from '../ux/renderers/common.js';
+import type { AdoptConfidence } from '../ux/semantics/types.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1145,6 +1155,104 @@ function formatUnmatchedTable(items: UnmatchedItem[]): string {
     return lines.join('\n');
 }
 
+function classifyAdoptConfidence(analysis: AnalysisResult): {
+    confidence: AdoptConfidence;
+    recommendation: string;
+    reasons: string[];
+} {
+    const exact = analysis.detections.filter((item) => item.confidence === 'exact').length;
+    const heuristic = analysis.detections.filter((item) => item.confidence === 'heuristic').length;
+    const unmatched = analysis.unmatchedItems.length;
+    const totalSignals = exact + heuristic + unmatched;
+
+    if (analysis.suggestedOverlays.length === 0 || totalSignals === 0) {
+        return {
+            confidence: 'No viable conversion',
+            recommendation: 'use init instead',
+            reasons: ['no strong overlay mapping found'],
+        };
+    }
+
+    if (exact >= Math.max(1, heuristic) && unmatched <= 1) {
+        return {
+            confidence: 'High confidence',
+            recommendation: 'safe to review',
+            reasons: [
+                'mostly exact overlay matches',
+                unmatched === 0 ? 'no preserved leftovers' : 'small preserved tail',
+            ],
+        };
+    }
+
+    if (exact + heuristic >= unmatched) {
+        return {
+            confidence: 'Mixed confidence',
+            recommendation: 'review carefully',
+            reasons: ['conversion keeps managed overlays and preserved patches side by side'],
+        };
+    }
+
+    return {
+        confidence: 'Low confidence',
+        recommendation: 'use init instead',
+        reasons: ['manual review area larger than managed mapping'],
+    };
+}
+
+function buildAdoptArtifactRows(input: {
+    projectFilePath: string;
+    manifestPath: string;
+    customPatchPath: string;
+    customComposePath: string;
+    hasCustomDevcontainerPatch: boolean;
+    hasCustomComposePatch: boolean;
+    backupDisposition: 'create' | 'skip' | 'not needed';
+    backupReason: string;
+}): ReturnType<typeof buildArtifactRow>[] {
+    const rows = [
+        buildArtifactRow({
+            artifact: input.projectFilePath,
+            role: 'Canonical shared intent',
+            action: fs.existsSync(input.projectFilePath) ? 'overwrite' : 'create',
+            backupDisposition: input.backupDisposition,
+            backupReason: input.backupReason,
+        }),
+        buildArtifactRow({
+            artifact: input.manifestPath,
+            role: 'Compatibility artifact',
+            action: fs.existsSync(input.manifestPath) ? 'overwrite' : 'create',
+            backupDisposition: input.backupDisposition,
+            backupReason: input.backupReason,
+        }),
+    ];
+
+    if (input.hasCustomDevcontainerPatch) {
+        rows.push(
+            buildArtifactRow({
+                artifact: input.customPatchPath,
+                role: 'Preservation artifact',
+                action: fs.existsSync(input.customPatchPath) ? 'overwrite' : 'create',
+                backupDisposition: input.backupDisposition,
+                backupReason: input.backupReason,
+            })
+        );
+    }
+
+    if (input.hasCustomComposePatch) {
+        rows.push(
+            buildArtifactRow({
+                artifact: input.customComposePath,
+                role: 'Preservation artifact',
+                action: fs.existsSync(input.customComposePath) ? 'overwrite' : 'create',
+                backupDisposition: input.backupDisposition,
+                backupReason: input.backupReason,
+            })
+        );
+    }
+
+    return rows;
+}
+
 // ---------------------------------------------------------------------------
 // Main command
 // ---------------------------------------------------------------------------
@@ -1158,174 +1266,239 @@ export async function adoptCommand(
     const absoluteDir = path.resolve(dir);
 
     if (!fs.existsSync(absoluteDir)) {
-        console.error(chalk.red(`✗ Directory not found: ${absoluteDir}`));
-        console.log(
-            chalk.dim(
-                `\n💡 Specify a different path with --dir, e.g. --dir path/to/.devcontainer\n`
-            )
-        );
+        console.error(`Directory not found: ${absoluteDir}`);
         process.exit(1);
     }
 
     const devcontainerJsonPath = path.join(absoluteDir, 'devcontainer.json');
     if (!fs.existsSync(devcontainerJsonPath)) {
-        console.error(chalk.red(`✗ No devcontainer.json found in ${absoluteDir}`));
+        console.error(`No devcontainer.json found in ${absoluteDir}`);
         process.exit(1);
     }
 
-    // Build detection tables dynamically from the overlay registry
     const tables = buildDetectionTables(overlaysDir, overlaysConfig);
-
-    // ── Analyse ────────────────────────────────────────────────────────────
     const analysis = analyseDevcontainer(absoluteDir, overlaysConfig, tables, overlaysDir);
+    const confidenceModel = classifyAdoptConfidence(analysis);
+    const nextStepModel = resolveNextStep({
+        command: 'adopt',
+        confidence: confidenceModel.confidence,
+    });
 
-    // ── JSON output (no decoration) ────────────────────────────────────────
-    if (options.json) {
-        console.log(
-            JSON.stringify(
-                {
-                    dir: absoluteDir,
-                    detections: analysis.detections,
-                    unmatchedItems: analysis.unmatchedItems,
-                    customDevcontainerPatch: analysis.customDevcontainerPatch,
-                    customComposePatch: analysis.customComposePatch,
-                    suggestedStack: analysis.suggestedStack,
-                    suggestedOverlays: analysis.suggestedOverlays,
-                    suggestedCommand: analysis.suggestedCommand,
-                },
-                null,
-                2
-            )
-        );
-        return;
-    }
-
-    // ── Header ─────────────────────────────────────────────────────────────
-    console.log(
-        '\n' +
-            boxen(chalk.bold('🔍 Adopt Analysis'), {
-                padding: 0.5,
-                borderColor: 'cyan',
-                borderStyle: 'round',
-            })
-    );
-
-    console.log(chalk.dim(`\nAnalysing ${path.relative(process.cwd(), devcontainerJsonPath)}...`));
-    let devcontainer: unknown;
-    try {
-        devcontainer = JSON.parse(fs.readFileSync(devcontainerJsonPath, 'utf8'));
-    } catch (error) {
-        console.error(
-            chalk.red(
-                `\n✗ Failed to parse ${path.relative(process.cwd(), devcontainerJsonPath)}.` +
-                    ' Please ensure it contains valid JSON.'
-            )
-        );
-        if (error instanceof Error && error.message) {
-            console.error(chalk.red(`  ${error.message}`));
-        }
-        process.exitCode = 1;
-        return;
-    }
-    for (const cp of resolveComposePaths(devcontainer, absoluteDir)) {
-        console.log(chalk.dim(`Analysing ${path.relative(process.cwd(), cp)}...`));
-    }
-
-    // ── Matched detections table ───────────────────────────────────────────
-    const knownIds = new Set(overlaysConfig.overlays.map((o) => o.id));
-    console.log('\n' + chalk.bold('Detected features / services → suggested overlays'));
-    console.log(chalk.dim('─'.repeat(80)));
-    console.log(formatAnalysisTable(analysis.detections, knownIds));
-
-    // ── Unmatched items table ──────────────────────────────────────────────
-    if (analysis.unmatchedItems.length > 0) {
-        console.log('\n' + chalk.bold('Items with no overlay equivalent → custom/'));
-        console.log(chalk.dim('─'.repeat(80)));
-        console.log(formatUnmatchedTable(analysis.unmatchedItems));
-    }
-
-    // ── No overlays found ──────────────────────────────────────────────────
-    if (analysis.suggestedOverlays.length === 0) {
-        console.log(
-            '\n' +
-                chalk.yellow(
-                    '⚠  No recognisable overlay patterns detected.\n' +
-                        '   Your devcontainer may use entirely custom configuration\n' +
-                        '   that does not map to any available overlays.'
-                )
-        );
-        console.log(
-            chalk.dim(
-                '\n💡 You can still run:\n   container-superposition init\n   to create a new configuration interactively.\n'
-            )
-        );
-        return;
-    }
-
-    // ── Suggested command ──────────────────────────────────────────────────
-    console.log('\n' + chalk.bold('Suggested command:'));
-    console.log('  ' + chalk.cyan(analysis.suggestedCommand));
-
-    if (analysis.customDevcontainerPatch || analysis.customComposePatch) {
-        console.log(
-            chalk.dim(
-                '\n💡 Custom patches will be written to .devcontainer/custom/ to preserve\n' +
-                    '   any configuration that has no overlay equivalent.'
-            )
-        );
-    }
-
-    if (options.dryRun) {
-        console.log(chalk.dim('\n(--dry-run: no files written)\n'));
-        return;
-    }
-
-    // ── Guard: existing files ──────────────────────────────────────────────
-    // superposition.json and superposition.yml/.superposition.yml go to the project root
-    // (parent of .devcontainer/) so they can be committed alongside app code.
     const projectRoot = path.dirname(absoluteDir);
     const manifestPath = path.join(projectRoot, 'superposition.json');
     const customDir = path.join(absoluteDir, 'custom');
     const customPatchPath = path.join(customDir, 'devcontainer.patch.json');
     const customComposePath = path.join(customDir, 'docker-compose.patch.yml');
     const discoveredProjectFiles = findProjectConfig(projectRoot);
-
     if (discoveredProjectFiles.length > 1) {
         console.error(
-            chalk.red(
-                `✗ Found both supported project config files in ${projectRoot}. Keep only one before continuing.`
-            )
+            `Found both supported project config files in ${projectRoot}. Keep only one before continuing.`
         );
         process.exit(1);
     }
-
     const projectFilePath =
         discoveredProjectFiles[0]?.path ?? path.join(projectRoot, '.superposition.yml');
 
-    const existingFiles: string[] = [];
-    if (fs.existsSync(manifestPath)) existingFiles.push(path.relative(process.cwd(), manifestPath));
-    if (projectFilePath && fs.existsSync(projectFilePath)) {
-        existingFiles.push(path.relative(process.cwd(), projectFilePath));
-    }
-    if (analysis.customDevcontainerPatch && fs.existsSync(customPatchPath))
-        existingFiles.push(path.relative(process.cwd(), customPatchPath));
-    if (analysis.customComposePatch && fs.existsSync(customComposePath))
-        existingFiles.push(path.relative(process.cwd(), customComposePath));
+    const inGitRepo = isInsideGitRepo(absoluteDir);
+    const shouldBackup =
+        options.backup === true ? true : options.backup === false ? false : !inGitRepo;
+    const backupDisposition = shouldBackup ? 'create' : 'skip';
+    const backupReason = shouldBackup
+        ? 'conversion may overwrite existing artifacts'
+        : inGitRepo
+          ? 'git repo detected'
+          : 'backup disabled';
 
-    if (existingFiles.length > 0 && !options.force) {
-        console.log(
-            '\n' +
-                chalk.yellow(
-                    '⚠  The following file(s) already exist:\n' +
-                        existingFiles.map((f) => `   • ${f}`).join('\n') +
-                        '\n   Use --force to overwrite them.'
+    const artifactRows = buildAdoptArtifactRows({
+        projectFilePath: path.relative(process.cwd(), projectFilePath),
+        manifestPath: path.relative(process.cwd(), manifestPath),
+        customPatchPath: path.relative(process.cwd(), customPatchPath),
+        customComposePath: path.relative(process.cwd(), customComposePath),
+        hasCustomDevcontainerPatch: Boolean(analysis.customDevcontainerPatch),
+        hasCustomComposePatch: Boolean(analysis.customComposePatch),
+        backupDisposition,
+        backupReason,
+    });
+
+    const model = {
+        dir: absoluteDir,
+        detections: analysis.detections,
+        unmatchedItems: analysis.unmatchedItems,
+        customDevcontainerPatch: analysis.customDevcontainerPatch,
+        customComposePatch: analysis.customComposePatch,
+        suggestedStack: analysis.suggestedStack,
+        suggestedOverlays: analysis.suggestedOverlays,
+        suggestedCommand: analysis.suggestedCommand,
+        confidence: confidenceModel.confidence,
+        recommendation: confidenceModel.recommendation,
+        confidenceReasons: confidenceModel.reasons,
+        managed: analysis.suggestedOverlays,
+        preserved: analysis.unmatchedItems,
+        manualReview: analysis.unmatchedItems,
+        artifactWrites: artifactRows,
+    };
+
+    if (options.json) {
+        console.log(JSON.stringify(model, null, 2));
+        return;
+    }
+
+    const header = renderFrame([
+        {
+            label: 'Mode',
+            value: options.dryRun
+                ? 'Adopt existing handwritten setup'
+                : 'Adopt existing handwritten setup',
+        },
+        {
+            label: 'This path is for',
+            value: 'existing handwritten devcontainer setup you want tool to map into managed intent',
+        },
+        { label: 'Source analyzed', value: path.relative(process.cwd(), devcontainerJsonPath) },
+        {
+            label: 'What will be written',
+            value: options.dryRun
+                ? 'nothing yet — preview only'
+                : [
+                      path.relative(process.cwd(), projectFilePath),
+                      path.relative(process.cwd(), manifestPath),
+                  ].join(', '),
+        },
+        { label: 'Generated output', value: 'unchanged by this command' },
+        {
+            label: 'Recommended next action',
+            value: nextStepModel.command ?? 'No next step suggested',
+        },
+    ]);
+
+    console.log(
+        [
+            header,
+            '',
+            renderSection('Confidence', [
+                confidenceModel.confidence,
+                `recommendation: ${confidenceModel.recommendation}`,
+            ]),
+            '',
+            renderSection('Will become managed', renderList(analysis.suggestedOverlays, 'none')),
+            '',
+            renderSection(
+                'Will be preserved',
+                renderList(
+                    analysis.unmatchedItems.map((item) => `${item.source} — ${item.reason}`),
+                    'none'
                 )
+            ),
+            '',
+            renderSection(
+                'Needs manual review',
+                renderList(
+                    analysis.unmatchedItems.map((item) => item.source),
+                    'none'
+                )
+            ),
+            ...(confidenceModel.confidence === 'High confidence'
+                ? []
+                : [
+                      '',
+                      renderSection(
+                          'Why confidence is not higher',
+                          renderList(confidenceModel.reasons, 'none')
+                      ),
+                  ]),
+        ].join('\n')
+    );
+
+    if (
+        confidenceModel.confidence === 'Low confidence' ||
+        confidenceModel.confidence === 'No viable conversion'
+    ) {
+        console.log(
+            [
+                '',
+                renderSection(
+                    'Why conversion stopped',
+                    renderList(confidenceModel.reasons, 'none')
+                ),
+                '',
+                renderSection(
+                    'Write review',
+                    [
+                        'Not recommended to write from this analysis.',
+                        renderArtifactTable(artifactRows),
+                    ].join('\n')
+                ),
+                '',
+                renderNextStep(nextStepModel),
+            ].join('\n')
         );
         return;
     }
 
-    // ── Prompt ────────────────────────────────────────────────────────────
-    const hasCustomFiles = analysis.customDevcontainerPatch || analysis.customComposePatch;
+    console.log(['', renderSection('Write review', renderArtifactTable(artifactRows))].join('\n'));
+
+    if (options.dryRun) {
+        console.log(
+            [
+                '',
+                '(--dry-run: no files written)',
+                '',
+                renderSection('Next step', [
+                    'review project file ownership model before replay',
+                    nextStepModel.command ?? 'No next step suggested',
+                ]),
+                '',
+                renderNextStep(nextStepModel),
+            ].join('\n')
+        );
+        return;
+    }
+
+    const existingFiles = artifactRows.filter(
+        (row) => row.overwriteRisk === 'overwrite existing' || row.overwriteRisk === 'update'
+    );
+    if (existingFiles.length > 0 && !options.force) {
+        console.log(
+            `Blocked: existing conversion artifacts detected. Use --force to bypass overwrite guard only.`
+        );
+        return;
+    }
+
+    if (!(process.stdin.isTTY && process.stdout.isTTY)) {
+        console.log('Blocked: interactive approval required to write conversion artifacts.');
+        return;
+    }
+
+    const confirmation = (await select({
+        message: 'Review before replay — choose next action',
+        choices: [
+            { name: 'Write conversion artifacts', value: 'Write conversion artifacts' },
+            { name: 'Cancel', value: 'Cancel' },
+        ],
+        default: 'Cancel',
+    })) as string;
+
+    if (confirmation !== 'Write conversion artifacts') {
+        console.log('Cancel');
+        return;
+    }
+
+    let backupPath: string | undefined;
+    if (shouldBackup) {
+        backupPath = (await createBackup(absoluteDir, options.backupDir)) ?? undefined;
+        if (backupPath) {
+            ensureBackupPatternsInGitignore(absoluteDir);
+        }
+    }
+
+    let devcontainer: any;
+    try {
+        devcontainer = JSON.parse(fs.readFileSync(devcontainerJsonPath, 'utf8'));
+    } catch (error) {
+        console.error(error);
+        process.exit(1);
+    }
+
     const projectSelection = buildProjectConfigSelection(
         analysis,
         overlaysConfig,
@@ -1333,55 +1506,7 @@ export async function adoptCommand(
         absoluteDir,
         devcontainer
     );
-    let confirmed: boolean;
-    try {
-        confirmed = await confirm({
-            message: `Generate project config, superposition.json${hasCustomFiles ? ', and custom/ patch files' : ''} from these suggestions?`,
-            default: true,
-        });
-    } catch {
-        // AbortPromptError (Ctrl+C) or ExitPromptError (non-interactive) — treat as "no"
-        confirmed = false;
-    }
 
-    if (!confirmed) {
-        console.log(chalk.dim('\nAborted. No files written.\n'));
-        return;
-    }
-
-    // ── Backup (same logic as regen) ───────────────────────────────────────
-    // Backup happens AFTER confirmation and BEFORE writes so we only create
-    // backups when we're actually about to change things.
-    //
-    // --backup   → force backup
-    // --no-backup → skip backup
-    // (neither)  → skip when inside a git repo (git already tracks history)
-    const inGitRepo = isInsideGitRepo(absoluteDir);
-    let shouldBackup: boolean;
-    if (options.backup === true) {
-        shouldBackup = true;
-    } else if (options.backup === false) {
-        shouldBackup = false;
-    } else {
-        shouldBackup = !inGitRepo;
-        if (!shouldBackup) {
-            console.log(
-                chalk.dim('\nℹ  Skipping backup — git repo detected (use --backup to force one)')
-            );
-        }
-    }
-
-    if (shouldBackup) {
-        const backupPath = await createBackup(absoluteDir, options.backupDir);
-        if (backupPath) {
-            console.log(
-                chalk.dim(`\n💾 Backup created at ${path.relative(process.cwd(), backupPath)}`)
-            );
-            ensureBackupPatternsInGitignore(absoluteDir);
-        }
-    }
-
-    // ── Write superposition.json ───────────────────────────────────────────
     const manifest: SuperpositionManifest = {
         manifestVersion: CURRENT_MANIFEST_VERSION,
         generatedBy: `container-superposition@${getToolVersion()} adopt`,
@@ -1392,74 +1517,79 @@ export async function adoptCommand(
         containerName: projectSelection?.containerName,
     };
 
-    try {
-        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
-        console.log('\n' + chalk.green(`✓ Written ${path.relative(process.cwd(), manifestPath)}`));
-    } catch (err) {
-        console.error(chalk.red('✗ Failed to write superposition.json:'), err);
-        process.exit(1);
-    }
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+    writeProjectConfig(projectFilePath, projectSelection);
 
-    try {
-        writeProjectConfig(projectFilePath, projectSelection);
-        console.log(chalk.green(`✓ Written ${path.relative(process.cwd(), projectFilePath)}`));
-    } catch (err) {
-        console.error(chalk.red('✗ Failed to write project config:'), err);
-        process.exit(1);
+    if (analysis.customDevcontainerPatch || analysis.customComposePatch) {
+        fs.mkdirSync(customDir, { recursive: true });
     }
-
-    // ── Write custom patches ───────────────────────────────────────────────
-    if (hasCustomFiles) {
-        try {
-            fs.mkdirSync(customDir, { recursive: true });
-        } catch (err) {
-            console.error(chalk.red('✗ Failed to create custom/ directory:'), err);
-            process.exit(1);
-        }
-    }
-
     if (analysis.customDevcontainerPatch) {
-        try {
-            fs.writeFileSync(
-                customPatchPath,
-                JSON.stringify(withSchemaFirst(analysis.customDevcontainerPatch), null, 4) + '\n',
-                'utf8'
-            );
-            console.log(chalk.green(`✓ Written ${path.relative(process.cwd(), customPatchPath)}`));
-        } catch (err) {
-            console.error(chalk.red('✗ Failed to write custom/devcontainer.patch.json:'), err);
-            process.exit(1);
-        }
+        fs.writeFileSync(
+            customPatchPath,
+            JSON.stringify(withSchemaFirst(analysis.customDevcontainerPatch), null, 4) + '\n',
+            'utf8'
+        );
     }
-
     if (analysis.customComposePatch) {
-        try {
-            const header =
-                '# Custom Docker Compose services preserved from original configuration.\n' +
-                '# These services have no equivalent overlay and will be merged into\n' +
-                '# docker-compose.yml during regeneration.\n';
-            fs.writeFileSync(
-                customComposePath,
-                header + (yaml.dump(analysis.customComposePatch) as string),
-                'utf8'
-            );
-            console.log(
-                chalk.green(`✓ Written ${path.relative(process.cwd(), customComposePath)}`)
-            );
-        } catch (err) {
-            console.error(chalk.red('✗ Failed to write custom/docker-compose.patch.yml:'), err);
-            process.exit(1);
-        }
+        const headerText =
+            '# Custom Docker Compose services preserved from original configuration.\n' +
+            '# These services have no equivalent overlay and will be merged into\n' +
+            '# docker-compose.yml during regeneration.\n';
+        fs.writeFileSync(
+            customComposePath,
+            headerText + (yaml.dump(analysis.customComposePatch) as string),
+            'utf8'
+        );
     }
 
     console.log(
-        chalk.dim(
-            '\n💡 Next steps:\n' +
-                `   1. Review and adjust ${path.basename(projectFilePath)} as needed\n` +
-                '   2. Run: container-superposition regen\n' +
-                (hasCustomFiles
-                    ? '   3. Review custom/ patches — they will be merged automatically on every regen\n'
-                    : '')
-        )
+        [
+            '',
+            renderSection(
+                'Written now',
+                renderList([
+                    path.relative(process.cwd(), projectFilePath),
+                    path.relative(process.cwd(), manifestPath),
+                    ...(analysis.customDevcontainerPatch
+                        ? [path.relative(process.cwd(), customPatchPath)]
+                        : []),
+                    ...(analysis.customComposePatch
+                        ? [path.relative(process.cwd(), customComposePath)]
+                        : []),
+                ])
+            ),
+            '',
+            renderSection('Managed going forward', renderList(analysis.suggestedOverlays, 'none')),
+            '',
+            renderSection(
+                'Preserved for now',
+                renderList(
+                    analysis.unmatchedItems.map((item) => item.source),
+                    'none'
+                )
+            ),
+            '',
+            renderSection(
+                'Still needs review',
+                renderList(
+                    analysis.unmatchedItems.map((item) => item.reason),
+                    'none'
+                )
+            ),
+            '',
+            renderSection('Generated output status', [
+                'generated output unchanged',
+                'review before replay',
+            ]),
+            '',
+            renderSection('Next checklist', [
+                '1. review generated project file and preserved custom artifacts',
+                '2. run `cs regen` to replay canonical intent',
+                '3. run `cs doctor` after replay',
+            ]),
+            '',
+            renderNextStep(nextStepModel),
+            ...(backupPath ? ['', `backup: ${path.relative(process.cwd(), backupPath)}`] : []),
+        ].join('\n')
     );
 }

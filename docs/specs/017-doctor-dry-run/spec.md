@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-FLAG`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Approved
+**Status**: Final
 **Input**: Feature assessment — `cs doctor --fix` applies changes immediately with no preview; users have no way to understand what would change before committing to auto-repair.
 
 ## Problem Statement

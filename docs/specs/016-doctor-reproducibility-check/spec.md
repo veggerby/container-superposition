@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Approved
+**Status**: Final
 **Input**: Feature assessment — `cs doctor` cannot tell whether the generated `.devcontainer/` output is up-to-date with the project file; a developer may have edited generated files by hand or added overlays without re-running `cs regen`.
 
 ## Problem Statement

@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX`
 **Created**: 2026-04-24
 **Author**: PM Agent
-**Status**: Approved
+**Status**: Final
 **Input**: Feature assessment — `cs doctor` does not cross-check that ports declared in `devcontainer.json` `forwardPorts` match ports actually exposed by Docker Compose services, nor that compose service ports are accessible through the devcontainer configuration.
 
 ## Problem Statement
