@@ -109,15 +109,8 @@ When `superposition.local.yml` exists:
 Tracked generated files case:
 
 - Normal `init` and `regen` MUST NOT run `git rm`, modify Git index, or silently untrack files.
-- If `devcontainerGitignore === true` and `git ls-files -- <outputPath>` returns tracked generated files, tool MUST warn that `.gitignore` does not untrack existing files and print:
-
-```bash
-git rm -r --cached -- .devcontainer
-```
-
-using actual `outputPath`.
-
-- Architecture decision: `doctor --fix` MUST NOT offer Git index repair in initial implementation. Any future opt-in repair that runs `git rm -r --cached -- <outputPath>` requires explicit UX plus ADR/foundation review and must align with spec `017-doctor-dry-run`.
+- Detection of already-tracked generated output and printed `git rm -r --cached -- <outputPath>` guidance is owned by follow-up spec `036-doctor-git-tracking-safety`, not by `init` / `regen`.
+- Architecture decision remains: `doctor --fix` MUST NOT offer Git index repair in initial implementation. Any future opt-in repair that runs `git rm -r --cached -- <outputPath>` requires explicit UX plus ADR/foundation review and must align with spec `017-doctor-dry-run`.
 
 ### Canonical interaction model
 
@@ -135,7 +128,7 @@ Primary user action is one of:
 - continue normally when local config is safe;
 - set `devcontainerGitignore: true` before committing generated output;
 - add `superposition.local.yml` to root `.gitignore` if not already ignored;
-- run printed `git rm -r --cached -- <outputPath>` command manually when generated output is tracked.
+- run doctor-provided `git rm -r --cached -- <outputPath>` command manually when generated output is tracked.
 
 The CLI must not open interactive prompts during normal `init` or `regen` for local-config safety. Local-config guidance is inline terminal output, not modal, paged, or hidden behind verbose mode.
 
@@ -249,7 +242,7 @@ Docs must not suggest committing generated local output as workflow.
 
 1. **First-time safe path**: Create `superposition.local.yml` with Codex mount, set `devcontainerGitignore: true`, run `regen`, verify first visible local message says local config detected and generated output ignored for new files.
 2. **Unsafe output path**: Remove `devcontainerGitignore`, run `regen`, verify warning tells user not to commit generated output and names `superposition.yml` setting.
-3. **Tracked generated output**: Track `.devcontainer/devcontainer.json`, set `devcontainerGitignore: true`, run `regen`, verify warning says ignored files remain tracked and prints `git rm -r --cached -- .devcontainer`.
+3. **Tracked generated output**: Track `.devcontainer/devcontainer.json`, set `devcontainerGitignore: true`, run `doctor`, verify warning says ignored files remain tracked and prints `git rm -r --cached -- .devcontainer`.
 4. **Invalid local key**: Add `stack: compose` to local config, run `regen`, verify command fails before writes and error names `superposition.local.yml` plus allowed keys.
 5. **Wrong filename**: Create `.superposition.local.yml` only, run `regen`, verify file is ignored and warning says rename to `superposition.local.yml`.
 
@@ -381,7 +374,7 @@ Implementation details:
 
 Generated output safety:
 
-- If local config exists and effective `answers.devcontainerGitignore === true`, `composeDevContainer()` continues writing `outputPath/.gitignore` (`*`, `!.gitignore`) through existing `ensureOutputGitignore()`.
+- If local config exists and effective `answers.devcontainerGitignore === true`, `composeDevContainer()` continues writing `outputPath/.gitignore` (`*`) through existing `ensureOutputGitignore()`.
 - CLI prints safe-state confirmation before generation. Existing composer line can still report file write/up-to-date.
 - If local config exists and effective setting is not `true`, CLI warns on stderr before generation.
 - Local safety warnings are skipped for `--no-scaffold` / manifest-only generation because no generated devcontainer output receives local enrichment. Local config should not be applied to `generateManifestOnly()`.
@@ -404,15 +397,14 @@ function isPathIgnored(projectRoot: string, relPath: string): GitQueryResult<boo
 
 Rules:
 
-- Use `git -C <projectRoot> ls-files -- <relativeOutputPath>` for tracked generated output detection.
+- Use `git -C <projectRoot> ls-files -- <relativeOutputPath>` and `git check-ignore` helpers for non-mutating Git safety inspection.
 - Use actual `answers.outputPath`, display relative to project root when possible.
-- If Git command fails or repo absent, suppress user-facing tracked-file warning.
+- If Git command fails or repo absent, suppress user-facing Git-safety warnings.
 - Never run `git rm`, `git add`, `git update-index`, or staging commands from `init` / `regen`.
-- If tracked files exist and `devcontainerGitignore === true`, warn:
-  `⚠ .devcontainer is ignored for new files, but existing generated files are still tracked by Git.`
-  `To untrack generated output: git rm -r --cached -- .devcontainer`
+- `init` / `regen` own preventive trust messaging only.
+- `doctor` owns tracked generated-output detection, tracked local-config detection, and printed manual untrack guidance via follow-up spec `036-doctor-git-tracking-safety`.
 
-Decision: no `doctor --fix` untrack repair in initial implementation. Git index mutation is outside current doctor fix safety classes and would need explicit UX plus likely ADR/foundation amendment. `doctor` may later add detection-only finding, but not required for this spec.
+Decision: no `doctor --fix` untrack repair in initial implementation. Git index mutation is outside current doctor fix safety classes and would need explicit UX plus likely ADR/foundation amendment. Detection-only doctor findings are now defined by spec `036`.
 
 ### CLI Commands Affected
 
@@ -421,7 +413,7 @@ Decision: no `doctor --fix` untrack repair in initial implementation. Git index 
 - `--project-root`: local discovery uses resolved project root, not original cwd.
 - `--from-manifest`: local config not supported because discovery is defined beside shared project config. Warn only for `.superposition.local.yml` if it exists in project root; do not apply local config without shared project config.
 - `--no-scaffold` / manifest-only: do not apply local config and do not print generated-output safety messages.
-- `doctor`: no behavior change required initially. Reproducibility checks should disclose local config presence as non-error note/warning only if check output already supports local inputs; local config must not cause reproducibility failure.
+- `doctor`: follow-up spec `036-doctor-git-tracking-safety` adds tracked generated-output / tracked local-config detection and safe `.gitignore` remediation while preserving non-mutating Git-index behavior; local config must not cause reproducibility failure.
 - `migrate`, `adopt`, `list`, `plan`, `explain`, `hash`: no local config application.
 
 ### System Boundaries and Invariants
@@ -547,8 +539,8 @@ No ADR required for local config or root `.gitignore` auto-append because repo a
 - **FR-007**: System MUST NOT persist local config values into canonical project config.
 - **FR-008**: System MUST warn when local config exists and effective `devcontainerGitignore` is not `true`.
 - **FR-009**: System MUST write or preserve `outputPath/.gitignore` when `devcontainerGitignore: true` exactly as current behavior requires.
-- **FR-010**: System MUST detect tracked files under `outputPath` when local config exists and `devcontainerGitignore: true`, then warn with untrack command if any are tracked.
-- **FR-011**: Normal `init` and `regen` MUST NOT modify Git index.
+- **FR-010**: System MUST route tracked generated-output detection and untrack guidance through doctor-owned Git-safety checks defined by follow-up spec `036`.
+- **FR-011**: Normal `init`, `regen`, and `doctor --fix` MUST NOT modify Git index.
 - **FR-012**: Docs MUST instruct users to add `superposition.local.yml` to root `.gitignore` and generated output to ignore rules when local config is used.
 - **FR-013**: JSON Schema support MUST include local config schema or equivalent editor validation path for allowed local fields.
 - **FR-014**: Tests MUST cover discovery, validation rejection, merge order, warnings, gitignore output behavior, and tracked-file warning.
@@ -561,9 +553,9 @@ No ADR required for local config or root `.gitignore` auto-append because repo a
 - [x]   3. **Unsupported core key rejected**: Given `superposition.local.yml` contains `stack: compose`, when generation runs, then command fails before writing output with `Unsupported local config keys in superposition.local.yml: stack` and allowed-key guidance. Verify no generated files changed.
 - [x]   4. **Local overrides shared generated values**: Given shared `env.DEBUG=false` and local `env.DEBUG=true`, when generation runs, then effective generated target contains `DEBUG=true` only where merge semantics allow override. Verify generated artifact.
 - [x]   5. **Warning without devcontainerGitignore**: Given local config exists and `devcontainerGitignore` is absent or false, when generation runs, then stderr/stdout contains local-config warning and remediation. Verify with command test.
-- [x]   6. **Output gitignore with true**: Given local config exists and `devcontainerGitignore: true`, when generation runs, then `outputPath/.gitignore` contains `*` and `!.gitignore`. Verify file content.
-- [x]   7. **Tracked output warning**: Given local config exists, `devcontainerGitignore: true`, and Git index tracks a file under `outputPath`, when generation runs inside Git repo, then command warns that tracked files remain tracked and prints `git rm -r --cached -- <outputPath>`. Verify with temp Git repo test.
-- [x]   8. **No Git index mutation**: Given tracked output files, when `regen` runs, then `git ls-files -- <outputPath>` still lists files after run. Verify with temp Git repo test.
+- [x]   6. **Output gitignore with true**: Given local config exists and `devcontainerGitignore: true`, when generation runs, then `outputPath/.gitignore` contains `*`. Verify file content.
+- [x]   7. **Tracked output warning routed to doctor**: Given local config exists, `devcontainerGitignore: true`, and Git index tracks a file under `outputPath`, when `doctor` runs inside Git repo, then command warns that tracked files remain tracked and prints `git rm -r --cached -- <outputPath>`. Verify with temp Git repo test from follow-up spec `036`.
+- [x]   8. **No Git index mutation**: Given tracked output files, when `regen` or `doctor --fix` runs, then `git ls-files -- <outputPath>` still lists files after run. Verify with temp Git repo test.
 - [x]   9. **Local file ignore guidance**: Given root `.gitignore` lacks `superposition.local.yml`, when generation runs with local config, then implementation either appends ignore entry or prints exact add-line guidance. Verify chosen behavior by test.
 - [x]   10. **Docs and schema updated**: Given docs and schema generation, when user reads `docs/superposition-yml.md` or local config docs, then examples describe `superposition.local.yml`, allowed fields, warning behavior, and untrack command. Verify docs include examples and schema validates allowed fields.
 
@@ -592,8 +584,9 @@ No ADR required for local config or root `.gitignore` auto-append because repo a
 
 - Added `superposition.local.yml` discovery, validation, empty-file handling, unsupported `.superposition.local.yml` warning, local schema URL, and runtime parsing for allowed fields only.
 - Added local merge helper for env, mounts, shell, and customizations; CLI applies local enrichment only for generated devcontainer output, not manifest-only/from-manifest flows, and never writes local values to shared project config.
-- Added root `.gitignore` auto-append for `superposition.local.yml`, generated-output safety messages, tracked-output Git query, and no Git index mutation.
-- Added `tool/schema/superposition.local.schema.json`, docs updates, changelog entry, and local-config tests covering parser, merge, warnings, gitignore output, invalid-key no-write behavior, and tracked-file detection.
+- Added root `.gitignore` auto-append for `superposition.local.yml`, preventive generated-output safety messages, and no Git index mutation.
+- Follow-up spec `036-doctor-git-tracking-safety` moves tracked generated-output / tracked local-config detection and manual untrack guidance into `cs doctor` ownership.
+- Added `tool/schema/superposition.local.schema.json`, docs updates, changelog entry, and local-config tests covering parser, merge, warnings, gitignore output, invalid-key no-write behavior, and preventive trust messaging. Follow-up spec `036` adds doctor-owned tracked-file detection coverage.
 - QA fix: fresh `init` now loads and validates `superposition.local.yml` even when no shared project config exists, before project-file or generated-output writes; added regression tests for fresh-init local mount application and invalid local key no-write behavior.
 - Validation run: `npm run schema:generate`; `npm run lint:fix`; `npm run lint`; `npx vitest run tool/__tests__/local-config.test.ts tool/__tests__/gitignore.test.ts tool/__tests__/project-mounts.test.ts tool/__tests__/project-env.test.ts tool/__tests__/project-shell.test.ts`; `npm test`; `npm run init -- regen`; `npm run init -- doctor` (passes with two existing suggested-overlay warnings, no reproducibility errors).
 - QA-fix validation run: `npx vitest run tool/__tests__/local-config.test.ts`; `npm run lint:fix`; `npm run lint`.
@@ -602,5 +595,5 @@ No ADR required for local config or root `.gitignore` auto-append because repo a
 
 - Developers can add a local mount, run `regen`, and see generated devcontainer output updated without editing shared config.
 - Repos using local config receive clear warning unless generated output is ignored.
-- Existing tracked generated files are detected and users receive safe untrack guidance.
+- Existing tracked generated files and tracked local config receive safe untrack guidance through doctor-owned Git-safety checks from follow-up spec `036`.
 - Unit and integration tests cover local config merge and Git safety behavior.

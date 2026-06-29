@@ -317,7 +317,7 @@ describe('Local superposition config', () => {
         expect(fs.readFileSync(outputFile, 'utf8')).toBe('{"before":true}\n');
     });
 
-    it('marks tracked-file cleanup as manual in single trust contract', () => {
+    it('regen trust contract stays preventive even when generated files are tracked', () => {
         execFileSync('git', ['init'], { cwd: repoDir, stdio: 'ignore' });
         execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: repoDir });
         execFileSync('git', ['config', 'user.name', 'Test'], { cwd: repoDir });
@@ -337,8 +337,8 @@ describe('Local superposition config', () => {
         const output = combinedOutput(result);
         expect(result.status).toBe(0);
         expect(countOccurrences(output, 'Local-only config trust')).toBe(1);
-        expect(output).toContain('tracked-file cleanup: manual follow-up');
-        expect(output).toContain('disposition: Applied with manual follow-up');
+        expect(output).toContain('tracked-file cleanup: not needed');
+        expect(output).toContain('disposition: Applied safely');
         expect(output).not.toContain('Local config detected: superposition.local.yml');
         expect(output).not.toContain('git rm -r --cached --');
     });

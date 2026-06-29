@@ -48,7 +48,6 @@ import {
 } from '../questionnaire/questionnaire.js';
 import { parseCliArgs } from './args.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
-import { listTrackedFilesUnder } from '../utils/git.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
 
 function renderRunFraming(input: {
@@ -716,11 +715,6 @@ export async function main(): Promise<void> {
                 : existingProjectFileDetected
                   ? 'Update shared setup'
                   : 'New setup';
-        const resolvedOutputForTrust =
-            cliArgs?.config?.outputPath || projectConfigAnswers?.outputPath || './.devcontainer';
-        const trackedLocalOutput = localProjectConfig
-            ? listTrackedFilesUnder(projectRoot, resolvedOutputForTrust)
-            : { ok: false, value: [] as string[] | undefined };
         const localTrustPreview = resolveLocalConfigTrust({
             path: localProjectConfig ? 'superposition.local.yml' : null,
             appliedFields: localProjectConfig
@@ -728,9 +722,7 @@ export async function main(): Promise<void> {
                 : [],
             unsupportedFields: [],
             gitIgnoreSafe: true,
-            trackedCleanupManual: Boolean(
-                trackedLocalOutput.ok && trackedLocalOutput.value?.length
-            ),
+            trackedCleanupManual: false,
             ignored: !localProjectConfig,
         });
         const localConfigSummary = localProjectConfig

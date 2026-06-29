@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Doctor now checks Git-tracking safety for generated output and local-only config** — `cs doctor` now warns when `devcontainerGitignore: true` output is still tracked, warns when `superposition.local.yml` is tracked, and `doctor --fix` can safely append `superposition.local.yml` to root `.gitignore` without mutating Git index
 - **Guided write review now gates init, doctor, and adopt mutations** — `init` now starts with lane or shortcut entry points and requires explicit `Write now` / `Go back` / `Abort` after preflight, `doctor --fix` now previews remediation rows before explicit `Apply fixes` / `Cancel`, and `adopt` now uses explicit `Write conversion artifacts` / `Cancel` approval with matching JSON artifact review data
 - **Preview and diagnostics output no longer duplicate or show empty action buckets** — `plan --diff` now prints exactly one `Next step`, `list --category` help includes `messaging`, and healthy `doctor` runs omit empty issue buckets while keeping trust-building pass output
 - **`git-helpers` GitHub credential helper path** — setup now removes inherited host-specific `gh auth git-credential` helper entries (for example `!/home/linuxbrew/.linuxbrew/bin/gh auth git-credential`) and adds portable `!gh auth git-credential`, fixing `git push` failures when host paths do not exist inside the container

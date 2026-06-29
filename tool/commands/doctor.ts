@@ -44,6 +44,8 @@ import {
 import { MERGE_STRATEGY } from '../utils/merge.js';
 import { extractPorts } from '../utils/port-utils.js';
 import { parseSimpleEnvFile } from '../utils/env-file.js';
+import { appendGitignoreSection } from '../utils/gitignore.js';
+import { isPathIgnored, listTrackedFilesUnder } from '../utils/git.js';
 import { composeDevContainer } from '../questionnaire/composer.js';
 import { mergeAnswers } from '../questionnaire/answers.js';
 import {
@@ -248,6 +250,46 @@ const REMEDIATION_REGISTRY = new Map<string, RemediationAction>([
             preconditions: ['Project file (.superposition.yml) must exist'],
             plannedChanges: ['Regenerate devcontainer configuration from current project file'],
             manualFallback: ['Run "cs regen" to regenerate the devcontainer configuration'],
+        },
+    ],
+    [
+        'local-config-gitignore',
+        {
+            key: 'local-config-gitignore',
+            findingId: 'local-config-gitignore-missing',
+            safetyClass: 'safe-unattended',
+            executionKind: 'shell-command',
+            preconditions: ['superposition.local.yml must exist'],
+            plannedChanges: ['Append superposition.local.yml to root .gitignore'],
+            manualFallback: [
+                'Add "superposition.local.yml" to root .gitignore so local-only config stays untracked',
+            ],
+        },
+    ],
+    [
+        'tracked-generated-output-manual',
+        {
+            key: 'tracked-generated-output-manual',
+            findingId: 'tracked-generated-output',
+            safetyClass: 'requires-manual-action',
+            executionKind: 'no-op',
+            preconditions: [],
+            plannedChanges: [],
+            manualFallback: ['Run git rm -r --cached -- <outputPath> to untrack generated output'],
+        },
+    ],
+    [
+        'tracked-local-config-manual',
+        {
+            key: 'tracked-local-config-manual',
+            findingId: 'tracked-local-config',
+            safetyClass: 'requires-manual-action',
+            executionKind: 'no-op',
+            preconditions: [],
+            plannedChanges: [],
+            manualFallback: [
+                'Run git rm --cached -- superposition.local.yml to untrack local-only config',
+            ],
         },
     ],
 ]);
@@ -2288,6 +2330,97 @@ async function checkReproducibility(
     }
 }
 
+function renderGitSafetyPath(projectRoot: string, targetPath: string): string {
+    const absolute = path.isAbsolute(targetPath) ? targetPath : path.join(projectRoot, targetPath);
+    const relative = path.relative(projectRoot, absolute);
+    if (relative === '') {
+        return '.';
+    }
+    if (!relative.startsWith('..') && !path.isAbsolute(relative)) {
+        return relative;
+    }
+    return absolute;
+}
+
+function checkGitTrackingSafety(
+    overlaysConfig: OverlaysConfig,
+    outputPath: string,
+    workingDir: string,
+    allOverlays = false
+): CheckResult[] {
+    if (allOverlays) return [];
+
+    let projectConfig;
+    try {
+        projectConfig = loadProjectConfig(overlaysConfig, workingDir);
+    } catch {
+        return [];
+    }
+    if (!projectConfig) return [];
+
+    const results: CheckResult[] = [];
+    const displayOutputPath = renderGitSafetyPath(workingDir, outputPath);
+
+    if (projectConfig.selection.devcontainerGitignore === true) {
+        const trackedOutput = listTrackedFilesUnder(workingDir, outputPath);
+        if (trackedOutput.ok && (trackedOutput.value?.length ?? 0) > 0) {
+            results.push({
+                name: 'Generated output tracked by Git',
+                findingId: 'tracked-generated-output',
+                status: 'warn',
+                message: `Generated output under "${displayOutputPath}" is still tracked by Git even though devcontainerGitignore is enabled. Run git rm -r --cached -- ${displayOutputPath}`,
+                details: [
+                    'Ignore rules protect new files only; already-tracked files stay tracked.',
+                    `Run: git rm -r --cached -- ${displayOutputPath}`,
+                ],
+                fixEligibility: 'manual-only',
+                remediationKey: 'tracked-generated-output-manual',
+            });
+        }
+    }
+
+    const localConfigPath = path.join(workingDir, 'superposition.local.yml');
+    if (!fs.existsSync(localConfigPath)) {
+        return results;
+    }
+
+    const localIgnored = isPathIgnored(workingDir, 'superposition.local.yml');
+    if (localIgnored.ok && localIgnored.value === false) {
+        results.push({
+            name: 'Local config not ignored by Git',
+            findingId: 'local-config-gitignore-missing',
+            status: 'warn',
+            message: 'superposition.local.yml exists but is not ignored by Git',
+            details: [
+                'Local-only config should stay untracked in shared repositories.',
+                'Run doctor --fix to append superposition.local.yml to root .gitignore.',
+            ],
+            fixEligibility: 'automatic',
+            remediationKey: 'local-config-gitignore',
+            fixable: true,
+        });
+    }
+
+    const trackedLocalConfig = listTrackedFilesUnder(workingDir, 'superposition.local.yml');
+    if (trackedLocalConfig.ok && (trackedLocalConfig.value?.length ?? 0) > 0) {
+        results.push({
+            name: 'Local-only config tracked by Git',
+            findingId: 'tracked-local-config',
+            status: 'warn',
+            message:
+                'superposition.local.yml is tracked by Git. Run git rm --cached -- superposition.local.yml',
+            details: [
+                'Local-only config should not stay committed to shared history.',
+                'Run: git rm --cached -- superposition.local.yml',
+            ],
+            fixEligibility: 'manual-only',
+            remediationKey: 'tracked-local-config-manual',
+        });
+    }
+
+    return results;
+}
+
 /**
  * Execute the reproducibility-regen remediation: call composeDevContainer with isRegen: true.
  */
@@ -2660,7 +2793,8 @@ function orderFindingsForRemediation(findings: DiagnosticFinding[]): DiagnosticF
         'env-example-regen': 5,
         'reproducibility-regen': 6,
         'node-version-fix': 7,
-        'docker-repair': 8,
+        'local-config-gitignore': 8,
+        'docker-repair': 9,
     };
     return [...findings].sort((a, b) => {
         const pa = PRIORITY[a.remediationKey ?? ''] ?? 99;
@@ -3236,6 +3370,49 @@ async function executeParametersRegen(
 /**
  * Execute a single remediation action and return its execution record.
  */
+function executeLocalConfigGitignoreFix(workingDir: string): FixExecution {
+    const localConfigPath = path.join(workingDir, 'superposition.local.yml');
+    if (!fs.existsSync(localConfigPath)) {
+        return {
+            findingId: 'local-config-gitignore-missing',
+            remediationKey: 'local-config-gitignore',
+            attempted: false,
+            outcome: 'skipped',
+            reason: 'Skipped because superposition.local.yml does not exist',
+            rechecked: false,
+        };
+    }
+
+    const gitignorePath = path.join(workingDir, '.gitignore');
+    try {
+        const written = appendGitignoreSection(
+            gitignorePath,
+            'container-superposition local config',
+            ['superposition.local.yml']
+        );
+        return {
+            findingId: 'local-config-gitignore-missing',
+            remediationKey: 'local-config-gitignore',
+            attempted: true,
+            outcome: written ? 'fixed' : 'already-compliant',
+            reason: written
+                ? 'Appended superposition.local.yml to root .gitignore'
+                : 'Root .gitignore already ignores superposition.local.yml',
+            changedFiles: written ? ['.gitignore'] : [],
+            rechecked: true,
+        };
+    } catch (err) {
+        return {
+            findingId: 'local-config-gitignore-missing',
+            remediationKey: 'local-config-gitignore',
+            attempted: true,
+            outcome: 'requires-manual-action',
+            reason: `Failed to update root .gitignore: ${err instanceof Error ? err.message : String(err)}`,
+            rechecked: false,
+        };
+    }
+}
+
 async function executeSingleFix(
     finding: DiagnosticFinding,
     outputPath: string,
@@ -3290,6 +3467,8 @@ async function executeSingleFix(
             );
         case 'node-version-fix':
             return executeNodeVersionFix();
+        case 'local-config-gitignore':
+            return executeLocalConfigGitignoreFix(workingDir);
         case 'docker-repair': {
             return {
                 findingId: finding.id,
@@ -3475,6 +3654,12 @@ async function executeFixRun(
         overlaysDir,
         workingDir
     );
+    const finalGitSafetyChecks = checkGitTrackingSafety(
+        overlaysConfig,
+        outputPath,
+        workingDir,
+        allOverlays
+    );
     const finalFindings = [
         ...checksToFindings(envChecks, 'environment', 'environment'),
         ...checksToFindings(manifestChecks, 'manifest', 'manifest'),
@@ -3487,6 +3672,7 @@ async function executeFixRun(
         ...checksToFindings(finalPortCrossChecks, 'ports', 'full'),
         ...checksToFindings(finalEnvDriftChecks, 'manifest', 'full'),
         ...checksToFindings(finalReproChecks, 'manifest', 'full'),
+        ...checksToFindings(finalGitSafetyChecks, 'manifest', 'full'),
     ];
 
     const summary = buildOutcomeSummary(executions);
@@ -3854,6 +4040,12 @@ export async function doctorCommand(
         overlaysDir,
         workingDir
     );
+    const gitSafetyChecks = checkGitTrackingSafety(
+        overlaysConfig,
+        outputPath,
+        workingDir,
+        options.allOverlays ?? false
+    );
 
     const report = generateReport(
         environmentChecks,
@@ -3866,7 +4058,7 @@ export async function doctorCommand(
         dependenciesChecks,
         portCrossValidationChecks,
         envExampleDriftChecks,
-        reproducibilityChecks
+        [...reproducibilityChecks, ...gitSafetyChecks]
     );
     const findings = reportToFindings(report);
 

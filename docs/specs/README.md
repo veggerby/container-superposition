@@ -1,39 +1,40 @@
 # Specs Index
 
-| Spec                                                                                             | Title                                                             | Status | Taxonomy             |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ------ | -------------------- |
-| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                         | Verbose Plan Graph                                                | Final  | CLI-UX               |
-| [002-superposition-config-file](002-superposition-config-file/spec.md)                           | Project Configuration File                                        | Final  | PROJECT              |
-| [003-mkdocs2-overlay](003-mkdocs2-overlay/spec.md)                                               | MkDocs 2.x Overlay                                                | Final  | OVERLAY-NEW          |
-| [004-doctor-fix](004-doctor-fix/spec.md)                                                         | `doctor --fix` — Interactive Auto-Repair                          | Final  | CLI-COMMAND          |
-| [005-cuda-overlay](005-cuda-overlay/spec.md)                                                     | CUDA (NVIDIA GPU) Overlay                                         | Final  | OVERLAY-NEW          |
-| [006-rocm-overlay](006-rocm-overlay/spec.md)                                                     | ROCm (AMD GPU) Overlay                                            | Final  | OVERLAY-NEW          |
-| [007-target-aware-generation](007-target-aware-generation/spec.md)                               | Target-Aware Generation                                           | Final  | CLI-FLAG             |
-| [008-project-file-canonical](008-project-file-canonical/spec.md)                                 | Make superposition.yml Canonical Input                            | Final  | PROJECT              |
-| [009-project-env](009-project-env/spec.md)                                                       | Unified Project-Level Environment Variables                       | Final  | PROJECT              |
-| [010-compose-env-materialization](010-compose-env-materialization/spec.md)                       | Compose Env Materialization and Env Template Naming               | Final  | COMPOSER-FEAT        |
-| [011-overlay-parameters](011-overlay-parameters/spec.md)                                         | Overlay Parameters with Safe Substitution                         | Final  | SCHEMA-FIELD         |
-| [012-ollama-cli-overlay](012-ollama-cli-overlay/spec.md)                                         | Split Ollama Service and CLI Overlays                             | Final  | OVERLAY-NEW          |
-| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                               | Doctor Overlay Dependency Resolution Check                        | Final  | CLI-UX               |
-| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md)     | Doctor Compose / Port Cross-Validation                            | Final  | CLI-UX               |
-| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                             | Doctor `.env.example` Drift Detection                             | Final  | CLI-UX               |
-| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                     | Doctor Reproducibility Check                                      | Final  | CLI-UX               |
-| [017-doctor-dry-run](017-doctor-dry-run/spec.md)                                                 | Doctor `--fix --dry-run` Flag                                     | Final  | CLI-FLAG             |
-| [018-init-project-file](018-init-project-file/spec.md)                                           | `init --project-file`                                             | Final  | PROJECT              |
-| [019-project-mounts](019-project-mounts/spec.md)                                                 | First-Class Mounts Support                                        | Final  | PROJECT              |
-| [020-superposition-yml-schema](020-superposition-yml-schema/spec.md)                             | JSON Schema for `superposition.yml`                               | Final  | SCHEMA-FIELD         |
-| [021-deterministic-generated-readme](021-deterministic-generated-readme/spec.md)                 | Deterministic Generated README Header                             | Final  | CLI-UX               |
-| [022-local-superposition-config](022-local-superposition-config/spec.md)                         | Local Superposition Config                                        | Final  | PROJECT              |
-| [023-pr-prerelease-gate](023-pr-prerelease-gate/spec.md)                                         | PR Prerelease Deployment Gate                                     | Final  | INFRA-BUILD          |
-| [024-project-ports](024-project-ports/spec.md)                                                   | Project-Level `ports` Field (plain/compose redesign)              | Final  | SCHEMA-FIELD         |
-| [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md)             | Variable Expansion and Substitution Consolidation                 | Final  | SCHEMA-FIELD, CLI-UX |
-| [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                             | Ad-hoc Project Parameters                                         | Final  | SCHEMA-FIELD, CLI-UX |
-| [027-devcontainer-gitignore-content](027-devcontainer-gitignore-content/spec.md)                 | devcontainerGitignore — Drop `!.gitignore` from Generated Content | Final  | CLI-UX               |
-| [028-publish-summaries-and-pr-comments](028-publish-summaries-and-pr-comments/spec.md)           | Publish Workflow Summaries and PR Comment Parity                  | Final  | INFRA-BUILD          |
-| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)                         | Versioned Private Overlay and Preset Catalogs                     | Draft  | PROJECT              |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)     | Discovery Surface and Canonical Docs Alignment                    | Draft  | CLI-UX, DOCS-GUIDE   |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)   | Preset-Led Onboarding for Common Jobs-to-be-Done                  | Draft  | CLI-UX, DOCS-GUIDE   |
-| [032-init-and-regen-guided-flows](032-init-and-regen-guided-flows/spec.md)                       | Init and Regen Guided Flows                                       | Final  | CLI-UX               |
-| [033-cli-discovery-preview-and-fingerprint](033-cli-discovery-preview-and-fingerprint/spec.md)   | CLI Discovery, Preview, and Fingerprint Commands                  | Final  | CLI-UX               |
-| [034-doctor-diagnostics-and-remediation-ux](034-doctor-diagnostics-and-remediation-ux/spec.md)   | Doctor Diagnostics and Remediation UX                             | Final  | CLI-UX               |
-| [035-adopt-and-migrate-conversion-workflows](035-adopt-and-migrate-conversion-workflows/spec.md) | Adopt and Migrate Conversion Workflows                            | Final  | CLI-UX               |
+| Spec                                                                                             | Title                                                                   | Status | Taxonomy             |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ------ | -------------------- |
+| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                         | Verbose Plan Graph                                                      | Final  | CLI-UX               |
+| [002-superposition-config-file](002-superposition-config-file/spec.md)                           | Project Configuration File                                              | Final  | PROJECT              |
+| [003-mkdocs2-overlay](003-mkdocs2-overlay/spec.md)                                               | MkDocs 2.x Overlay                                                      | Final  | OVERLAY-NEW          |
+| [004-doctor-fix](004-doctor-fix/spec.md)                                                         | `doctor --fix` — Interactive Auto-Repair                                | Final  | CLI-COMMAND          |
+| [005-cuda-overlay](005-cuda-overlay/spec.md)                                                     | CUDA (NVIDIA GPU) Overlay                                               | Final  | OVERLAY-NEW          |
+| [006-rocm-overlay](006-rocm-overlay/spec.md)                                                     | ROCm (AMD GPU) Overlay                                                  | Final  | OVERLAY-NEW          |
+| [007-target-aware-generation](007-target-aware-generation/spec.md)                               | Target-Aware Generation                                                 | Final  | CLI-FLAG             |
+| [008-project-file-canonical](008-project-file-canonical/spec.md)                                 | Make superposition.yml Canonical Input                                  | Final  | PROJECT              |
+| [009-project-env](009-project-env/spec.md)                                                       | Unified Project-Level Environment Variables                             | Final  | PROJECT              |
+| [010-compose-env-materialization](010-compose-env-materialization/spec.md)                       | Compose Env Materialization and Env Template Naming                     | Final  | COMPOSER-FEAT        |
+| [011-overlay-parameters](011-overlay-parameters/spec.md)                                         | Overlay Parameters with Safe Substitution                               | Final  | SCHEMA-FIELD         |
+| [012-ollama-cli-overlay](012-ollama-cli-overlay/spec.md)                                         | Split Ollama Service and CLI Overlays                                   | Final  | OVERLAY-NEW          |
+| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                               | Doctor Overlay Dependency Resolution Check                              | Final  | CLI-UX               |
+| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md)     | Doctor Compose / Port Cross-Validation                                  | Final  | CLI-UX               |
+| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                             | Doctor `.env.example` Drift Detection                                   | Final  | CLI-UX               |
+| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                     | Doctor Reproducibility Check                                            | Final  | CLI-UX               |
+| [017-doctor-dry-run](017-doctor-dry-run/spec.md)                                                 | Doctor `--fix --dry-run` Flag                                           | Final  | CLI-FLAG             |
+| [018-init-project-file](018-init-project-file/spec.md)                                           | `init --project-file`                                                   | Final  | PROJECT              |
+| [019-project-mounts](019-project-mounts/spec.md)                                                 | First-Class Mounts Support                                              | Final  | PROJECT              |
+| [020-superposition-yml-schema](020-superposition-yml-schema/spec.md)                             | JSON Schema for `superposition.yml`                                     | Final  | SCHEMA-FIELD         |
+| [021-deterministic-generated-readme](021-deterministic-generated-readme/spec.md)                 | Deterministic Generated README Header                                   | Final  | CLI-UX               |
+| [022-local-superposition-config](022-local-superposition-config/spec.md)                         | Local Superposition Config                                              | Final  | PROJECT              |
+| [023-pr-prerelease-gate](023-pr-prerelease-gate/spec.md)                                         | PR Prerelease Deployment Gate                                           | Final  | INFRA-BUILD          |
+| [024-project-ports](024-project-ports/spec.md)                                                   | Project-Level `ports` Field (plain/compose redesign)                    | Final  | SCHEMA-FIELD         |
+| [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md)             | Variable Expansion and Substitution Consolidation                       | Final  | SCHEMA-FIELD, CLI-UX |
+| [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                             | Ad-hoc Project Parameters                                               | Final  | SCHEMA-FIELD, CLI-UX |
+| [027-devcontainer-gitignore-content](027-devcontainer-gitignore-content/spec.md)                 | devcontainerGitignore — Drop `!.gitignore` from Generated Content       | Final  | CLI-UX               |
+| [028-publish-summaries-and-pr-comments](028-publish-summaries-and-pr-comments/spec.md)           | Publish Workflow Summaries and PR Comment Parity                        | Final  | INFRA-BUILD          |
+| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)                         | Versioned Private Overlay and Preset Catalogs                           | Draft  | PROJECT              |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)     | Discovery Surface and Canonical Docs Alignment                          | Draft  | CLI-UX, DOCS-GUIDE   |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)   | Preset-Led Onboarding for Common Jobs-to-be-Done                        | Draft  | CLI-UX, DOCS-GUIDE   |
+| [032-init-and-regen-guided-flows](032-init-and-regen-guided-flows/spec.md)                       | Init and Regen Guided Flows                                             | Final  | CLI-UX               |
+| [033-cli-discovery-preview-and-fingerprint](033-cli-discovery-preview-and-fingerprint/spec.md)   | CLI Discovery, Preview, and Fingerprint Commands                        | Final  | CLI-UX               |
+| [034-doctor-diagnostics-and-remediation-ux](034-doctor-diagnostics-and-remediation-ux/spec.md)   | Doctor Diagnostics and Remediation UX                                   | Final  | CLI-UX               |
+| [035-adopt-and-migrate-conversion-workflows](035-adopt-and-migrate-conversion-workflows/spec.md) | Adopt and Migrate Conversion Workflows                                  | Final  | CLI-UX               |
+| [036-doctor-git-tracking-safety](036-doctor-git-tracking-safety/spec.md)                         | Doctor Git-Tracking Safety Checks for Local Config and Generated Output | Final  | CLI-UX               |
