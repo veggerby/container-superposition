@@ -1,5 +1,18 @@
 # AGENTS.md
 
+This file is the authoritative project guidance for coding agents and contributor automation in this repository.
+Do not maintain parallel agent-specific rule documents such as `CLAUDE.md`; update `AGENTS.md` instead.
+
+## Related authority
+
+Use these documents together, with each one owning a different concern:
+
+- `AGENTS.md` — authoritative agent/contributor operating rules, commands, and repository-specific implementation constraints
+- `docs/foundation.md` — architectural authority, including explicit scope boundaries for tool code vs tool contract vs tool input/output
+- `docs/definition-of-done.md` — quality gates, review expectations, and completion criteria
+- `docs/adr/` — standing architectural decisions and exceptions
+- `docs/specs/` — feature-specific product, design, implementation, and QA authority
+
 ## Commands
 
 - `npm run lint` — TypeScript type-check + Prettier (CI-enforced; run before committing)
@@ -36,6 +49,7 @@
 - **Reproducibility**: run `npm run init -- regen` from project root after user-visible/tooling changes that affect generated output.
 - **Doctor check**: run `npm run init -- doctor`; no `Reproducibility` errors are allowed before merge.
 - **Changelog**: user-visible changes must be reflected in `CHANGELOG.md` under `Unreleased` per project changelog rules.
+- **Changelog categorization**: when something is introduced for the first time in the current unreleased cycle, keep it as one consolidated entry under `Added`; do not also list the same new item under `Changed` or `Fixed`. Iterative work on an unreleased new item should be folded into that single `Added` entry.
 
 **Key Technologies:**
 
