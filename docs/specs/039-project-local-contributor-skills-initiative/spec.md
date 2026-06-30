@@ -82,12 +82,12 @@ Implementation under this spec must preserve these authorities and boundaries:
 
 Implementation must add exactly these four files:
 
-| Path | Required focus |
-| --- | --- |
-| `.pi/skills/cli-command-delivery/SKILL.md` | Command-code, command-tests, command-help, and command-adjacent contributor workflow |
-| `.pi/skills/canonical-docs-alignment/SKILL.md` | README/docs/help/example cleanup against current canonical workflow |
-| `.pi/skills/workflow-sync/SKILL.md` | Spec/index/changelog/opportunity/roadmap/Pi inventory synchronization |
-| `.pi/skills/dogfooding-safety/SKILL.md` | Root devcontainer, generated outputs, source-owned fixes, regen/doctor safety |
+| Path                                           | Required focus                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `.pi/skills/cli-command-delivery/SKILL.md`     | Command-code, command-tests, command-help, and command-adjacent contributor workflow |
+| `.pi/skills/canonical-docs-alignment/SKILL.md` | README/docs/help/example cleanup against current canonical workflow                  |
+| `.pi/skills/workflow-sync/SKILL.md`            | Spec/index/changelog/opportunity/roadmap/Pi inventory synchronization                |
+| `.pi/skills/dogfooding-safety/SKILL.md`        | Root devcontainer, generated outputs, source-owned fixes, regen/doctor safety        |
 
 Implementation must also update these inventory surfaces when needed:
 
@@ -195,34 +195,34 @@ This skill must require contributors to read, at minimum:
 This skill must directly teach all of the following:
 
 1. **Preserve command ownership boundaries**.
-   - Keep command entry files as thin orchestrators where the repo already modularized them.
-   - Do not re-monolithize `adopt`, `doctor`, or `plan`.
-   - Keep analysis, presentation, and write-side logic separated where specs `037` and `038` require those seams.
+    - Keep command entry files as thin orchestrators where the repo already modularized them.
+    - Do not re-monolithize `adopt`, `doctor`, or `plan`.
+    - Keep analysis, presentation, and write-side logic separated where specs `037` and `038` require those seams.
 
 2. **Preserve one normalized behavior model per command flow**.
-   - Text output, JSON output, preview state, and write state must come from the same normalized command-local model where the current spec requires semantic parity.
-   - Do not introduce duplicate recomputation paths that can drift.
+    - Text output, JSON output, preview state, and write state must come from the same normalized command-local model where the current spec requires semantic parity.
+    - Do not introduce duplicate recomputation paths that can drift.
 
 3. **Preserve current command UX contracts unless another approved spec changes them**.
-   - Read-only command guidance must remain aligned with the `discover → inspect → preview → write/compare` ladder from spec `033`.
-   - `plan --diff` must preserve the headline classes `First write`, `Change intent and regenerate`, `Replay canonical intent`, `Cleanup stale generated files`, and `No material change`.
-   - `doctor` must preserve the mode labels, verdict-first framing, bucket ordering, and fix-plan-before-mutation contract from spec `034`.
+    - Read-only command guidance must remain aligned with the `discover → inspect → preview → write/compare` ladder from spec `033`.
+    - `plan --diff` must preserve the headline classes `First write`, `Change intent and regenerate`, `Replay canonical intent`, `Cleanup stale generated files`, and `No material change`.
+    - `doctor` must preserve the mode labels, verdict-first framing, bucket ordering, and fix-plan-before-mutation contract from spec `034`.
 
 4. **Preserve project-file-first behavior**.
-   - Treat `superposition.yml` / `.superposition.yml` as canonical shared intent.
-   - Treat `superposition.json` as compatibility/reproducibility output rather than the primary steady-state source when a project file exists.
-   - Keep replay, drift, remediation, and next-step guidance aligned with ADR `001`.
+    - Treat `superposition.yml` / `.superposition.yml` as canonical shared intent.
+    - Treat `superposition.json` as compatibility/reproducibility output rather than the primary steady-state source when a project file exists.
+    - Keep replay, drift, remediation, and next-step guidance aligned with ADR `001`.
 
 5. **Preserve stable command-entry exports where current tests or CLI wiring rely on them**.
-   - If internal extraction moves helpers, the command entry path must continue exporting the relied-on surfaces directly or via explicit re-export.
+    - If internal extraction moves helpers, the command entry path must continue exporting the relied-on surfaces directly or via explicit re-export.
 
 6. **Preserve source-vs-compiled path safety**.
-   - New path-sensitive logic must work from both source and compiled execution where repo patterns require that support.
+    - New path-sensitive logic must work from both source and compiled execution where repo patterns require that support.
 
 7. **Update adjacent contributor surfaces in the same change when command behavior changes**.
-   - Update command-facing docs/help/examples when user-visible command wording or workflow changes.
-   - Update `CHANGELOG.md` when the change is user-visible.
-   - Update relevant Pi guidance if contributor workflow instructions changed.
+    - Update command-facing docs/help/examples when user-visible command wording or workflow changes.
+    - Update `CHANGELOG.md` when the change is user-visible.
+    - Update relevant Pi guidance if contributor workflow instructions changed.
 
 #### Prohibited shortcuts
 
@@ -270,30 +270,30 @@ This skill must require contributors to read, at minimum:
 This skill must directly teach all of the following:
 
 1. **Teach the canonical project-intent model**.
-   - Present `superposition.yml` / `.superposition.yml` as canonical shared input.
-   - Present flat `overlays:` selection as the default explicit authoring model.
-   - Present presets as an optional shortcut, not a different configuration architecture.
-   - Present `superposition.json` as compatibility/reproducibility output, not the primary team-owned intent file.
+    - Present `superposition.yml` / `.superposition.yml` as canonical shared input.
+    - Present flat `overlays:` selection as the default explicit authoring model.
+    - Present presets as an optional shortcut, not a different configuration architecture.
+    - Present `superposition.json` as compatibility/reproducibility output, not the primary team-owned intent file.
 
 2. **Teach the preview-first workflow**.
-   - When docs cover command flows, the default workflow must read as `discover → inspect → preview → write`.
-   - The skill must direct contributors to surface `list`, `explain`, `plan`, `plan --verbose`, and `plan --diff` as the safe path before `init` or `regen` where those flows are relevant.
+    - When docs cover command flows, the default workflow must read as `discover → inspect → preview → write`.
+    - The skill must direct contributors to surface `list`, `explain`, `plan`, `plan --verbose`, and `plan --diff` as the safe path before `init` or `regen` where those flows are relevant.
 
 3. **Label legacy guidance instead of teaching it as current best practice**.
-   - Deprecated category-centric top-level fields such as `language:` or `database:` must not be taught as the default current model.
-   - Manifest-first explanations may remain only when clearly framed as migration or compatibility context.
-   - Internal implementation details such as `_serviceOrder` must not be presented as end-user workflow guidance.
+    - Deprecated category-centric top-level fields such as `language:` or `database:` must not be taught as the default current model.
+    - Manifest-first explanations may remain only when clearly framed as migration or compatibility context.
+    - Internal implementation details such as `_serviceOrder` must not be presented as end-user workflow guidance.
 
 4. **Verify examples against live behavior**.
-   - Command examples must match current command names, flags, and help behavior.
-   - Stale examples must be removed or rewritten rather than left in place because they still look plausible.
+    - Command examples must match current command names, flags, and help behavior.
+    - Stale examples must be removed or rewritten rather than left in place because they still look plausible.
 
 5. **Keep user guidance and maintainer guidance separated**.
-   - End-user docs should teach the canonical user workflow.
-   - Maintainer-only internals should remain in maintainer-oriented surfaces unless an approved spec broadens their audience.
+    - End-user docs should teach the canonical user workflow.
+    - Maintainer-only internals should remain in maintainer-oriented surfaces unless an approved spec broadens their audience.
 
 6. **Keep Pi inventory docs truthful**.
-   - If the change touches project-local skills, prompts, or agents, `.pi/README.md` must be checked and corrected in the same change.
+    - If the change touches project-local skills, prompts, or agents, `.pi/README.md` must be checked and corrected in the same change.
 
 #### Prohibited shortcuts
 
@@ -344,28 +344,28 @@ This skill must require contributors to read, at minimum:
 This skill must directly teach all of the following:
 
 1. **Synchronize spec metadata in the same change when indexed fields change**.
-   - If a spec title, status, taxonomy, or QA marker changes, update the matching index surfaces in the same change.
-   - At minimum, keep the spec and `docs/specs/README.md` synchronized.
-   - Keep `docs/specs/taxonomy.md` synchronized when taxonomy listings or status/title displays would otherwise become false.
+    - If a spec title, status, taxonomy, or QA marker changes, update the matching index surfaces in the same change.
+    - At minimum, keep the spec and `docs/specs/README.md` synchronized.
+    - Keep `docs/specs/taxonomy.md` synchronized when taxonomy listings or status/title displays would otherwise become false.
 
 2. **Respect workflow ownership**.
-   - PM owns `Status: Draft`.
-   - Developer owns `Status: Implemented` and `Implementation Notes`.
-   - QA owns `QA Status` and `QA Feedback`.
-   - Contributors must not delete or rewrite markers owned by another role.
+    - PM owns `Status: Draft`.
+    - Developer owns `Status: Implemented` and `Implementation Notes`.
+    - QA owns `QA Status` and `QA Feedback`.
+    - Contributors must not delete or rewrite markers owned by another role.
 
 3. **Update portfolio or changelog artifacts only when the change type requires it**.
-   - Update `docs/opportunities/README.md` when opportunity evidence, priority, or recommended next action changes.
-   - Update `docs/roadmap.md` when roadmap sequencing or commitment changes.
-   - Update `CHANGELOG.md` when the shipped change is user-visible or repo guidance explicitly requires it.
-   - Do not treat every copy edit as requiring roadmap or backlog churn.
+    - Update `docs/opportunities/README.md` when opportunity evidence, priority, or recommended next action changes.
+    - Update `docs/roadmap.md` when roadmap sequencing or commitment changes.
+    - Update `CHANGELOG.md` when the shipped change is user-visible or repo guidance explicitly requires it.
+    - Do not treat every copy edit as requiring roadmap or backlog churn.
 
 4. **Keep Pi inventory truthful whenever Pi assets change**.
-   - Compare `.pi/README.md` claims against the actual contents of `.pi/skills/`, `.pi/prompts/`, and `.pi/agents/`.
-   - Add, remove, or correct listings so the inventory matches disk state after the change.
+    - Compare `.pi/README.md` claims against the actual contents of `.pi/skills/`, `.pi/prompts/`, and `.pi/agents/`.
+    - Add, remove, or correct listings so the inventory matches disk state after the change.
 
 5. **Handle unclear artifacts conservatively**.
-   - Surface stray, empty, or unclear workflow artifacts as hygiene debt unless ownership and removal intent are clear enough for safe cleanup.
+    - Surface stray, empty, or unclear workflow artifacts as hygiene debt unless ownership and removal intent are clear enough for safe cleanup.
 
 #### Prohibited shortcuts
 
@@ -416,28 +416,28 @@ This skill must require contributors to read, at minimum:
 This skill must directly teach all of the following:
 
 1. **Treat generated outputs as source-owned artifacts**.
-   - `dist/`, generated overlay docs, generated schema outputs, and the root generated `.devcontainer/` are outputs, not the default edit surface.
-   - Fixes must be routed back to the owning source files whenever possible.
+    - `dist/`, generated overlay docs, generated schema outputs, and the root generated `.devcontainer/` are outputs, not the default edit surface.
+    - Fixes must be routed back to the owning source files whenever possible.
 
 2. **Treat the root `.devcontainer/` as dogfooded generated output**.
-   - It is expected to reflect generated composition rather than hand-tuned minimalism.
-   - Duplicate or noisy generated settings are not defects by default.
-   - Review root `.devcontainer/` changes for runtime, generation, or reproducibility impact rather than cosmetic deduplication.
+    - It is expected to reflect generated composition rather than hand-tuned minimalism.
+    - Duplicate or noisy generated settings are not defects by default.
+    - Review root `.devcontainer/` changes for runtime, generation, or reproducibility impact rather than cosmetic deduplication.
 
 3. **Treat `.devcontainer/custom/` as a separate review surface**.
-   - `.devcontainer/custom/` is intentional override space and should receive normal authored-file review scrutiny.
+    - `.devcontainer/custom/` is intentional override space and should receive normal authored-file review scrutiny.
 
 4. **Route fixes to the true source**.
-   - Overlay issues go back to the owning overlay files.
-   - Template, feature, schema, questionnaire, or generator issues go back to the corresponding source modules.
-   - The skill must explicitly warn contributors not to patch generated root output just to remove the visible symptom.
+    - Overlay issues go back to the owning overlay files.
+    - Template, feature, schema, questionnaire, or generator issues go back to the corresponding source modules.
+    - The skill must explicitly warn contributors not to patch generated root output just to remove the visible symptom.
 
 5. **Run the required regeneration and reproducibility checks when generated-output behavior is affected**.
-   - Teach the exact repo triggers for `docs:generate`, `schema:generate`, `init -- regen`, and `init -- doctor`.
+    - Teach the exact repo triggers for `docs:generate`, `schema:generate`, `init -- regen`, and `init -- doctor`.
 
 6. **Preserve project-file-first and git-safety boundaries**.
-   - Replay and remediation authority lives in the project file plus approved source mechanisms.
-   - Git-index mutation remains manual guidance, not automatic contributor automation.
+    - Replay and remediation authority lives in the project file plus approved source mechanisms.
+    - Git-index mutation remains manual guidance, not automatic contributor automation.
 
 #### Prohibited shortcuts
 
@@ -458,17 +458,17 @@ This skill must require escalation when:
 
 ## Acceptance Criteria
 
-| # | Criterion |
-| --- | --- |
-| AC-1 | The spec remains one umbrella initiative and requires exactly four project-local skill files at `.pi/skills/cli-command-delivery/SKILL.md`, `.pi/skills/canonical-docs-alignment/SKILL.md`, `.pi/skills/workflow-sync/SKILL.md`, and `.pi/skills/dogfooding-safety/SKILL.md`. |
-| AC-2 | The spec explicitly requires each delivered skill to include `When to use this skill`, `Read first`, `Primary files and surfaces`, `Required workflow`, `Do not do this`, `Escalate when`, `Validation`, and `Related skills` sections, or clear equivalents. |
-| AC-3 | The spec makes direct-behavior requirements explicit: the skills may cite `AGENTS.md`, foundation, DoD, ADR `001`, and related specs as authority/context, but none of the four skills may rely on those references as substitutes for required workflow instructions. |
+| #    | Criterion                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 | The spec remains one umbrella initiative and requires exactly four project-local skill files at `.pi/skills/cli-command-delivery/SKILL.md`, `.pi/skills/canonical-docs-alignment/SKILL.md`, `.pi/skills/workflow-sync/SKILL.md`, and `.pi/skills/dogfooding-safety/SKILL.md`.                                                                                                                        |
+| AC-2 | The spec explicitly requires each delivered skill to include `When to use this skill`, `Read first`, `Primary files and surfaces`, `Required workflow`, `Do not do this`, `Escalate when`, `Validation`, and `Related skills` sections, or clear equivalents.                                                                                                                                        |
+| AC-3 | The spec makes direct-behavior requirements explicit: the skills may cite `AGENTS.md`, foundation, DoD, ADR `001`, and related specs as authority/context, but none of the four skills may rely on those references as substitutes for required workflow instructions.                                                                                                                               |
 | AC-4 | The CLI command delivery skill requirements explicitly preserve thin-orchestrator command boundaries, one normalized command-local behavior model, current command UX contracts from specs `033` and `034`, project-file-first behavior, stable command-entry exports where relied on, source-vs-compiled path safety, and same-change updates to affected docs/help/changelog/Pi guidance surfaces. |
-| AC-5 | The canonical docs alignment skill requirements explicitly teach project-file-first canonical docs, flat `overlays:` as the default explicit model, preview-first workflow, legacy-labeling rules, live-example verification, separation of end-user vs maintainer guidance, and truthful Pi inventory updates when Pi assets are touched. |
-| AC-6 | The workflow sync skill requirements explicitly cover same-change synchronization of spec metadata and indexes, workflow-role ownership boundaries, conditional update rules for `CHANGELOG.md`, `docs/opportunities/README.md`, and `docs/roadmap.md`, truthful `.pi` inventory auditing, and conservative handling of unclear workflow artifacts. |
-| AC-7 | The dogfooding safety skill requirements explicitly cover source-owned generated artifacts, root `.devcontainer/` dogfooding status, `.devcontainer/custom/` as a separate review surface, routing fixes to the owning source, required regeneration/reproducibility checks, and preservation of project-file-first plus git-safety boundaries. |
-| AC-8 | The initiative requires `.pi/README.md` and any changed Pi inventory surface to describe only assets that actually exist after implementation; this spec does not require adding new prompts or agents. |
-| AC-9 | Routing remains `PM → Developer`, and no new ADR is required unless implementation discovers that teaching these workflows would require changing existing authority rather than operationalizing it. |
+| AC-5 | The canonical docs alignment skill requirements explicitly teach project-file-first canonical docs, flat `overlays:` as the default explicit model, preview-first workflow, legacy-labeling rules, live-example verification, separation of end-user vs maintainer guidance, and truthful Pi inventory updates when Pi assets are touched.                                                           |
+| AC-6 | The workflow sync skill requirements explicitly cover same-change synchronization of spec metadata and indexes, workflow-role ownership boundaries, conditional update rules for `CHANGELOG.md`, `docs/opportunities/README.md`, and `docs/roadmap.md`, truthful `.pi` inventory auditing, and conservative handling of unclear workflow artifacts.                                                  |
+| AC-7 | The dogfooding safety skill requirements explicitly cover source-owned generated artifacts, root `.devcontainer/` dogfooding status, `.devcontainer/custom/` as a separate review surface, routing fixes to the owning source, required regeneration/reproducibility checks, and preservation of project-file-first plus git-safety boundaries.                                                      |
+| AC-8 | The initiative requires `.pi/README.md` and any changed Pi inventory surface to describe only assets that actually exist after implementation; this spec does not require adding new prompts or agents.                                                                                                                                                                                              |
+| AC-9 | Routing remains `PM → Developer`, and no new ADR is required unless implementation discovers that teaching these workflows would require changing existing authority rather than operationalizing it.                                                                                                                                                                                                |
 
 ## Architecture Decision Impact
 

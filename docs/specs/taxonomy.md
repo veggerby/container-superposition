@@ -156,11 +156,12 @@ _No specs yet._
 
 ### DOCS-GUIDE
 
-| Spec                                                                                           | Title                                            | Status |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------ |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)   | Discovery Surface and Canonical Docs Alignment   | Draft  |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md) | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft  |
-| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md) | Project-Local Contributor Skills Initiative      | Draft  |
+| Spec                                                                                                       | Title                                            | Status                        |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------- |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)               | Discovery Surface and Canonical Docs Alignment   | Draft                         |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)             | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft                         |
+| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md) | Project-Local Contributor Skills Initiative      | Draft                         |
+| [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)     | Overlay Solution Discovery and Write Loop        | Final                         |
 
 ### DOCS-API
 
