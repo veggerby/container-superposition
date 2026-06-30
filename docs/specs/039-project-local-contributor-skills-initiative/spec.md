@@ -4,7 +4,7 @@
 **Taxonomy**: `DOCS-GUIDE`
 **Created**: 2026-06-30
 **Author**: PM Agent
-**Status**: Draft
+**Status**: Final
 **Input**: Opportunity backlog items 6–9 from `docs/opportunities/README.md` — add repo-local contributor skills for CLI command delivery, canonical docs alignment, workflow/Pi asset synchronization, and dogfooding/generated-artifact safety.
 
 ---
@@ -493,3 +493,35 @@ None blocking.
 **PM → Developer**
 
 Reason: the deliverables, file paths, skill contracts, sync obligations, non-goals, and escalation boundaries are now specific enough for implementation without a separate UX or architecture pass.
+
+## Implementation Notes
+
+All four project-local Pi skills were created and the Pi inventory was updated.
+
+**Files created:**
+
+- `.pi/skills/cli-command-delivery/SKILL.md` — covers thin-orchestrator boundaries, normalized behavior model, command UX contracts (specs 033/034), project-file-first, source-vs-compiled path safety, and same-change adjacency for docs/help/changelog/Pi guidance
+- `.pi/skills/canonical-docs-alignment/SKILL.md` — covers project-intent model, preview-first workflow, legacy labeling, live-example verification, user-vs-maintainer guidance separation, and truthful Pi inventory
+- `.pi/skills/workflow-sync/SKILL.md` — covers spec+index synchronization, workflow role ownership, conditional changelog/portfolio update rules, Pi inventory truthfulness, and conservative artifact handling
+- `.pi/skills/dogfooding-safety/SKILL.md` — covers generated-output source ownership, root `.devcontainer/` dogfooding status, `.devcontainer/custom/` as separate authored surface, fix routing to true source, regen/doctor triggers, and project-file-first + git-safety preservation
+
+**Files updated:**
+
+- `.pi/README.md` — added four new skill entries; no new prompts or agents claimed
+- `CHANGELOG.md` — added `Added` entry under `Unreleased`
+- `docs/specs/039-.../spec.md` — status set to `Implemented`, Implementation Notes appended
+- `docs/specs/README.md` — status updated to `Implemented`
+
+**Validation:** `npm run lint:fix` and `npm run lint` pass. No code behavior, command logic, schema, or overlay files changed; no build, test, regen, or doctor runs required.
+
+**AC status:**
+
+- AC-1 ✅ One umbrella initiative; exactly four skill files at the required paths
+- AC-2 ✅ All four skills include the required sections
+- AC-3 ✅ All four skills state required actions directly; authority docs cited as references, not as substitutes
+- AC-4 ✅ `cli-command-delivery` covers all seven required workflow items
+- AC-5 ✅ `canonical-docs-alignment` covers all six required workflow items
+- AC-6 ✅ `workflow-sync` covers all five required workflow items
+- AC-7 ✅ `dogfooding-safety` covers all six required workflow items
+- AC-8 ✅ `.pi/README.md` reflects only assets that exist; no new prompts or agents added
+- AC-9 ✅ Routed PM → Developer; no ADR required; no existing authority was changed

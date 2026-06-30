@@ -8,5 +8,9 @@ Pi auto-discovers this directory when started from the repository root.
 - `skills/*/SKILL.md` provides on-demand domain guidance. Current skills:
     - `/skill:overlay-development`
     - `/skill:overlay-solution-discovery`
+    - `/skill:cli-command-delivery`
+    - `/skill:canonical-docs-alignment`
+    - `/skill:workflow-sync`
+    - `/skill:dogfooding-safety`
 
 After editing these files in a running Pi session, use `/reload`.

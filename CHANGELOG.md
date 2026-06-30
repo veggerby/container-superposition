@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Four project-local contributor Pi skills** — the repo now includes `/skill:cli-command-delivery`, `/skill:canonical-docs-alignment`, `/skill:workflow-sync`, and `/skill:dogfooding-safety` so contributors and agents can discover required workflows, validation commands, prohibited shortcuts, and escalation rules for CLI command work, documentation alignment, spec/index/changelog/Pi synchronization, and generated-artifact safety directly from Pi, without reconstructing guidance from scattered authority docs.
+
 - **Project-local overlay discovery Pi workflow** — the repo now includes `/skill:overlay-solution-discovery`, `/overlay-discover`, and `/overlay-write-loop` so contributors can start from a plain-language need, check whether an existing overlay or preset already solves it, produce a short overlay design brief when needed, and hand approved discovery output into the existing overlay creation/review loop.
 
 ### Changed

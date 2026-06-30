@@ -40,5 +40,5 @@
 | [036-doctor-git-tracking-safety](036-doctor-git-tracking-safety/spec.md)                                   | Doctor Git-Tracking Safety Checks for Local Config and Generated Output | Final  | CLI-UX               |
 | [037-cli-command-modularization](037-cli-command-modularization/spec.md)                                   | Adopt Command Modularization                                            | Final  | CLI-COMMAND          |
 | [038-doctor-and-plan-command-modularization](038-doctor-and-plan-command-modularization/spec.md)           | Doctor and Plan Command Modularization                                  | Final  | CLI-COMMAND          |
-| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md) | Project-Local Contributor Skills Initiative                             | Draft  | DOCS-GUIDE           |
+| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md) | Project-Local Contributor Skills Initiative                             | Final  | DOCS-GUIDE           |
 | [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)     | Overlay Solution Discovery and Write Loop                               | Final  | DOCS-GUIDE           |
