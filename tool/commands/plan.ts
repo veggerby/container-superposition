@@ -9,7 +9,7 @@ import {
     filterCompatibleOverlays,
     resolveDependencies,
 } from './plan/resolution.js';
-import type { PlanDiffResult, PlanOptions, PlanResult } from './plan/types.js';
+import type { PlanOptions, PlanResult } from './plan/types.js';
 
 export type { PlanDiffResult } from './plan/types.js';
 export { generatePlanDiff } from './plan/diff.js';

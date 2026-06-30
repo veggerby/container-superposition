@@ -46,6 +46,7 @@ export function reportToFindings(report: DoctorReport): DiagnosticFinding[] {
         ...checksToFindings(report.portCrossValidation, 'ports', 'full'),
         ...checksToFindings(report.envExampleDrift, 'manifest', 'full'),
         ...checksToFindings(report.reproducibility, 'manifest', 'full'),
+        ...checksToFindings(report.gitTrackingSafety, 'environment', 'environment'),
     ];
 }
 

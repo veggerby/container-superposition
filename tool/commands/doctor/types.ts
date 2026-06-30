@@ -43,6 +43,7 @@ export interface DoctorReport {
     portCrossValidation: CheckResult[];
     envExampleDrift: CheckResult[];
     reproducibility: CheckResult[];
+    gitTrackingSafety: CheckResult[];
     summary: {
         passed: number;
         warnings: number;

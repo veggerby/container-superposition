@@ -37,7 +37,11 @@ export function analyseFeatures(
 ): { detections: DetectionResult[]; unmatchedFeatures: Record<string, any> } {
     const detections: DetectionResult[] = [];
     const unmatchedFeatures: Record<string, any> = {};
-    const features: Record<string, any> = devcontainer.features ?? {};
+    const rawFeatures = devcontainer.features;
+    const features: Record<string, any> =
+        rawFeatures && typeof rawFeatures === 'object' && !Array.isArray(rawFeatures)
+            ? rawFeatures
+            : {};
 
     for (const [featureId, featureConfig] of Object.entries(features)) {
         if (featureId.startsWith('./') || featureId.startsWith('../')) continue;
@@ -63,7 +67,8 @@ export function analyseExtensions(
 ): { detections: DetectionResult[]; unmatchedExtensions: string[] } {
     const detections: DetectionResult[] = [];
     const unmatchedExtensions: string[] = [];
-    const extensions: string[] = devcontainer.customizations?.vscode?.extensions ?? [];
+    const rawExtensions = devcontainer.customizations?.vscode?.extensions;
+    const extensions: string[] = Array.isArray(rawExtensions) ? rawExtensions : [];
 
     for (const extensionId of extensions) {
         const overlayId = matchExtension(extensionId, tables);
@@ -145,7 +150,9 @@ export function analyseRemoteEnv(devcontainer: any): {
 } {
     const detections: DetectionResult[] = [];
     const unmatchedRemoteEnv: Record<string, string> = {};
-    const env: Record<string, string> = devcontainer.remoteEnv ?? {};
+    const rawEnv = devcontainer.remoteEnv;
+    const env: Record<string, string> =
+        rawEnv && typeof rawEnv === 'object' && !Array.isArray(rawEnv) ? rawEnv : {};
 
     const envPatterns: Array<{ pattern: RegExp; overlayId: string }> = [
         { pattern: /^POSTGRES_/, overlayId: 'postgres' },

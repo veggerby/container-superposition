@@ -1709,7 +1709,8 @@ export function generateReport(
     dependenciesChecks: CheckResult[] = [],
     portCrossValidationChecks: CheckResult[] = [],
     envExampleDriftChecks: CheckResult[] = [],
-    reproducibilityChecks: CheckResult[] = []
+    reproducibilityChecks: CheckResult[] = [],
+    gitTrackingSafetyChecks: CheckResult[] = []
 ): DoctorReport {
     const allChecks = [
         ...environmentChecks,
@@ -1723,6 +1724,7 @@ export function generateReport(
         ...portCrossValidationChecks,
         ...envExampleDriftChecks,
         ...reproducibilityChecks,
+        ...gitTrackingSafetyChecks,
     ];
 
     return {
@@ -1737,6 +1739,7 @@ export function generateReport(
         portCrossValidation: portCrossValidationChecks,
         envExampleDrift: envExampleDriftChecks,
         reproducibility: reproducibilityChecks,
+        gitTrackingSafety: gitTrackingSafetyChecks,
         summary: {
             passed: allChecks.filter((check) => check.status === 'pass').length,
             warnings: allChecks.filter((check) => check.status === 'warn').length,

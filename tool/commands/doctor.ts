@@ -94,7 +94,8 @@ export async function doctorCommand(
         dependenciesChecks,
         portCrossValidationChecks,
         envExampleDriftChecks,
-        [...reproducibilityChecks, ...gitSafetyChecks]
+        reproducibilityChecks,
+        gitSafetyChecks
     );
     const findings = reportToFindings(report);
     const plannedActions = buildRemediationPlan(findings);
