@@ -38,3 +38,5 @@
 | [034-doctor-diagnostics-and-remediation-ux](034-doctor-diagnostics-and-remediation-ux/spec.md)   | Doctor Diagnostics and Remediation UX                                   | Final  | CLI-UX               |
 | [035-adopt-and-migrate-conversion-workflows](035-adopt-and-migrate-conversion-workflows/spec.md) | Adopt and Migrate Conversion Workflows                                  | Final  | CLI-UX               |
 | [036-doctor-git-tracking-safety](036-doctor-git-tracking-safety/spec.md)                         | Doctor Git-Tracking Safety Checks for Local Config and Generated Output | Final  | CLI-UX               |
+| [037-cli-command-modularization](037-cli-command-modularization/spec.md)                         | Adopt Command Modularization                                            | Final  | CLI-COMMAND          |
+| [038-doctor-and-plan-command-modularization](038-doctor-and-plan-command-modularization/spec.md) | Doctor and Plan Command Modularization                                  | Final  | CLI-COMMAND          |

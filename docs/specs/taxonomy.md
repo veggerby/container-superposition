@@ -109,9 +109,11 @@ _No specs yet._
 
 ### CLI-COMMAND
 
-| Spec                                     | Title                                    | Status |
-| ---------------------------------------- | ---------------------------------------- | ------ |
-| [004-doctor-fix](004-doctor-fix/spec.md) | `doctor --fix` — Interactive Auto-Repair | Final  |
+| Spec                                                                                             | Title                                    | Status |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------ |
+| [004-doctor-fix](004-doctor-fix/spec.md)                                                         | `doctor --fix` — Interactive Auto-Repair | Final  |
+| [037-cli-command-modularization](037-cli-command-modularization/spec.md)                         | Adopt Command Modularization             | Final  |
+| [038-doctor-and-plan-command-modularization](038-doctor-and-plan-command-modularization/spec.md) | Doctor and Plan Command Modularization   | Final  |
 
 ### CLI-FLAG
 
