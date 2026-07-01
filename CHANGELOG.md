@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Four project-local contributor Pi skills** — the repo now includes `/skill:cli-command-delivery`, `/skill:canonical-docs-alignment`, `/skill:workflow-sync`, and `/skill:dogfooding-safety` so contributors and agents can discover required workflows, validation commands, prohibited shortcuts, and escalation rules for CLI command work, documentation alignment, spec/index/changelog/Pi synchronization, and generated-artifact safety directly from Pi, without reconstructing guidance from scattered authority docs.
+
+- **Project-local overlay discovery Pi workflow** — the repo now includes `/skill:overlay-solution-discovery`, `/overlay-discover`, and `/overlay-write-loop` so contributors can start from a plain-language need, check whether an existing overlay or preset already solves it, produce a short overlay design brief when needed, and hand approved discovery output into the existing overlay creation/review loop.
+
 ### Changed
 
 - **CLI UX model unified across init/regen/list/explain/plan/hash/doctor/adopt/migrate** — human-readable command output now starts from shared framing, preview/review, and single next-step guidance built from normalized semantics instead of command-local copy. `list` now highlights recommended starts and live categories including `messaging`; `plan`/`hash` share normalized preview semantics; `doctor` shows action-first triage and fix-plan preview; `adopt`/`migrate` teach canonical vs compatibility vs preservation artifact roles.

@@ -19,6 +19,8 @@ must not begin until the relevant spec is committed and reviewed.
 ### Architecture & Design
 
 - **[Architecture](architecture.md)** - Design principles, composition algorithm, and deep merge logic
+- **[Foundation](foundation.md)** - Working architectural authority for principles, ownership boundaries, and standards
+- **[ADR Index](adr/README.md)** - Architectural decisions and their current status
 - **[Presets Architecture](presets-architecture.md)** - Meta-overlay design and preset system architecture
 - **[Dependencies](dependencies.md)** - Service dependencies, startup order, and runServices configuration
 - **[UX Design](ux.md)** - Visual design, CLI enhancements, and accessibility features
@@ -38,6 +40,11 @@ must not begin until the relevant spec is committed and reviewed.
 ### Development
 
 - **[Creating Overlays](creating-overlays.md)** - Complete guide to creating new overlays
+- **[Spec Index](specs/README.md)** - Active and completed feature specs
+- **[Definition of Done](definition-of-done.md)** - Repository quality gates and workflow expectations
+- **[Opportunity Backlog](opportunities/README.md)** - Outcome-focused backlog and evidence-backed opportunities
+- **[Roadmap](roadmap.md)** - Current planning horizons derived from the backlog
+- **[Abbreviations and Acronyms](abbreviations.md)** - Shared shorthand used across code and docs
 - **[Contributing](../CONTRIBUTING.md)** - Contribution guidelines and development workflow
 - **[AGENTS.md](../AGENTS.md)** - Comprehensive guide for AI coding agents
 
