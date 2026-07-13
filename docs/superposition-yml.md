@@ -18,12 +18,12 @@ exist, it fails with an error — keep only one.
 
 ## Local config: `superposition.local.yml`
 
-Use `superposition.local.yml` for machine-specific mounts, env, shell aliases, or editor
-customizations that should not be committed to shared config.
+Use `superposition.local.yml` for machine-specific mounts, env, shell aliases, editor
+customizations, or port conflict overrides that should not be committed to shared config.
 
 Place `superposition.local.yml` in the repository root, beside `superposition.yml` or
-`.superposition.yml`. Supported top-level fields are `$schema`, `env`, `mounts`, `shell`, and
-`customizations`.
+`.superposition.yml`. Supported top-level fields are `$schema`, `env`, `mounts`, `shell`,
+`customizations`, `portOffset`, and `ports`.
 
 ```yaml
 $schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.local.schema.json
@@ -35,8 +35,16 @@ mounts:
       target: devcontainerMount
 ```
 
-Local config applies after shared project config, so local map/scalar values override shared values
-for generated output only. Local arrays append using existing merge behavior.
+Local config applies after shared project config for generated output only. Local map/scalar values
+override shared values, `portOffset` overrides the shared offset, and local `ports` fully replace
+shared project `ports` when present. `ports: []` is meaningful and suppresses shared project ports
+for that developer's generated output.
+
+Local `ports` follow the same stack-aware rules as shared project `ports`:
+
+- `stack: plain` resolves `${VAR}` using the merged shared + local `env` view
+- `stack: compose` writes bindings verbatim
+- project `ports` always bypass `portOffset`, whether shared or local
 
 Git safety:
 

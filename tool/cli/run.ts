@@ -1079,7 +1079,10 @@ export async function main(): Promise<void> {
                 });
                 spinner.succeed(chalk.green('Manifest created successfully!'));
             } else {
-                summary = await composeDevContainer(answers, undefined, { isRegen: isReplayMode });
+                summary = await composeDevContainer(answers, undefined, {
+                    isRegen: isReplayMode,
+                    manifestAnswers: sharedAnswersForProjectFile,
+                });
                 spinner.succeed(chalk.green('DevContainer created successfully!'));
             }
 

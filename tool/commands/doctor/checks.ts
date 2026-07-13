@@ -1450,6 +1450,7 @@ export async function checkReproducibility(
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cs-doctor-repro-'));
 
         let answers;
+        let mergedAnswers;
         try {
             const baseAnswers = buildAnswersFromProjectConfig(
                 projectConfig.selection,
@@ -1461,7 +1462,7 @@ export async function checkReproducibility(
                 PRESETS_DIR
             );
             const localProjectConfig = loadLocalProjectConfig(workingDir);
-            const mergedAnswers = mergeAnswers(withPreset, { outputPath: tmpDir });
+            mergedAnswers = mergeAnswers(withPreset, { outputPath: tmpDir });
             if (localProjectConfig) {
                 answers = applyLocalConfigToAnswers(mergedAnswers, localProjectConfig.selection);
                 answers.customizations = materializeLocalCustomizationConfig(
@@ -1488,7 +1489,10 @@ export async function checkReproducibility(
             if (fs.existsSync(sourceCustom)) {
                 fs.cpSync(sourceCustom, path.join(tmpDir, 'custom'), { recursive: true });
             }
-            await composeDevContainer(answers, overlaysDir, { isRegen: false });
+            await composeDevContainer(answers, overlaysDir, {
+                isRegen: false,
+                manifestAnswers: mergedAnswers,
+            });
         } catch (error) {
             return [
                 {

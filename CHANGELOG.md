@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`superposition.local.yml` can now resolve local port conflicts without touching shared config** — local config now supports `portOffset` and full `ports` replacement, including meaningful `ports: []` to suppress shared project ports for one developer. `init`, `regen`, and doctor dry-compose generation honor those local-only overrides, while shared `superposition.yml`, `plan`, and generated `superposition.json` stay shared-only.
 - **CLI UX model unified across init/regen/list/explain/plan/hash/doctor/adopt/migrate** — human-readable command output now starts from shared framing, preview/review, and single next-step guidance built from normalized semantics instead of command-local copy. `list` now highlights recommended starts and live categories including `messaging`; `plan`/`hash` share normalized preview semantics; `doctor` shows action-first triage and fix-plan preview; `adopt`/`migrate` teach canonical vs compatibility vs preservation artifact roles.
 - **Second-pass read-only and conversion UX pass** — `list`, `explain`, `plan`, `hash`, `doctor`, `adopt`, and `migrate` now show clearer first-screen context such as `Current setup`, project-vs-catalog scope, lane selection, planned changes, watch-outs, comparison meaning, and ordered next checklists. `plan` can now label reconciliation previews as `Replay canonical intent`; `doctor` defaults to project-health framing while `--all-overlays` is explicitly maintainer-style catalog validation.
 
