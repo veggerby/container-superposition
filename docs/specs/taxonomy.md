@@ -198,4 +198,4 @@ _No specs yet._
 | [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                 | Approved                  |
 | [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                 | Implemented               |
 | [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs              | Draft                     |
-| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml` | Implemented — Needs Fixes |
+| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml` | Implemented               |
