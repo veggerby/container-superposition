@@ -96,15 +96,15 @@ order: 2 # Optional: Display order within category (lower = first)
 **Examples:**
 
 ```yaml
-id: nodejs              # Good: clear, concise
-id: postgres            # Good: standard name
-id: otel-collector      # Good: hyphenated compound
-id: kubectl-helm        # Good: combines two tools
+id: nodejs # Good: clear, concise
+id: postgres # Good: standard name
+id: otel-collector # Good: hyphenated compound
+id: kubectl-helm # Good: combines two tools
 
-id: node                # Avoid: too generic
-id: postgresql-db       # Avoid: redundant suffix
-id: Node.js             # Wrong: use lowercase, no special chars
-id: node_js             # Wrong: use hyphens not underscores
+id: node # Avoid: too generic
+id: postgresql-db # Avoid: redundant suffix
+id: Node.js # Wrong: use lowercase, no special chars
+id: node_js # Wrong: use hyphens not underscores
 ```
 
 #### name (Required)
@@ -121,16 +121,16 @@ id: node_js             # Wrong: use hyphens not underscores
 **Examples:**
 
 ```yaml
-name: Node.js                                    # Good
-name: PostgreSQL                                 # Good
-name: OpenTelemetry Collector                    # Good
-name: Google Cloud SDK                           # Good
-name: kubectl + Helm                             # Good: combines two tools
-name: Docker (host socket)                       # Good: clarifies variant
+name: Node.js # Good
+name: PostgreSQL # Good
+name: OpenTelemetry Collector # Good
+name: Google Cloud SDK # Good
+name: kubectl + Helm # Good: combines two tools
+name: Docker (host socket) # Good: clarifies variant
 
-name: node                                       # Avoid: too informal
-name: Node.JS                                    # Wrong: incorrect capitalization
-name: PostgreSQL Database Server 16              # Avoid: too verbose
+name: node # Avoid: too informal
+name: Node.JS # Wrong: incorrect capitalization
+name: PostgreSQL Database Server 16 # Avoid: too verbose
 ```
 
 #### description (Required)
@@ -157,10 +157,10 @@ description: Google Cloud Platform command-line tools (gcloud, gsutil, bq)
 description: Access host Docker daemon via socket mount (fast, local-only)
 
 # Avoid
-description: Adds Node.js to your devcontainer                    # Too generic
-description: This overlay provides PostgreSQL database support    # Too wordy
-description: PostgreSQL                                           # Not descriptive enough
-description: A comprehensive solution for distributed tracing.    # Too marketing-y, has period
+description: Adds Node.js to your devcontainer # Too generic
+description: This overlay provides PostgreSQL database support # Too wordy
+description: PostgreSQL # Not descriptive enough
+description: A comprehensive solution for distributed tracing. # Too marketing-y, has period
 ```
 
 #### category (Required)
@@ -194,11 +194,11 @@ description: A comprehensive solution for distributed tracing.    # Too marketin
 **Examples:**
 
 ```yaml
-category: language        # nodejs, python, dotnet
-category: database        # postgres, redis
-category: observability   # prometheus, grafana, jaeger
-category: cloud          # aws-cli, terraform, pulumi
-category: dev            # docker-sock, playwright, pre-commit
+category: language # nodejs, python, dotnet
+category: database # postgres, redis
+category: observability # prometheus, grafana, jaeger
+category: cloud # aws-cli, terraform, pulumi
+category: dev # docker-sock, playwright, pre-commit
 ```
 
 #### supports (Required)
@@ -501,10 +501,11 @@ tags: [cloud, kubernetes, helm]
 **Avoid:**
 
 ```yaml
-tags: [Node.js, TypeScript]              # Wrong: Use lowercase
-tags: [nodejs]                           # Too few: Add category and related terms
-tags: [language, nodejs, javascript, typescript, npm, pnpm, yarn, webpack, vite, react, vue, angular]
-                                         # Too many: Stick to core terms
+tags: [Node.js, TypeScript] # Wrong: Use lowercase
+tags: [nodejs] # Too few: Add category and related terms
+tags:
+    [language, nodejs, javascript, typescript, npm, pnpm, yarn, webpack, vite, react, vue, angular]
+    # Too many: Stick to core terms
 ```
 
 #### ports (Required)
@@ -820,7 +821,7 @@ conflicts: [docker-sock]
 
 # overlays/docker-sock/overlay.yml
 id: docker-sock
-conflicts: []                  # Missing reciprocal!
+conflicts: [] # Missing reciprocal!
 ```
 
 **Correct:**
@@ -832,7 +833,7 @@ conflicts: [docker-sock]
 
 # overlays/docker-sock/overlay.yml
 id: docker-sock
-conflicts: [docker-in-docker]  # Both directions
+conflicts: [docker-in-docker] # Both directions
 ```
 
 ### Mistake: ID Doesn't Match Directory
@@ -864,8 +865,8 @@ ports: [5432]
 
 # overlays/postgres/docker-compose.yml
 ports:
-  - "5432:5432"
-  - "5433:5433"                  # Not listed in overlay.yml!
+    - '5432:5432'
+    - '5433:5433' # Not listed in overlay.yml!
 ```
 
 **Correct:**
@@ -873,12 +874,12 @@ ports:
 ```yaml
 # overlays/postgres/overlay.yml
 id: postgres
-ports: [5432, 5433]            # All ports listed
+ports: [5432, 5433] # All ports listed
 
 # overlays/postgres/docker-compose.yml
 ports:
-  - "5432:5432"
-  - "5433:5433"
+    - '5432:5432'
+    - '5433:5433'
 ```
 
 ### Mistake: Using requires for Optional Dependencies

@@ -230,29 +230,29 @@ Docker Compose files use **service-based deep merging**.
 ```yaml
 # Base
 services:
-  devcontainer:
-    image: mcr.microsoft.com/devcontainers/base:ubuntu
-    volumes:
-      - ../:/workspace:cached
+    devcontainer:
+        image: mcr.microsoft.com/devcontainers/base:ubuntu
+        volumes:
+            - ../:/workspace:cached
 
 # Overlay
 services:
-  devcontainer:
-    environment:
-      NODE_ENV: development
-    ports:
-      - "3000:3000"
+    devcontainer:
+        environment:
+            NODE_ENV: development
+        ports:
+            - '3000:3000'
 
 # Result (deep merged)
 services:
-  devcontainer:
-    image: mcr.microsoft.com/devcontainers/base:ubuntu
-    volumes:
-      - ../:/workspace:cached
-    environment:
-      NODE_ENV: development
-    ports:
-      - "3000:3000"
+    devcontainer:
+        image: mcr.microsoft.com/devcontainers/base:ubuntu
+        volumes:
+            - ../:/workspace:cached
+        environment:
+            NODE_ENV: development
+        ports:
+            - '3000:3000'
 ```
 
 #### Array Fields in Services
@@ -264,17 +264,17 @@ services:
 ```yaml
 # Base service
 volumes:
-  - postgres-data:/var/lib/postgresql/data
+    - postgres-data:/var/lib/postgresql/data
 
 # Overlay adds to same service
 volumes:
-  - postgres-data:/var/lib/postgresql/data
-  - ./backups:/backups
+    - postgres-data:/var/lib/postgresql/data
+    - ./backups:/backups
 
 # Result (union)
 volumes:
-  - postgres-data:/var/lib/postgresql/data
-  - ./backups:/backups
+    - postgres-data:/var/lib/postgresql/data
+    - ./backups:/backups
 ```
 
 #### Special Field: depends_on
@@ -291,18 +291,18 @@ volumes:
 ```yaml
 # Overlay defines dependency
 services:
-  app:
-    depends_on:
-      - postgres
-      - redis
-      - rabbitmq  # This service doesn't exist
+    app:
+        depends_on:
+            - postgres
+            - redis
+            - rabbitmq # This service doesn't exist
 
 # After filtering (rabbitmq removed)
 services:
-  app:
-    depends_on:
-      - postgres
-      - redis
+    app:
+        depends_on:
+            - postgres
+            - redis
 ```
 
 #### Volumes and Networks
@@ -314,22 +314,22 @@ services:
 ```yaml
 # Base
 volumes:
-  postgres-data:
+    postgres-data:
 
 networks:
-  devnet:
+    devnet:
 
 # Overlay
 volumes:
-  redis-data:
+    redis-data:
 
 # Result (merged by key)
 volumes:
-  postgres-data:
-  redis-data:
+    postgres-data:
+    redis-data:
 
 networks:
-  devnet:
+    devnet:
 ```
 
 #### Port Offset
@@ -343,13 +343,13 @@ networks:
 ```yaml
 # Before offset (offset = 100)
 ports:
-  - "5432:5432"
-  - "6379:6379"
+    - '5432:5432'
+    - '6379:6379'
 
 # After offset
 ports:
-  - "5532:5432"  # host port shifted
-  - "6479:6379"  # host port shifted
+    - '5532:5432' # host port shifted
+    - '6479:6379' # host port shifted
 ```
 
 ### .env Files
