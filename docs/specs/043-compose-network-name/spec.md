@@ -270,4 +270,3 @@ Developer handoff is approved for this slice only:
 - Added regression coverage for config round-trip, repo-derived defaults, generated compose output, explicit override replay, compose-only validation, and replay output surfacing; the default-name regression now uses a fast utility-level assertion plus one compose write check so targeted validation stays below Vitest's default timeout.
 - Updated contributor authority/docs (`AGENTS.md`, `docs/foundation.md`, `docs/definition-of-done.md`, `CONTRIBUTING.md`, `docs/creating-overlays.md`, `docs/quick-reference.md`, `docs/superposition-yml.md`) plus follow-on contributor automation guidance in `.pi/skills/overlay-development/SKILL.md`, `.pi/agents/overlay-writer.md`, `.pi/agents/overlay-reviewer.md`, and `.pi/agents/overlay-consistency.md`.
 - Validation rerun after QA fixes: `npm test -- --run tool/__tests__/compose-network-name.test.ts`; `npm run lint`; `npm test`.
-
