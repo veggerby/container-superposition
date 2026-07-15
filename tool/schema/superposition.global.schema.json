@@ -16,43 +16,26 @@
             "properties": {
                 "baseImage": {
                     "type": "string",
-                    "enum": [
-                        "bookworm",
-                        "trixie",
-                        "alpine",
-                        "ubuntu",
-                        "custom"
-                    ],
+                    "enum": ["bookworm", "trixie", "alpine", "ubuntu", "custom"],
                     "description": "Base OS image. Use \"custom\" together with customImage to specify an arbitrary image.",
                     "default": "bookworm"
                 },
                 "editor": {
                     "type": "string",
-                    "enum": [
-                        "vscode",
-                        "jetbrains",
-                        "none"
-                    ],
+                    "enum": ["vscode", "jetbrains", "none"],
                     "description": "Editor profile: vscode (default, includes extensions/settings), jetbrains (removes VS Code config), none (removes VS Code config)",
                     "default": "vscode"
                 },
                 "target": {
                     "type": "string",
-                    "enum": [
-                        "local",
-                        "codespaces",
-                        "gitpod",
-                        "devpod"
-                    ],
+                    "enum": ["local", "codespaces", "gitpod", "devpod"],
                     "description": "Deployment target profile. Applies environment-specific patches during generation."
                 },
                 "outputPath": {
                     "type": "string",
                     "description": "Where to write the generated devcontainer files. Default: .devcontainer",
                     "default": "./.devcontainer",
-                    "examples": [
-                        "./.devcontainer"
-                    ]
+                    "examples": ["./.devcontainer"]
                 },
                 "minimal": {
                     "type": "boolean",
@@ -174,9 +157,7 @@
                                     {
                                         "type": "object",
                                         "description": "Long form with explicit routing target",
-                                        "required": [
-                                            "value"
-                                        ],
+                                        "required": ["value"],
                                         "additionalProperties": false,
                                         "properties": {
                                             "value": {
@@ -185,11 +166,7 @@
                                             },
                                             "target": {
                                                 "type": "string",
-                                                "enum": [
-                                                    "auto",
-                                                    "remoteEnv",
-                                                    "composeEnv"
-                                                ],
+                                                "enum": ["auto", "remoteEnv", "composeEnv"],
                                                 "description": "auto (default): plain→remoteEnv, compose→docker-compose environment; remoteEnv: always devcontainer.json; composeEnv: always docker-compose (compose only)",
                                                 "default": "auto"
                                             }
@@ -213,10 +190,7 @@
                                             {
                                                 "type": "object",
                                                 "description": "Structured mount using source/destination fields",
-                                                "required": [
-                                                    "source",
-                                                    "destination"
-                                                ],
+                                                "required": ["source", "destination"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "source": {
@@ -229,11 +203,7 @@
                                                     },
                                                     "type": {
                                                         "type": "string",
-                                                        "enum": [
-                                                            "bind",
-                                                            "volume",
-                                                            "tmpfs"
-                                                        ],
+                                                        "enum": ["bind", "volume", "tmpfs"],
                                                         "description": "Mount type (default: bind)"
                                                     },
                                                     "consistency": {
@@ -268,9 +238,7 @@
                                             {
                                                 "type": "object",
                                                 "description": "Raw-value mount with optional routing target",
-                                                "required": [
-                                                    "value"
-                                                ],
+                                                "required": ["value"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "value": {
@@ -299,10 +267,7 @@
                                     "additionalProperties": {
                                         "type": "object",
                                         "description": "Structured mount (named form; name is not serialized back)",
-                                        "required": [
-                                            "source",
-                                            "destination"
-                                        ],
+                                        "required": ["source", "destination"],
                                         "additionalProperties": false,
                                         "properties": {
                                             "source": {
@@ -313,19 +278,11 @@
                                             },
                                             "type": {
                                                 "type": "string",
-                                                "enum": [
-                                                    "bind",
-                                                    "volume",
-                                                    "tmpfs"
-                                                ]
+                                                "enum": ["bind", "volume", "tmpfs"]
                                             },
                                             "consistency": {
                                                 "type": "string",
-                                                "enum": [
-                                                    "consistent",
-                                                    "cached",
-                                                    "delegated"
-                                                ]
+                                                "enum": ["consistent", "cached", "delegated"]
                                             },
                                             "cached": {
                                                 "type": "boolean"
@@ -426,10 +383,7 @@
                                     "description": "Extra files to write into the output directory",
                                     "items": {
                                         "type": "object",
-                                        "required": [
-                                            "path",
-                                            "content"
-                                        ],
+                                        "required": ["path", "content"],
                                         "additionalProperties": false,
                                         "properties": {
                                             "path": {
@@ -449,10 +403,7 @@
                             "type": "integer",
                             "minimum": 0,
                             "description": "Shift all overlay-declared host ports by this integer. Useful for running multiple instances on one machine.",
-                            "examples": [
-                                100,
-                                200
-                            ]
+                            "examples": [100, 200]
                         },
                         "ports": {
                             "type": "array",
@@ -465,9 +416,7 @@
                                     },
                                     {
                                         "type": "object",
-                                        "required": [
-                                            "value"
-                                        ],
+                                        "required": ["value"],
                                         "additionalProperties": false,
                                         "properties": {
                                             "value": {
@@ -516,9 +465,7 @@
                                             {
                                                 "type": "object",
                                                 "description": "Long form with explicit routing target",
-                                                "required": [
-                                                    "value"
-                                                ],
+                                                "required": ["value"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "value": {
@@ -527,11 +474,7 @@
                                                     },
                                                     "target": {
                                                         "type": "string",
-                                                        "enum": [
-                                                            "auto",
-                                                            "remoteEnv",
-                                                            "composeEnv"
-                                                        ],
+                                                        "enum": ["auto", "remoteEnv", "composeEnv"],
                                                         "description": "auto (default): plain→remoteEnv, compose→docker-compose environment; remoteEnv: always devcontainer.json; composeEnv: always docker-compose (compose only)",
                                                         "default": "auto"
                                                     }
@@ -555,10 +498,7 @@
                                                     {
                                                         "type": "object",
                                                         "description": "Structured mount using source/destination fields",
-                                                        "required": [
-                                                            "source",
-                                                            "destination"
-                                                        ],
+                                                        "required": ["source", "destination"],
                                                         "additionalProperties": false,
                                                         "properties": {
                                                             "source": {
@@ -571,11 +511,7 @@
                                                             },
                                                             "type": {
                                                                 "type": "string",
-                                                                "enum": [
-                                                                    "bind",
-                                                                    "volume",
-                                                                    "tmpfs"
-                                                                ],
+                                                                "enum": ["bind", "volume", "tmpfs"],
                                                                 "description": "Mount type (default: bind)"
                                                             },
                                                             "consistency": {
@@ -610,9 +546,7 @@
                                                     {
                                                         "type": "object",
                                                         "description": "Raw-value mount with optional routing target",
-                                                        "required": [
-                                                            "value"
-                                                        ],
+                                                        "required": ["value"],
                                                         "additionalProperties": false,
                                                         "properties": {
                                                             "value": {
@@ -641,10 +575,7 @@
                                             "additionalProperties": {
                                                 "type": "object",
                                                 "description": "Structured mount (named form; name is not serialized back)",
-                                                "required": [
-                                                    "source",
-                                                    "destination"
-                                                ],
+                                                "required": ["source", "destination"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "source": {
@@ -655,11 +586,7 @@
                                                     },
                                                     "type": {
                                                         "type": "string",
-                                                        "enum": [
-                                                            "bind",
-                                                            "volume",
-                                                            "tmpfs"
-                                                        ]
+                                                        "enum": ["bind", "volume", "tmpfs"]
                                                     },
                                                     "consistency": {
                                                         "type": "string",
@@ -768,10 +695,7 @@
                                             "description": "Extra files to write into the output directory",
                                             "items": {
                                                 "type": "object",
-                                                "required": [
-                                                    "path",
-                                                    "content"
-                                                ],
+                                                "required": ["path", "content"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "path": {
@@ -791,10 +715,7 @@
                                     "type": "integer",
                                     "minimum": 0,
                                     "description": "Shift all overlay-declared host ports by this integer. Useful for running multiple instances on one machine.",
-                                    "examples": [
-                                        100,
-                                        200
-                                    ]
+                                    "examples": [100, 200]
                                 },
                                 "ports": {
                                     "type": "array",
@@ -807,9 +728,7 @@
                                             },
                                             {
                                                 "type": "object",
-                                                "required": [
-                                                    "value"
-                                                ],
+                                                "required": ["value"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "value": {
@@ -854,9 +773,7 @@
                                             {
                                                 "type": "object",
                                                 "description": "Long form with explicit routing target",
-                                                "required": [
-                                                    "value"
-                                                ],
+                                                "required": ["value"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "value": {
@@ -865,11 +782,7 @@
                                                     },
                                                     "target": {
                                                         "type": "string",
-                                                        "enum": [
-                                                            "auto",
-                                                            "remoteEnv",
-                                                            "composeEnv"
-                                                        ],
+                                                        "enum": ["auto", "remoteEnv", "composeEnv"],
                                                         "description": "auto (default): plain→remoteEnv, compose→docker-compose environment; remoteEnv: always devcontainer.json; composeEnv: always docker-compose (compose only)",
                                                         "default": "auto"
                                                     }
@@ -893,10 +806,7 @@
                                                     {
                                                         "type": "object",
                                                         "description": "Structured mount using source/destination fields",
-                                                        "required": [
-                                                            "source",
-                                                            "destination"
-                                                        ],
+                                                        "required": ["source", "destination"],
                                                         "additionalProperties": false,
                                                         "properties": {
                                                             "source": {
@@ -909,11 +819,7 @@
                                                             },
                                                             "type": {
                                                                 "type": "string",
-                                                                "enum": [
-                                                                    "bind",
-                                                                    "volume",
-                                                                    "tmpfs"
-                                                                ],
+                                                                "enum": ["bind", "volume", "tmpfs"],
                                                                 "description": "Mount type (default: bind)"
                                                             },
                                                             "consistency": {
@@ -948,9 +854,7 @@
                                                     {
                                                         "type": "object",
                                                         "description": "Raw-value mount with optional routing target",
-                                                        "required": [
-                                                            "value"
-                                                        ],
+                                                        "required": ["value"],
                                                         "additionalProperties": false,
                                                         "properties": {
                                                             "value": {
@@ -979,10 +883,7 @@
                                             "additionalProperties": {
                                                 "type": "object",
                                                 "description": "Structured mount (named form; name is not serialized back)",
-                                                "required": [
-                                                    "source",
-                                                    "destination"
-                                                ],
+                                                "required": ["source", "destination"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "source": {
@@ -993,11 +894,7 @@
                                                     },
                                                     "type": {
                                                         "type": "string",
-                                                        "enum": [
-                                                            "bind",
-                                                            "volume",
-                                                            "tmpfs"
-                                                        ]
+                                                        "enum": ["bind", "volume", "tmpfs"]
                                                     },
                                                     "consistency": {
                                                         "type": "string",
@@ -1106,10 +1003,7 @@
                                             "description": "Extra files to write into the output directory",
                                             "items": {
                                                 "type": "object",
-                                                "required": [
-                                                    "path",
-                                                    "content"
-                                                ],
+                                                "required": ["path", "content"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "path": {
@@ -1129,10 +1023,7 @@
                                     "type": "integer",
                                     "minimum": 0,
                                     "description": "Shift all overlay-declared host ports by this integer. Useful for running multiple instances on one machine.",
-                                    "examples": [
-                                        100,
-                                        200
-                                    ]
+                                    "examples": [100, 200]
                                 },
                                 "ports": {
                                     "type": "array",
@@ -1145,9 +1036,7 @@
                                             },
                                             {
                                                 "type": "object",
-                                                "required": [
-                                                    "value"
-                                                ],
+                                                "required": ["value"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "value": {
@@ -1192,9 +1081,7 @@
                                             {
                                                 "type": "object",
                                                 "description": "Long form with explicit routing target",
-                                                "required": [
-                                                    "value"
-                                                ],
+                                                "required": ["value"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "value": {
@@ -1203,11 +1090,7 @@
                                                     },
                                                     "target": {
                                                         "type": "string",
-                                                        "enum": [
-                                                            "auto",
-                                                            "remoteEnv",
-                                                            "composeEnv"
-                                                        ],
+                                                        "enum": ["auto", "remoteEnv", "composeEnv"],
                                                         "description": "auto (default): plain→remoteEnv, compose→docker-compose environment; remoteEnv: always devcontainer.json; composeEnv: always docker-compose (compose only)",
                                                         "default": "auto"
                                                     }
@@ -1231,10 +1114,7 @@
                                                     {
                                                         "type": "object",
                                                         "description": "Structured mount using source/destination fields",
-                                                        "required": [
-                                                            "source",
-                                                            "destination"
-                                                        ],
+                                                        "required": ["source", "destination"],
                                                         "additionalProperties": false,
                                                         "properties": {
                                                             "source": {
@@ -1247,11 +1127,7 @@
                                                             },
                                                             "type": {
                                                                 "type": "string",
-                                                                "enum": [
-                                                                    "bind",
-                                                                    "volume",
-                                                                    "tmpfs"
-                                                                ],
+                                                                "enum": ["bind", "volume", "tmpfs"],
                                                                 "description": "Mount type (default: bind)"
                                                             },
                                                             "consistency": {
@@ -1286,9 +1162,7 @@
                                                     {
                                                         "type": "object",
                                                         "description": "Raw-value mount with optional routing target",
-                                                        "required": [
-                                                            "value"
-                                                        ],
+                                                        "required": ["value"],
                                                         "additionalProperties": false,
                                                         "properties": {
                                                             "value": {
@@ -1317,10 +1191,7 @@
                                             "additionalProperties": {
                                                 "type": "object",
                                                 "description": "Structured mount (named form; name is not serialized back)",
-                                                "required": [
-                                                    "source",
-                                                    "destination"
-                                                ],
+                                                "required": ["source", "destination"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "source": {
@@ -1331,11 +1202,7 @@
                                                     },
                                                     "type": {
                                                         "type": "string",
-                                                        "enum": [
-                                                            "bind",
-                                                            "volume",
-                                                            "tmpfs"
-                                                        ]
+                                                        "enum": ["bind", "volume", "tmpfs"]
                                                     },
                                                     "consistency": {
                                                         "type": "string",
@@ -1444,10 +1311,7 @@
                                             "description": "Extra files to write into the output directory",
                                             "items": {
                                                 "type": "object",
-                                                "required": [
-                                                    "path",
-                                                    "content"
-                                                ],
+                                                "required": ["path", "content"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "path": {
@@ -1467,10 +1331,7 @@
                                     "type": "integer",
                                     "minimum": 0,
                                     "description": "Shift all overlay-declared host ports by this integer. Useful for running multiple instances on one machine.",
-                                    "examples": [
-                                        100,
-                                        200
-                                    ]
+                                    "examples": [100, 200]
                                 },
                                 "ports": {
                                     "type": "array",
@@ -1483,9 +1344,7 @@
                                             },
                                             {
                                                 "type": "object",
-                                                "required": [
-                                                    "value"
-                                                ],
+                                                "required": ["value"],
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "value": {
