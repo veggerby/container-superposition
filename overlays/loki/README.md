@@ -1054,15 +1054,15 @@ curl http://localhost:3100/loki/api/v1/streams
 ```yaml
 # Before (bad):
 labels:
-  user_id: "12345"        # Millions of streams
-  request_id: "abc-123"   # Every request creates new stream
+    user_id: '12345' # Millions of streams
+    request_id: 'abc-123' # Every request creates new stream
 
 # After (good):
 labels:
-  service: "my-app"       # Few streams
-  level: "info"           # Few streams
+    service: 'my-app' # Few streams
+    level: 'info' # Few streams
 # Move user_id to log content:
-message: "User 12345 logged in"
+message: 'User 12345 logged in'
 ```
 
 **Monitor ingester streams:**

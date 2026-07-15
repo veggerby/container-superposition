@@ -42,3 +42,4 @@
 | [038-doctor-and-plan-command-modularization](038-doctor-and-plan-command-modularization/spec.md)           | Doctor and Plan Command Modularization                                  | Final  | CLI-COMMAND          |
 | [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md) | Project-Local Contributor Skills Initiative                             | Final  | DOCS-GUIDE           |
 | [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)     | Overlay Solution Discovery and Write Loop                               | Final  | DOCS-GUIDE           |
+| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md)                             | Local Port Conflict Overrides in `superposition.local.yml`              | Final  | PROJECT              |

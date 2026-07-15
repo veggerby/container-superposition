@@ -247,6 +247,50 @@
                     }
                 }
             }
+        },
+        "portOffset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Shift all overlay-declared host ports by this integer. Useful for running multiple instances on one machine.",
+            "examples": [100, 200]
+        },
+        "ports": {
+            "type": "array",
+            "description": "Project port bindings. Applied to devcontainer.json forwardPorts and portsAttributes. Compose-stack bindings are written verbatim to docker-compose.yml (${VAR} is not expanded — Compose resolves at startup). Plain-stack HOST:CONTAINER bindings publish via runArgs (-p HOST:CONTAINER). These ports are not affected by portOffset.",
+            "items": {
+                "oneOf": [
+                    {
+                        "type": "string",
+                        "description": "Port binding in docker-compose short syntax (e.g. ${API_PORT:-8080}:8080)"
+                    },
+                    {
+                        "type": "object",
+                        "required": ["value"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "value": {
+                                "type": "string",
+                                "description": "Port binding in docker-compose short syntax (e.g. ${API_PORT:-8080}:8080)"
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "Optional devcontainer.json portsAttributes label for the forwarded container port"
+                            },
+                            "onAutoForward": {
+                                "type": "string",
+                                "enum": [
+                                    "notify",
+                                    "openBrowser",
+                                    "openPreview",
+                                    "silent",
+                                    "ignore"
+                                ],
+                                "description": "Optional devcontainer.json portsAttributes onAutoForward action"
+                            }
+                        }
+                    }
+                ]
+            }
         }
     }
 }

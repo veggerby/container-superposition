@@ -2686,7 +2686,7 @@ export async function generateManifestOnly(
 export async function composeDevContainer(
     answers: CompositionInput,
     overlaysDir?: string,
-    options: { isRegen?: boolean } = {}
+    options: { isRegen?: boolean; manifestAnswers?: CompositionInput } = {}
 ): Promise<GenerationSummary> {
     // Prepare overlays using shared logic
     const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
@@ -3091,7 +3091,7 @@ export async function composeDevContainer(
     // 13. Generate superposition.json manifest
     generateManifest(
         outputPath,
-        answers,
+        options.manifestAnswers ?? answers,
         overlays,
         autoResolved,
         answers.containerName || config.name,

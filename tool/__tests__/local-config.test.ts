@@ -72,6 +72,8 @@ describe('Local superposition config', () => {
                 customizations: {
                     devcontainerPatch: { customizations: { vscode: { settings: { foo: 'bar' } } } },
                 },
+                portOffset: 300,
+                ports: [],
             })
         );
 
@@ -79,6 +81,8 @@ describe('Local superposition config', () => {
         expect(loaded?.selection.env?.DEBUG.value).toBe('true');
         expect(loaded?.selection.mounts).toHaveLength(1);
         expect(loaded?.selection.shell?.aliases?.cx).toBe('codex');
+        expect(loaded?.selection.portOffset).toBe(300);
+        expect(loaded?.selection.ports).toEqual([]);
     });
 
     it('rejects unsupported keys with local-specific error', () => {
@@ -91,7 +95,7 @@ describe('Local superposition config', () => {
             'Unsupported local config keys in superposition.local.yml: stack, overlays'
         );
         expect(() => loadLocalProjectConfig(repoDir)).toThrow(
-            'Allowed top-level keys: $schema, env, mounts, shell, customizations.'
+            'Allowed top-level keys: $schema, env, mounts, shell, customizations, portOffset, ports.'
         );
     });
 
@@ -101,7 +105,7 @@ describe('Local superposition config', () => {
         expect(loadLocalProjectConfig(repoDir)).toBeNull();
     });
 
-    it('applies local env override, mount append, shell merge, and customization merge', () => {
+    it('applies local port overrides, env override, mount append, shell merge, and customization merge', () => {
         const answers: QuestionnaireAnswers = {
             stack: 'plain',
             baseImage: 'bookworm',
@@ -113,7 +117,9 @@ describe('Local superposition config', () => {
             devTools: [],
             observability: [],
             outputPath: '.devcontainer',
+            portOffset: 100,
             projectEnv: { DEBUG: { value: 'false', target: 'remoteEnv' } },
+            projectPorts: [{ value: '8080' }],
             projectMounts: [{ source: './shared', destination: '/shared' }],
             projectShell: { aliases: { cx: 'old' }, snippets: ['echo shared'] },
             customizations: {
@@ -122,7 +128,9 @@ describe('Local superposition config', () => {
         };
 
         const merged = applyLocalConfigToAnswers(answers, {
+            portOffset: 300,
             env: { DEBUG: { value: 'true', target: 'remoteEnv' } },
+            ports: [{ value: '9000' }],
             mounts: [{ source: '${HOME}/.codex', destination: '/home/vscode/.codex' }],
             shell: { aliases: { cx: 'codex' }, snippets: ['echo local'] },
             customizations: {
@@ -130,7 +138,9 @@ describe('Local superposition config', () => {
             },
         });
 
+        expect(merged.portOffset).toBe(300);
         expect(merged.projectEnv?.DEBUG.value).toBe('true');
+        expect(merged.projectPorts).toEqual([{ value: '9000' }]);
         expect(merged.projectMounts).toHaveLength(2);
         expect(merged.projectShell?.aliases?.cx).toBe('codex');
         expect(merged.projectShell?.snippets).toEqual(['echo shared', 'echo local']);
@@ -138,6 +148,10 @@ describe('Local superposition config', () => {
             a: 1,
             b: 2,
         });
+
+        const cleared = applyLocalConfigToAnswers(answers, { ports: [] });
+        expect(cleared.projectPorts).toEqual([]);
+        expect(cleared.portOffset).toBe(100);
     });
 
     it('local mount affects generated output without changing shared project config', async () => {
@@ -248,6 +262,45 @@ describe('Local superposition config', () => {
         );
         expect(fs.existsSync(path.join(repoDir, '.superposition.yml'))).toBe(false);
         expect(fs.readFileSync(outputFile, 'utf8')).toBe('{"before":true}\n');
+    });
+
+    it('regen applies local port overrides only to generated output and not shared persistence', () => {
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            yaml.dump({
+                stack: 'compose',
+                overlays: ['postgres'],
+                devcontainerGitignore: true,
+                portOffset: 100,
+                ports: ['9000:9000'],
+            })
+        );
+        const before = fs.readFileSync(path.join(repoDir, 'superposition.yml'), 'utf8');
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.local.yml'),
+            yaml.dump({
+                portOffset: 300,
+                ports: [],
+            })
+        );
+
+        const result = runCli(['regen'], repoDir);
+        expect(result.status).toBe(0);
+        expect(fs.readFileSync(path.join(repoDir, 'superposition.yml'), 'utf8')).toBe(before);
+
+        const manifest = JSON.parse(
+            fs.readFileSync(path.join(repoDir, '.devcontainer', 'superposition.json'), 'utf8')
+        ) as { portOffset?: number };
+        expect(manifest.portOffset).toBe(100);
+
+        const compose = fs.readFileSync(
+            path.join(repoDir, '.devcontainer', 'docker-compose.yml'),
+            'utf8'
+        );
+        const envFile = fs.readFileSync(path.join(repoDir, '.devcontainer', '.env'), 'utf8');
+        expect(compose).not.toContain('9000:9000');
+        expect(envFile).toContain('POSTGRES_PORT=5732');
+        expect(envFile).not.toContain('POSTGRES_PORT=5532');
     });
 
     it('regen prints local trust contract once and adds root gitignore entry', () => {

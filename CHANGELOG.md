@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Project-local overlay discovery Pi workflow** — the repo now includes `/skill:overlay-solution-discovery`, `/overlay-discover`, and `/overlay-write-loop` so contributors can start from a plain-language need, check whether an existing overlay or preset already solves it, produce a short overlay design brief when needed, and hand approved discovery output into the existing overlay creation/review loop.
 
+- **`superposition.local.yml` can now resolve local port conflicts without touching shared config** — local config now supports `portOffset` and full `ports` replacement, including meaningful `ports: []` to suppress shared project ports for one developer. `init`, `regen`, and doctor dry-compose generation honor those local-only overrides, while shared `superposition.yml`, `plan`, and generated `superposition.json` stay shared-only.
+
 ### Changed
 
 - **CLI UX model unified across init/regen/list/explain/plan/hash/doctor/adopt/migrate** — human-readable command output now starts from shared framing, preview/review, and single next-step guidance built from normalized semantics instead of command-local copy. `list` now highlights recommended starts and live categories including `messaging`; `plan`/`hash` share normalized preview semantics; `doctor` shows action-first triage and fix-plan preview; `adopt`/`migrate` teach canonical vs compatibility vs preservation artifact roles.

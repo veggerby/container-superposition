@@ -982,6 +982,50 @@ describe('Command Tests', () => {
             }
         });
 
+        it('should honor local port overrides in reproducibility dry compose', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-repro-local-'));
+            try {
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.yml'),
+                    yaml.dump({
+                        stack: 'compose',
+                        overlays: ['postgres'],
+                        outputPath: '.devcontainer',
+                        devcontainerGitignore: true,
+                        portOffset: 100,
+                        ports: ['9000:9000'],
+                    })
+                );
+                fs.writeFileSync(
+                    path.join(tmpDir, 'superposition.local.yml'),
+                    yaml.dump({
+                        portOffset: 300,
+                        ports: [],
+                    })
+                );
+
+                runInitCli(['regen'], tmpDir);
+
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        projectRoot: tmpDir,
+                        fromProject: true,
+                        json: true,
+                    });
+                } catch {}
+
+                const parsed = JSON.parse(consoleLogSpy.mock.calls.at(-1)?.[0] ?? '{}');
+                expect(parsed.reproducibility.some((item: any) => item.status === 'fail')).toBe(
+                    false
+                );
+                expect(parsed.reproducibility.some((item: any) => item.status === 'pass')).toBe(
+                    true
+                );
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        });
+
         it('should fail reproducibility when a generated file is missing', async () => {
             const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-repro-missing-'));
             const outputPath = path.join(tmpDir, '.devcontainer');

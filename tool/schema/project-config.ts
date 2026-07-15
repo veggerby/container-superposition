@@ -46,6 +46,8 @@ export interface LocalProjectConfigSelection {
     mounts?: ProjectConfigSelection['mounts'];
     shell?: ProjectConfigSelection['shell'];
     customizations?: ProjectConfigSelection['customizations'];
+    portOffset?: number;
+    ports?: ProjectConfigSelection['ports'];
 }
 
 export interface LoadedLocalProjectConfig {
@@ -448,7 +450,10 @@ function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefi
     return Object.keys(parsed).length > 0 ? parsed : undefined;
 }
 
-function parseProjectPorts(value: unknown): ProjectPort[] | undefined {
+function parseProjectPorts(
+    value: unknown,
+    options: { preserveEmptyArray?: boolean } = {}
+): ProjectPort[] | undefined {
     if (value === undefined || value === null) {
         return undefined;
     }
@@ -460,7 +465,7 @@ function parseProjectPorts(value: unknown): ProjectPort[] | undefined {
     }
 
     if (value.length === 0) {
-        return undefined;
+        return options.preserveEmptyArray ? [] : undefined;
     }
 
     const parsed = value.map((entry, index): ProjectPort => {
@@ -722,11 +727,19 @@ export function loadLocalProjectConfig(
     }
 
     const document = expectPlainObject(parsed, LOCAL_PROJECT_CONFIG_FILENAME);
-    const supportedKeys = new Set(['$schema', 'env', 'mounts', 'shell', 'customizations']);
+    const supportedKeys = new Set([
+        '$schema',
+        'env',
+        'mounts',
+        'shell',
+        'customizations',
+        'portOffset',
+        'ports',
+    ]);
     const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key));
     if (unsupportedKeys.length > 0) {
         throw new ProjectConfigError(
-            `Unsupported local config keys in ${LOCAL_PROJECT_CONFIG_FILENAME}: ${unsupportedKeys.join(', ')}\nAllowed top-level keys: $schema, env, mounts, shell, customizations.`
+            `Unsupported local config keys in ${LOCAL_PROJECT_CONFIG_FILENAME}: ${unsupportedKeys.join(', ')}\nAllowed top-level keys: $schema, env, mounts, shell, customizations, portOffset, ports.`
         );
     }
 
@@ -738,6 +751,8 @@ export function loadLocalProjectConfig(
             mounts: parseMounts(document.mounts),
             shell: parseProjectShell(document.shell),
             customizations: parseCustomizations(document.customizations),
+            portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
+            ports: parseProjectPorts(document.ports, { preserveEmptyArray: true }),
         },
     };
 }
@@ -920,7 +935,9 @@ export function applyLocalConfigToAnswers<T extends QuestionnaireAnswers>(
     const localCustomizations = materializeLocalCustomizationConfig(local.customizations);
     return {
         ...answers,
+        portOffset: local.portOffset ?? answers.portOffset,
         projectEnv: mergePlainObjects(answers.projectEnv, local.env),
+        projectPorts: local.ports !== undefined ? [...local.ports] : answers.projectPorts,
         projectMounts: [...(answers.projectMounts ?? []), ...(local.mounts ?? [])],
         projectShell:
             answers.projectShell || local.shell

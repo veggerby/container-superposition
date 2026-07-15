@@ -511,6 +511,8 @@ const localSchema = {
         mounts: schema.properties.mounts,
         shell: schema.properties.shell,
         customizations: schema.properties.customizations,
+        portOffset: schema.properties.portOffset,
+        ports: schema.properties.ports,
     },
 };
 const localSchemaJson = JSON.stringify(localSchema, null, 4) + '\n';

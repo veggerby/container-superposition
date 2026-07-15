@@ -124,24 +124,24 @@ profiles:
 ```yaml
 # Docker (default)
 build:
-  artifacts:
-    - image: my-app
-      docker:
-        dockerfile: Dockerfile
+    artifacts:
+        - image: my-app
+          docker:
+              dockerfile: Dockerfile
 
 # Buildpacks (no Dockerfile needed)
 build:
-  artifacts:
-    - image: my-app
-      buildpacks:
-        builder: gcr.io/buildpacks/builder:v1
+    artifacts:
+        - image: my-app
+          buildpacks:
+              builder: gcr.io/buildpacks/builder:v1
 
 # Jib (Java/Maven)
 build:
-  artifacts:
-    - image: my-app
-      jib:
-        project: my-module
+    artifacts:
+        - image: my-app
+          jib:
+              project: my-module
 ```
 
 ### Common Deployers
@@ -149,24 +149,24 @@ build:
 ```yaml
 # kubectl (plain manifests)
 deploy:
-  kubectl:
-    manifests:
-      - k8s/**/*.yaml
+    kubectl:
+        manifests:
+            - k8s/**/*.yaml
 
 # Helm
 deploy:
-  helm:
-    releases:
-      - name: my-app
-        chartPath: helm/my-app
-        valuesFiles:
-          - helm/values.yaml
+    helm:
+        releases:
+            - name: my-app
+              chartPath: helm/my-app
+              valuesFiles:
+                  - helm/values.yaml
 
 # Kustomize
 deploy:
-  kustomize:
-    paths:
-      - k8s/overlays/dev
+    kustomize:
+        paths:
+            - k8s/overlays/dev
 ```
 
 ## Benefits vs Tilt
