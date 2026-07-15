@@ -118,7 +118,7 @@ describe('Global init defaults', () => {
             loaded?.selection.initDefaults,
             overlaysConfig
         );
-        const merged = mergeInitDefaultsWithCliInputs(seeded, {
+        const merged = mergeInitDefaultsWithCliInputs(seeded ?? {}, {
             language: ['nodejs'],
             outputPath: './cli-output',
         });
@@ -249,6 +249,19 @@ describe('Global init defaults', () => {
         expect(fs.readFileSync(path.join(repoDir, '.gitignore'), 'utf8')).toContain(
             'superposition.local.yml'
         );
+    });
+
+    it('does not treat empty init defaults as persisted input for --no-interactive', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                initDefaults: {},
+            })
+        );
+
+        const result = runCli(['init', '--no-interactive'], repoDir, homeDir);
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain('--no-interactive requires persisted input');
     });
 
     it('emits one precedence notice and ignores ~/.superposition.yml when both global defaults files exist', () => {

@@ -1222,20 +1222,30 @@ export function applyLocalConfigToAnswers<T extends QuestionnaireAnswers>(
 export function buildAnswersFromGlobalInitDefaults(
     defaults: GlobalInitDefaultsSelection | undefined,
     overlaysConfig: OverlaysConfig
-): Partial<QuestionnaireAnswers> {
+): Partial<QuestionnaireAnswers> | undefined {
     if (!defaults) {
-        return {};
+        return undefined;
     }
 
-    return {
-        baseImage: defaults.baseImage,
-        ...distributeOverlaysToAnswers(defaults.overlays, overlaysConfig),
-        outputPath: defaults.outputPath,
-        target: defaults.target,
-        minimal: defaults.minimal,
-        editor: defaults.editor,
-        devcontainerGitignore: defaults.devcontainerGitignore,
-    };
+    const distributed = distributeOverlaysToAnswers(defaults.overlays, overlaysConfig);
+    const answers: Partial<QuestionnaireAnswers> = {};
+
+    if (defaults.baseImage !== undefined) answers.baseImage = defaults.baseImage;
+    if (distributed.language !== undefined) answers.language = distributed.language;
+    if (distributed.database !== undefined) answers.database = distributed.database;
+    if (distributed.observability !== undefined) answers.observability = distributed.observability;
+    if (distributed.cloudTools !== undefined) answers.cloudTools = distributed.cloudTools;
+    if (distributed.devTools !== undefined) answers.devTools = distributed.devTools;
+    if (distributed.playwright === true) answers.playwright = true;
+    if (defaults.outputPath !== undefined) answers.outputPath = defaults.outputPath;
+    if (defaults.target !== undefined) answers.target = defaults.target;
+    if (defaults.minimal !== undefined) answers.minimal = defaults.minimal;
+    if (defaults.editor !== undefined) answers.editor = defaults.editor;
+    if (defaults.devcontainerGitignore !== undefined) {
+        answers.devcontainerGitignore = defaults.devcontainerGitignore;
+    }
+
+    return Object.keys(answers).length > 0 ? answers : undefined;
 }
 
 export function mergeInitDefaultsWithCliInputs(
