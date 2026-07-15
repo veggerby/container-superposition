@@ -10,11 +10,71 @@ guarantee reproducible devcontainer builds across your team and CI.
 - `regen` reads only the project file — `superposition.json` is an output-only receipt.
 - `doctor` validates the project file against the last-generated manifest and reports drift.
 - Repos without a project file should run `cs migrate` once to create one from their manifest.
+- Optional `~/.container-superposition.yml` defaults can prefill only eligible fresh `init` runs.
 
 ## File discovery
 
 The tool searches the repository root for `superposition.yml` then `.superposition.yml`. If both
 exist, it fails with an error — keep only one.
+
+## Global init defaults: `~/.container-superposition.yml`
+
+Use `~/.container-superposition.yml` for **personal bootstrap defaults** that should apply only to
+eligible fresh `init` runs.
+
+- It is read only for clean `init` authoring runs
+- It is ignored by `regen`, `doctor`, `plan`, `--from-project`, and `--from-manifest`
+- CLI inputs and interactive choices for the current run win over these defaults
+- `init --ignore-global-defaults` disables it for one run
+
+Supported top-level fields are `$schema`, `initDefaults`, and `localConfigTemplate`.
+
+```yaml
+$schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.global.schema.json
+
+initDefaults:
+    devcontainerGitignore: true
+    overlays:
+        - git-helpers
+        - modern-cli-tools
+
+localConfigTemplate:
+    common:
+        shell:
+            aliases:
+                ll: ls -alF
+
+    plain:
+        mounts:
+            - source: ${HOME}/.pi
+              destination: /home/vscode/.pi
+              type: bind
+              target: devcontainerMount
+
+    compose:
+        mounts:
+            - source: superposition-bash-history
+              destination: /commandhistory
+              type: volume
+              target: composeVolume
+        shell:
+            snippets:
+                - '[ -n "$BASH_VERSION" ] && export HISTFILE=/commandhistory/.bash_history'
+```
+
+`initDefaults` supports only `baseImage`, `editor`, `target`, `outputPath`, `minimal`,
+`devcontainerGitignore`, and `overlays`.
+
+`localConfigTemplate` is init-only scaffold input and supports either:
+
+- the legacy direct local-config shape (`env`, `mounts`, `shell`, `customizations`, `portOffset`, `ports`), or
+- a stack-aware object containing only `common`, `plain`, and/or `compose`
+
+In stack-aware form, the tool writes `common + plain` for `stack: plain` and `common + compose`
+for `stack: compose`. Mixed shapes are invalid. Authored `${HOME}`, `${VAR}`, `${VAR:-default}`,
+`~`, and mount/source strings are preserved verbatim; the global defaults loader does not expand or
+normalize them. The scaffold is written only when the repo does not already have
+`superposition.local.yml`.
 
 ## Local config: `superposition.local.yml`
 

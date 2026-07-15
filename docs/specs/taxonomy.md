@@ -101,7 +101,9 @@ _No specs yet._
 
 ### SCHEMA-VALID
 
-_No specs yet._
+| Spec                                                                         | Title                                                        | Status                        |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------- |
+| [042-global-default-configuration](042-global-default-configuration/spec.md) | User-Scoped Global Defaults with Stack-Aware Local Templates | Implemented · QA: Needs Fixes |
 
 ---
 
@@ -189,13 +191,14 @@ _No specs yet._
 
 ## PROJECT — Project-level configuration
 
-| Spec                                                                           | Title                                                      | Status      |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------- | ----------- |
-| [002-superposition-config-file](002-superposition-config-file/spec.md)         | Project Configuration File                                 | Final       |
-| [008-project-file-canonical](008-project-file-canonical/spec.md)               | Project File Canonical Form                                | Approved    |
-| [009-project-env](009-project-env/spec.md)                                     | Unified Project-Level Environment Variables                | Approved    |
-| [018-init-project-file](018-init-project-file/spec.md)                         | `init --project-file`                                      | Final       |
-| [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                 | Approved    |
-| [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                 | Implemented |
-| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs              | Draft       |
-| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml` | Implemented |
+| Spec                                                                           | Title                                                        | Status                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------- |
+| [002-superposition-config-file](002-superposition-config-file/spec.md)         | Project Configuration File                                   | Final                         |
+| [008-project-file-canonical](008-project-file-canonical/spec.md)               | Project File Canonical Form                                  | Approved                      |
+| [009-project-env](009-project-env/spec.md)                                     | Unified Project-Level Environment Variables                  | Approved                      |
+| [018-init-project-file](018-init-project-file/spec.md)                         | `init --project-file`                                        | Final                         |
+| [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                   | Approved                      |
+| [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                   | Implemented                   |
+| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs                | Draft                         |
+| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml`   | Implemented                   |
+| [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Implemented · QA: Needs Fixes |

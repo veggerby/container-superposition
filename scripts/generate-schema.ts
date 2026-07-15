@@ -25,6 +25,7 @@ import {
     PROJECT_ENV_TARGET_VALUES,
     PROJECT_PORT_AUTO_FORWARD_VALUES,
     PROJECT_MOUNT_TARGET_VALUES,
+    SUPERPOSITION_GLOBAL_SCHEMA_URL,
     SUPERPOSITION_LOCAL_SCHEMA_URL,
 } from '../tool/schema/project-config.js';
 
@@ -44,6 +45,12 @@ const REPO_ROOT =
 
 const OUTPUT_PATH = path.join(REPO_ROOT, 'tool', 'schema', 'superposition.schema.json');
 const LOCAL_OUTPUT_PATH = path.join(REPO_ROOT, 'tool', 'schema', 'superposition.local.schema.json');
+const GLOBAL_OUTPUT_PATH = path.join(
+    REPO_ROOT,
+    'tool',
+    'schema',
+    'superposition.global.schema.json'
+);
 
 function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
     // Non-preset overlay IDs (only these are valid in the `overlays` array field)
@@ -497,6 +504,16 @@ const presetIds = config.overlays
 const schema = buildSchema(nonPresetOverlays, presetIds) as { properties: Record<string, unknown> };
 const schemaJson = JSON.stringify(schema, null, 4) + '\n';
 
+const localSchemaProperties = {
+    $schema: schema.properties.$schema,
+    env: schema.properties.env,
+    mounts: schema.properties.mounts,
+    shell: schema.properties.shell,
+    customizations: schema.properties.customizations,
+    portOffset: schema.properties.portOffset,
+    ports: schema.properties.ports,
+};
+
 const localSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     $id: SUPERPOSITION_LOCAL_SCHEMA_URL,
@@ -505,17 +522,94 @@ const localSchema = {
         'Local config for machine-specific generated-output enrichment. Place superposition.local.yml in repository root and keep it out of Git.',
     type: 'object',
     additionalProperties: false,
-    properties: {
-        $schema: schema.properties.$schema,
-        env: schema.properties.env,
-        mounts: schema.properties.mounts,
-        shell: schema.properties.shell,
-        customizations: schema.properties.customizations,
-        portOffset: schema.properties.portOffset,
-        ports: schema.properties.ports,
-    },
+    properties: localSchemaProperties,
 };
 const localSchemaJson = JSON.stringify(localSchema, null, 4) + '\n';
+
+const globalSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    $id: SUPERPOSITION_GLOBAL_SCHEMA_URL,
+    title: 'Superposition Global Init Defaults',
+    description:
+        'Optional user-scoped bootstrap defaults for eligible init runs only. Store in ~/.container-superposition.yml.',
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        $schema: schema.properties.$schema,
+        initDefaults: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+                baseImage: schema.properties.baseImage,
+                editor: schema.properties.editor,
+                target: schema.properties.target,
+                outputPath: schema.properties.outputPath,
+                minimal: schema.properties.minimal,
+                devcontainerGitignore: schema.properties.devcontainerGitignore,
+                overlays: schema.properties.overlays,
+            },
+        },
+        localConfigTemplate: {
+            oneOf: [
+                {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                        env: localSchemaProperties.env,
+                        mounts: localSchemaProperties.mounts,
+                        shell: localSchemaProperties.shell,
+                        customizations: localSchemaProperties.customizations,
+                        portOffset: localSchemaProperties.portOffset,
+                        ports: localSchemaProperties.ports,
+                    },
+                },
+                {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                        common: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                                env: localSchemaProperties.env,
+                                mounts: localSchemaProperties.mounts,
+                                shell: localSchemaProperties.shell,
+                                customizations: localSchemaProperties.customizations,
+                                portOffset: localSchemaProperties.portOffset,
+                                ports: localSchemaProperties.ports,
+                            },
+                        },
+                        plain: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                                env: localSchemaProperties.env,
+                                mounts: localSchemaProperties.mounts,
+                                shell: localSchemaProperties.shell,
+                                customizations: localSchemaProperties.customizations,
+                                portOffset: localSchemaProperties.portOffset,
+                                ports: localSchemaProperties.ports,
+                            },
+                        },
+                        compose: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                                env: localSchemaProperties.env,
+                                mounts: localSchemaProperties.mounts,
+                                shell: localSchemaProperties.shell,
+                                customizations: localSchemaProperties.customizations,
+                                portOffset: localSchemaProperties.portOffset,
+                                ports: localSchemaProperties.ports,
+                            },
+                        },
+                    },
+                },
+            ],
+        },
+    },
+};
+const globalSchemaJson = JSON.stringify(globalSchema, null, 4) + '\n';
 
 const outputDir = path.dirname(OUTPUT_PATH);
 if (!fs.existsSync(outputDir)) {
@@ -524,8 +618,10 @@ if (!fs.existsSync(outputDir)) {
 
 fs.writeFileSync(OUTPUT_PATH, schemaJson, 'utf8');
 fs.writeFileSync(LOCAL_OUTPUT_PATH, localSchemaJson, 'utf8');
+fs.writeFileSync(GLOBAL_OUTPUT_PATH, globalSchemaJson, 'utf8');
 console.log(`✅ Generated superposition.yml schema at ${OUTPUT_PATH}`);
 console.log(`✅ Generated superposition.local.yml schema at ${LOCAL_OUTPUT_PATH}`);
+console.log(`✅ Generated superposition global schema at ${GLOBAL_OUTPUT_PATH}`);
 console.log(
     `   Overlay IDs: ${nonPresetOverlays.length}  Preset IDs: ${presetIds.length}  Stack values: ${STACK_VALUES.join(', ')}  Base images: ${BASE_IMAGE_VALUES.length}`
 );

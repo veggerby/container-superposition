@@ -3,11 +3,13 @@ stack: plain
 baseImage: trixie
 containerName: Container Superposition
 overlays:
-    - nodejs
-    - pi
-    - docker-sock
-    - git-helpers
-    - modern-cli-tools
-    - devcontainer-cli
-    - task
+  - nodejs
+  - pi
+  - docker-sock
+  - git-helpers
+  - modern-cli-tools
+  - devcontainer-cli
+  - task
+outputPath: ./.devcontainer
 devcontainerGitignore: true
+
