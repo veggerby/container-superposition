@@ -95,8 +95,8 @@ describe('publish workflow prerelease gate', () => {
         expect(commentIndex).toBeGreaterThan(publishIndex);
     });
 
-    it('gates publish-prerelease before publish, shared tag, summary, and comment steps', () => {
-        const { workflow } = loadWorkflow();
+    it('gates publish-prerelease before publish, summary, and comment steps', () => {
+        const { source, workflow } = loadWorkflow();
         const prereleaseJob = workflow.jobs['publish-prerelease'];
 
         expect(prereleaseJob.permissions).toEqual({
@@ -112,37 +112,35 @@ describe('publish workflow prerelease gate', () => {
 
         const prereleaseStepNames = prereleaseJob.steps?.map((step) => step.name ?? '') ?? [];
         expect(prereleaseStepNames).toContain('Publish prerelease to npm');
-        expect(prereleaseStepNames).toContain('Add shared prerelease dist-tag');
         expect(prereleaseStepNames).toContain('Add prerelease commands to workflow summary');
         expect(prereleaseStepNames).toContain('Comment on PR with prerelease version');
+        expect(prereleaseStepNames).not.toContain('Add shared prerelease dist-tag');
         expect(prereleaseStepNames.some((name) => name.toLowerCase().includes('skip'))).toBe(false);
 
         const publishIndex = prereleaseStepNames.indexOf('Publish prerelease to npm');
-        const sharedTagIndex = prereleaseStepNames.indexOf('Add shared prerelease dist-tag');
         const summaryIndex = prereleaseStepNames.indexOf(
             'Add prerelease commands to workflow summary'
         );
         const commentIndex = prereleaseStepNames.indexOf('Comment on PR with prerelease version');
-        expect(sharedTagIndex).toBeGreaterThan(publishIndex);
-        expect(summaryIndex).toBeGreaterThan(sharedTagIndex);
-        expect(commentIndex).toBeGreaterThan(sharedTagIndex);
+        expect(summaryIndex).toBeGreaterThan(publishIndex);
+        expect(commentIndex).toBeGreaterThan(publishIndex);
 
         const publishStep = findStep(prereleaseJob, 'Publish prerelease to npm');
         expect(publishStep.run).toContain(
-            'npm publish --provenance --access public --tag pr-${{ github.event.pull_request.number }}'
+            'npm publish --provenance --access public --tag prerelease'
         );
+        expect(publishStep.run).not.toContain('--tag pr-');
 
-        const sharedTagStep = findStep(prereleaseJob, 'Add shared prerelease dist-tag');
-        expect(sharedTagStep.run).toContain(
+        expect(source).not.toContain(
             'npm dist-tag add container-superposition@$VERSION prerelease'
         );
 
         const summaryStep = findStep(prereleaseJob, 'Add prerelease commands to workflow summary');
         expect(summaryStep.run).toContain('npm install container-superposition@$VERSION');
         expect(summaryStep.run).toContain('npx container-superposition@$VERSION regen');
-        expect(summaryStep.run).toContain('npm install container-superposition@pr-$PR_NUMBER');
         expect(summaryStep.run).toContain('npm install container-superposition@prerelease');
         expect(summaryStep.run).toContain('npx container-superposition@prerelease regen');
+        expect(summaryStep.run).not.toContain('pr-$PR_NUMBER');
 
         const commentStep = findStep(prereleaseJob, 'Comment on PR with prerelease version');
         expect(commentStep.with?.script).toContain(
@@ -151,13 +149,16 @@ describe('publish workflow prerelease gate', () => {
         expect(commentStep.with?.script).toContain(
             '`npx container-superposition@${version} regen`'
         );
-        expect(commentStep.with?.script).toContain('`npm install container-superposition@${tag}`');
         expect(commentStep.with?.script).toContain(
             "'npm install container-superposition@prerelease'"
         );
         expect(commentStep.with?.script).toContain(
             "'npx container-superposition@prerelease regen'"
         );
+        expect(commentStep.with?.script).toContain('Use the exact version for this run:');
+        expect(commentStep.with?.script).toContain('Or use the moving shared prerelease tag:');
+        expect(commentStep.with?.script).not.toContain('PR-specific dist-tag');
+        expect(commentStep.with?.script).not.toContain('`pr-${prNumber}`');
 
         const allJobs = Object.entries(workflow.jobs);
         const prereleaseCommentJobs = allJobs.filter(([, job]) =>

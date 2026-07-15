@@ -1,38 +1,43 @@
-# Feature Specification: Publish Workflow Summaries and PR Comment Parity
+# Feature Specification: Publish Workflow Summaries and Shared Prerelease Tag Only
 
 **Spec ID**: `028-publish-summaries-and-pr-comments`
 **Taxonomy**: `INFRA-BUILD`
 **Created**: 2026-06-08
 **Author**: PM Agent
 **Status**: Final
-**Input**: Preserve exact-version prerelease install guidance and PR-specific prerelease tags, while also moving a stable `prerelease` npm dist-tag to the newest current prerelease build so users can run `npx container-superposition@prerelease regen`.
+**Input**: Amend the existing publish spec so prerelease publishing uses only the shared npm dist-tag `prerelease` (plus the exact version), not the PR-specific `pr-{number}` dist-tag. This replaces the previous dual-tag design because prerelease publishing must remain compatible with OIDC-only trusted publishing.
 
 ## Problem Statement
 
-Current publish automation exposes runnable npm / npx commands only in prerelease PR comments. Final release publishes do not surface the same commands in workflow-rendered output, so maintainers must infer what to run or inspect package docs.
+Current publish automation was previously specified to preserve two mutable prerelease install paths:
 
-Maintainers want publish runs themselves to render exact install / `npx` commands, they want PR comments when there is an associated PR, and they want a stable prerelease dist-tag that always points at the newest current prerelease build.
+- exact published prerelease version
+- PR-specific npm dist-tag `pr-{number}`
+
+That design also added a shared `prerelease` dist-tag after publish. In practice, the extra dist-tag mutation creates compatibility risk for OIDC-only trusted publishing, where maintainers want prerelease publishing to succeed without introducing long-lived npm credentials or registry-side fallback mechanisms.
+
+Maintainers still need workflow summaries, PR comments, and a stable `@prerelease` install path. They no longer need the PR-specific mutable dist-tag if the exact prerelease version remains available.
 
 ## Goals
 
-- Render exact install and `npx` usage commands in GitHub Actions workflow output for successful final releases
-- Render same kind of command summary in successful prerelease runs
-- Preserve prerelease PR comment behavior for PR-triggered prerelease publishes
-- Add final release PR comment behavior when a published release can be associated with a PR
-- Preserve exact prerelease version publishing and existing PR-specific `pr-{number}` dist-tag behavior
-- Also move/update a stable `prerelease` dist-tag to the newest successful prerelease publish
-- Keep release trigger semantics unchanged
-- Add workflow regression coverage for summary/comment steps and prerelease tag updates
-- Add changelog entry under `Unreleased`
+- Keep workflow summaries for successful prerelease and final release publishes.
+- Keep prerelease PR comments for PR-triggered prerelease publishes.
+- Keep final release PR comments when a published release can be associated with a PR.
+- Preserve exact prerelease version publishing.
+- Publish prereleases using only the shared npm dist-tag `prerelease`.
+- Remove the requirement to create or preserve PR-specific npm dist-tag `pr-{number}`.
+- Keep final release `latest` behavior unchanged.
+- Keep prerelease publishing compatible with OIDC-only trusted publishing.
+- Update workflow regression coverage and maintainer docs to reflect the single-tag design.
 
 ## Non-Goals
 
-- Changing release or prerelease version formats
-- Removing or renaming the existing PR-specific `pr-{number}` dist-tag behavior
-- Changing final release `latest` dist-tag behavior
-- Commenting on issues not tied to PRs
-- Adding manual publish workflows
-- Changing package runtime behavior
+- Changing release or prerelease version formats.
+- Changing final release `latest` dist-tag behavior.
+- Adding manual publish workflows.
+- Reintroducing any secondary npm credential just to mutate prerelease dist-tags.
+- Preserving a mutable per-PR dist-tag alias.
+- Changing package runtime behavior.
 
 ## Proposed Behavior
 
@@ -40,8 +45,8 @@ Maintainers want publish runs themselves to render exact install / `npx` command
 
 After successful npm publish:
 
-- `publish` writes a Markdown summary to `$GITHUB_STEP_SUMMARY`
-- `publish-prerelease` writes a Markdown summary to `$GITHUB_STEP_SUMMARY`
+- `publish` writes a Markdown summary to `$GITHUB_STEP_SUMMARY`.
+- `publish-prerelease` writes a Markdown summary to `$GITHUB_STEP_SUMMARY`.
 
 Summary content must include:
 
@@ -49,35 +54,37 @@ Summary content must include:
 - `npm install` command using exact version
 - `npx container-superposition@<version> regen` command
 
-Prerelease summary may also include dist-tag guidance, but exact-version commands are required.
+Prerelease summaries may also include the shared tag install path:
 
-### Prerelease dist-tags
+- `npm install -g container-superposition@prerelease`
+- `npx container-superposition@prerelease regen`
 
-Each successful prerelease publish must continue to expose both of these install paths:
+### Prerelease publishing and dist-tags
+
+Each successful prerelease publish must expose these install paths:
 
 - the exact published prerelease version
-- the PR-specific dist-tag `pr-{number}`
-
-In addition, the workflow must move or create a shared `prerelease` dist-tag that points at the same newly published prerelease version.
+- the shared dist-tag `prerelease`
 
 Implementation requirement:
 
-- publish the package with `npm publish --tag pr-{number}` so the existing PR-specific install path is still created during the primary publish step
-- after that publish succeeds, run an explicit `npm dist-tag add container-superposition@<version> prerelease`
+- publish the package with `npm publish --tag prerelease`
+- do not run a follow-up `npm dist-tag add` step for prereleases
+- do not create or preserve PR-specific dist-tag `pr-{number}` as part of prerelease publishing
 
-The new shared `prerelease` tag is a convenience pointer for "latest current prerelease" and does not replace the PR-specific tag.
-
-This spec intentionally does **not** switch the primary publish tag from `pr-{number}` to `prerelease`, because that would make preservation of the existing PR-specific path depend on a second recovery step instead of the main publish path.
+The exact version is the per-run identifier. The shared `prerelease` tag is the moving alias for the newest successful prerelease.
 
 ### PR comments
 
 #### Prerelease job
 
-Existing prerelease PR comment remains:
+Existing prerelease PR comment remains with these updates:
 
 - heading remains `## 📦 Prerelease published to npm`
 - existing bot comment is updated rather than duplicated
-- comment continues to include install and `npx ... regen` commands
+- comment includes exact-version install and `npx ... regen` commands
+- comment may also include `@prerelease` commands
+- comment must not advertise `pr-{number}` install paths
 
 #### Final release job
 
@@ -100,7 +107,7 @@ Release PR comment should:
 
 `publish-prerelease` must not broaden GitHub permissions beyond its current `contents: read`, `id-token: write`, and `pull-requests: write` set.
 
-If `npm dist-tag add` cannot be executed through the repository's current npm trusted-publishing setup, implementation must escalate before merge rather than silently introducing a long-lived npm token or weakening the release trust boundary.
+Implementation must not require a long-lived npm token, extra secret, or non-OIDC fallback just to manage prerelease dist-tags.
 
 ### Documentation
 
@@ -108,8 +115,9 @@ Update `docs/publishing.md` to state:
 
 - successful publish runs render install / `npx` commands in workflow summary
 - prerelease PRs still receive PR comments
-- prerelease publishes keep the PR-specific `pr-{number}` dist-tag and also move the shared `prerelease` dist-tag
+- prerelease publishes expose exact-version installs plus the shared `prerelease` tag
 - `npx container-superposition@prerelease regen` targets the newest current prerelease build
+- PR-specific `pr-{number}` dist-tag installs are no longer part of the supported prerelease workflow
 - final release publishes comment on associated PR when one is found
 
 ## Technical Design
@@ -118,9 +126,9 @@ Update `docs/publishing.md` to state:
 
 Owns new logic:
 
-- `.github/workflows/publish.yml` owns publish ordering, npm publish/dist-tag behavior, summary rendering, associated-PR lookup, and PR comment side effects
-- `tool/__tests__/publish-workflow.test.ts` owns static workflow regression checks for trigger shape, permissions, step ordering, and prerelease dist-tag handling
-- `docs/publishing.md` owns maintainer-facing explanation of exact-version, `pr-{number}`, and shared `prerelease` install paths
+- `.github/workflows/publish.yml` owns publish ordering, npm publish behavior, summary rendering, associated-PR lookup, and PR comment side effects
+- `tool/__tests__/publish-workflow.test.ts` owns static workflow regression checks for trigger shape, permissions, step ordering, and prerelease tag handling
+- `docs/publishing.md` owns maintainer-facing explanation of exact-version and shared `prerelease` install paths
 - `CHANGELOG.md` owns the user-visible release automation note under `Unreleased`
 
 Must not own new logic:
@@ -131,10 +139,11 @@ Must not own new logic:
 
 ### System Boundaries
 
-- GitHub Actions owns orchestration and failure reporting
-- npm owns package publication plus dist-tag mutation
-- PR comments and `$GITHUB_STEP_SUMMARY` are downstream outputs of a fully successful publish path; they must not advertise `@prerelease` until the shared tag update succeeds
-- the existing `pr-{number}` tag remains the per-PR identifier; `prerelease` is only the moving shared alias
+- GitHub Actions owns orchestration and failure reporting.
+- npm owns package publication through the trusted publishing path.
+- PR comments and `$GITHUB_STEP_SUMMARY` are downstream outputs of a fully successful publish path.
+- Exact prerelease versions remain the immutable per-run reference.
+- `prerelease` is the only mutable prerelease dist-tag.
 
 ### Canonical Data Flow
 
@@ -142,95 +151,90 @@ Must not own new logic:
 flowchart LR
     A[PR event] --> B[publish-prerelease job gate]
     B --> C[Compute prerelease version]
-    C --> D[npm publish --tag pr-number]
-    D --> E[npm dist-tag add version prerelease]
-    E --> F[Write workflow summary]
-    E --> G[Update PR comment]
+    C --> D[npm publish --tag prerelease]
+    D --> E[Write workflow summary]
+    D --> F[Update PR comment]
 ```
 
 Detailed sequencing:
 
 1. `publish-prerelease` computes `{base}-pr.{number}.{run_id}` exactly as today.
-2. Workflow publishes that version with `--tag pr-{number}`.
-3. Workflow then runs `npm dist-tag add container-superposition@<version> prerelease`.
-4. Only after both npm operations succeed does the workflow write summary output and update the PR comment.
-5. Final-release summary/comment flow remains separate and unchanged except for the already-added release PR comment capability.
+2. Workflow publishes that version with `--tag prerelease`.
+3. After publish succeeds, the workflow writes summary output and updates the PR comment.
+4. No secondary dist-tag mutation step runs.
+5. Final-release summary/comment flow remains separate and unchanged.
 
 ### Dist-tag Strategy Decision
 
-Recommended approach: keep `pr-{number}` on `npm publish`, then add `prerelease` with an explicit post-publish `npm dist-tag add`.
+Recommended approach: publish prereleases directly with `--tag prerelease` and rely on the exact published version for per-run specificity.
 
-Why this is the preferred boundary-safe design:
+Why this is the preferred design:
 
-- npm publish can assign only one initial dist-tag, so one of the two shared install paths must be secondary
-- preserving `pr-{number}` in the main publish step keeps the longstanding per-PR contract on the critical path
-- adding `prerelease` afterward makes the new shared alias an additive step instead of a replacement of existing behavior
-- failure handling is clearer: if the dist-tag add fails, the workflow can fail with the exact published version still available and the original PR-specific tag still intact
+- OIDC-only trusted publishing compatibility is the primary requirement.
+- npm publish can assign the needed shared tag in the primary publish step.
+- removing post-publish tag mutation avoids a second registry capability requirement
+- exact versions already provide a precise, non-moving reference for any single PR run
+- failure handling becomes simpler because there is no second dist-tag mutation step to partially fail
 
-Rejected direction:
+Superseded direction:
 
-- publishing with `--tag prerelease` and then restoring `pr-{number}` afterward is not acceptable because it temporarily or permanently breaks the older PR-specific path when the second step fails
+- the prior dual-tag design (`npm publish --tag pr-{number}` followed by `npm dist-tag add ... prerelease`) is no longer acceptable because it depends on follow-up tag mutation that may not be supported in the OIDC-only path
 
 ### Failure Behavior
 
 - If `npm publish` fails, job fails exactly as today; no summary or comment is written.
-- If `npm publish` succeeds but `npm dist-tag add ... prerelease` fails, job must fail and must not write/update the success summary or PR comment.
-- This failure mode is acceptable because the package version and `pr-{number}` tag still exist, while the failed run makes the stale shared `prerelease` pointer visible to maintainers.
-- Do not add a best-effort `continue-on-error` path for the shared `prerelease` tag update.
+- There is no separate prerelease dist-tag mutation failure mode because no follow-up tag step runs.
 - Do not add rollback automation that unpublishes the package; npm publish is intentionally treated as irreversible once successful.
 
 ### Implementation Slices
 
 1. Keep the existing release summary step after successful final publish.
-2. Keep the existing prerelease summary and prerelease PR comment behavior, but move them after the shared `prerelease` dist-tag step.
-3. Update prerelease publish flow to run `npm publish --tag pr-{number}` first, then `npm dist-tag add ... prerelease`.
+2. Keep the existing prerelease summary and prerelease PR comment behavior, but remove any dependency on PR-specific tag wording.
+3. Update prerelease publish flow to use `npm publish --tag prerelease` with no follow-up `npm dist-tag add`.
 4. Keep the release PR comment step after final publish, using associated-PR lookup.
-5. Extend static tests for summary/comment contracts, step ordering, permissions, and shared prerelease dist-tag handling.
+5. Extend static tests for summary/comment contracts, permissions, and single-tag prerelease handling.
 6. Update docs and changelog.
 
 ### Risk Notes
 
-- npm trusted publishing may allow `npm publish` but not `npm dist-tag add`; this is the main implementation unknown and requires early validation.
-- If maintainers see a failed prerelease run after publish succeeded, they may need clear logs explaining that the exact version and `pr-{number}` tag still exist while `prerelease` did not advance.
-- Summary/comment wording must avoid implying `@prerelease` is PR-specific; it is cross-PR and always moves to the newest successful prerelease.
-- Static workflow tests can prove ordering and command shape, but they cannot prove registry-side permissions; manual validation in a safe prerelease path may still be needed.
+- The moving `@prerelease` alias is cross-PR, so users who need a stable per-PR reference must use the exact published version.
+- Maintainers accustomed to `pr-{number}` may need explicit docs and comment wording updates.
+- Static workflow tests can prove command shape and absence of the old tag mutation step, but registry-side trusted publishing still needs real workflow validation.
 
 ### Test Plan
 
 Automated regression coverage should verify at least:
 
-- prerelease publish step still uses `--tag pr-{number}`
-- a later step runs `npm dist-tag add container-superposition@<version> prerelease`
-- shared `prerelease` tag step occurs after prerelease publish and before prerelease summary/comment steps
+- prerelease publish step uses `--tag prerelease`
+- workflow no longer runs `npm dist-tag add container-superposition@<version> prerelease`
+- workflow no longer publishes with `--tag pr-{number}`
 - `publish-prerelease` permissions are unchanged
-- prerelease summary and/or comment text contains both the exact-version path and the stable `@prerelease` path
+- prerelease summary and/or comment text contains exact-version guidance and shared `@prerelease` guidance
+- prerelease summary and/or comment text does not advertise `pr-{number}` install guidance
 - release summary/comment steps remain in the final-release job only
 - release job permissions remain `contents: write`, `id-token: write`, and `pull-requests: write`
 
 Manual validation should cover one successful prerelease run and confirm:
 
-- `npm view container-superposition@pr-<number> version` resolves to the new version
+- `npm view container-superposition@<exact-version> version` resolves to the new version
 - `npm view container-superposition@prerelease version` resolves to that same new version
-- workflow summary and PR comment show both discovery paths
+- workflow summary and PR comment show exact-version guidance and shared `@prerelease` guidance only
 
 ## Acceptance Criteria
 
-1. [x] `publish` writes rendered workflow summary containing exact-version `npm install` and `npx container-superposition@<version> regen`
-2. [x] `publish-prerelease` writes rendered workflow summary containing exact-version `npm install` and `npx container-superposition@<version> regen`
-3. [x] existing prerelease PR comment behavior remains in `publish-prerelease`
-4. [x] `publish` attempts PR comment only after successful final publish
-5. [x] final release PR comment is skipped without failure when no associated PR exists
-6. [x] final release PR comment updates existing matching bot comment rather than duplicating it
-7. [x] each successful prerelease publish preserves the existing exact published version and the existing PR-specific npm dist-tag `pr-{number}` by publishing with `npm publish --tag pr-{number}` before any shared-tag mutation
-8. [x] each successful prerelease publish also moves or creates npm dist-tag `prerelease` pointing to that same just-published prerelease version via an explicit post-publish `npm dist-tag add container-superposition@<version> prerelease`
-9. [x] the shared `prerelease` dist-tag step runs after prerelease publish succeeds and before any prerelease success summary or prerelease PR comment is written
-10. [x] if shared-tag update fails after package publish succeeds, the workflow fails visibly and does not write or update the prerelease success summary or prerelease PR comment
-11. [x] prerelease workflow summaries and PR comments clearly distinguish the exact version, the PR-specific `pr-{number}` path, and the moving shared `@prerelease` path, including discovery of `npx container-superposition@prerelease regen`
-12. [x] workflow regression tests cover shared prerelease tag handling, unchanged permissions, and step ordering in addition to existing summary/comment step placement
-13. [x] release summary/comment coverage remains scoped to the final-release job only
-14. [x] implementation does not broaden `publish-prerelease` GitHub job permissions, and any npm credential change required for `npm dist-tag add` is explicitly escalated rather than silently added
-15. [x] `docs/publishing.md` documents workflow summary + PR comment behavior plus the exact-version, `pr-{number}`, and shared `prerelease` prerelease install paths
-16. [x] `CHANGELOG.md` includes `Unreleased` entry for the stable prerelease dist-tag behavior
+- [x] AC-1: `publish` writes rendered workflow summary containing exact-version `npm install` and `npx container-superposition@<version> regen`.
+- [x] AC-2: `publish-prerelease` writes rendered workflow summary containing exact-version `npm install` and `npx container-superposition@<version> regen`.
+- [x] AC-3: Existing prerelease PR comment behavior remains in `publish-prerelease`, with updated wording that removes `pr-{number}` install guidance.
+- [x] AC-4: `publish` attempts PR comment only after successful final publish.
+- [x] AC-5: Final release PR comment is skipped without failure when no associated PR exists.
+- [x] AC-6: Final release PR comment updates existing matching bot comment rather than duplicating it.
+- [x] AC-7: Each successful prerelease publish preserves the exact published prerelease version and publishes the shared npm dist-tag `prerelease` in the primary publish step via `npm publish --tag prerelease`.
+- [x] AC-8: Prerelease publishing no longer creates, preserves, or documents PR-specific npm dist-tag `pr-{number}` as a supported install path.
+- [x] AC-9: Prerelease workflow summaries and PR comments clearly distinguish the exact version from the moving shared `@prerelease` path.
+- [x] AC-10: Workflow regression tests cover single-tag prerelease handling, unchanged permissions, and removal of the prior dual-tag sequence.
+- [x] AC-11: Implementation does not broaden `publish-prerelease` GitHub job permissions and does not require a long-lived npm credential or non-OIDC fallback for prerelease publishing.
+- [x] AC-12: `docs/publishing.md` documents workflow summary + PR comment behavior plus the exact-version and shared `prerelease` prerelease install paths.
+- [x] AC-13: `CHANGELOG.md` includes `Unreleased` entry for the prerelease dist-tag simplification.
 
 ## Architecture Decision Impact
 
@@ -242,17 +246,22 @@ PM → Developer
 
 ## Assumptions
 
-- Existing release summary/comment behavior described in this spec remains the intended baseline; this update only clarifies how prerelease publishing must preserve the current `pr-{number}` path while adding the shared `prerelease` alias.
-- If npm trusted publishing does not authorize `npm dist-tag add`, implementation must stop at escalation rather than introduce a new long-lived credential.
+- Exact prerelease versions are sufficient as the stable per-run reference once the mutable PR-specific tag is removed.
+- OIDC-only trusted publishing compatibility takes precedence over preserving the older `pr-{number}` convenience alias.
 
 ## Open Questions
 
-- None blocking spec handoff. Implementation must validate registry authorization for `npm dist-tag add` early in the change.
+- None blocking.
+- Updated summary/comment wording now directs maintainers to use the exact version for a stable per-run install and `@prerelease` for the newest shared prerelease.
 
 ## Implementation Notes
 
-- Updated `.github/workflows/publish.yml` so prerelease publish keeps `--tag pr-{number}`, then runs `npm dist-tag add container-superposition@<version> prerelease` before writing any prerelease success summary or PR comment.
-- Expanded `tool/__tests__/publish-workflow.test.ts` to cover the new shared-tag step, step ordering, unchanged prerelease permissions, and wording separation for exact-version, `pr-{number}`, and `@prerelease` paths.
-- Updated `docs/publishing.md` and `CHANGELOG.md` to document the shared prerelease tag and summary/comment behavior.
+- Updated `.github/workflows/publish.yml` so prerelease publishing now uses `npm publish --provenance --access public --tag prerelease`, removes the follow-up `npm dist-tag add` step, and updates prerelease summary/comment wording to advertise only exact-version and shared `@prerelease` install paths.
+- Updated `tool/__tests__/publish-workflow.test.ts` to assert the single-tag prerelease publish command, removal of the dist-tag mutation step and `pr-{number}` guidance, unchanged prerelease permissions, and retained release summary/comment ownership.
+- Updated `docs/publishing.md` and the existing `CHANGELOG.md` Unreleased entry to document the shared-tag-only prerelease workflow and exact-version guidance.
+- Follow-up docs cleanup removed contradictory legacy beta/dist-tag promotion guidance, removed the stale "Automated Releases (Future Enhancement)" section, and marked manual publishing as an exception path that still uses the shared `prerelease` tag if needed.
 - Validation run: `npm run lint:fix`, `npm run lint`, `npm test`.
-- Known gap: registry-side authorization for `npm dist-tag add` could not be exercised in this local environment, so a real prerelease workflow run is still required to confirm trusted publishing allows the tag mutation without extra credentials.
+- QA follow-up validation: `npm run lint:fix`, `npm run lint`.
+- QA docs follow-up removed the stale `@next` prerelease example from `docs/publishing.md` so the later maintainer guidance now matches the exact-version plus shared `@prerelease` model.
+- QA docs revalidation: `npm run lint:fix`, `npm run lint`.
+- Known gap: trusted-publishing behavior still requires confirmation from a real GitHub prerelease workflow run against npm.

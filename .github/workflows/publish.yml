@@ -246,17 +246,11 @@ jobs:
                   npm pack --dry-run
 
             - name: Publish prerelease to npm
-              run: npm publish --provenance --access public --tag pr-${{ github.event.pull_request.number }}
-
-            - name: Add shared prerelease dist-tag
-              run: |
-                  VERSION=${{ steps.version.outputs.version }}
-                  npm dist-tag add container-superposition@$VERSION prerelease
+              run: npm publish --provenance --access public --tag prerelease
 
             - name: Add prerelease commands to workflow summary
               run: |
                   VERSION=${{ steps.version.outputs.version }}
-                  PR_NUMBER=${{ github.event.pull_request.number }}
                   {
                     echo '## 📦 Prerelease published to npm'
                     echo
@@ -274,12 +268,6 @@ jobs:
                     echo "npx container-superposition@$VERSION regen"
                     echo '```'
                     echo
-                    echo 'Install this PR tag:'
-                    echo
-                    echo '```bash'
-                    echo "npm install container-superposition@pr-$PR_NUMBER"
-                    echo '```'
-                    echo
                     echo 'Use the moving shared prerelease tag:'
                     echo
                     echo '```bash'
@@ -294,26 +282,19 @@ jobs:
                   script: |
                       const version = '${{ steps.version.outputs.version }}';
                       const prNumber = ${{ github.event.pull_request.number }};
-                      const tag = `pr-${prNumber}`;
                       const body = [
                         '## 📦 Prerelease published to npm',
                         '',
-                        'A prerelease version has been published for this PR.',
+                        `A prerelease version has been published for PR #${prNumber}.`,
                         '',
-                        'Exact version:',
+                        'Use the exact version for this run:',
                         '',
                         '```bash',
                         `npm install container-superposition@${version}`,
                         `npx container-superposition@${version} regen`,
                         '```',
                         '',
-                        'PR-specific dist-tag:',
-                        '',
-                        '```bash',
-                        `npm install container-superposition@${tag}`,
-                        '```',
-                        '',
-                        'Moving shared prerelease tag:',
+                        'Or use the moving shared prerelease tag:',
                         '',
                         '```bash',
                         'npm install container-superposition@prerelease',

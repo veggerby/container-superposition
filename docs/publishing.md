@@ -13,7 +13,7 @@ This guide explains how to publish `container-superposition` to npm, making it a
 **Available Commands:**
 
 - `container-superposition init` - Interactive devcontainer setup
-- `container-superposition regen` - Regenerate from manifest
+- `container-superposition regen` - Regenerate from the project file
 - `container-superposition list` - List available overlays
 - `container-superposition doctor` - Environment validation
 
@@ -77,29 +77,28 @@ Ready for Review PRs publish npm prereleases automatically.
 
 Draft PRs skip prerelease publishing unless labeled `publish-prerelease`. Add `publish-prerelease` to a Draft PR when reviewers need an npm prerelease before the PR is ready. Remove `publish-prerelease` to stop future Draft PR prereleases, or convert a PR to Draft without that label to skip future Draft prerelease publishes.
 
-Successful prerelease runs publish the exact prerelease version with the PR-specific dist-tag `pr-{number}`, then move the shared `prerelease` dist-tag to that same version. Only after both npm steps succeed does the workflow render the summary and update the PR comment.
+Successful prerelease runs publish the exact prerelease version with `npm publish --tag prerelease`. After that publish succeeds, the workflow renders the summary and updates the PR comment.
 
-Those prerelease summaries/comments distinguish all three install paths:
+Those prerelease summaries/comments distinguish the two supported install paths:
 
-- exact version: `container-superposition@<version>`
-- PR-specific tag: `container-superposition@pr-{number}`
+- exact version for that run: `container-superposition@<version>`
 - moving shared tag: `container-superposition@prerelease`
 
-That shared tag is what makes `npx container-superposition@prerelease regen` target the newest successful prerelease build.
+Use the exact version when you need a stable reference for one PR run. The shared `prerelease` tag is cross-PR and always points to the newest successful prerelease build, which is what makes `npx container-superposition@prerelease regen` target the newest current prerelease build.
 
 The label does not affect final releases, mergeability, or npm `latest`. Maintainers may create the repository label with this description: `Publish npm prereleases for this PR, including while draft`.
 
 Skipped Draft PR runs are expected: GitHub Actions should show the `publish-prerelease` job as skipped, not failed, and no new prerelease PR comment is created for that skipped run.
 
-Version format and primary PR-tag behavior are unchanged:
+Version format and prerelease tag behavior are:
 
 - Version: `{base}-pr.{number}.{run_id}`
-- Publish tag: `pr-{number}`
 - Shared moving tag: `prerelease`
+- PR-specific dist-tags such as `pr-{number}` are no longer part of the supported prerelease workflow
 
-### Manual Publishing (Development/Testing)
+### Manual Publishing (Exception Path)
 
-For testing or emergency releases:
+Use this only for testing or emergency recovery when the GitHub Actions publish workflow cannot be used. Automated trusted publishing is the canonical path; manual publishing should not reintroduce legacy beta promotion or PR-specific dist-tag workflows.
 
 ```bash
 # 1. Ensure you're logged in to npm
@@ -126,8 +125,8 @@ npx container-superposition list
 # 5. Publish to npm
 npm publish --access public
 
-# For beta/test releases
-npm publish --tag beta --access public
+# If a manual prerelease is unavoidable
+npm publish --tag prerelease --access public
 ```
 
 ## Pre-Publish Checklist
@@ -161,11 +160,11 @@ After publishing, verify:
     npx container-superposition@latest doctor
     ```
 
-3. **For prerelease runs, verify dist-tags:**
+3. **For prerelease runs, verify the exact version and shared tag:**
 
     ```bash
+    npm view container-superposition@<exact-version> version
     npm view container-superposition@prerelease version
-    npm view container-superposition@pr-<number> version
     ```
 
 4. **Installation works:**
@@ -261,121 +260,24 @@ Document changes in [CHANGELOG.md](../CHANGELOG.md):
 - ...
 ```
 
-## Publishing
+## Current release workflow notes
 
-### Option 1: Public Release
+The legacy beta-promotion flow is no longer supported in this repository.
 
-```bash
-# Build is automatic via prepublishOnly hook
-npm publish
+- Do not publish prereleases to a temporary `beta` or `pr-{number}` dist-tag and then promote them later with `npm dist-tag add`.
+- Do not treat automated publishing as a future enhancement; the live workflow already exists in `.github/workflows/publish.yml`.
+- Do not add a long-lived `NPM_TOKEN` secret just to support prerelease publication; the canonical workflow uses trusted publishing.
 
-# The package will be available at:
-# https://www.npmjs.com/package/container-superposition
-```
-
-### Option 2: Beta Release (Recommended for First Publish)
-
-Test with a beta tag first:
+If a manual prerelease is ever unavoidable, publish the exact prerelease version directly with the shared tag:
 
 ```bash
-# Publish as beta
-npm publish --tag beta
-
-# Users install with:
-# npx container-superposition@beta init
-# or
-# npm install -g container-superposition@beta
-
-# When ready to promote to latest:
-npm dist-tag add container-superposition@0.1.0 latest
+npm publish --tag prerelease --access public
 ```
 
-### Option 3: Scoped Package (If Name Taken)
+That preserves the same supported install paths documented earlier:
 
-If `container-superposition` is unavailable, use a scoped package:
-
-```bash
-# Update package.json name to:
-# "@veggerby/container-superposition"
-
-# Publish publicly (scoped packages default to private)
-npm publish --access public
-```
-
-## Post-Publish
-
-### 1. Verify Installation
-
-```bash
-# Test npx execution (may take 1-2 minutes to propagate)
-npx container-superposition@latest init --help
-
-# Test global installation
-npm install -g container-superposition
-container-superposition init --help
-```
-
-### 2. Create GitHub Release
-
-```bash
-# Tag the release
-git tag v0.1.0
-git push origin v0.1.0
-
-# Create release on GitHub:
-# https://github.com/veggerby/container-superposition/releases/new
-```
-
-### 3. Update Documentation
-
-Update README.md to reflect published status:
-
-````markdown
-## Quick Start
-
-### Via npx (Recommended)
-
-```bash
-npx container-superposition init
-```
-````
-
-### Or Install Globally
-
-```bash
-npm install -g container-superposition
-container-superposition init
-```
-
-## Continuous Publishing
-
-### Automated Releases (Future Enhancement)
-
-Consider GitHub Actions for automated publishing:
-
-```yaml
-# .github/workflows/publish.yml
-name: Publish to npm
-
-on:
-    release:
-        types: [created]
-
-jobs:
-    publish:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: '20'
-                  registry-url: 'https://registry.npmjs.org'
-            - run: npm ci
-            - run: npm test
-            - run: npm publish
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-```
+- exact version: `container-superposition@<version>`
+- shared moving tag: `container-superposition@prerelease`
 
 ## Troubleshooting
 
@@ -481,17 +383,18 @@ Follow [Semantic Versioning](https://semver.org/):
 
 ### Pre-Release Versions
 
-For experimental features:
+For experimental features, keep prereleases aligned with the automated workflow:
 
 ```bash
 # Create pre-release
 npm version 0.2.0-alpha.1
 
-# Publish with tag
-npm publish --tag next
+# Publish the exact version with the shared prerelease tag
+npm publish --tag prerelease
 
-# Users install with:
-# npx container-superposition@next init
+# Users can install either:
+# npx container-superposition@0.2.0-alpha.1 init
+# npx container-superposition@prerelease init
 ```
 
 ### Deprecation

@@ -183,9 +183,10 @@ _No specs yet._
 
 ### INFRA-BUILD
 
-| Spec                                                     | Title                         | Status |
-| -------------------------------------------------------- | ----------------------------- | ------ |
-| [023-pr-prerelease-gate](023-pr-prerelease-gate/spec.md) | PR Prerelease Deployment Gate | Final  |
+| Spec                                                                                   | Title                                                     | Status                        |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------- |
+| [023-pr-prerelease-gate](023-pr-prerelease-gate/spec.md)                               | PR Prerelease Deployment Gate                             | Final                         |
+| [028-publish-summaries-and-pr-comments](028-publish-summaries-and-pr-comments/spec.md) | Publish Workflow Summaries and Shared Prerelease Tag Only | Implemented — QA: Needs Fixes |
 
 ---
 
