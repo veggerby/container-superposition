@@ -28,6 +28,10 @@ import type {
     Stack,
     SuperpositionManifest,
 } from './types.js';
+import {
+    assertComposeNetworkNameSupported,
+    validateComposeNetworkName,
+} from '../utils/compose-network.js';
 
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
 export const LOCAL_PROJECT_CONFIG_FILENAME = 'superposition.local.yml' as const;
@@ -1053,6 +1057,7 @@ export function loadProjectConfig(
         'baseImage',
         'customImage',
         'containerName',
+        'composeNetworkName',
         'preset',
         'presetChoices',
         'overlays',
@@ -1094,6 +1099,12 @@ export function loadProjectConfig(
         baseImage: expectOptionalEnum(document.baseImage, 'baseImage', BASE_IMAGE_VALUES),
         customImage: expectOptionalString(document.customImage, 'customImage'),
         containerName: expectOptionalString(document.containerName, 'containerName'),
+        composeNetworkName:
+            document.composeNetworkName !== undefined && document.composeNetworkName !== null
+                ? validateComposeNetworkName(
+                      expectString(document.composeNetworkName, 'composeNetworkName')
+                  )
+                : undefined,
         preset: expectOptionalString(document.preset, 'preset'),
         presetChoices: parsePresetChoices(document.presetChoices),
         overlays,
@@ -1126,6 +1137,12 @@ export function loadProjectConfig(
 
     if (selection.presetChoices && !selection.preset) {
         throw new ProjectConfigError('presetChoices requires preset to be set');
+    }
+
+    try {
+        assertComposeNetworkNameSupported(selection.stack, selection.composeNetworkName);
+    } catch (error) {
+        throw new ProjectConfigError(error instanceof Error ? error.message : String(error));
     }
 
     return { file, selection };
@@ -1282,6 +1299,7 @@ export function buildAnswersFromProjectConfig(
         baseImage: selection.baseImage,
         customImage: selection.customImage,
         containerName: selection.containerName,
+        composeNetworkName: selection.composeNetworkName,
         preset: selection.preset,
         presetChoices: selection.presetChoices,
         ...distributeOverlaysToAnswers(selection.overlays, overlaysConfig),
@@ -1359,6 +1377,7 @@ export function buildProjectConfigSelectionFromAnswers(
         baseImage: answers.baseImage,
         customImage: answers.customImage,
         containerName: answers.containerName,
+        composeNetworkName: answers.composeNetworkName,
         preset: answers.preset,
         presetChoices: answers.presetChoices,
         overlays: overlays.length > 0 ? [...new Set(overlays)] : undefined,
@@ -1540,6 +1559,7 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.baseImage) document.baseImage = selection.baseImage;
     if (selection.customImage) document.customImage = selection.customImage;
     if (selection.containerName) document.containerName = selection.containerName;
+    if (selection.composeNetworkName) document.composeNetworkName = selection.composeNetworkName;
     if (selection.preset) document.preset = selection.preset;
     if (hasKeys(selection.presetChoices)) document.presetChoices = selection.presetChoices;
     if (selection.overlays?.length) document.overlays = selection.overlays;

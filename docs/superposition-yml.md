@@ -197,6 +197,28 @@ Sets the `name` field in `devcontainer.json`. Used by VS Code to label the conta
 
 ---
 
+### `composeNetworkName`
+
+```yaml
+composeNetworkName: my-repo-devnet
+```
+
+Compose stacks only. Controls the **actual Docker network name** written to generated
+`docker-compose.yml` at `networks.devnet.name`.
+
+- If omitted, the tool derives a stable default from the repository folder basename, such as
+  `my-repo-devnet`
+- `containerName` does **not** affect this default
+- Services and overlays still use the logical compose network key `devnet`
+- Plain stacks reject this field because they do not generate `docker-compose.yml`
+- `superposition.local.yml` does not support this field; network identity stays shared in
+  `superposition.yml`
+
+Use an explicit value when your team needs a network name that stays stable even if local checkout
+folder names differ.
+
+---
+
 ### `overlays`
 
 ```yaml

@@ -66,6 +66,7 @@ import { parseCliArgs } from './args.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
 import { deepMerge } from '../utils/merge.js';
+import { assertComposeNetworkNameSupported } from '../utils/compose-network.js';
 
 function isStackAwareLocalConfigTemplate(
     template: GlobalLocalConfigTemplateSelection | undefined
@@ -1236,6 +1237,10 @@ export async function main(): Promise<void> {
         }
 
         const sharedAnswersForProjectFile = answers;
+        assertComposeNetworkNameSupported(
+            sharedAnswersForProjectFile.stack,
+            sharedAnswersForProjectFile.composeNetworkName
+        );
 
         if (!manifest && projectConfig?.selection.customizations) {
             const materializedOutputPath = path.resolve(answers.outputPath);

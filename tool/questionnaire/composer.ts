@@ -67,6 +67,10 @@ import {
     portsToPortInfo,
 } from '../utils/summary.js';
 import { resolveRepoPath } from '../utils/paths.js';
+import {
+    assertComposeNetworkNameSupported,
+    resolveComposeNetworkName,
+} from '../utils/compose-network.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -2153,6 +2157,43 @@ function resolveDockerComposePortConflicts(
     return remappings;
 }
 
+function applyComposeNetworkNameToMergedCompose(merged: any, composeNetworkName: string): void {
+    merged.networks = merged.networks ?? {};
+    const existingDevnet =
+        merged.networks.devnet && typeof merged.networks.devnet === 'object'
+            ? merged.networks.devnet
+            : {};
+    merged.networks.devnet = {
+        ...existingDevnet,
+        name: composeNetworkName,
+    };
+}
+
+function applyComposeNetworkNameToWrittenCompose(
+    outputPath: string,
+    composeNetworkName: string
+): void {
+    const composePath = path.join(outputPath, 'docker-compose.yml');
+    if (!fs.existsSync(composePath)) {
+        return;
+    }
+
+    const compose = yaml.load(fs.readFileSync(composePath, 'utf8')) as any;
+    if (!compose || typeof compose !== 'object') {
+        return;
+    }
+
+    applyComposeNetworkNameToMergedCompose(compose, composeNetworkName);
+    fs.writeFileSync(
+        composePath,
+        yaml.dump(compose, {
+            indent: 2,
+            lineWidth: -1,
+            noRefs: true,
+        })
+    );
+}
+
 /**
  * Merge docker-compose.yml files from base and overlays into a single file
  */
@@ -2161,6 +2202,7 @@ function mergeDockerComposeFiles(
     baseStack: QuestionnaireAnswers['stack'],
     overlays: string[],
     overlaysDir: string,
+    composeNetworkName: string,
     portOffset?: number,
     customImage?: string,
     projectEnv?: QuestionnaireAnswers['projectEnv'],
@@ -2318,6 +2360,8 @@ function mergeDockerComposeFiles(
             console.warn(chalk.yellow('⚠️  No image specified, this should not happen'));
         }
     }
+
+    applyComposeNetworkNameToMergedCompose(merged, composeNetworkName);
 
     // Filter depends_on to only include services that exist
     const serviceNames = Object.keys(merged.services);
@@ -2831,6 +2875,14 @@ export async function composeDevContainer(
     }
     const outputPath = path.resolve(answers.outputPath);
     const projectRoot = path.dirname(outputPath);
+    assertComposeNetworkNameSupported(answers.stack, answers.composeNetworkName);
+    const effectiveComposeNetworkName =
+        answers.stack === 'compose'
+            ? resolveComposeNetworkName(projectRoot, answers.composeNetworkName)
+            : undefined;
+    if (effectiveComposeNetworkName) {
+        console.log(chalk.dim(`   🌐 Compose network: ${chalk.cyan(effectiveComposeNetworkName)}`));
+    }
     const fileRegistry = new FileRegistry();
     const rootEnv = loadEnvFileIfExists(path.join(projectRoot, '.env'));
     // Apply {{cs.KEY}} substitution to project env values (in-memory; no file modified)
@@ -2944,6 +2996,7 @@ export async function composeDevContainer(
             answers.stack,
             overlays,
             actualOverlaysDir,
+            effectiveComposeNetworkName!,
             answers.portOffset,
             customImage,
             substitutedProjectEnv,
@@ -3095,6 +3148,9 @@ export async function composeDevContainer(
     }
     if (answers.customizations && answers.stack === 'compose') {
         applyCustomDockerComposePatch(outputPath, answers.customizations);
+    }
+    if (effectiveComposeNetworkName) {
+        applyComposeNetworkNameToWrittenCompose(outputPath, effectiveComposeNetworkName);
     }
 
     // 13. Generate superposition.json manifest

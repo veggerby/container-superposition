@@ -30,6 +30,7 @@ import { applyPresetSelections } from '../../questionnaire/presets.js';
 import { PRESETS_DIR } from '../../questionnaire/questionnaire.js';
 import { isPathIgnored, listTrackedFilesUnder } from '../../utils/git.js';
 import { parseSimpleEnvFile } from '../../utils/env-file.js';
+import { resolveComposeNetworkName } from '../../utils/compose-network.js';
 import { MERGE_STRATEGY } from '../../utils/merge.js';
 import {
     collectOverlayParameters,
@@ -1470,6 +1471,9 @@ export async function checkReproducibility(
                 );
             } else {
                 answers = mergedAnswers;
+            }
+            if (answers.stack === 'compose' && !answers.composeNetworkName) {
+                answers.composeNetworkName = resolveComposeNetworkName(workingDir, undefined);
             }
         } catch (error) {
             return [

@@ -70,6 +70,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--stack <type>', 'Base template: plain, compose')
         .option(
+            '--compose-network-name <name>',
+            'Actual Docker network name for compose stacks (defaults to a repo-derived name)'
+        )
+        .option(
             '--language <list>',
             'Comma-separated language overlays: dotnet, nodejs, python, mkdocs, java, go, rust, bun, powershell'
         )
@@ -147,6 +151,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option(
             '--from-manifest <path>',
             '(Deprecated) Load from superposition.json; use `cs migrate` to create a project file first'
+        )
+        .option(
+            '--compose-network-name <name>',
+            'Actual Docker network name for compose stacks (defaults to a repo-derived name)'
         )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .option(
@@ -365,6 +373,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         'cloudTools',
         'devTools',
         'portOffset',
+        'composeNetworkName',
         'preset',
     ];
     const hasPresetParams =
@@ -422,6 +431,9 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     }
     if (initOptions.portOffset) {
         config.portOffset = parseInt(initOptions.portOffset, 10);
+    }
+    if (initOptions.composeNetworkName) {
+        config.composeNetworkName = initOptions.composeNetworkName;
     }
     if (initOptions.target && initOptions._targetSource !== 'default') {
         config.target = initOptions.target as DeploymentTarget;

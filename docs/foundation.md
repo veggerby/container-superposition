@@ -65,7 +65,7 @@ The repository is organized around a small CLI and a composition engine:
 - **[Tool code]** Do not edit generated `docs/overlays.md` directly; regenerate it from overlay sources.
 - **[Tool code]** Do not edit generated schema files directly; regenerate them from source types and overlays.
 - **[Tool input/output]** Overlay conflicts are bidirectional.
-- **[Tool input/output]** Docker Compose networks in overlays must be declared inline with `name: devnet`; do not use `external: true`.
+- **[Tool input/output]** Docker Compose overlays must keep the logical network key `devnet` declared inline; do not use `external: true`. The generated `docker-compose.yml` owns the final `networks.devnet.name` value from shared project config or the repo-derived default.
 - **[Tool code]** Feature work follows spec-first development with a spec committed under `docs/specs/` before implementation.
 - **[Tool code]** User-visible changes should be reflected in `CHANGELOG.md`.
 

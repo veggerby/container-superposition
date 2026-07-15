@@ -119,12 +119,12 @@ volumes:
     <name>-data:
 networks:
     devnet:
-        name: devnet
+        name: my-project-devnet
 ```
 
 **Critical rules:**
 
-- NEVER use `external: true` on networks — always declare `networks: devnet: name: devnet`
+- NEVER use `external: true` on networks — always keep the logical `devnet` key inline and treat the final `networks.devnet.name` as generator-owned project-specific output
 - All services use `networks: [devnet]`
 - All environment vars use `${VAR:-{{cs.VAR}}}` pattern (Docker env takes precedence, falls back to cs param)
 - Databases MUST have `healthcheck`

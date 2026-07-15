@@ -163,12 +163,13 @@ volumes:
 
 networks:
     devnet:
-        name: devnet
+        name: my-project-devnet
 ```
 
 **Important:**
 
-- Always use `name: devnet` (not `external: true`)
+- Keep the logical network key `devnet` and never use `external: true`
+- Document generated compose output with a project-specific `networks.devnet.name` example such as `my-project-devnet`; the generator owns the final merged network name
 - Use service names for inter-container communication (not localhost)
 
 ### 5. Add Environment Variables (Optional)

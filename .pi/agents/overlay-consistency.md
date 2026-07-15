@@ -54,7 +54,7 @@ Check for port collisions (same port number in overlays that don't conflict with
 
 For every overlay that has a `docker-compose.yml`:
 
-- Check that `networks:` block uses `name: devnet` pattern
+- Check that the `networks:` block keeps the logical `devnet` key inline and does not canonize a fixed actual network name
 - Check that it does NOT use `external: true`
 - Check that all services list `networks: [devnet]`
 

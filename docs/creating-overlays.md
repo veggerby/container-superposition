@@ -243,7 +243,7 @@ volumes:
 
 networks:
     devnet:
-        external: true
+        name: my-project-devnet
 ```
 
 ### Important Notes
@@ -252,7 +252,7 @@ networks:
 2. **Always include `networks: - devnet`** for service connectivity
 3. **Use environment variables** with defaults: `${VAR:-default}`
 4. **Include depends_on** for dependencies (composer will filter unused ones)
-5. **Use external network**: `devnet: external: true`
+5. **Keep the logical network key `devnet` inline and never use `external: true`** — document generated compose output with a project-specific `networks.devnet.name` example such as `my-project-devnet` because the generator owns the final merged network name
 
 ### Volume Mounts
 
@@ -686,7 +686,7 @@ Before submitting an overlay:
 - [ ] devcontainer.patch.json validates against schema
 - [ ] Packages available in standard repos use `cross-distro-packages` feature (not `apt-get install` in setup.sh)
 - [ ] `setup.sh` (if present) sources `setup-utils.sh` and uses `apt_install`/`install_binary`/`detect_arch`
-- [ ] docker-compose.yml uses version "3.8" and devnet network
+- [ ] docker-compose.yml uses version "3.8" and the logical `devnet` network key
 - [ ] .env.example has sensible defaults and comments
 - [ ] README.md documents ports, environment variables, usage
 - [ ] runServices includes service names

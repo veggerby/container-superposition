@@ -66,12 +66,12 @@ Compose overlays also need:
 ## Docker Compose rules
 
 - Never use `external: true`
-- Declare network inline:
+- Keep the logical network key declared inline and treat the final `networks.devnet.name` as generator-owned project-specific output, for example:
 
 ```yaml
 networks:
     devnet:
-        name: devnet
+        name: my-project-devnet
 ```
 
 - All services use `networks: [devnet]` or equivalent `networks: [devnet]` YAML list

@@ -225,6 +225,7 @@ export interface QuestionnaireAnswers {
     baseImage: BaseImage;
     customImage?: string; // Only used when baseImage is 'custom'
     containerName?: string; // Container/project name from devcontainer.json
+    composeNetworkName?: string; // Actual docker-compose network name for compose stacks
     preset?: string; // ID of preset used, if any
     presetChoices?: Record<string, string>; // User choices made within preset
     presetGlueConfig?: PresetGlueConfig; // Glue configuration from preset
@@ -620,6 +621,7 @@ export interface ProjectConfigSelection {
     baseImage?: BaseImage;
     customImage?: string;
     containerName?: string;
+    composeNetworkName?: string;
     preset?: string;
     presetChoices?: Record<string, string>;
     overlays?: OverlayId[];

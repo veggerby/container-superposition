@@ -56,7 +56,7 @@
 
 - Follow overlay manifest rules from `AGENTS.md`.
 - Keep conflict declarations bidirectional.
-- Ensure compose overlays use inline `devnet` network declarations.
+- Ensure compose overlays keep inline `devnet` logical network declarations and never rely on `external: true`; generated output should own the final project-specific `networks.devnet.name`.
 - Regenerate overlay docs and schema outputs when required.
 
 ### Command or tooling changes

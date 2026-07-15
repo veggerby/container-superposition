@@ -220,6 +220,12 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                 description: 'Sets the "name" field in devcontainer.json (displayed by VS Code)',
                 examples: ['My Web API'],
             },
+            composeNetworkName: {
+                type: 'string',
+                description:
+                    'Actual Docker network name for compose stacks. When omitted, the generated docker-compose.yml uses a deterministic default derived from the repository folder name. Plain stacks reject this field.',
+                examples: ['my-repo-devnet'],
+            },
             overlays: {
                 type: 'array',
                 description:
