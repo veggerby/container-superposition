@@ -10,10 +10,17 @@ const REPO_ROOT = path.join(__dirname, '..', '..');
 const WORKFLOW_PATH = path.join(REPO_ROOT, '.github', 'workflows', 'publish.yml');
 const PRERELEASE_LABEL = 'publish-prerelease';
 
+interface WorkflowStep {
+    name?: string;
+    uses?: string;
+    run?: string;
+    with?: { script?: string };
+}
+
 interface WorkflowJob {
     if?: string;
     permissions?: Record<string, string>;
-    steps?: Array<{ name?: string; uses?: string; run?: string }>;
+    steps?: WorkflowStep[];
 }
 
 interface PublishWorkflow {
@@ -34,6 +41,12 @@ function loadWorkflow(): { source: string; workflow: PublishWorkflow } {
 
 function shouldPublishPrerelease(eventName: string, draft: boolean, labels: string[]): boolean {
     return eventName === 'pull_request' && (!draft || labels.includes(PRERELEASE_LABEL));
+}
+
+function findStep(job: WorkflowJob, stepName: string): WorkflowStep {
+    const step = job.steps?.find((candidate) => candidate.name === stepName);
+    expect(step, `Expected workflow step "${stepName}" to exist`).toBeDefined();
+    return step!;
 }
 
 describe('publish workflow prerelease gate', () => {
@@ -82,7 +95,7 @@ describe('publish workflow prerelease gate', () => {
         expect(commentIndex).toBeGreaterThan(publishIndex);
     });
 
-    it('gates publish-prerelease before publish, summary, and comment steps', () => {
+    it('gates publish-prerelease before publish, shared tag, summary, and comment steps', () => {
         const { workflow } = loadWorkflow();
         const prereleaseJob = workflow.jobs['publish-prerelease'];
 
@@ -99,17 +112,52 @@ describe('publish workflow prerelease gate', () => {
 
         const prereleaseStepNames = prereleaseJob.steps?.map((step) => step.name ?? '') ?? [];
         expect(prereleaseStepNames).toContain('Publish prerelease to npm');
+        expect(prereleaseStepNames).toContain('Add shared prerelease dist-tag');
         expect(prereleaseStepNames).toContain('Add prerelease commands to workflow summary');
         expect(prereleaseStepNames).toContain('Comment on PR with prerelease version');
         expect(prereleaseStepNames.some((name) => name.toLowerCase().includes('skip'))).toBe(false);
 
         const publishIndex = prereleaseStepNames.indexOf('Publish prerelease to npm');
+        const sharedTagIndex = prereleaseStepNames.indexOf('Add shared prerelease dist-tag');
         const summaryIndex = prereleaseStepNames.indexOf(
             'Add prerelease commands to workflow summary'
         );
         const commentIndex = prereleaseStepNames.indexOf('Comment on PR with prerelease version');
-        expect(summaryIndex).toBeGreaterThan(publishIndex);
-        expect(commentIndex).toBeGreaterThan(publishIndex);
+        expect(sharedTagIndex).toBeGreaterThan(publishIndex);
+        expect(summaryIndex).toBeGreaterThan(sharedTagIndex);
+        expect(commentIndex).toBeGreaterThan(sharedTagIndex);
+
+        const publishStep = findStep(prereleaseJob, 'Publish prerelease to npm');
+        expect(publishStep.run).toContain(
+            'npm publish --provenance --access public --tag pr-${{ github.event.pull_request.number }}'
+        );
+
+        const sharedTagStep = findStep(prereleaseJob, 'Add shared prerelease dist-tag');
+        expect(sharedTagStep.run).toContain(
+            'npm dist-tag add container-superposition@$VERSION prerelease'
+        );
+
+        const summaryStep = findStep(prereleaseJob, 'Add prerelease commands to workflow summary');
+        expect(summaryStep.run).toContain('npm install container-superposition@$VERSION');
+        expect(summaryStep.run).toContain('npx container-superposition@$VERSION regen');
+        expect(summaryStep.run).toContain('npm install container-superposition@pr-$PR_NUMBER');
+        expect(summaryStep.run).toContain('npm install container-superposition@prerelease');
+        expect(summaryStep.run).toContain('npx container-superposition@prerelease regen');
+
+        const commentStep = findStep(prereleaseJob, 'Comment on PR with prerelease version');
+        expect(commentStep.with?.script).toContain(
+            '`npm install container-superposition@${version}`'
+        );
+        expect(commentStep.with?.script).toContain(
+            '`npx container-superposition@${version} regen`'
+        );
+        expect(commentStep.with?.script).toContain('`npm install container-superposition@${tag}`');
+        expect(commentStep.with?.script).toContain(
+            "'npm install container-superposition@prerelease'"
+        );
+        expect(commentStep.with?.script).toContain(
+            "'npx container-superposition@prerelease regen'"
+        );
 
         const allJobs = Object.entries(workflow.jobs);
         const prereleaseCommentJobs = allJobs.filter(([, job]) =>

@@ -77,16 +77,25 @@ Ready for Review PRs publish npm prereleases automatically.
 
 Draft PRs skip prerelease publishing unless labeled `publish-prerelease`. Add `publish-prerelease` to a Draft PR when reviewers need an npm prerelease before the PR is ready. Remove `publish-prerelease` to stop future Draft PR prereleases, or convert a PR to Draft without that label to skip future Draft prerelease publishes.
 
-Successful prerelease runs also render exact `npm install` and `npx container-superposition@<version> regen` commands in the workflow run summary. PR-triggered prerelease publishes still create or update the PR comment with the same runnable commands.
+Successful prerelease runs publish the exact prerelease version with the PR-specific dist-tag `pr-{number}`, then move the shared `prerelease` dist-tag to that same version. Only after both npm steps succeed does the workflow render the summary and update the PR comment.
+
+Those prerelease summaries/comments distinguish all three install paths:
+
+- exact version: `container-superposition@<version>`
+- PR-specific tag: `container-superposition@pr-{number}`
+- moving shared tag: `container-superposition@prerelease`
+
+That shared tag is what makes `npx container-superposition@prerelease regen` target the newest successful prerelease build.
 
 The label does not affect final releases, mergeability, or npm `latest`. Maintainers may create the repository label with this description: `Publish npm prereleases for this PR, including while draft`.
 
 Skipped Draft PR runs are expected: GitHub Actions should show the `publish-prerelease` job as skipped, not failed, and no new prerelease PR comment is created for that skipped run.
 
-Version format and dist-tag format are unchanged:
+Version format and primary PR-tag behavior are unchanged:
 
 - Version: `{base}-pr.{number}.{run_id}`
-- Dist-tag: `pr-{number}`
+- Publish tag: `pr-{number}`
+- Shared moving tag: `prerelease`
 
 ### Manual Publishing (Development/Testing)
 
@@ -152,14 +161,21 @@ After publishing, verify:
     npx container-superposition@latest doctor
     ```
 
-3. **Installation works:**
+3. **For prerelease runs, verify dist-tags:**
+
+    ```bash
+    npm view container-superposition@prerelease version
+    npm view container-superposition@pr-<number> version
+    ```
+
+4. **Installation works:**
 
     ```bash
     npm install -g container-superposition
     container-superposition init --help
     ```
 
-4. **Update documentation:**
+5. **Update documentation:**
     - Ensure README.md shows latest version
     - Update any version-specific examples
     - Announce on relevant channels
