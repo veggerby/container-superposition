@@ -32,7 +32,11 @@ import type {
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
 export const LOCAL_PROJECT_CONFIG_FILENAME = 'superposition.local.yml' as const;
 export const IGNORED_LOCAL_PROJECT_CONFIG_FILENAME = '.superposition.local.yml' as const;
-export const GLOBAL_DEFAULTS_FILENAME = '.container-superposition.yml' as const;
+export const GLOBAL_DEFAULTS_FILENAMES = [
+    '.container-superposition.yml',
+    '.superposition.yml',
+] as const;
+export const GLOBAL_DEFAULTS_FILENAME = GLOBAL_DEFAULTS_FILENAMES[0];
 const DEVCONTAINER_SCHEMA_URL =
     'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json';
 export const SUPERPOSITION_SCHEMA_URL =
@@ -87,7 +91,13 @@ export interface GlobalDefaultsSelection {
 
 export interface LoadedGlobalDefaults {
     path: string;
+    ignoredPath?: string;
     selection: GlobalDefaultsSelection;
+}
+
+export interface ResolvedGlobalDefaultsPath {
+    path: string;
+    ignoredPath?: string;
 }
 
 export const STACK_VALUES: Stack[] = ['plain', 'compose'];
@@ -815,7 +825,7 @@ export function loadLocalProjectConfig(
     };
 }
 
-export function resolveGlobalDefaultsPath(homeDir?: string): string | null {
+export function resolveGlobalDefaultsPath(homeDir?: string): ResolvedGlobalDefaultsPath | null {
     const resolvedHomeDir =
         homeDir ??
         (() => {
@@ -830,7 +840,22 @@ export function resolveGlobalDefaultsPath(homeDir?: string): string | null {
         return null;
     }
 
-    return path.join(resolvedHomeDir, GLOBAL_DEFAULTS_FILENAME);
+    const candidatePaths = GLOBAL_DEFAULTS_FILENAMES.map((fileName) =>
+        path.join(resolvedHomeDir, fileName)
+    );
+    const firstExistingIndex = candidatePaths.findIndex((candidatePath) =>
+        fs.existsSync(candidatePath)
+    );
+    if (firstExistingIndex === -1) {
+        return null;
+    }
+
+    return {
+        path: candidatePaths[firstExistingIndex],
+        ignoredPath: candidatePaths
+            .slice(firstExistingIndex + 1)
+            .find((candidatePath) => fs.existsSync(candidatePath)),
+    };
 }
 
 function parseGlobalLocalConfigTemplate(
@@ -884,10 +909,12 @@ export function loadGlobalDefaults(
     overlaysConfig: OverlaysConfig,
     homeDir?: string
 ): LoadedGlobalDefaults | null {
-    const globalDefaultsPath = resolveGlobalDefaultsPath(homeDir);
-    if (!globalDefaultsPath || !fs.existsSync(globalDefaultsPath)) {
+    const resolvedGlobalDefaultsPath = resolveGlobalDefaultsPath(homeDir);
+    if (!resolvedGlobalDefaultsPath) {
         return null;
     }
+
+    const globalDefaultsPath = resolvedGlobalDefaultsPath.path;
 
     let parsed: unknown;
     try {
@@ -980,6 +1007,7 @@ export function loadGlobalDefaults(
 
         return {
             path: globalDefaultsPath,
+            ignoredPath: resolvedGlobalDefaultsPath.ignoredPath,
             selection,
         };
     } catch (error) {

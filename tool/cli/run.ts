@@ -194,6 +194,18 @@ function validateMaterializedLocalConfigTemplate(
     }
 }
 
+function printGlobalDefaultsPrecedenceNotice(globalDefaults: LoadedGlobalDefaults): void {
+    if (!globalDefaults.ignoredPath) {
+        return;
+    }
+
+    console.log(
+        chalk.dim(
+            'ℹ Global defaults: using ~/.container-superposition.yml and ignoring ~/.superposition.yml for this init run'
+        )
+    );
+}
+
 function renderRunFraming(input: {
     mode: string;
     source: string;
@@ -792,6 +804,9 @@ export async function main(): Promise<void> {
 
             if (isEligibleGlobalDefaultsInit) {
                 globalDefaults = loadGlobalDefaults(mainOverlaysConfig) ?? undefined;
+                if (globalDefaults) {
+                    printGlobalDefaultsPrecedenceNotice(globalDefaults);
+                }
                 globalInitDefaultsAnswers = buildAnswersFromGlobalInitDefaults(
                     globalDefaults?.selection.initDefaults,
                     mainOverlaysConfig

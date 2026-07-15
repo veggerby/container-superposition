@@ -531,7 +531,7 @@ const globalSchema = {
     $id: SUPERPOSITION_GLOBAL_SCHEMA_URL,
     title: 'Superposition Global Init Defaults',
     description:
-        'Optional user-scoped bootstrap defaults for eligible init runs only. Store in ~/.container-superposition.yml.',
+        'Optional user-scoped bootstrap defaults for eligible init runs only. Prefer ~/.superposition.yml; ~/.container-superposition.yml remains supported and takes precedence when both exist.',
     type: 'object',
     additionalProperties: false,
     properties: {

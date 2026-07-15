@@ -10,22 +10,24 @@ guarantee reproducible devcontainer builds across your team and CI.
 - `regen` reads only the project file — `superposition.json` is an output-only receipt.
 - `doctor` validates the project file against the last-generated manifest and reports drift.
 - Repos without a project file should run `cs migrate` once to create one from their manifest.
-- Optional `~/.container-superposition.yml` defaults can prefill only eligible fresh `init` runs.
+- Optional `~/.superposition.yml` defaults can prefill only eligible fresh `init` runs.
 
 ## File discovery
 
 The tool searches the repository root for `superposition.yml` then `.superposition.yml`. If both
 exist, it fails with an error — keep only one.
 
-## Global init defaults: `~/.container-superposition.yml`
+## Global init defaults: `~/.superposition.yml`
 
-Use `~/.container-superposition.yml` for **personal bootstrap defaults** that should apply only to
-eligible fresh `init` runs.
+Use `~/.superposition.yml` for **personal bootstrap defaults** that should apply only to eligible
+fresh `init` runs.
 
 - It is read only for clean `init` authoring runs
 - It is ignored by `regen`, `doctor`, `plan`, `--from-project`, and `--from-manifest`
 - CLI inputs and interactive choices for the current run win over these defaults
-- `init --ignore-global-defaults` disables it for one run
+- `init --ignore-global-defaults` disables both supported home-directory files for one run
+- `~/.container-superposition.yml` remains supported as a legacy/specific fallback and wins when
+  both files exist
 
 Supported top-level fields are `$schema`, `initDefaults`, and `localConfigTemplate`.
 
@@ -75,6 +77,10 @@ for `stack: compose`. Mixed shapes are invalid. Authored `${HOME}`, `${VAR}`, `$
 `~`, and mount/source strings are preserved verbatim; the global defaults loader does not expand or
 normalize them. The scaffold is written only when the repo does not already have
 `superposition.local.yml`.
+
+If you still keep `~/.container-superposition.yml`, it works unchanged. When both supported files
+exist, the tool loads `~/.container-superposition.yml`, ignores `~/.superposition.yml` for that
+run, and prints one informational precedence notice.
 
 ## Local config: `superposition.local.yml`
 

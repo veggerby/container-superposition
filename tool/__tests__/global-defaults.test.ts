@@ -10,6 +10,7 @@ import {
     buildAnswersFromGlobalInitDefaults,
     loadGlobalDefaults,
     mergeInitDefaultsWithCliInputs,
+    resolveGlobalDefaultsPath,
     serializeLocalProjectConfig,
 } from '../schema/project-config.js';
 
@@ -53,9 +54,37 @@ describe('Global init defaults', () => {
         fs.rmSync(homeDir, { recursive: true, force: true });
     });
 
-    it('loads supported global defaults and merges overlay defaults with CLI selections', () => {
+    it('prefers ~/.container-superposition.yml when both supported global defaults files exist', () => {
         fs.writeFileSync(
             path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    overlays: ['git-helpers'],
+                },
+            })
+        );
+        fs.writeFileSync(
+            path.join(homeDir, '.superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    overlays: ['modern-cli-tools'],
+                },
+            })
+        );
+
+        const resolved = resolveGlobalDefaultsPath(homeDir);
+        expect(resolved?.path).toBe(path.join(homeDir, '.container-superposition.yml'));
+        expect(resolved?.ignoredPath).toBe(path.join(homeDir, '.superposition.yml'));
+
+        const loaded = loadGlobalDefaults(overlaysConfig, homeDir);
+        expect(loaded?.path).toBe(path.join(homeDir, '.container-superposition.yml'));
+        expect(loaded?.ignoredPath).toBe(path.join(homeDir, '.superposition.yml'));
+        expect(loaded?.selection.initDefaults?.overlays).toEqual(['git-helpers']);
+    });
+
+    it('falls back to ~/.superposition.yml when the legacy-specific file is absent', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.superposition.yml'),
             yaml.dump({
                 initDefaults: {
                     devcontainerGitignore: true,
@@ -75,8 +104,13 @@ describe('Global init defaults', () => {
             })
         );
 
+        const resolved = resolveGlobalDefaultsPath(homeDir);
+        expect(resolved?.path).toBe(path.join(homeDir, '.superposition.yml'));
+        expect(resolved?.ignoredPath).toBeUndefined();
+
         const loaded = loadGlobalDefaults(overlaysConfig, homeDir);
-        expect(loaded?.path).toBe(path.join(homeDir, '.container-superposition.yml'));
+        expect(loaded?.path).toBe(path.join(homeDir, '.superposition.yml'));
+        expect(loaded?.ignoredPath).toBeUndefined();
         expect(loaded?.selection.initDefaults?.devcontainerGitignore).toBe(true);
         expect((loaded?.selection.localConfigTemplate as any)?.mounts).toHaveLength(1);
 
@@ -215,6 +249,40 @@ describe('Global init defaults', () => {
         expect(fs.readFileSync(path.join(repoDir, '.gitignore'), 'utf8')).toContain(
             'superposition.local.yml'
         );
+    });
+
+    it('emits one precedence notice and ignores ~/.superposition.yml when both global defaults files exist', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                localConfigTemplate: {
+                    env: { SELECTED: 'legacy' },
+                },
+            })
+        );
+        fs.writeFileSync(
+            path.join(homeDir, '.superposition.yml'),
+            yaml.dump({
+                localConfigTemplate: {
+                    env: { SELECTED: 'primary' },
+                },
+            })
+        );
+
+        const result = runCli(
+            ['init', '--stack', 'plain', '--language', 'nodejs'],
+            repoDir,
+            homeDir
+        );
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain(
+            'using ~/.container-superposition.yml and ignoring ~/.superposition.yml'
+        );
+
+        const localConfig = yaml.load(
+            fs.readFileSync(path.join(repoDir, 'superposition.local.yml'), 'utf8')
+        ) as any;
+        expect(localConfig.env.SELECTED).toBe('legacy');
     });
 
     it('writes common + plain local defaults for plain init and ignores compose-only branch content', () => {
@@ -419,6 +487,14 @@ describe('Global init defaults', () => {
                 },
             })
         );
+        fs.writeFileSync(
+            path.join(homeDir, '.superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    overlays: ['modern-cli-tools'],
+                },
+            })
+        );
 
         const result = runCli(
             ['init', '--stack', 'plain', '--language', 'nodejs', '--ignore-global-defaults'],
@@ -433,6 +509,9 @@ describe('Global init defaults', () => {
         expect(projectConfig.overlays).toEqual(['nodejs']);
         expect(projectConfig.devcontainerGitignore).toBeUndefined();
         expect(fs.existsSync(path.join(repoDir, 'superposition.local.yml'))).toBe(false);
+        expect(result.stdout).not.toContain(
+            'using ~/.container-superposition.yml and ignoring ~/.superposition.yml'
+        );
     });
 
     it('fails eligible init before repo writes when global defaults are invalid', () => {

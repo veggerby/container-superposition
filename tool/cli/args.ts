@@ -109,7 +109,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--no-scaffold', 'Write only superposition.yml; skip .devcontainer/ generation')
         .option(
             '--ignore-global-defaults',
-            'Ignore ~/.container-superposition.yml for this init run'
+            'Ignore ~/.container-superposition.yml and ~/.superposition.yml for this init run'
         )
         .option('--preset <id>', 'Start from a preset (e.g., web-api, microservice)')
         .option(

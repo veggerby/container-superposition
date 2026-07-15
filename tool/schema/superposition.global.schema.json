@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.global.schema.json",
     "title": "Superposition Global Init Defaults",
-    "description": "Optional user-scoped bootstrap defaults for eligible init runs only. Store in ~/.container-superposition.yml.",
+    "description": "Optional user-scoped bootstrap defaults for eligible init runs only. Prefer ~/.superposition.yml; ~/.container-superposition.yml remains supported and takes precedence when both exist.",
     "type": "object",
     "additionalProperties": false,
     "properties": {

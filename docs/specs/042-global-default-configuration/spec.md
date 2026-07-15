@@ -8,7 +8,7 @@ product_approval: 'approved'
 architecture_review: 'approved'
 ux_review: 'not-needed'
 created: '2026-07-15'
-updated: '2026-07-17'
+updated: '2026-07-15'
 related_adrs:
     - 'docs/adr/adr001-project-file-first-replay-and-regeneration.md'
 related_foundation:
@@ -37,7 +37,7 @@ normative_references:
 
 ## Description
 
-Extend the existing init-only user-scoped global defaults feature so `localConfigTemplate` can materialize different repository-local defaults for `stack: plain` vs `stack: compose`, while still supporting shared defaults such as shell aliases. This must cover compose-specific local defaults such as persistent bash history without turning the home-directory file into a replay authority.
+Extend the existing init-only user-scoped global defaults feature so `localConfigTemplate` can materialize different repository-local defaults for `stack: plain` vs `stack: compose`, while still supporting shared defaults such as shell aliases. This slice also changes global-default filename policy so docs and examples treat `~/.superposition.yml` as the primary user-facing filename, while runtime discovery still prefers the more specific legacy `~/.container-superposition.yml` when both files exist. This must continue to cover compose-specific local defaults such as persistent bash history without turning the home-directory file into a replay authority.
 
 ## Evidence
 
@@ -73,11 +73,14 @@ Without stack-aware templating, users either keep one lowest-common-denominator 
 - A user can define `common` local defaults plus stack-specific local defaults in one global file.
 - Eligible fresh `init` writes a repo-root `superposition.local.yml` that matches the selected stack without manual edits.
 - Compose users can default a persistent bash history pattern via the existing local-config field surface.
-- Existing global defaults files that use the legacy single-template shape continue to work unchanged.
+- Docs consistently present `~/.superposition.yml` as the primary global-defaults filename.
+- Existing global defaults files that use the legacy single-template shape continue to work unchanged, including precedence when both filenames exist.
 
 ## Goals
 
-- Keep `~/.container-superposition.yml` as an optional init-only authoring input.
+- Make `~/.superposition.yml` the documented primary init-only global-defaults filename.
+- Keep `~/.container-superposition.yml` supported as a legacy/specific init-only global-defaults filename.
+- Prefer `~/.container-superposition.yml` over `~/.superposition.yml` when both exist.
 - Extend `localConfigTemplate` to support stack-aware materialization for `plain` and `compose`.
 - Support stack-independent local defaults such as common shell aliases.
 - Make compose-specific persistent bash history defaults expressible through `localConfigTemplate` using existing local-config fields.
@@ -86,6 +89,7 @@ Without stack-aware templating, users either keep one lowest-common-denominator 
 ## Non-Goals
 
 - Changing `regen`, `doctor`, `plan`, `adopt`, `migrate`, `list`, `hash`, or replay-style `init` behavior.
+- Adding any third global-default discovery location beyond `~/.container-superposition.yml` and `~/.superposition.yml`.
 - Adding a second local runtime merge layer outside repo root.
 - Introducing a new first-class `history` schema field in this slice.
 - Resolving or expanding `${HOME}`, `${localEnv:HOME}`, or compose `${VAR}` expressions while reading the global defaults file.
@@ -104,6 +108,7 @@ This spec must align with:
 - `docs/specs/025-variable-expansion-consolidation/spec.md`
 - `docs/specs/041-local-port-conflict-overrides/spec.md`
 - `docs/superposition-yml.md`
+- CLI help/examples that mention `--ignore-global-defaults`
 
 ## Design
 
@@ -121,12 +126,23 @@ Current behavior does not support selecting different template content based on 
 
 #### Global file location and command scope
 
-No change:
+The init-only command scope stays the same, but filename discovery changes.
 
-- supported file remains `~/.container-superposition.yml`
+- supported discovery candidates are `~/.container-superposition.yml` and `~/.superposition.yml`
+- documentation, examples, and user guidance must present `~/.superposition.yml` as the primary filename to create
+- runtime discovery order for eligible `init` is:
+    1. load `~/.container-superposition.yml` when it exists
+    2. otherwise load `~/.superposition.yml` when it exists
+    3. otherwise behave as though no global defaults file exists
+- if both files exist, `~/.container-superposition.yml` wins entirely for that run; `~/.superposition.yml` is ignored
+- warning/messaging contract for eligible `init`:
+    - no warning is required when exactly one supported file exists; using either filename alone remains valid backward-compatible behavior
+    - when both files exist, emit one concise non-fatal notice that `~/.container-superposition.yml` took precedence and `~/.superposition.yml` was ignored for that run
+    - validation, conflict, and parse errors must reference the selected file path only so users know which file to edit
+    - `--ignore-global-defaults` suppresses discovery, loading, validation, and precedence messaging for both supported filenames
 - supported command scope remains eligible clean `init` only
 - `--ignore-global-defaults` remains the one-run escape hatch
-- replay and non-`init` commands continue to ignore this file entirely
+- replay and non-`init` commands continue to ignore both files entirely
 
 #### `initDefaults`
 
@@ -249,6 +265,7 @@ This slice does **not** require a new first-class history key. The product may l
 #### Backward compatibility
 
 - Existing global defaults files with legacy `localConfigTemplate` continue to work unchanged.
+- Existing users may keep `~/.container-superposition.yml`; moving to `~/.superposition.yml` is optional.
 - Existing repos with an already-present `superposition.local.yml` remain untouched.
 - Existing non-stack-aware validation and init-only scope remain unchanged unless explicitly extended above.
 
@@ -256,36 +273,53 @@ This slice does **not** require a new first-class history key. The product may l
 
 ### Architecture Ownership
 
-- `tool/schema/project-config.ts` owns global-defaults schema parsing, mixed-shape rejection, branch normalization, and stack-aware branch structure validation.
-- `tool/cli/run.ts` owns command-scope gating, choosing the final effective `init` stack, materializing `common + selected branch`, stack-selected compatibility validation-before-write, and one-time scaffold write of repo-root `superposition.local.yml`.
+- `tool/schema/project-config.ts` owns global-defaults schema parsing, supported global-filename constants, mixed-shape rejection, branch normalization, and stack-aware branch structure validation once a candidate file has been selected.
+- `tool/cli/run.ts` owns command-scope gating, candidate-file discovery/preference application, choosing the final effective `init` stack, precedence notice emission when both files exist, materializing `common + selected branch`, stack-selected compatibility validation-before-write, and one-time scaffold write of repo-root `superposition.local.yml`.
 - Existing local-config runtime ownership remains unchanged after scaffold: later `regen` / `doctor` flows read only repo-root `superposition.local.yml`.
 - `tool/questionnaire/composer.ts` must not discover or branch on the home-directory file; it continues consuming already-materialized local config using existing stack/runtime rules.
 
 ### System Boundaries
 
-- The home-directory file remains bootstrap-only and must not become replay, manifest, or runtime authority.
+- The selected home-directory file remains bootstrap-only and must not become replay, manifest, or runtime authority.
 - Stack-aware branching must not introduce a second mount-routing or variable-resolution model; it only selects which existing local-config payload gets scaffolded.
 - The loader/materializer must treat authored strings as opaque user intent: no `${HOME}` expansion, no `${VAR}` interpolation, no `~` expansion, and no path normalization relative to the user home directory.
 - The implementation must not silently rewrite mount targets across stacks. `auto` and `devcontainerMount` stay stack-agnostic; `composeVolume` stays compose-only per spec `019`.
+- Filename precedence is a discovery concern only; it must not change schema shape, local-config semantics, or replay authority.
 
 ### Canonical Data Flow
 
 ```mermaid
 flowchart LR
-    A[~/.container-superposition.yml] --> B[loadGlobalDefaults]
-    B --> C{localConfigTemplate mode}
-    C -->|direct| D[direct local-config selection]
-    C -->|stack-aware| E[normalize common/plain/compose]
-    F[final effective init answers] --> G[effective stack]
-    E --> H[materialize common + selected branch]
-    D --> I[selected template]
-    G --> H
-    G --> I
-    H --> J[stack-compatibility validation using existing local-config/generation rules]
-    I --> J
-    J -->|eligible fresh init + no existing repo local file| K[write superposition.local.yml once]
-    K --> L[later regen/doctor read repo local file only]
+    A[~/.container-superposition.yml] --> B[select first existing global defaults file]
+    A2[~/.superposition.yml] --> B
+    B --> C[loadGlobalDefaults]
+    C --> D{localConfigTemplate mode}
+    D -->|direct| E[direct local-config selection]
+    D -->|stack-aware| F[normalize common/plain/compose]
+    G[final effective init answers] --> H[effective stack]
+    F --> I[materialize common + selected branch]
+    E --> J[selected template]
+    H --> I
+    H --> J
+    I --> K[stack-compatibility validation using existing local-config/generation rules]
+    J --> K
+    K -->|eligible fresh init + no existing repo local file| L[write superposition.local.yml once]
+    L --> M[later regen/doctor read repo local file only]
 ```
+
+### Discovery Precedence and Operator Messaging
+
+- Candidate discovery must be deterministic and side-effect free: probe `~/.container-superposition.yml` first, then `~/.superposition.yml`, and stop at the first existing file unless `--ignore-global-defaults` is active.
+- The discovery result should carry enough metadata for orchestration/tests to know:
+    - selected path, if any
+    - whether the other supported filename also existed and was ignored
+    - whether a precedence notice should be rendered
+- When both files exist, the notice should be informational rather than a warning-level failure because the behavior is intentional backward-compatible precedence, not an invalid state.
+- Error/help text must stay aligned with dual-path support:
+    - the `--ignore-global-defaults` flag description should mention both supported filenames
+    - conflict and validation failures should recommend editing the selected file or rerunning with `--ignore-global-defaults`
+    - docs/help examples should encourage consolidating on `~/.superposition.yml` for new setups without telling legacy users their existing file is broken
+- No precedence notice should appear on replay-style `init`, `regen`, `doctor`, or `plan` because those commands never enter global-default discovery.
 
 ### Safe Config Shape and Branching Semantics
 
@@ -297,6 +331,13 @@ flowchart LR
 - Structural validation applies to every branch at load time during global-default parsing/normalization.
 - Stack-dependent compatibility validation applies only to the final selected payload for the current `init` run, immediately before any repo writes. This prevents a compose-only branch from failing a plain-stack init merely because it contains valid `composeVolume` defaults that are not being materialized.
 - An empty direct template or an empty materialized `common + branch` result is a valid no-op and must not create repo-root `superposition.local.yml`.
+
+### Schema and Documentation Implications
+
+- Dual-path discovery is not a schema-version change by itself; `superposition.global.schema.json` continues validating the same document shape regardless of filename.
+- Schema comments/examples and end-user docs must describe `~/.superposition.yml` as the preferred file to author, while explicitly documenting that `~/.container-superposition.yml` remains supported and wins when both exist.
+- Any generated or static help text that previously named only `~/.container-superposition.yml` must be updated to mention both supported filenames so CLI UX does not contradict docs.
+- Backward compatibility depends on keeping legacy filename support in runtime even after docs switch to the new primary name; implementation must not introduce migration-only guidance that implies the old path stopped working.
 
 ### Mount Target and Variable Resolution Expectations
 
@@ -317,6 +358,7 @@ flowchart LR
 ### Precedence and Scaffolding Rules
 
 - `initDefaults` precedence remains unchanged: explicit CLI inputs and interactive selections for the current run win over home-directory defaults.
+- Global-default filename precedence is fixed: `~/.container-superposition.yml` is selected before `~/.superposition.yml`, and the non-selected file does not participate in that run.
 - `localConfigTemplate` has no merge relationship with an existing repo `superposition.local.yml`; file existence wins and suppresses scaffold writes entirely.
 - In stack-aware form, precedence is `common` then selected stack branch, using the merge semantics already defined in this spec.
 - The selected branch is determined from the final effective `init` stack after CLI defaults, interactive answers, and any seeded defaults are resolved.
@@ -325,9 +367,9 @@ flowchart LR
 ### Implementation Slices
 
 1. Extend global-default types/schema and add normalization helpers for direct vs stack-aware `localConfigTemplate`.
-2. Add selected-stack materialization in `tool/cli/run.ts` plus compatibility validation before any init write side effects.
+2. Add candidate-file discovery order plus selected-stack materialization in `tool/cli/run.ts`, with compatibility validation before any init write side effects.
 3. Wire eligible `init` scaffold logic to serialize only the materialized selection when no repo local file exists.
-4. Expand docs/tests for branch semantics, mount-target safety, variable pass-through, and compose bash-history examples.
+4. Expand docs/tests for filename precedence, branch semantics, mount-target safety, variable pass-through, and compose bash-history examples.
 
 ## Constraints
 
@@ -346,6 +388,7 @@ flowchart LR
 ## Risks
 
 - Allowing both legacy and stack-aware shapes can create confusing mixed-shape configs unless validation is strict and discriminator rules are documented clearly.
+- Dual-path filename support can create operator confusion if precedence is silent; the notice/help copy must make it obvious which file was used when both exist.
 - Stack-aware scaffolding could accidentally validate the wrong branch against the active stack, causing false failures for valid compose-only defaults during plain-stack init.
 - Selected-branch `composeVolume` errors must be surfaced before any repo write side effects or the feature would weaken init safety guarantees.
 - Users may expect branch merging to behave differently for `ports`; docs and tests must make replacement semantics explicit.
@@ -356,6 +399,10 @@ flowchart LR
 
 ### Unit tests
 
+- candidate-file discovery prefers `~/.container-superposition.yml` over `~/.superposition.yml` when both exist
+- candidate-file discovery falls back to `~/.superposition.yml` when the legacy-specific filename is absent
+- candidate-file discovery metadata reports when a second supported file existed but was ignored for precedence
+- selected-file validation/error surfaces reference only the chosen file path
 - global loader accepts legacy direct `localConfigTemplate` unchanged
 - global loader accepts stack-aware `localConfigTemplate.common/plain/compose`
 - loader uses branch-key discrimination correctly for direct vs stack-aware forms, including `{}` no-op handling
@@ -371,6 +418,8 @@ flowchart LR
 
 ### Integration / command tests
 
+- eligible fresh `init` with only `~/.superposition.yml` present uses that file and writes repo-root `superposition.local.yml` from the selected template
+- eligible fresh `init` with both global filenames present uses `~/.container-superposition.yml`, ignores `~/.superposition.yml`, and emits one informational precedence notice
 - eligible fresh `init` with effective `stack: plain` writes repo-root `superposition.local.yml` from `common + plain`
 - eligible fresh `init` with effective `stack: compose` writes repo-root `superposition.local.yml` from `common + compose`
 - compose-only branch content does not block plain-stack init when the plain-selected payload is valid
@@ -378,27 +427,30 @@ flowchart LR
 - existing repo-root `superposition.local.yml` is never overwritten or merged
 - selected-branch compatibility failures (for example `composeVolume` on plain) fail before project-file, manifest, local-template, or generated-output writes
 - invalid stack-aware global defaults fail before project-file, manifest, local-template, or generated-output writes
-- `init --ignore-global-defaults`, replay-style `init`, `regen`, `doctor`, and `plan` continue to bypass the global file
+- `init --ignore-global-defaults`, replay-style `init`, `regen`, `doctor`, and `plan` continue to bypass the global file and do not emit precedence messaging
+- CLI help / docs surfaces that describe `--ignore-global-defaults` mention both supported filenames
 - manifest-only / non-scaffold paths never materialize or write the global local template
 
 ## Acceptance Criteria
 
-- [ ] Given `~/.container-superposition.yml` uses the legacy direct `localConfigTemplate` shape, when eligible fresh `init` runs, then repo-root `superposition.local.yml` is scaffolded exactly as in the current shipped feature.
-- [ ] Given `localConfigTemplate.common.shell.aliases` defines shared aliases and `localConfigTemplate.plain.mounts` defines plain-only mounts, when eligible fresh `init` finishes with effective `stack: plain`, then the written repo-root `superposition.local.yml` contains the common aliases plus the plain-only mounts and excludes compose-only entries.
-- [ ] Given `localConfigTemplate.compose` contains valid compose-only defaults such as `target: composeVolume`, when eligible fresh `init` finishes with effective `stack: plain` and the selected `common + plain` payload is otherwise valid, then the command succeeds without evaluating compose-only branch content as a plain-stack error.
-- [ ] Given `localConfigTemplate.common.shell.aliases` defines shared aliases and `localConfigTemplate.compose.mounts` / `shell.snippets` define compose-only defaults, when eligible fresh `init` finishes with effective `stack: compose`, then the written repo-root `superposition.local.yml` contains the common aliases plus the compose-only defaults and excludes plain-only entries.
-- [ ] Given a stack-aware compose branch contains mount or shell values with `${HOME}` or other variable expressions, when eligible fresh `init` writes repo-root `superposition.local.yml`, then those expressions are preserved verbatim rather than expanded by the global defaults loader.
-- [ ] Given a compose branch defaults persistent bash history using a volume mount plus guarded shell snippet(s), when eligible fresh `init` finishes with effective `stack: compose`, then the written repo-root `superposition.local.yml` contains a compose-appropriate persistent history setup, or an implementation-equivalent productized form using only approved local-config runtime surfaces.
-- [ ] Given `localConfigTemplate` mixes direct local-config keys with `common`, `plain`, or `compose`, when eligible fresh `init` loads global defaults, then the command fails before any repo write side effects with a path-specific validation error.
-- [ ] Given the final selected local template for a plain-stack init contains `target: composeVolume`, when eligible fresh `init` validates the materialized template, then the command fails before any repo write side effects with the existing compose-only target compatibility error.
-- [ ] Given repo-root `superposition.local.yml` already exists, when eligible fresh `init` runs with any valid stack-aware global template, then the tool does not overwrite or merge that file.
-- [ ] Given `init --ignore-global-defaults`, replay-style `init`, `regen`, `doctor`, or `plan`, when the global defaults file contains valid or invalid stack-aware local templates, then those commands continue to ignore the home-directory file.
-- [ ] All new or changed behavior is covered by automated tests at the appropriate level.
+- [x] Given only `~/.superposition.yml` exists and it uses the legacy direct `localConfigTemplate` shape, when eligible fresh `init` runs, then repo-root `superposition.local.yml` is scaffolded exactly as in the current shipped feature.
+- [x] Given both `~/.container-superposition.yml` and `~/.superposition.yml` exist with different valid `localConfigTemplate` content, when eligible fresh `init` runs, then runtime loads `~/.container-superposition.yml`, ignores `~/.superposition.yml` for that run, scaffolds output from the legacy-specific file, and emits one informational notice explaining that precedence.
+- [x] Given `localConfigTemplate.common.shell.aliases` defines shared aliases and `localConfigTemplate.plain.mounts` defines plain-only mounts, when eligible fresh `init` finishes with effective `stack: plain`, then the written repo-root `superposition.local.yml` contains the common aliases plus the plain-only mounts and excludes compose-only entries.
+- [x] Given `localConfigTemplate.compose` contains valid compose-only defaults such as `target: composeVolume`, when eligible fresh `init` finishes with effective `stack: plain` and the selected `common + plain` payload is otherwise valid, then the command succeeds without evaluating compose-only branch content as a plain-stack error.
+- [x] Given `localConfigTemplate.common.shell.aliases` defines shared aliases and `localConfigTemplate.compose.mounts` / `shell.snippets` define compose-only defaults, when eligible fresh `init` finishes with effective `stack: compose`, then the written repo-root `superposition.local.yml` contains the common aliases plus the compose-only defaults and excludes plain-only entries.
+- [x] Given a stack-aware compose branch contains mount or shell values with `${HOME}` or other variable expressions, when eligible fresh `init` writes repo-root `superposition.local.yml`, then those expressions are preserved verbatim rather than expanded by the global defaults loader.
+- [x] Given a compose branch defaults persistent bash history using a volume mount plus guarded shell snippet(s), when eligible fresh `init` finishes with effective `stack: compose`, then the written repo-root `superposition.local.yml` contains a compose-appropriate persistent history setup, or an implementation-equivalent productized form using only approved local-config runtime surfaces.
+- [x] Given `localConfigTemplate` mixes direct local-config keys with `common`, `plain`, or `compose`, when eligible fresh `init` loads global defaults, then the command fails before any repo write side effects with a path-specific validation error.
+- [x] Given the final selected local template for a plain-stack init contains `target: composeVolume`, when eligible fresh `init` validates the materialized template, then the command fails before any repo write side effects with the existing compose-only target compatibility error.
+- [x] Given repo-root `superposition.local.yml` already exists, when eligible fresh `init` runs with any valid stack-aware global template, then the tool does not overwrite or merge that file.
+- [x] Given user-facing setup docs, examples, or CLI help describe global defaults or `--ignore-global-defaults`, when they reference the primary filename to create, then they use `~/.superposition.yml`, mention that `~/.container-superposition.yml` remains a supported legacy/specific fallback, and describe that the legacy/specific file wins when both exist.
+- [x] Given `init --ignore-global-defaults`, replay-style `init`, `regen`, `doctor`, or `plan`, when either supported global defaults file contains valid or invalid stack-aware local templates, then those commands continue to ignore the home-directory file.
+- [x] All new or changed behavior is covered by automated tests at the appropriate level.
 
 ## Out of Scope
 
 - First-class history/profile schema beyond existing `mounts` and `shell` surfaces.
-- XDG or multi-path global config discovery.
+- XDG or any additional multi-path global config discovery beyond the two supported filenames.
 - Stack-aware branching inside `initDefaults`.
 - Runtime conditional local-config behavior after the file has been scaffolded into the repo.
 
@@ -409,7 +461,7 @@ flowchart LR
 
 ## Open Questions
 
-- None blocking draft.
+- None.
 
 ## Architecture Decision Impact
 
@@ -425,9 +477,16 @@ Scope, compatibility rules, stack-selection behavior, validation boundaries, and
 
 ## Implementation Notes
 
-- Extended global-default parsing to accept either the legacy direct `localConfigTemplate` or stack-aware `common` / `plain` / `compose`, with mixed-shape rejection and per-branch structural validation in `tool/schema/project-config.ts`.
-- Added init-time stack selection, `common + selected branch` materialization, selected-payload compatibility validation before repo writes, and one-time scaffold creation in `tool/cli/run.ts`.
-- Updated global schema generation and `docs/superposition-yml.md` to document the stack-aware template form and literal pass-through behavior.
-- Added regression coverage for legacy compatibility, stack-aware plain/compose scaffolding, literal preservation, mixed-shape rejection, pre-write plain-stack `composeVolume` failure, existing-file protection, and command-scope bypass behavior.
-- Validation run: `npm run lint:fix`, `npm run lint`, `npm test`, `npm run schema:generate`, `npm run init -- regen`, `npm run init -- doctor`.
-- QA follow-up: gated global local-template scaffolding behind non-manifest init only, and added `--no-scaffold` regression coverage so manifest-only paths no longer create `superposition.local.yml`.
+- Added dual-file home-directory discovery with deterministic precedence: `~/.container-superposition.yml` is probed first, `~/.superposition.yml` is the documented primary fallback, and eligible fresh `init` now emits one informational notice when the legacy-specific file wins over the preferred file.
+- Preserved init-only scope and `--ignore-global-defaults` bypass behavior while keeping direct and stack-aware `localConfigTemplate` support intact.
+- Updated docs, CLI help text, generated global schema description, changelog, and workflow status/index entries to reflect the preferred filename plus legacy precedence behavior.
+- Added/updated automated coverage in `tool/__tests__/global-defaults.test.ts` for discovery precedence, preferred-file fallback, precedence notice emission, and ignore bypass behavior.
+- Validation run:
+    - `npm run schema:generate`
+    - `npm run lint:fix`
+    - `npm test -- tool/__tests__/global-defaults.test.ts`
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+    - `npm run init -- regen`
+    - `npm run init -- doctor`
