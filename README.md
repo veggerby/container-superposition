@@ -69,12 +69,14 @@ npx container-superposition migrate
     - `init` always writes `superposition.yml` as its primary output
     - `regen` reads only the project file — `superposition.json` is an output-only receipt
     - Repos without a project file should run `cs migrate` once to create one from their manifest
+    - Optional `~/.superposition.yml` defaults can prefill only eligible fresh `init` runs (`~/.container-superposition.yml` still works and wins when both exist)
     - `doctor` compares the project file against the last-generated manifest and reports drift
 
 ## Core Commands
 
 - `init` — run the interactive questionnaire; always writes `superposition.yml` and (by default) scaffolds `.devcontainer/`
     - Add `--no-scaffold` to write only the project file without generating `.devcontainer/`
+    - Add `--ignore-global-defaults` to bypass `~/.container-superposition.yml` and `~/.superposition.yml` for one run
     - Add `--project-root <path>` to resolve persisted input from a different repository root
 - `regen` — deterministically replay the repository project file (`superposition.yml` required)
     - Add `--project-root <path>` to resolve persisted input from a different repository root

@@ -474,10 +474,15 @@ const META_OVERLAY_ID = 'all';
  * Resolve dependencies for a set of overlays
  * Returns the expanded list with dependencies and metadata about what was added
  */
-function resolveDependencies(
+export function resolveDependencies(
     requestedOverlays: string[],
-    allOverlayDefs: OverlayMetadata[]
-): { overlays: string[]; autoResolved: { added: string[]; reason: string } } {
+    allOverlayDefs: OverlayMetadata[],
+    options?: { warnOnConflicts?: boolean }
+): {
+    overlays: string[];
+    autoResolved: { added: string[]; reason: string };
+    conflicts: Array<{ overlayId: string; conflictId: string }>;
+} {
     const overlayMap = new Map<string, OverlayMetadata>();
     allOverlayDefs.forEach((def) => overlayMap.set(def.id, def));
 
@@ -523,21 +528,23 @@ function resolveDependencies(
     }
 
     // Check for conflicts
-    const conflicts: string[] = [];
+    const conflicts: Array<{ overlayId: string; conflictId: string }> = [];
     for (const overlayId of resolved) {
         const overlayDef = overlayMap.get(overlayId);
         if (!overlayDef || !overlayDef.conflicts) continue;
 
-        for (const conflict of overlayDef.conflicts) {
-            if (resolved.has(conflict)) {
-                conflicts.push(`${overlayId} conflicts with ${conflict}`);
+        for (const conflictId of overlayDef.conflicts) {
+            if (resolved.has(conflictId)) {
+                conflicts.push({ overlayId, conflictId });
             }
         }
     }
 
-    if (conflicts.length > 0) {
+    if (conflicts.length > 0 && options?.warnOnConflicts !== false) {
         console.log(chalk.yellow(`\n⚠️  Warning: Conflicts detected:`));
-        conflicts.forEach((c) => console.log(chalk.yellow(`   • ${c}`)));
+        conflicts.forEach(({ overlayId, conflictId }) =>
+            console.log(chalk.yellow(`   • ${overlayId} conflicts with ${conflictId}`))
+        );
         console.log(chalk.yellow(`\nPlease resolve these conflicts manually.\n`));
     }
 
@@ -549,6 +556,7 @@ function resolveDependencies(
             added: autoAdded,
             reason,
         },
+        conflicts,
     };
 }
 
@@ -661,7 +669,8 @@ function prepareOverlaysForGeneration(
     // Resolve dependencies
     const { overlays: resolvedOverlays, autoResolved } = resolveDependencies(
         filteredRequestedOverlays,
-        allOverlayDefs
+        allOverlayDefs,
+        { warnOnConflicts: true }
     );
 
     return {

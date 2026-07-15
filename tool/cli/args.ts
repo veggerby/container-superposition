@@ -32,6 +32,7 @@ export interface CliArgs {
     noInteractive?: boolean;
     writeManifestOnly?: boolean;
     noScaffold?: boolean;
+    ignoreGlobalDefaults?: boolean;
 }
 
 /**
@@ -106,6 +107,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             'Generate only superposition.json manifest without creating .devcontainer/ files'
         )
         .option('--no-scaffold', 'Write only superposition.yml; skip .devcontainer/ generation')
+        .option(
+            '--ignore-global-defaults',
+            'Ignore ~/.container-superposition.yml and ~/.superposition.yml for this init run'
+        )
         .option('--preset <id>', 'Start from a preset (e.g., web-api, microservice)')
         .option(
             '--preset-param <value>',
@@ -509,5 +514,6 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         noInteractive: initOptions.interactive === false,
         writeManifestOnly: initOptions.writeManifestOnly === true,
         noScaffold: initOptions.scaffold === false,
+        ignoreGlobalDefaults: initOptions.ignoreGlobalDefaults === true,
     };
 }

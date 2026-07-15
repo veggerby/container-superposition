@@ -6,10 +6,16 @@ import ora from 'ora';
 import { checkbox, input, password, select } from '@inquirer/prompts';
 import type {
     OverlayMetadata,
+    ProjectEnvVar,
     QuestionnaireAnswers,
+    Stack,
     SuperpositionManifest,
 } from '../schema/types.js';
-import { composeDevContainer, generateManifestOnly } from '../questionnaire/composer.js';
+import {
+    composeDevContainer,
+    generateManifestOnly,
+    resolveDependencies,
+} from '../questionnaire/composer.js';
 import { loadManifest } from '../schema/manifest-migrations.js';
 import { printSummary } from '../utils/summary.js';
 import { classifyChangeSet } from '../ux/semantics/change-class.js';
@@ -25,18 +31,28 @@ import {
 } from '../ux/renderers/common.js';
 import {
     applyLocalConfigToAnswers,
+    buildAnswersFromGlobalInitDefaults,
     buildAnswersFromManifest,
     buildAnswersFromProjectConfig,
     buildProjectConfigSelectionFromAnswers,
-    findIgnoredLocalProjectConfig,
-    findManifestFile,
     findDefaultRegenManifest,
+    findIgnoredLocalProjectConfig,
+    findLocalProjectConfig,
+    findManifestFile,
+    hasMeaningfulLocalProjectConfig,
     findProjectConfig,
+    loadGlobalDefaults,
     loadLocalProjectConfig,
     loadProjectConfig,
     materializeLocalCustomizationConfig,
+    mergeInitDefaultsWithCliInputs,
+    writeLocalProjectConfig,
     writeProjectConfig,
     writeProjectConfigCustomizations,
+    type GlobalLocalConfigTemplateSelection,
+    type LoadedGlobalDefaults,
+    type LocalProjectConfigSelection,
+    type StackAwareLocalProjectConfigTemplateSelection,
 } from '../schema/project-config.js';
 import { isInsideGitRepo, createBackup, ensureBackupPatternsInGitignore } from '../utils/backup.js';
 import { buildAnswersFromCliArgs, mergeAnswers } from '../questionnaire/answers.js';
@@ -49,6 +65,146 @@ import {
 import { parseCliArgs } from './args.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
+import { deepMerge } from '../utils/merge.js';
+
+function isStackAwareLocalConfigTemplate(
+    template: GlobalLocalConfigTemplateSelection | undefined
+): template is StackAwareLocalProjectConfigTemplateSelection {
+    return Boolean(
+        template &&
+        typeof template === 'object' &&
+        !Array.isArray(template) &&
+        ('common' in template || 'plain' in template || 'compose' in template)
+    );
+}
+
+function compactLocalConfigSelection(
+    selection: LocalProjectConfigSelection
+): LocalProjectConfigSelection {
+    const env = selection.env && Object.keys(selection.env).length > 0 ? selection.env : undefined;
+    const mounts = selection.mounts && selection.mounts.length > 0 ? selection.mounts : undefined;
+    const shellAliases =
+        selection.shell?.aliases && Object.keys(selection.shell.aliases).length > 0
+            ? selection.shell.aliases
+            : undefined;
+    const shellSnippets =
+        selection.shell?.snippets && selection.shell.snippets.length > 0
+            ? selection.shell.snippets
+            : undefined;
+    const shell =
+        shellAliases || shellSnippets
+            ? { aliases: shellAliases, snippets: shellSnippets }
+            : undefined;
+    const customizations =
+        selection.customizations && Object.keys(selection.customizations).length > 0
+            ? selection.customizations
+            : undefined;
+
+    return {
+        env,
+        mounts,
+        shell,
+        customizations,
+        portOffset: selection.portOffset,
+        ports: selection.ports,
+    };
+}
+
+function mergeLocalConfigSelections(
+    common: LocalProjectConfigSelection | undefined,
+    branch: LocalProjectConfigSelection | undefined
+): LocalProjectConfigSelection {
+    return compactLocalConfigSelection({
+        env: { ...(common?.env ?? {}), ...(branch?.env ?? {}) },
+        mounts: [...(common?.mounts ?? []), ...(branch?.mounts ?? [])],
+        shell:
+            common?.shell || branch?.shell
+                ? {
+                      aliases: {
+                          ...(common?.shell?.aliases ?? {}),
+                          ...(branch?.shell?.aliases ?? {}),
+                      },
+                      snippets: [
+                          ...(common?.shell?.snippets ?? []),
+                          ...(branch?.shell?.snippets ?? []),
+                      ],
+                  }
+                : undefined,
+        customizations:
+            common?.customizations || branch?.customizations
+                ? deepMerge(common?.customizations ?? {}, branch?.customizations ?? {})
+                : undefined,
+        portOffset: branch?.portOffset ?? common?.portOffset,
+        ports: branch?.ports !== undefined ? [...branch.ports] : common?.ports,
+    });
+}
+
+function materializeGlobalLocalConfigTemplate(
+    template: GlobalLocalConfigTemplateSelection | undefined,
+    stack: Stack
+): LocalProjectConfigSelection | undefined {
+    if (!template) {
+        return undefined;
+    }
+
+    if (!isStackAwareLocalConfigTemplate(template)) {
+        return template;
+    }
+
+    return mergeLocalConfigSelections(
+        template.common,
+        stack === 'compose' ? template.compose : template.plain
+    );
+}
+
+function validateMaterializedLocalConfigTemplate(
+    selection: LocalProjectConfigSelection | undefined,
+    stack: Stack
+): void {
+    if (!selection) {
+        return;
+    }
+
+    for (const entry of Object.values(selection.env ?? {})) {
+        const structuredEntry =
+            typeof entry === 'string' ? ({ value: entry } satisfies ProjectEnvVar) : entry;
+        if (structuredEntry.target === 'composeEnv' && stack !== 'compose') {
+            throw new Error(
+                'Project env target "composeEnv" requires stack: compose because no docker-compose.yml is generated for plain stacks'
+            );
+        }
+    }
+
+    for (const mount of selection.mounts ?? []) {
+        if (mount.target === 'composeVolume' && stack !== 'compose') {
+            throw new Error(
+                'Project mount target "composeVolume" requires stack: compose because no docker-compose.yml is generated for plain stacks'
+            );
+        }
+    }
+
+    if (stack === 'compose') {
+        for (const [index, port] of (selection.ports ?? []).entries()) {
+            if (!port.value.includes(':')) {
+                throw new Error(
+                    `ports[${index}]: stack 'compose' expects a HOST:CONTAINER port binding (with colon), got "${port.value}". Use a bare port expression only on stack 'plain'.`
+                );
+            }
+        }
+    }
+}
+
+function printGlobalDefaultsPrecedenceNotice(globalDefaults: LoadedGlobalDefaults): void {
+    if (!globalDefaults.ignoredPath) {
+        return;
+    }
+
+    console.log(
+        chalk.dim(
+            'ℹ Global defaults: using ~/.container-superposition.yml and ignoring ~/.superposition.yml for this init run'
+        )
+    );
+}
 
 function renderRunFraming(input: {
     mode: string;
@@ -122,6 +278,47 @@ function renderRunSuccess(input: {
         '',
         renderSection('Manual review', renderList(input.manualReview, 'none')),
     ].join('\n');
+}
+
+function assertNoGlobalDefaultOverlayConflicts(
+    answers: QuestionnaireAnswers,
+    globalDefaults: LoadedGlobalDefaults,
+    overlays: OverlayMetadata[]
+): void {
+    const globalOverlayIds = globalDefaults.selection.initDefaults?.overlays ?? [];
+    if (globalOverlayIds.length === 0) {
+        return;
+    }
+
+    const requestedOverlays = buildProjectConfigSelectionFromAnswers(answers).overlays ?? [];
+    const { conflicts } = resolveDependencies(requestedOverlays, overlays, {
+        warnOnConflicts: false,
+    });
+    const globalOverlaySet = new Set<string>(globalOverlayIds);
+    const relevantConflicts = conflicts.filter(
+        ({ overlayId, conflictId }) =>
+            globalOverlaySet.has(overlayId) || globalOverlaySet.has(conflictId)
+    );
+
+    if (relevantConflicts.length === 0) {
+        return;
+    }
+
+    const uniqueConflicts = [
+        ...new Set(
+            relevantConflicts.map(({ overlayId, conflictId }) =>
+                [overlayId, conflictId].sort().join(' ↔ ')
+            )
+        ),
+    ];
+
+    throw new Error(
+        [
+            `Conflicting overlays detected from global defaults file ${globalDefaults.path}.`,
+            ...uniqueConflicts.map((conflict) => `  • ${conflict}`),
+            `Update ${globalDefaults.path} or rerun init with --ignore-global-defaults.`,
+        ].join('\n')
+    );
 }
 
 function summarizeCurrentSetup(answers: Partial<QuestionnaireAnswers>): string[] {
@@ -588,24 +785,42 @@ export async function main(): Promise<void> {
         let projectConfig = undefined;
         let projectConfigAnswers: Partial<QuestionnaireAnswers> | undefined;
         let localProjectConfig = undefined;
+        let globalDefaults = undefined;
+        let globalInitDefaultsAnswers: Partial<QuestionnaireAnswers> | undefined;
         const projectRoot = process.cwd();
+        const mainOverlaysConfig = loadOverlaysConfigWrapper();
 
         printIgnoredLocalConfigWarning(projectRoot);
 
         if (!cliArgs?.manifestPath) {
-            const overlaysConfigForProject = loadOverlaysConfigWrapper();
-            projectConfig = loadProjectConfig(overlaysConfigForProject, projectRoot) ?? undefined;
+            projectConfig = loadProjectConfig(mainOverlaysConfig, projectRoot) ?? undefined;
+
+            const isEligibleGlobalDefaultsInit =
+                cliArgs?.commandName === 'init' &&
+                !cliArgs.ignoreGlobalDefaults &&
+                !cliArgs.fromProject &&
+                !cliArgs.manifestPath &&
+                !existingProjectFileDetected;
+
+            if (isEligibleGlobalDefaultsInit) {
+                globalDefaults = loadGlobalDefaults(mainOverlaysConfig) ?? undefined;
+                if (globalDefaults) {
+                    printGlobalDefaultsPrecedenceNotice(globalDefaults);
+                }
+                globalInitDefaultsAnswers = buildAnswersFromGlobalInitDefaults(
+                    globalDefaults?.selection.initDefaults,
+                    mainOverlaysConfig
+                );
+            }
+
             localProjectConfig = loadLocalProjectConfig(projectRoot) ?? undefined;
             if (localProjectConfig) {
                 ensureLocalConfigIgnored(projectRoot);
             }
             if (projectConfig) {
                 projectConfigAnswers = await applyPresetSelections(
-                    buildAnswersFromProjectConfig(
-                        projectConfig.selection,
-                        overlaysConfigForProject
-                    ),
-                    overlaysConfigForProject,
+                    buildAnswersFromProjectConfig(projectConfig.selection, mainOverlaysConfig),
+                    mainOverlaysConfig,
                     PRESETS_DIR
                 );
             }
@@ -692,11 +907,37 @@ export async function main(): Promise<void> {
             useProjectOnly = cliArgs.noInteractive || cliArgs.commandName === 'regen';
         }
 
-        if (cliArgs?.noInteractive && !cliArgs?.manifestPath && !projectConfigAnswers) {
+        const hasCliOverrides =
+            cliArgs &&
+            Object.keys(cliArgs.config).some(
+                (key) =>
+                    key !== 'outputPath' &&
+                    key !== 'preset' &&
+                    key !== 'presetChoices' &&
+                    !(key === 'target' && cliArgs.config.target === 'local') &&
+                    !(key === 'editor' && cliArgs.config.editor === 'vscode') &&
+                    cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
+            );
+        const hasAnyCliConfig =
+            cliArgs &&
+            Object.entries(cliArgs.config).some(
+                ([key, value]) =>
+                    value !== undefined &&
+                    !(key === 'target' && value === 'local') &&
+                    !(key === 'editor' && value === 'vscode')
+            );
+
+        if (
+            cliArgs?.noInteractive &&
+            !cliArgs?.manifestPath &&
+            !projectConfigAnswers &&
+            !globalInitDefaultsAnswers &&
+            !hasAnyCliConfig
+        ) {
             console.error(chalk.red('✗ Error: --no-interactive requires persisted input'));
             console.error(
                 chalk.dim(
-                    '  Use --from-project or run from a repository with .superposition.yml or superposition.yml'
+                    '  Use --from-project, provide explicit CLI selections, define ~/.container-superposition.yml, or run from a repository with .superposition.yml or superposition.yml'
                 )
             );
             process.exit(1);
@@ -736,6 +977,7 @@ export async function main(): Promise<void> {
                         generatedOutput:
                             cliArgs?.config?.outputPath ||
                             projectConfigAnswers?.outputPath ||
+                            globalInitDefaultsAnswers?.outputPath ||
                             './.devcontainer',
                         localConfig: localConfigSummary,
                     })
@@ -761,6 +1003,7 @@ export async function main(): Promise<void> {
                         generatedOutput:
                             cliArgs?.config?.outputPath ||
                             projectConfigAnswers?.outputPath ||
+                            globalInitDefaultsAnswers?.outputPath ||
                             './.devcontainer',
                         localConfig: localTrustPreview.disposition,
                         nextAction:
@@ -784,6 +1027,7 @@ export async function main(): Promise<void> {
         const resolvedOutputPath =
             cliArgs?.config?.outputPath ||
             projectConfigAnswers?.outputPath ||
+            globalInitDefaultsAnswers?.outputPath ||
             manifestDir ||
             './.devcontainer';
         const backupCheckPath = path.resolve(resolvedOutputPath);
@@ -808,29 +1052,7 @@ export async function main(): Promise<void> {
 
         let actualBackupPath: string | undefined;
 
-        const mainOverlaysConfig = loadOverlaysConfigWrapper();
-
         let answers: ReturnType<typeof mergeAnswers>;
-
-        const hasCliOverrides =
-            cliArgs &&
-            Object.keys(cliArgs.config).some(
-                (key) =>
-                    key !== 'outputPath' &&
-                    key !== 'preset' &&
-                    key !== 'presetChoices' &&
-                    !(key === 'target' && cliArgs.config.target === 'local') &&
-                    !(key === 'editor' && cliArgs.config.editor === 'vscode') &&
-                    cliArgs.config[key as keyof typeof cliArgs.config] !== undefined
-            );
-        const hasAnyCliConfig =
-            cliArgs &&
-            Object.entries(cliArgs.config).some(
-                ([key, value]) =>
-                    value !== undefined &&
-                    !(key === 'target' && value === 'local') &&
-                    !(key === 'editor' && value === 'vscode')
-            );
 
         if (useManifestOnly && manifest && !hasCliOverrides) {
             const manifestAnswers = buildAnswersFromManifest(
@@ -887,15 +1109,22 @@ export async function main(): Promise<void> {
             );
         } else if (
             (cliArgs && (cliArgs.config.stack || hasCliOverrides)) ||
-            (projectConfigAnswers && (cliArgs?.noInteractive || hasAnyCliConfig))
+            (projectConfigAnswers && (cliArgs?.noInteractive || hasAnyCliConfig)) ||
+            (globalInitDefaultsAnswers && cliArgs?.noInteractive)
         ) {
             const cliAnswers = buildAnswersFromCliArgs(cliArgs.config);
+            const seededCliAnswers = mergeInitDefaultsWithCliInputs(
+                globalInitDefaultsAnswers ?? {},
+                cliAnswers
+            );
             const manifestAnswers = manifest
                 ? buildAnswersFromManifest(manifest, mainOverlaysConfig, manifestDir)
                 : undefined;
-            answers = mergeAnswers(projectConfigAnswers, manifestAnswers, cliAnswers, {
+            answers = mergeAnswers(projectConfigAnswers, manifestAnswers, seededCliAnswers, {
                 outputPath:
-                    cliAnswers.outputPath || projectConfigAnswers?.outputPath || './.devcontainer',
+                    seededCliAnswers.outputPath ||
+                    projectConfigAnswers?.outputPath ||
+                    './.devcontainer',
             });
 
             const modeLabel =
@@ -961,9 +1190,13 @@ export async function main(): Promise<void> {
                     manifestDir,
                     lane === 'custom-build' ? undefined : cliArgs?.config.preset,
                     cliArgs?.config.presetChoices,
-                    projectConfigAnswers
+                    globalInitDefaultsAnswers
                 );
-                answers = mergeAnswers(projectConfigAnswers, interactiveAnswers);
+                answers = mergeAnswers(
+                    globalInitDefaultsAnswers,
+                    projectConfigAnswers,
+                    interactiveAnswers
+                );
             } else {
                 const interactiveAnswers = await runQuestionnaire(
                     manifest,
@@ -976,7 +1209,32 @@ export async function main(): Promise<void> {
             }
         }
 
+        if (cliArgs?.commandName === 'init' && globalDefaults) {
+            assertNoGlobalDefaultOverlayConflicts(
+                answers as QuestionnaireAnswers,
+                globalDefaults,
+                mainOverlaysConfig.overlays
+            );
+        }
+
         const isManifestOnly = cliArgs?.writeManifestOnly === true || cliArgs?.noScaffold === true;
+        const globalLocalConfigTemplate = globalDefaults?.selection.localConfigTemplate;
+        const localTemplatePath = path.join(projectRoot, 'superposition.local.yml');
+        const shouldScaffoldGlobalLocalTemplate =
+            cliArgs?.commandName === 'init' &&
+            !isManifestOnly &&
+            !findLocalProjectConfig(projectRoot) &&
+            !fs.existsSync(localTemplatePath);
+        const materializedGlobalLocalConfigTemplate = shouldScaffoldGlobalLocalTemplate
+            ? materializeGlobalLocalConfigTemplate(globalLocalConfigTemplate, answers.stack)
+            : undefined;
+        if (shouldScaffoldGlobalLocalTemplate) {
+            validateMaterializedLocalConfigTemplate(
+                materializedGlobalLocalConfigTemplate,
+                answers.stack
+            );
+        }
+
         const sharedAnswersForProjectFile = answers;
 
         if (!manifest && projectConfig?.selection.customizations) {
@@ -1090,6 +1348,17 @@ export async function main(): Promise<void> {
                 summary.backupPath = actualBackupPath;
             }
 
+            let createdLocalTemplate = false;
+            if (
+                shouldScaffoldGlobalLocalTemplate &&
+                hasMeaningfulLocalProjectConfig(materializedGlobalLocalConfigTemplate)
+            ) {
+                writeLocalProjectConfig(localTemplatePath, materializedGlobalLocalConfigTemplate!);
+                ensureLocalConfigIgnored(projectRoot);
+                createdLocalTemplate = true;
+                console.log(chalk.green('✓ Local config created: superposition.local.yml'));
+            }
+
             printSummary(summary, true);
             const changed = [
                 ...(projectFileOutputPath
@@ -1100,13 +1369,16 @@ export async function main(): Promise<void> {
                       ]
                     : []),
                 isManifestOnly ? 'compatibility manifest written' : 'generated output written',
+                ...(createdLocalTemplate ? ['local-only config template created'] : []),
                 ...(actualBackupPath ? [`backup created: ${actualBackupPath}`] : []),
             ];
             const preserved = [
                 'custom/ patches when present',
                 localProjectConfig
                     ? 'local-only config file unchanged'
-                    : 'local-only config not used',
+                    : createdLocalTemplate
+                      ? 'local-only config now lives in repository root'
+                      : 'local-only config not used',
             ];
             const nextStep =
                 resolveNextStep({ command: cliArgs?.commandName === 'regen' ? 'regen' : 'init' })

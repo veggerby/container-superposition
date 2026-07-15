@@ -10,4 +10,5 @@ overlays:
     - modern-cli-tools
     - devcontainer-cli
     - task
+outputPath: ./.devcontainer
 devcontainerGitignore: true

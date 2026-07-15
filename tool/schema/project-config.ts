@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import yaml from 'js-yaml';
 import type {
@@ -31,12 +32,19 @@ import type {
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
 export const LOCAL_PROJECT_CONFIG_FILENAME = 'superposition.local.yml' as const;
 export const IGNORED_LOCAL_PROJECT_CONFIG_FILENAME = '.superposition.local.yml' as const;
+export const GLOBAL_DEFAULTS_FILENAMES = [
+    '.container-superposition.yml',
+    '.superposition.yml',
+] as const;
+export const GLOBAL_DEFAULTS_FILENAME = GLOBAL_DEFAULTS_FILENAMES[0];
 const DEVCONTAINER_SCHEMA_URL =
     'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json';
 export const SUPERPOSITION_SCHEMA_URL =
     'https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.schema.json';
 export const SUPERPOSITION_LOCAL_SCHEMA_URL =
     'https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.local.schema.json';
+export const SUPERPOSITION_GLOBAL_SCHEMA_URL =
+    'https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.global.schema.json';
 
 type ProjectConfigFileName = (typeof PROJECT_CONFIG_FILENAMES)[number];
 
@@ -53,6 +61,43 @@ export interface LocalProjectConfigSelection {
 export interface LoadedLocalProjectConfig {
     file: ProjectConfigFileEntry;
     selection: LocalProjectConfigSelection;
+}
+
+export interface GlobalInitDefaultsSelection {
+    baseImage?: ProjectConfigSelection['baseImage'];
+    editor?: ProjectConfigSelection['editor'];
+    target?: ProjectConfigSelection['target'];
+    outputPath?: ProjectConfigSelection['outputPath'];
+    minimal?: ProjectConfigSelection['minimal'];
+    devcontainerGitignore?: ProjectConfigSelection['devcontainerGitignore'];
+    overlays?: ProjectConfigSelection['overlays'];
+}
+
+export interface StackAwareLocalProjectConfigTemplateSelection {
+    common?: LocalProjectConfigSelection;
+    plain?: LocalProjectConfigSelection;
+    compose?: LocalProjectConfigSelection;
+}
+
+export type GlobalLocalConfigTemplateSelection =
+    | LocalProjectConfigSelection
+    | StackAwareLocalProjectConfigTemplateSelection;
+
+export interface GlobalDefaultsSelection {
+    $schema?: string;
+    initDefaults?: GlobalInitDefaultsSelection;
+    localConfigTemplate?: GlobalLocalConfigTemplateSelection;
+}
+
+export interface LoadedGlobalDefaults {
+    path: string;
+    ignoredPath?: string;
+    selection: GlobalDefaultsSelection;
+}
+
+export interface ResolvedGlobalDefaultsPath {
+    path: string;
+    ignoredPath?: string;
 }
 
 export const STACK_VALUES: Stack[] = ['plain', 'compose'];
@@ -682,6 +727,52 @@ function parseProjectShell(value: unknown): ProjectShellConfig | undefined {
     return { aliases, snippets };
 }
 
+function parseLocalProjectConfigDocument(
+    document: Record<string, any>,
+    sourceLabel: string,
+    options: { allowSchema?: boolean } = {}
+): LocalProjectConfigSelection {
+    const supportedKeys = new Set([
+        ...(options.allowSchema === false ? [] : ['$schema']),
+        'env',
+        'mounts',
+        'shell',
+        'customizations',
+        'portOffset',
+        'ports',
+    ]);
+    const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key));
+    if (unsupportedKeys.length > 0) {
+        throw new ProjectConfigError(
+            `Unsupported local config keys in ${sourceLabel}: ${unsupportedKeys.join(', ')}\nAllowed top-level keys: ${[...supportedKeys].join(', ')}.`
+        );
+    }
+
+    return {
+        $schema:
+            options.allowSchema === false
+                ? undefined
+                : expectOptionalString(document.$schema, '$schema'),
+        env: parseProjectEnv(document.env),
+        mounts: parseMounts(document.mounts),
+        shell: parseProjectShell(document.shell),
+        customizations: parseCustomizations(document.customizations),
+        portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
+        ports: parseProjectPorts(document.ports, { preserveEmptyArray: true }),
+    };
+}
+
+export function hasMeaningfulLocalProjectConfig(
+    selection: LocalProjectConfigSelection | undefined
+): boolean {
+    return (
+        Boolean(selection) &&
+        Object.entries(selection as LocalProjectConfigSelection).some(
+            ([key, value]) => key !== '$schema' && value !== undefined
+        )
+    );
+}
+
 export function findProjectConfig(repoRoot: string = process.cwd()): ProjectConfigFileEntry[] {
     return PROJECT_CONFIG_FILENAMES.map((fileName) => ({
         fileName,
@@ -727,34 +818,206 @@ export function loadLocalProjectConfig(
     }
 
     const document = expectPlainObject(parsed, LOCAL_PROJECT_CONFIG_FILENAME);
-    const supportedKeys = new Set([
-        '$schema',
-        'env',
-        'mounts',
-        'shell',
-        'customizations',
-        'portOffset',
-        'ports',
-    ]);
-    const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key));
+
+    return {
+        file,
+        selection: parseLocalProjectConfigDocument(document, LOCAL_PROJECT_CONFIG_FILENAME),
+    };
+}
+
+export function resolveGlobalDefaultsPath(homeDir?: string): ResolvedGlobalDefaultsPath | null {
+    const resolvedHomeDir =
+        homeDir ??
+        (() => {
+            try {
+                return os.homedir();
+            } catch {
+                return '';
+            }
+        })();
+
+    if (!resolvedHomeDir || resolvedHomeDir.trim() === '') {
+        return null;
+    }
+
+    const candidatePaths = GLOBAL_DEFAULTS_FILENAMES.map((fileName) =>
+        path.join(resolvedHomeDir, fileName)
+    );
+    const firstExistingIndex = candidatePaths.findIndex((candidatePath) =>
+        fs.existsSync(candidatePath)
+    );
+    if (firstExistingIndex === -1) {
+        return null;
+    }
+
+    return {
+        path: candidatePaths[firstExistingIndex],
+        ignoredPath: candidatePaths
+            .slice(firstExistingIndex + 1)
+            .find((candidatePath) => fs.existsSync(candidatePath)),
+    };
+}
+
+function parseGlobalLocalConfigTemplate(
+    document: Record<string, any>,
+    sourceLabel: string
+): GlobalLocalConfigTemplateSelection {
+    const branchKeys = ['common', 'plain', 'compose'] as const;
+    const presentBranchKeys = branchKeys.filter((key) => key in document);
+
+    if (presentBranchKeys.length === 0) {
+        return parseLocalProjectConfigDocument(document, sourceLabel, { allowSchema: false });
+    }
+
+    const supportedKeys = new Set(branchKeys);
+    const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key as any));
     if (unsupportedKeys.length > 0) {
         throw new ProjectConfigError(
-            `Unsupported local config keys in ${LOCAL_PROJECT_CONFIG_FILENAME}: ${unsupportedKeys.join(', ')}\nAllowed top-level keys: $schema, env, mounts, shell, customizations, portOffset, ports.`
+            `Unsupported local config template keys in ${sourceLabel}: ${unsupportedKeys.join(', ')}\nWhen using stack-aware localConfigTemplate, allowed keys are: common, plain, compose.`
         );
     }
 
     return {
-        file,
-        selection: {
-            $schema: expectOptionalString(document.$schema, '$schema'),
-            env: parseProjectEnv(document.env),
-            mounts: parseMounts(document.mounts),
-            shell: parseProjectShell(document.shell),
-            customizations: parseCustomizations(document.customizations),
-            portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
-            ports: parseProjectPorts(document.ports, { preserveEmptyArray: true }),
-        },
+        common:
+            document.common === undefined
+                ? undefined
+                : parseLocalProjectConfigDocument(
+                      expectPlainObject(document.common, `${sourceLabel}.common`),
+                      `${sourceLabel}.common`,
+                      { allowSchema: false }
+                  ),
+        plain:
+            document.plain === undefined
+                ? undefined
+                : parseLocalProjectConfigDocument(
+                      expectPlainObject(document.plain, `${sourceLabel}.plain`),
+                      `${sourceLabel}.plain`,
+                      { allowSchema: false }
+                  ),
+        compose:
+            document.compose === undefined
+                ? undefined
+                : parseLocalProjectConfigDocument(
+                      expectPlainObject(document.compose, `${sourceLabel}.compose`),
+                      `${sourceLabel}.compose`,
+                      { allowSchema: false }
+                  ),
     };
+}
+
+export function loadGlobalDefaults(
+    overlaysConfig: OverlaysConfig,
+    homeDir?: string
+): LoadedGlobalDefaults | null {
+    const resolvedGlobalDefaultsPath = resolveGlobalDefaultsPath(homeDir);
+    if (!resolvedGlobalDefaultsPath) {
+        return null;
+    }
+
+    const globalDefaultsPath = resolvedGlobalDefaultsPath.path;
+
+    let parsed: unknown;
+    try {
+        parsed = yaml.load(fs.readFileSync(globalDefaultsPath, 'utf8')) ?? {};
+    } catch (error) {
+        throw new ProjectConfigError(
+            `Failed to parse global defaults file ${globalDefaultsPath}: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+
+    try {
+        const document = expectPlainObject(parsed, globalDefaultsPath);
+        const supportedKeys = new Set(['$schema', 'initDefaults', 'localConfigTemplate']);
+        const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key));
+        if (unsupportedKeys.length > 0) {
+            throw new ProjectConfigError(
+                `Unsupported global defaults keys in ${globalDefaultsPath}: ${unsupportedKeys.join(', ')}\nAllowed top-level keys: $schema, initDefaults, localConfigTemplate.`
+            );
+        }
+
+        const lookup = buildCategoryLookup(overlaysConfig);
+        const initDefaultsDocument =
+            document.initDefaults === undefined
+                ? undefined
+                : expectPlainObject(document.initDefaults, 'initDefaults');
+        const initDefaultsSupportedKeys = new Set([
+            'baseImage',
+            'editor',
+            'target',
+            'outputPath',
+            'minimal',
+            'devcontainerGitignore',
+            'overlays',
+        ]);
+        const unsupportedInitDefaultKeys = Object.keys(initDefaultsDocument ?? {}).filter(
+            (key) => !initDefaultsSupportedKeys.has(key)
+        );
+        if (unsupportedInitDefaultKeys.length > 0) {
+            throw new ProjectConfigError(
+                `Unsupported initDefaults keys in ${globalDefaultsPath}: ${unsupportedInitDefaultKeys.join(', ')}\nAllowed initDefaults keys: ${[...initDefaultsSupportedKeys].join(', ')}.`
+            );
+        }
+
+        const selection: GlobalDefaultsSelection = {
+            $schema: expectOptionalString(document.$schema, '$schema'),
+            initDefaults: initDefaultsDocument
+                ? {
+                      baseImage: expectOptionalEnum(
+                          initDefaultsDocument.baseImage,
+                          'initDefaults.baseImage',
+                          BASE_IMAGE_VALUES
+                      ),
+                      editor: expectOptionalEnum(
+                          initDefaultsDocument.editor,
+                          'initDefaults.editor',
+                          EDITOR_VALUES
+                      ),
+                      target: expectOptionalEnum(
+                          initDefaultsDocument.target,
+                          'initDefaults.target',
+                          TARGET_VALUES
+                      ),
+                      outputPath: expectOptionalString(
+                          initDefaultsDocument.outputPath,
+                          'initDefaults.outputPath'
+                      ),
+                      minimal: expectOptionalBoolean(
+                          initDefaultsDocument.minimal,
+                          'initDefaults.minimal'
+                      ),
+                      devcontainerGitignore: expectOptionalBoolean(
+                          initDefaultsDocument.devcontainerGitignore,
+                          'initDefaults.devcontainerGitignore'
+                      ),
+                      overlays: expectOverlayArray<OverlayId>(
+                          initDefaultsDocument.overlays,
+                          'initDefaults.overlays',
+                          lookup.isKnownOverlay
+                      ),
+                  }
+                : undefined,
+            localConfigTemplate:
+                document.localConfigTemplate === undefined
+                    ? undefined
+                    : parseGlobalLocalConfigTemplate(
+                          expectPlainObject(document.localConfigTemplate, 'localConfigTemplate'),
+                          'localConfigTemplate'
+                      ),
+        };
+
+        return {
+            path: globalDefaultsPath,
+            ignoredPath: resolvedGlobalDefaultsPath.ignoredPath,
+            selection,
+        };
+    } catch (error) {
+        if (error instanceof ProjectConfigError) {
+            throw new ProjectConfigError(
+                `Invalid global defaults file ${globalDefaultsPath}: ${error.message}`
+            );
+        }
+        throw error;
+    }
 }
 
 export function loadProjectConfig(
@@ -956,6 +1219,60 @@ export function applyLocalConfigToAnswers<T extends QuestionnaireAnswers>(
     } as T;
 }
 
+export function buildAnswersFromGlobalInitDefaults(
+    defaults: GlobalInitDefaultsSelection | undefined,
+    overlaysConfig: OverlaysConfig
+): Partial<QuestionnaireAnswers> | undefined {
+    if (!defaults) {
+        return undefined;
+    }
+
+    const distributed = distributeOverlaysToAnswers(defaults.overlays, overlaysConfig);
+    const answers: Partial<QuestionnaireAnswers> = {};
+
+    if (defaults.baseImage !== undefined) answers.baseImage = defaults.baseImage;
+    if (distributed.language !== undefined) answers.language = distributed.language;
+    if (distributed.database !== undefined) answers.database = distributed.database;
+    if (distributed.observability !== undefined) answers.observability = distributed.observability;
+    if (distributed.cloudTools !== undefined) answers.cloudTools = distributed.cloudTools;
+    if (distributed.devTools !== undefined) answers.devTools = distributed.devTools;
+    if (distributed.playwright === true) answers.playwright = true;
+    if (defaults.outputPath !== undefined) answers.outputPath = defaults.outputPath;
+    if (defaults.target !== undefined) answers.target = defaults.target;
+    if (defaults.minimal !== undefined) answers.minimal = defaults.minimal;
+    if (defaults.editor !== undefined) answers.editor = defaults.editor;
+    if (defaults.devcontainerGitignore !== undefined) {
+        answers.devcontainerGitignore = defaults.devcontainerGitignore;
+    }
+
+    return Object.keys(answers).length > 0 ? answers : undefined;
+}
+
+export function mergeInitDefaultsWithCliInputs(
+    seeded: Partial<QuestionnaireAnswers>,
+    cli: Partial<QuestionnaireAnswers>
+): Partial<QuestionnaireAnswers> {
+    const mergeUnique = <T>(left?: T[], right?: T[]): T[] | undefined => {
+        const merged = [...(left ?? []), ...(right ?? [])];
+        return merged.length > 0 ? [...new Set(merged)] : undefined;
+    };
+
+    return {
+        ...seeded,
+        ...cli,
+        language: mergeUnique(seeded.language, cli.language),
+        database: mergeUnique(seeded.database, cli.database),
+        observability: mergeUnique(seeded.observability, cli.observability),
+        cloudTools: mergeUnique(seeded.cloudTools, cli.cloudTools),
+        devTools: mergeUnique(seeded.devTools, cli.devTools),
+        playwright: cli.playwright ?? seeded.playwright,
+        overlayParameters: {
+            ...(seeded.overlayParameters ?? {}),
+            ...(cli.overlayParameters ?? {}),
+        },
+    };
+}
+
 export function buildAnswersFromProjectConfig(
     selection: ProjectConfigSelection,
     overlaysConfig: OverlaysConfig
@@ -1101,6 +1418,119 @@ function hasKeys(value: Record<string, any> | undefined): boolean {
     return Boolean(value) && Object.keys(value as Record<string, any>).length > 0;
 }
 
+function buildLocalProjectConfigDocument(
+    selection: LocalProjectConfigSelection
+): Record<string, any> {
+    const document: Record<string, any> = {
+        $schema: selection.$schema ?? SUPERPOSITION_LOCAL_SCHEMA_URL,
+    };
+
+    if (selection.env && Object.keys(selection.env).length > 0) {
+        document.env = Object.fromEntries(
+            Object.entries(selection.env).map(([key, entry]) => [
+                key,
+                entry.target && entry.target !== 'auto'
+                    ? { value: entry.value, target: entry.target }
+                    : entry.value,
+            ])
+        );
+    }
+
+    if (selection.mounts && selection.mounts.length > 0) {
+        document.mounts = selection.mounts.map((entry) => {
+            if (entry.value && (!entry.target || entry.target === 'auto')) {
+                return entry.value;
+            }
+            if (entry.value) {
+                return { value: entry.value, target: entry.target };
+            }
+            const structured: Record<string, unknown> = {
+                source: entry.source,
+                destination: entry.destination,
+            };
+            if (entry.type) structured.type = entry.type;
+            if (entry.consistency) structured.consistency = entry.consistency;
+            if (entry.cached !== undefined) structured.cached = entry.cached;
+            if (entry.readOnly !== undefined) structured.readOnly = entry.readOnly;
+            if (entry.target && entry.target !== 'auto') structured.target = entry.target;
+            return structured;
+        });
+    }
+
+    if (selection.shell) {
+        const shell: Record<string, unknown> = {};
+        if (selection.shell.aliases && Object.keys(selection.shell.aliases).length > 0) {
+            shell.aliases = selection.shell.aliases;
+        }
+        if (selection.shell.snippets && selection.shell.snippets.length > 0) {
+            shell.snippets = selection.shell.snippets;
+        }
+        if (Object.keys(shell).length > 0) {
+            document.shell = shell;
+        }
+    }
+
+    if (selection.customizations) {
+        const customizations: Record<string, any> = {};
+
+        if (selection.customizations.devcontainerPatch) {
+            customizations.devcontainerPatch = withSchemaFirst(
+                selection.customizations.devcontainerPatch
+            );
+        }
+
+        if (hasKeys(selection.customizations.dockerComposePatch)) {
+            customizations.dockerComposePatch = selection.customizations.dockerComposePatch;
+        }
+
+        if (hasKeys(selection.customizations.envTemplate)) {
+            customizations.envTemplate = selection.customizations.envTemplate;
+        }
+
+        if (selection.customizations.scripts?.postCreate?.length) {
+            customizations.scripts = {
+                ...(customizations.scripts ?? {}),
+                postCreate: selection.customizations.scripts.postCreate,
+            };
+        }
+
+        if (selection.customizations.scripts?.postStart?.length) {
+            customizations.scripts = {
+                ...(customizations.scripts ?? {}),
+                postStart: selection.customizations.scripts.postStart,
+            };
+        }
+
+        if (selection.customizations.files?.length) {
+            customizations.files = selection.customizations.files;
+        }
+
+        if (Object.keys(customizations).length > 0) {
+            document.customizations = customizations;
+        }
+    }
+
+    if (selection.portOffset !== undefined) document.portOffset = selection.portOffset;
+
+    if (selection.ports !== undefined) {
+        document.ports = selection.ports.map((entry) => {
+            if (!entry.label && !entry.onAutoForward) {
+                return entry.value;
+            }
+            const detailed: Record<string, unknown> = { value: entry.value };
+            if (entry.label) {
+                detailed.label = entry.label;
+            }
+            if (entry.onAutoForward) {
+                detailed.onAutoForward = entry.onAutoForward;
+            }
+            return detailed;
+        });
+    }
+
+    return document;
+}
+
 function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<string, any> {
     const document: Record<string, any> = {
         $schema: selection.$schema ?? SUPERPOSITION_SCHEMA_URL,
@@ -1239,9 +1669,27 @@ export function serializeProjectConfig(selection: ProjectConfigSelection): strin
     );
 }
 
+export function serializeLocalProjectConfig(selection: LocalProjectConfigSelection): string {
+    return (
+        yaml.dump(buildLocalProjectConfigDocument(selection), {
+            lineWidth: 120,
+            noRefs: true,
+            sortKeys: false,
+        }) + '\n'
+    );
+}
+
 export function writeProjectConfig(filePath: string, selection: ProjectConfigSelection): void {
     ensureDirectory(path.dirname(filePath));
     fs.writeFileSync(filePath, serializeProjectConfig(selection), 'utf8');
+}
+
+export function writeLocalProjectConfig(
+    filePath: string,
+    selection: LocalProjectConfigSelection
+): void {
+    ensureDirectory(path.dirname(filePath));
+    fs.writeFileSync(filePath, serializeLocalProjectConfig(selection), 'utf8');
 }
 
 export function writeProjectConfigCustomizations(
