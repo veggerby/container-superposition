@@ -7,15 +7,15 @@
 
 ## User Scenarios & Testing
 
+> **Implementation note (amended by spec 044):** compose-targeted project `env:` is now supported
+> even when `composeEnvFiles` is omitted. Generated `docker-compose.yml` is the default output for
+> compose project `env:` values, while `.devcontainer/.env` and `.devcontainer/.env.example` are
+> optional companion artifacts behind `composeEnvFiles: true`.
+
 ### User Story 1 — Compose env values materialize into .devcontainer/.env (Priority: P1)
 
-A developer sets concrete env values in `superposition.yml` on a `compose` stack and expects
-them to be written to `.devcontainer/.env` (not embedded in `docker-compose.yml`) so that
-secrets are not committed to source control inside generated YAML.
-
-**Why this priority**: Embedding resolved values directly in `docker-compose.yml` would expose
-secrets or host-specific values in generated files that are typically committed to source control.
-Materializing them into `.devcontainer/.env` keeps generated config template-only.
+A developer sets concrete env values in `superposition.yml` on a `compose` stack and, when
+`composeEnvFiles: true` is enabled, expects them to also be written to `.devcontainer/.env`.
 
 **Independent Test**: Set `env: {SECRET_KEY: supersecret}` on a compose-stack project, run
 `regen`, and confirm: (a) `docker-compose.yml` contains
@@ -89,21 +89,21 @@ container environment.
 
 For compose-targeted project env entries:
 
-1. Materialize concrete values into `.devcontainer/.env`
-2. Write `docker-compose.yml -> services.devcontainer.environment.KEY: ${KEY}`
-3. Write `devcontainer.json -> remoteEnv.KEY: ${containerEnv:KEY}`
+1. Write `docker-compose.yml -> services.devcontainer.environment.KEY` directly using the compose
+   rendering rules in spec `044`
+2. Write `devcontainer.json -> remoteEnv.KEY: ${containerEnv:KEY}`
+3. When `composeEnvFiles: true`, also materialize eligible values into `.devcontainer/.env`
 
-This keeps generated config free of resolved secret values while still making
-the variables available inside the devcontainer.
+This keeps compose env support independent from optional env-file emission.
 
 ### Value Resolution
 
-- literals are written as-is to `.devcontainer/.env`
-- `${NAME}` resolves from the repository root `.env` when present
-- `${NAME:-default}` resolves from the repository root `.env`, otherwise uses
-  the inline default
-- unresolved `${NAME}` values are omitted from `.devcontainer/.env` so shell
-  environment fallback remains possible
+- literals embed directly in `docker-compose.yml` and, when env files are enabled, are also
+  written as-is to `.devcontainer/.env`
+- `${NAME}` resolves from the repository root `.env` when present; otherwise it is preserved in
+  `docker-compose.yml` and omitted from optional `.devcontainer/.env`
+- `${NAME:-default}` resolves from the repository root `.env`, otherwise uses the inline default
+  in `docker-compose.yml` and optional `.devcontainer/.env`
 
 ### `env:` on `stack: plain`
 

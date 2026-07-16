@@ -206,7 +206,8 @@ ${portSection}
 
 - **docker-sock** is not available in Codespaces — use \`docker-in-docker\` instead.
 - Secrets can be added under *Settings → Codespaces → Secrets*.
-- To set environment variables, copy \`.devcontainer/.env.example\` to \`.devcontainer/.env\`
+- \`.devcontainer/.env\` and \`.devcontainer/.env.example\` are opt-in artifacts only.
+- If you enabled compose env files, copy \`.devcontainer/.env.example\` to \`.devcontainer/.env\`
   and add the file to your Codespaces secrets or repository environment.
 
 ## References
@@ -315,7 +316,8 @@ ${portSection}
 
 - **docker-sock** is not available in Gitpod — use \`docker-in-docker\` instead.
 - Environment variables can be set under *Gitpod Settings → Variables*.
-- Copy \`.devcontainer/.env.example\` to \`.devcontainer/.env\` and configure locally.
+- \`.devcontainer/.env\` and \`.devcontainer/.env.example\` are opt-in artifacts only.
+- If you enabled compose env files, copy \`.devcontainer/.env.example\` to \`.devcontainer/.env\` and configure locally.
 - The generated \`.gitpod.yml\` references your devcontainer via its \`image.file\`
   field — Gitpod reads devcontainer.json automatically.
 
@@ -400,8 +402,9 @@ This devcontainer was generated with **\`--target devpod\`** and includes a
 ${portSection}
 ## Notes
 
-- Copy \`.devcontainer/.env.example\` to \`.devcontainer/.env\` and edit credentials
-  before running \`devpod up\`.
+- \`.devcontainer/.env\` and \`.devcontainer/.env.example\` are opt-in artifacts only.
+- If you enabled compose env files, copy \`.devcontainer/.env.example\` to \`.devcontainer/.env\`
+  and edit credentials before running \`devpod up\`.
 - DevPod respects \`hostRequirements\` in \`devcontainer.json\` for cloud providers.
 - To stop and destroy the workspace: \`devpod delete <workspace-name>\`.
 

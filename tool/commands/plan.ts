@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import type { OverlaysConfig } from '../schema/types.js';
+import { loadProjectConfig } from '../schema/project-config.js';
 import { getFilesToCreate, getPortMappings } from './plan/artifacts.js';
 import { generatePlanDiff } from './plan/diff.js';
 import { resolvePlanInput } from './plan/input.js';
@@ -88,7 +89,33 @@ export async function planCommand(
         }
 
         const portMappings = getPortMappings(compatibleResolved, overlaysConfig, portOffset);
-        const files = getFilesToCreate(compatibleResolved, overlaysDir, outputPath);
+        const composeEnvFiles = (() => {
+            try {
+                const projectConfig = loadProjectConfig(overlaysConfig, process.cwd());
+                if (!projectConfig) {
+                    return false;
+                }
+                const selected = [...new Set(selectedOverlays)].sort().join(',');
+                const configured = [...new Set(projectConfig.selection.overlays ?? [])]
+                    .sort()
+                    .join(',');
+                return (
+                    projectConfig.selection.stack === stack &&
+                    selected === configured &&
+                    projectConfig.selection.composeEnvFiles === true
+                );
+            } catch {
+                return false;
+            }
+        })();
+        const files = getFilesToCreate(
+            compatibleResolved,
+            overlaysDir,
+            outputPath,
+            composeEnvFiles,
+            stack,
+            portOffset
+        );
         const includedOverlays = compatibleResolved.map((id) => {
             const explanation = explanations.get(id);
             return (

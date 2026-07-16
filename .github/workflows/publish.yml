@@ -246,12 +246,11 @@ jobs:
                   npm pack --dry-run
 
             - name: Publish prerelease to npm
-              run: npm publish --provenance --access public --tag pr-${{ github.event.pull_request.number }}
+              run: npm publish --provenance --access public --tag prerelease
 
             - name: Add prerelease commands to workflow summary
               run: |
                   VERSION=${{ steps.version.outputs.version }}
-                  PR_NUMBER=${{ github.event.pull_request.number }}
                   {
                     echo '## 📦 Prerelease published to npm'
                     echo
@@ -263,16 +262,17 @@ jobs:
                     echo "npm install container-superposition@$VERSION"
                     echo '```'
                     echo
-                    echo 'Run directly:'
+                    echo 'Run exact version directly:'
                     echo
                     echo '```bash'
                     echo "npx container-superposition@$VERSION regen"
                     echo '```'
                     echo
-                    echo 'PR dist-tag:'
+                    echo 'Use the moving shared prerelease tag:'
                     echo
                     echo '```bash'
-                    echo "npm install container-superposition@pr-$PR_NUMBER"
+                    echo 'npm install container-superposition@prerelease'
+                    echo 'npx container-superposition@prerelease regen'
                     echo '```'
                   } >> "$GITHUB_STEP_SUMMARY"
 
@@ -282,20 +282,23 @@ jobs:
                   script: |
                       const version = '${{ steps.version.outputs.version }}';
                       const prNumber = ${{ github.event.pull_request.number }};
-                      const tag = `pr-${prNumber}`;
                       const body = [
                         '## 📦 Prerelease published to npm',
                         '',
-                        `A prerelease version has been published for this PR:`,
+                        `A prerelease version has been published for PR #${prNumber}.`,
                         '',
-                        '```',
+                        'Use the exact version for this run:',
+                        '',
+                        '```bash',
                         `npm install container-superposition@${version}`,
-                        '```',
-                        '',
-                        `Or run (regen) directly from the prerelease version:`,
-                        '',
-                        '```',
                         `npx container-superposition@${version} regen`,
+                        '```',
+                        '',
+                        'Or use the moving shared prerelease tag:',
+                        '',
+                        '```bash',
+                        'npm install container-superposition@prerelease',
+                        'npx container-superposition@prerelease regen',
                         '```',
                       ].join('\n');
 

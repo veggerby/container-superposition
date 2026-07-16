@@ -397,9 +397,9 @@ export function generateServicesMarkdown(
     // ─── Environment Variables ────────────────────────────────────────
     lines.push('## Environment Variables');
     lines.push('');
-    lines.push('See `.env.example` for all configuration options.');
+    lines.push('`.devcontainer/.env` and `.devcontainer/.env.example` are opt-in artifacts only.');
     lines.push('');
-    lines.push('Copy to `.env` and customize:');
+    lines.push('If you enabled compose env files, copy the template locally:');
     lines.push('```bash');
     lines.push('cp .devcontainer/.env.example .devcontainer/.env');
     lines.push('```');

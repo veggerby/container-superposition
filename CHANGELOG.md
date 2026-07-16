@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Root Taskfile contributor workflow** — the repository now ships a repo-root `Taskfile.yml` with thin wrappers over the existing npm scripts plus mandatory `task validate` and broader `task validate:generated` flows, so contributors have one discoverable entrypoint that runs `lint:fix` before `lint` and aligns local validation guidance with existing CI contracts
+
+- **Deterministic compose port rendering and optional env files** — tool-owned compose port bindings are now written with final numeric host ports instead of `${...}` host-port expressions, user-authored project `ports` remain verbatim, compose-targeted project `env:` now renders directly into generated `docker-compose.yml` even when env artifacts are off, and `.devcontainer/.env` plus `.devcontainer/.env.example` are opt-in artifacts only via `--compose-env-files` or `composeEnvFiles: true`. `plan`, `doctor`, generated summaries, and related help now follow the same persisted intent.
+
+- **Project-specific compose network names** — compose-based generated projects now default `docker-compose.yml -> networks.devnet.name` from the repository folder name instead of one host-global `devnet`, support explicit `composeNetworkName` overrides in shared `superposition.yml`, preserve the logical `devnet` key inside overlays, and reject compose-network configuration on plain stacks
+
 - **Four project-local contributor Pi skills** — the repo now includes `/skill:cli-command-delivery`, `/skill:canonical-docs-alignment`, `/skill:workflow-sync`, and `/skill:dogfooding-safety` so contributors and agents can discover required workflows, validation commands, prohibited shortcuts, and escalation rules for CLI command work, documentation alignment, spec/index/changelog/Pi synchronization, and generated-artifact safety directly from Pi, without reconstructing guidance from scattered authority docs.
 
 - **Project-local overlay discovery Pi workflow** — the repo now includes `/skill:overlay-solution-discovery`, `/overlay-discover`, and `/overlay-write-loop` so contributors can start from a plain-language need, check whether an existing overlay or preset already solves it, produce a short overlay design brief when needed, and hand approved discovery output into the existing overlay creation/review loop.
@@ -16,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`superposition.local.yml` can now resolve local port conflicts without touching shared config** — local config now supports `portOffset` and full `ports` replacement, including meaningful `ports: []` to suppress shared project ports for one developer. `init`, `regen`, and doctor dry-compose generation honor those local-only overrides, while shared `superposition.yml`, `plan`, and generated `superposition.json` stay shared-only.
 
 - **Init-only user-scoped global defaults** — eligible fresh `init` runs can now read personal home-directory defaults from preferred `~/.superposition.yml` or legacy `~/.container-superposition.yml` (with the legacy-specific file winning when both exist), opt out with `--ignore-global-defaults`, and scaffold a first `superposition.local.yml` from either a legacy `localConfigTemplate` or a stack-aware `common` / `plain` / `compose` template without affecting `regen`, `doctor`, `plan`, project-file replay, or manifest replay
+- **Stable prerelease npm tag in publish automation** — successful prerelease publish runs now keep the exact version, publish directly with the shared `prerelease` dist-tag in the primary npm publish step, and advertise exact-version plus `@prerelease` install/regen commands in workflow summaries and PR comments without any PR-specific `pr-{number}` tag
 
 ### Changed
 

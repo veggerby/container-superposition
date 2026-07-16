@@ -43,7 +43,10 @@ export function computePlannedDevcontainerJson(
 export function getFilesToCreate(
     overlayIds: string[],
     overlaysDir: string,
-    outputPath: string
+    outputPath: string,
+    composeEnvFiles: boolean = false,
+    stack: Stack = 'compose',
+    portOffset: number = 0
 ): string[] {
     const files: string[] = [];
 
@@ -59,8 +62,11 @@ export function getFilesToCreate(
             break;
         }
     }
-    if (hasEnvExample) {
+    if ((stack !== 'compose' || composeEnvFiles) && hasEnvExample) {
         files.push(path.join(outputPath, '.env.example'));
+        if (stack === 'compose' ? composeEnvFiles : portOffset > 0) {
+            files.push(path.join(outputPath, '.env'));
+        }
     }
 
     for (const id of overlayIds) {

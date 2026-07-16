@@ -430,6 +430,37 @@ describe('Project Ports', () => {
             expect(compose.services?.devcontainer?.ports).not.toContain('9010:8080');
         });
 
+        it('hard-renders final numeric host ports for tool-owned compose bindings while preserving project ports verbatim', async () => {
+            const outputPath = path.join(repoDir, '.devcontainer');
+
+            const answers: QuestionnaireAnswers = {
+                stack: 'compose',
+                baseImage: 'bookworm',
+                language: [],
+                needsDocker: false,
+                database: ['redis'],
+                playwright: false,
+                cloudTools: [],
+                devTools: [],
+                observability: [],
+                outputPath,
+                portOffset: 100,
+                projectPorts: [{ value: '${API_PORT:-8080}:8080' }],
+            };
+
+            await composeDevContainer(answers);
+
+            const compose = yaml.load(
+                fs.readFileSync(path.join(outputPath, 'docker-compose.yml'), 'utf8')
+            ) as {
+                services?: { redis?: { ports?: string[] }; devcontainer?: { ports?: string[] } };
+            };
+
+            expect(compose.services?.redis?.ports).toContain('6479:6379');
+            expect(compose.services?.redis?.ports).not.toContain('${REDIS_PORT:-6379}:6379');
+            expect(compose.services?.devcontainer?.ports).toContain('${API_PORT:-8080}:8080');
+        });
+
         it('extracts container port into devcontainer.json forwardPorts', async () => {
             const outputPath = path.join(repoDir, '.devcontainer');
 

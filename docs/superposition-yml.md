@@ -197,6 +197,28 @@ Sets the `name` field in `devcontainer.json`. Used by VS Code to label the conta
 
 ---
 
+### `composeNetworkName`
+
+```yaml
+composeNetworkName: my-repo-devnet
+```
+
+Compose stacks only. Controls the **actual Docker network name** written to generated
+`docker-compose.yml` at `networks.devnet.name`.
+
+- If omitted, the tool derives a stable default from the repository folder basename, such as
+  `my-repo-devnet`
+- `containerName` does **not** affect this default
+- Services and overlays still use the logical compose network key `devnet`
+- Plain stacks reject this field because they do not generate `docker-compose.yml`
+- `superposition.local.yml` does not support this field; network identity stays shared in
+  `superposition.yml`
+
+Use an explicit value when your team needs a network name that stays stable even if local checkout
+folder names differ.
+
+---
+
 ### `overlays`
 
 ```yaml
@@ -272,9 +294,12 @@ Two syntaxes are supported in `env:` values. They are resolved at different time
   written verbatim into the generated output (`devcontainer.json`, `docker-compose.yml`,
   `.devcontainer/.env`). **Never use `{{cs.KEY}}` for secrets.**
 - **`${VAR:-default}`** is a Docker Compose expression. For `stack: plain` it is resolved at
-  generation time using the root `.env`, then the inline default. For `stack: compose` it is
-  passed through verbatim to `docker-compose.yml`; Docker Compose resolves it at container
-  start using `.devcontainer/.env`.
+  generation time using the root `.env`, then the inline default. For `stack: compose` the tool
+  resolves it from the root `.env` when present and otherwise embeds the inline default directly
+  into `docker-compose.yml`.
+- **`${VAR}`** without a default resolves from the root `.env` when present. On `stack: compose`,
+  unresolved values are preserved as `${VAR}` in `docker-compose.yml` so Docker Compose shell/runtime
+  fallback still works.
 
 Decision tree:
 
@@ -318,6 +343,10 @@ env:
 
 The password reference `${POSTGRES_PASSWORD:-changeme}` bypasses the parameter token — it
 stays unresolved by the tool and is handled by Docker Compose at runtime.
+
+> By default, compose-targeted `env:` entries render directly into `docker-compose.yml`.
+> `composeEnvFiles: true` only enables optional `.devcontainer/.env` and
+> `.devcontainer/.env.example` artifact generation.
 
 ---
 
@@ -576,6 +605,28 @@ portOffset: 100
 
 Shifts all overlay-declared host ports by the given integer. Useful when running multiple
 instances of the same stack on one machine (e.g. feature branches in parallel).
+
+For `stack: compose`, tool-owned compose port bindings are written with the final numeric host
+port already applied. user-authored project `ports` remain verbatim and are not shifted.
+
+---
+
+### `composeEnvFiles`
+
+```yaml
+composeEnvFiles: true
+```
+
+Compose stacks only. Enables generation of optional `.devcontainer/.env` and
+`.devcontainer/.env.example` artifacts. By default these files are omitted.
+
+Use this when your team wants generated compose env companion files, for example to keep a
+local `.devcontainer/.env` beside the generated compose stack or to distribute a
+`.devcontainer/.env.example` template.
+
+When omitted, the default is `false`. Compose-targeted `env:` still works: values are rendered
+straight into `docker-compose.yml`, while unresolved `${NAME}` references are preserved there for
+Docker Compose fallback.
 
 ---
 

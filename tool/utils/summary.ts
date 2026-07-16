@@ -126,7 +126,11 @@ export function generateTips(overlays: OverlayMetadata[], answers: Questionnaire
 /**
  * Generate next steps based on mode
  */
-export function generateNextSteps(isManifestOnly: boolean, isRegen: boolean): string[] {
+export function generateNextSteps(
+    isManifestOnly: boolean,
+    isRegen: boolean,
+    composeEnvFiles: boolean = false
+): string[] {
     if (isManifestOnly) {
         return [
             'Review the generated superposition.json file',
@@ -144,7 +148,9 @@ export function generateNextSteps(isManifestOnly: boolean, isRegen: boolean): st
     }
 
     return [
-        'Customize environment:\n     cp .devcontainer/.env.example .devcontainer/.env',
+        ...(composeEnvFiles
+            ? ['Customize environment:\n     cp .devcontainer/.env.example .devcontainer/.env']
+            : []),
         'Open in VS Code:\n     code .',
         'Reopen in Container:\n     Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P) → "Dev Containers: Reopen in Container"',
         'Verify setup:\n     npx container-superposition doctor',

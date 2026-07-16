@@ -297,10 +297,9 @@ describe('Local superposition config', () => {
             path.join(repoDir, '.devcontainer', 'docker-compose.yml'),
             'utf8'
         );
-        const envFile = fs.readFileSync(path.join(repoDir, '.devcontainer', '.env'), 'utf8');
         expect(compose).not.toContain('9000:9000');
-        expect(envFile).toContain('POSTGRES_PORT=5732');
-        expect(envFile).not.toContain('POSTGRES_PORT=5532');
+        expect(compose).toContain('5732:5432');
+        expect(compose).not.toContain('5532:5432');
     });
 
     it('regen prints local trust contract once and adds root gitignore entry', () => {

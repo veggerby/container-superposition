@@ -9,7 +9,7 @@ your-project/
 ├── .devcontainer/               # Main devcontainer directory
 │   ├── devcontainer.json        # Container configuration
 │   ├── docker-compose.yml       # Services (compose stack only)
-│   ├── .env.example             # Environment variable templates
+│   ├── .env.example             # Optional environment variable templates
 │   ├── ports.json               # Port documentation and connection strings
 │   ├── CODESPACES.md            # Codespaces setup guidance (--target codespaces only)
 │   ├── GITPOD.md                # Gitpod setup guidance (--target gitpod only)
@@ -29,7 +29,7 @@ your-project/
 
 ## Files You Should Customize
 
-- `.devcontainer/.env` or `.env` (copied from `.env.example`)
+- `.devcontainer/.env` when `composeEnvFiles: true`, or repository-root `.env` when your project uses one
 - `.devcontainer/custom/` (shared project patches and scripts)
 - `superposition.local.yml` (local config for machine-specific generated-output enrichment; keep gitignored)
 
@@ -52,7 +52,7 @@ your-project/
 - `superposition.json`
 - `.devcontainer/` only when your repository intentionally commits generated output
 - `.devcontainer/custom/` (project-specific patches)
-- `.devcontainer/.env.example`
+- `.devcontainer/.env.example` when `composeEnvFiles: true`
 
 Do not commit `superposition.local.yml` or generated output containing local-only settings. Prefer
 `devcontainerGitignore: true`; if generated output was already tracked, untrack generated output:

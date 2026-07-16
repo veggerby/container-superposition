@@ -134,7 +134,7 @@ describe('README Generation', () => {
         fs.rmSync(outputPath, { recursive: true });
     });
 
-    it('should include environment variables section when .env.example exists', async () => {
+    it('should include environment variables section only when composeEnvFiles is enabled', async () => {
         const outputPath = path.join(TEST_OUTPUT_DIR, 'test-env-vars');
 
         if (fs.existsSync(outputPath)) {
@@ -146,7 +146,7 @@ describe('README Generation', () => {
             baseImage: 'bookworm',
             language: [],
             needsDocker: false,
-            database: ['postgres'], // Has .env.example
+            database: ['postgres'],
             playwright: false,
             cloudTools: [],
             devTools: [],
@@ -156,14 +156,19 @@ describe('README Generation', () => {
 
         await composeDevContainer(answers);
 
-        const readmePath = path.join(outputPath, 'README.md');
-        const readme = fs.readFileSync(readmePath, 'utf-8');
+        let readmePath = path.join(outputPath, 'README.md');
+        let readme = fs.readFileSync(readmePath, 'utf-8');
+        expect(readme).not.toContain('## Environment Variables');
 
-        // Check for environment variables section
+        fs.rmSync(outputPath, { recursive: true, force: true });
+
+        await composeDevContainer({ ...answers, composeEnvFiles: true });
+
+        readmePath = path.join(outputPath, 'README.md');
+        readme = fs.readFileSync(readmePath, 'utf-8');
         expect(readme).toContain('## Environment Variables');
         expect(readme).toContain('cp .env.example .env');
 
-        // Clean up
         fs.rmSync(outputPath, { recursive: true });
     });
 

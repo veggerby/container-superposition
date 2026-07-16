@@ -35,7 +35,6 @@ import {
     mergeRemoteEnv,
     mergePackages,
     filterDependsOn,
-    applyPortOffset,
     applyPortOffsetToEnv,
 } from '../utils/merge.js';
 import { generatePortsDocumentation } from '../utils/port-utils.js';
@@ -67,6 +66,10 @@ import {
     portsToPortInfo,
 } from '../utils/summary.js';
 import { resolveRepoPath } from '../utils/paths.js';
+import {
+    assertComposeNetworkNameSupported,
+    resolveComposeNetworkName,
+} from '../utils/compose-network.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1439,9 +1442,10 @@ function buildResolvedProjectRemoteEnvEntries(
     return entries;
 }
 
-function buildComposeProjectEnvInterpolationEntries(
+function buildComposeProjectEnvEntries(
     projectEnv: QuestionnaireAnswers['projectEnv'],
-    stack: QuestionnaireAnswers['stack']
+    stack: QuestionnaireAnswers['stack'],
+    rootEnv: Record<string, string>
 ): Record<string, string> {
     const entries: Record<string, string> = {};
 
@@ -1450,7 +1454,7 @@ function buildComposeProjectEnvInterpolationEntries(
             continue;
         }
 
-        entries[key] = `\${${key}}`;
+        entries[key] = resolveRootEnvReferences(entry.value, rootEnv);
     }
 
     return entries;
@@ -2047,6 +2051,66 @@ function applyGlueConfig(
  * Parse the effective host port from any docker-compose port binding format:
  *   "8081:8081", "127.0.0.1:8081:8081", "${VAR:-8081}:8081", 8081, {published:8081}
  */
+function renderDeterministicToolOwnedBinding(
+    binding: string | number | Record<string, unknown>,
+    portOffset: number
+): string | number | Record<string, unknown> {
+    if (typeof binding === 'object' && binding !== null) {
+        const published = (binding as any).published;
+        if (typeof published === 'string') {
+            const envMatch = published.match(/^\$\{[^}]+:-(\d+)\}$/);
+            if (envMatch) {
+                return {
+                    ...(binding as object),
+                    published: parseInt(envMatch[1], 10) + portOffset,
+                };
+            }
+        }
+        return binding;
+    }
+
+    if (typeof binding !== 'string') {
+        return binding;
+    }
+
+    const ipHostContainerMatch = binding.match(/^([^:]+:)\$\{[^}]+:-(\d+)\}(:.+)$/);
+    if (ipHostContainerMatch) {
+        const [, prefix, defaultPort, suffix] = ipHostContainerMatch;
+        return `${prefix}${parseInt(defaultPort, 10) + portOffset}${suffix}`;
+    }
+
+    const hostContainerMatch = binding.match(/^\$\{[^}]+:-(\d+)\}(:.+)$/);
+    if (hostContainerMatch) {
+        const [, defaultPort, suffix] = hostContainerMatch;
+        return `${parseInt(defaultPort, 10) + portOffset}${suffix}`;
+    }
+
+    return binding;
+}
+
+function hardRenderToolOwnedComposePorts(
+    services: Record<string, any>,
+    portOffset: number,
+    preservedDevcontainerBindings: Set<string>
+): void {
+    for (const [serviceName, service] of Object.entries(services)) {
+        if (!Array.isArray(service?.ports)) {
+            continue;
+        }
+
+        service.ports = service.ports.map((binding: string | number | Record<string, unknown>) => {
+            if (
+                serviceName === 'devcontainer' &&
+                typeof binding === 'string' &&
+                preservedDevcontainerBindings.has(binding)
+            ) {
+                return binding;
+            }
+            return renderDeterministicToolOwnedBinding(binding, portOffset);
+        });
+    }
+}
+
 function parseHostPortFromBinding(
     binding: string | number | Record<string, unknown>
 ): number | null {
@@ -2153,6 +2217,43 @@ function resolveDockerComposePortConflicts(
     return remappings;
 }
 
+function applyComposeNetworkNameToMergedCompose(merged: any, composeNetworkName: string): void {
+    merged.networks = merged.networks ?? {};
+    const existingDevnet =
+        merged.networks.devnet && typeof merged.networks.devnet === 'object'
+            ? merged.networks.devnet
+            : {};
+    merged.networks.devnet = {
+        ...existingDevnet,
+        name: composeNetworkName,
+    };
+}
+
+function applyComposeNetworkNameToWrittenCompose(
+    outputPath: string,
+    composeNetworkName: string
+): void {
+    const composePath = path.join(outputPath, 'docker-compose.yml');
+    if (!fs.existsSync(composePath)) {
+        return;
+    }
+
+    const compose = yaml.load(fs.readFileSync(composePath, 'utf8')) as any;
+    if (!compose || typeof compose !== 'object') {
+        return;
+    }
+
+    applyComposeNetworkNameToMergedCompose(compose, composeNetworkName);
+    fs.writeFileSync(
+        composePath,
+        yaml.dump(compose, {
+            indent: 2,
+            lineWidth: -1,
+            noRefs: true,
+        })
+    );
+}
+
 /**
  * Merge docker-compose.yml files from base and overlays into a single file
  */
@@ -2161,11 +2262,14 @@ function mergeDockerComposeFiles(
     baseStack: QuestionnaireAnswers['stack'],
     overlays: string[],
     overlaysDir: string,
+    composeNetworkName: string,
     portOffset?: number,
     customImage?: string,
     projectEnv?: QuestionnaireAnswers['projectEnv'],
     projectMounts?: QuestionnaireAnswers['projectMounts'],
-    resolvedProjectPorts: PreparedProjectPort[] = []
+    resolvedProjectPorts: PreparedProjectPort[] = [],
+    resolvedParams: Record<string, string> = {},
+    rootEnv: Record<string, string> = {}
 ): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
@@ -2243,7 +2347,11 @@ function mergeDockerComposeFiles(
     };
 
     for (const composePath of composeFiles) {
-        const content = fs.readFileSync(composePath, 'utf-8');
+        const rawContent = fs.readFileSync(composePath, 'utf-8');
+        const content =
+            Object.keys(resolvedParams).length > 0
+                ? substituteParameters(rawContent, resolvedParams)
+                : rawContent;
         const compose = yaml.load(content) as any;
 
         if (compose.services) {
@@ -2269,7 +2377,7 @@ function mergeDockerComposeFiles(
 
     // Ensure devcontainer service has an image
     if (merged.services.devcontainer) {
-        const composeEnv = buildComposeProjectEnvInterpolationEntries(projectEnv, baseStack);
+        const composeEnv = buildComposeProjectEnvEntries(projectEnv, baseStack, rootEnv);
         if (Object.keys(composeEnv).length > 0) {
             merged.services.devcontainer.environment = deepMerge(
                 merged.services.devcontainer.environment ?? {},
@@ -2318,6 +2426,14 @@ function mergeDockerComposeFiles(
             console.warn(chalk.yellow('⚠️  No image specified, this should not happen'));
         }
     }
+
+    applyComposeNetworkNameToMergedCompose(merged, composeNetworkName);
+
+    hardRenderToolOwnedComposePorts(
+        merged.services,
+        portOffset ?? 0,
+        new Set(resolvedProjectPorts.map((port) => port.rawBinding ?? port.value))
+    );
 
     // Filter depends_on to only include services that exist
     const serviceNames = Object.keys(merged.services);
@@ -2831,8 +2947,17 @@ export async function composeDevContainer(
     }
     const outputPath = path.resolve(answers.outputPath);
     const projectRoot = path.dirname(outputPath);
+    assertComposeNetworkNameSupported(answers.stack, answers.composeNetworkName);
+    const effectiveComposeNetworkName =
+        answers.stack === 'compose'
+            ? resolveComposeNetworkName(projectRoot, answers.composeNetworkName)
+            : undefined;
+    if (effectiveComposeNetworkName) {
+        console.log(chalk.dim(`   🌐 Compose network: ${chalk.cyan(effectiveComposeNetworkName)}`));
+    }
     const fileRegistry = new FileRegistry();
     const rootEnv = loadEnvFileIfExists(path.join(projectRoot, '.env'));
+    const envArtifactsEnabled = answers.stack !== 'compose' || answers.composeEnvFiles === true;
     // Apply {{cs.KEY}} substitution to project env values (in-memory; no file modified)
     const substitutedProjectEnv = substituteProjectEnvTokens(answers.projectEnv, resolvedParams);
     validateEnvTokensResolved(substitutedProjectEnv, resolvedParams);
@@ -2944,11 +3069,14 @@ export async function composeDevContainer(
             answers.stack,
             overlays,
             actualOverlaysDir,
+            effectiveComposeNetworkName!,
             answers.portOffset,
             customImage,
             substitutedProjectEnv,
             answers.projectMounts,
-            preparedProjectPorts
+            preparedProjectPorts,
+            resolvedParams,
+            rootEnv
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {
@@ -3096,6 +3224,9 @@ export async function composeDevContainer(
     if (answers.customizations && answers.stack === 'compose') {
         applyCustomDockerComposePatch(outputPath, answers.customizations);
     }
+    if (effectiveComposeNetworkName) {
+        applyComposeNetworkNameToWrittenCompose(outputPath, effectiveComposeNetworkName);
+    }
 
     // 13. Generate superposition.json manifest
     generateManifest(
@@ -3109,61 +3240,78 @@ export async function composeDevContainer(
     fileRegistry.addFile('superposition.json');
 
     // 14. Merge .env.example files from overlays and apply glue config environment variables
-    const envCreated = mergeEnvExamples(
-        outputPath,
-        overlays,
-        actualOverlaysDir,
-        answers.portOffset,
-        answers.presetGlueConfig,
-        answers.preset
-    );
-    if (envCreated) {
-        fileRegistry.addFile('.env.example');
-    }
+    let envCreated = false;
+    if (envArtifactsEnabled) {
+        envCreated = mergeEnvExamples(
+            outputPath,
+            overlays,
+            actualOverlaysDir,
+            answers.portOffset,
+            answers.presetGlueConfig,
+            answers.preset
+        );
+        if (envCreated) {
+            fileRegistry.addFile('.env.example');
+        }
 
-    // Apply parameter substitution to .env.example
-    // This must happen after mergeEnvExamples but before any consumer of .env reads it,
-    // because mergeEnvExamples may have written {{cs.*}} tokens into .env.example.
-    // We also regenerate .env (the port-offset copy) from the substituted content so that
-    // applyPortOffsetToEnv can correctly match numeric port values that were previously
-    // hidden behind {{cs.POSTGRES_PORT}} tokens.
-    if (hasResolvedParams) {
-        const envExamplePath = path.join(outputPath, '.env.example');
-        if (fs.existsSync(envExamplePath)) {
-            const original = fs.readFileSync(envExamplePath, 'utf8');
-            const substituted = substituteParameters(original, resolvedParams);
-            if (substituted !== original) {
-                fs.writeFileSync(envExamplePath, substituted);
-                // Regenerate .env from the substituted content when a port offset is active.
-                // mergeEnvExamples already wrote .env from the pre-substitution content, so
-                // the port offset was applied to unresolved tokens (e.g. {{cs.POSTGRES_PORT}})
-                // that had no numeric value to match — we must regenerate .env now that the
-                // tokens have been replaced with real numeric port values.
-                if (answers.portOffset) {
-                    const envPath = path.join(outputPath, '.env');
-                    const offsetContent = applyPortOffsetToEnv(substituted, answers.portOffset);
-                    fs.writeFileSync(envPath, offsetContent);
+        // Apply parameter substitution to .env.example
+        // This must happen after mergeEnvExamples but before any consumer of .env reads it,
+        // because mergeEnvExamples may have written {{cs.*}} tokens into .env.example.
+        // We also regenerate .env (the port-offset copy) from the substituted content so that
+        // applyPortOffsetToEnv can correctly match numeric port values that were previously
+        // hidden behind {{cs.POSTGRES_PORT}} tokens.
+        if (hasResolvedParams) {
+            const envExamplePath = path.join(outputPath, '.env.example');
+            if (fs.existsSync(envExamplePath)) {
+                const original = fs.readFileSync(envExamplePath, 'utf8');
+                const substituted = substituteParameters(original, resolvedParams);
+                if (substituted !== original) {
+                    fs.writeFileSync(envExamplePath, substituted);
+                    if (answers.portOffset) {
+                        const envPath = path.join(outputPath, '.env');
+                        const offsetContent = applyPortOffsetToEnv(substituted, answers.portOffset);
+                        fs.writeFileSync(envPath, offsetContent);
+                    }
                 }
             }
         }
-    }
 
-    // Apply custom environment variables (after .env.example is created)
-    if (customPatches) {
-        const customEnvCreated = applyCustomEnvironment(outputPath, customPatches);
-        // Add .env.example to registry if it was created by custom patches but not by overlays
-        if (customEnvCreated && !envCreated) {
-            fileRegistry.addFile('.env.example');
+        // Apply custom environment variables (after .env.example is created)
+        if (customPatches) {
+            const customEnvCreated = applyCustomEnvironment(outputPath, customPatches);
+            if (customEnvCreated && !envCreated) {
+                fileRegistry.addFile('.env.example');
+            }
+        }
+        if (answers.customizations) {
+            const customEnvCreated = applyCustomEnvironment(outputPath, answers.customizations);
+            if (customEnvCreated && !envCreated) {
+                fileRegistry.addFile('.env.example');
+            }
+        }
+
+        if (answers.stack === 'compose' && answers.composeEnvFiles === true && envCreated) {
+            const envExamplePath = path.join(outputPath, '.env.example');
+            const envPath = path.join(outputPath, '.env');
+            if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
+                fs.writeFileSync(envPath, fs.readFileSync(envExamplePath, 'utf8'));
+            }
+            if (fs.existsSync(envPath)) {
+                fileRegistry.addFile('.env');
+            }
+        }
+
+        if (
+            materializeComposeProjectEnvFile(
+                outputPath,
+                substitutedProjectEnv,
+                answers.stack,
+                rootEnv
+            )
+        ) {
+            fileRegistry.addFile('.env');
         }
     }
-    if (answers.customizations) {
-        const customEnvCreated = applyCustomEnvironment(outputPath, answers.customizations);
-        if (customEnvCreated && !envCreated) {
-            fileRegistry.addFile('.env.example');
-        }
-    }
-
-    materializeComposeProjectEnvFile(outputPath, substitutedProjectEnv, answers.stack, rootEnv);
 
     // 14b. Merge .gitignore files from overlays into project root .gitignore
     // Note: .gitignore lives at the project root (parent of outputPath), not inside outputPath,
@@ -3351,7 +3499,7 @@ export async function composeDevContainer(
 
     const warnings = detectWarnings(selectedOverlayMetadata, answers);
     const tips = generateTips(selectedOverlayMetadata, answers);
-    const nextSteps = generateNextSteps(false, options.isRegen === true);
+    const nextSteps = generateNextSteps(false, options.isRegen === true, envArtifactsEnabled);
 
     return {
         files,

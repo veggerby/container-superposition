@@ -63,7 +63,7 @@ Also check cross-cutting concerns: conflict reciprocity, parameter naming, port 
 
 - [ ] `version: '3.8'` or higher
 - [ ] All services have `networks: [devnet]`
-- [ ] Network is declared as `networks: devnet: name: devnet` — **never** `external: true`
+- [ ] Network keeps the logical `devnet` key inline and never uses `external: true`; any `networks.devnet.name` example should be project-specific rather than fixed `devnet`
 - [ ] Environment variables use `${VAR:-{{cs.VAR}}}` fallback pattern
 - [ ] Ports use `'${PORT:-{{cs.PORT}}}:<internal>'` fallback pattern
 - [ ] Databases and critical services have `healthcheck`

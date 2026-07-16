@@ -30,6 +30,7 @@ import { applyPresetSelections } from '../../questionnaire/presets.js';
 import { PRESETS_DIR } from '../../questionnaire/questionnaire.js';
 import { isPathIgnored, listTrackedFilesUnder } from '../../utils/git.js';
 import { parseSimpleEnvFile } from '../../utils/env-file.js';
+import { resolveComposeNetworkName } from '../../utils/compose-network.js';
 import { MERGE_STRATEGY } from '../../utils/merge.js';
 import {
     collectOverlayParameters,
@@ -38,6 +39,10 @@ import {
 } from '../../utils/parameters.js';
 import { extractPorts } from '../../utils/port-utils.js';
 import type { CheckResult, DoctorReport } from './types.js';
+
+function composeEnvFilesEnabled(selection: ProjectConfigSelection): boolean {
+    return selection.stack !== 'compose' || selection.composeEnvFiles === true;
+}
 
 function isVersionAtLeast(current: string, required: string): boolean {
     const parse = (version: string): [number, number, number] => {
@@ -948,7 +953,9 @@ export function checkParameters(
     const filesToScan: Array<[string, string]> = [
         ['devcontainer.json', path.join(outputPath, 'devcontainer.json')],
         ['docker-compose.yml', path.join(outputPath, 'docker-compose.yml')],
-        ['.env.example', path.join(outputPath, '.env.example')],
+        ...(composeEnvFilesEnabled(projectConfig.selection)
+            ? ([['.env.example', path.join(outputPath, '.env.example')]] as Array<[string, string]>)
+            : []),
     ];
 
     const unresolvedByFile: string[] = [];
@@ -1014,7 +1021,11 @@ export function checkParameters(
         }
     })();
 
-    if (manifest?.baseTemplate === 'compose' && declaredCount > 0) {
+    if (
+        manifest?.baseTemplate === 'compose' &&
+        declaredCount > 0 &&
+        composeEnvFilesEnabled(projectConfig.selection)
+    ) {
         const envExamplePath = path.join(outputPath, '.env.example');
         if (!fs.existsSync(envExamplePath)) {
             results.push({
@@ -1358,6 +1369,17 @@ export function checkEnvExampleDrift(
     }
     if (!projectConfig) return [];
 
+    if (!composeEnvFilesEnabled(projectConfig.selection)) {
+        return [
+            {
+                name: '.env.example drift',
+                status: 'pass',
+                message: 'composeEnvFiles disabled — skipping .env.example drift check',
+                fixEligibility: 'not-applicable',
+            },
+        ];
+    }
+
     const envExamplePath = path.join(outputPath, '.env.example');
     if (!fs.existsSync(envExamplePath)) {
         return [
@@ -1470,6 +1492,9 @@ export async function checkReproducibility(
                 );
             } else {
                 answers = mergedAnswers;
+            }
+            if (answers.stack === 'compose' && !answers.composeNetworkName) {
+                answers.composeNetworkName = resolveComposeNetworkName(workingDir, undefined);
             }
         } catch (error) {
             return [

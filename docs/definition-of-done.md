@@ -4,20 +4,19 @@
 
 ### Core validation
 
-- Run `npm run lint:fix` after adding or changing files when formatting may be affected.
-- Run `npm run lint` and leave it passing.
+- Run `task validate` before handoff or considering a change complete; this mandatory flow runs `lint:fix` before `lint` and includes `npm test`.
+- Use direct npm commands only as the underlying source-of-truth implementation; CI remains npm-based.
 - Run targeted tests for changed areas at minimum.
-- Run `npm test` for broader changes, command refactors, workflow changes, or when targeted coverage is not enough.
 - Run `npm run build` when validating compiled CLI behavior or before publish/release work.
 
 ### Workflow gates
 
 - Feature work starts from a reviewed spec under `docs/specs/` before implementation begins.
 - User-visible changes are recorded under `CHANGELOG.md` in `[Unreleased]`.
-- If overlays changed, run `npm run docs:generate` and commit the updated generated overlay reference docs.
-- If overlays or project-config schema types changed, run `npm run schema:generate` and commit updated schema outputs.
-- If user-visible or tooling changes affect generated output, run `npm run init -- regen` from project root.
-- Before merge, run `npm run init -- doctor`; no `Reproducibility` errors are allowed.
+- If overlays changed, run `task validate:generated` or at minimum `npm run docs:generate` and commit the updated generated overlay reference docs.
+- If overlays or project-config schema types changed, run `task validate:generated` or at minimum `npm run schema:generate` and commit updated schema outputs.
+- If user-visible or tooling changes affect generated output, run `task validate:generated` or at minimum `npm run init -- regen` from project root.
+- Before merge, run `task validate:generated` when generated-output triggers apply, or at minimum `npm run init -- doctor`; no `Reproducibility` errors are allowed.
 
 ---
 
@@ -56,14 +55,14 @@
 
 - Follow overlay manifest rules from `AGENTS.md`.
 - Keep conflict declarations bidirectional.
-- Ensure compose overlays use inline `devnet` network declarations.
+- Ensure compose overlays keep inline `devnet` logical network declarations and never rely on `external: true`; generated output should own the final project-specific `networks.devnet.name`.
 - Regenerate overlay docs and schema outputs when required.
 
 ### Command or tooling changes
 
 - Preserve source-vs-compiled path resolution behavior where needed.
 - Validate both focused tests and broader CLI regressions when behavior spans multiple commands.
-- Keep public command contracts, workflow docs, and guidance aligned.
+- Keep public command contracts, workflow docs, and guidance aligned, including the mandatory `task validate` / `task validate:generated` contributor flow.
 
 ### Docs and workflow changes
 

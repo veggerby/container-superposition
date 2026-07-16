@@ -14,6 +14,7 @@ export function buildAnswersFromCliArgs(
     }
     if (config.baseImage) answers.baseImage = config.baseImage;
     if (config.containerName) answers.containerName = config.containerName;
+    if (config.composeNetworkName) answers.composeNetworkName = config.composeNetworkName;
     if (config.language) answers.language = config.language;
     if (config.database) answers.database = config.database;
     if (config.playwright !== undefined) answers.playwright = config.playwright;
@@ -21,6 +22,7 @@ export function buildAnswersFromCliArgs(
     if (config.cloudTools) answers.cloudTools = config.cloudTools;
     if (config.devTools) answers.devTools = config.devTools;
     if (config.portOffset !== undefined) answers.portOffset = config.portOffset;
+    if (config.composeEnvFiles !== undefined) answers.composeEnvFiles = config.composeEnvFiles;
     if (config.outputPath) answers.outputPath = config.outputPath;
     if (config.preset) answers.preset = config.preset;
     if (config.presetChoices) answers.presetChoices = config.presetChoices;

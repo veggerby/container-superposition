@@ -66,6 +66,7 @@ import { parseCliArgs } from './args.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
 import { deepMerge } from '../utils/merge.js';
+import { assertComposeNetworkNameSupported } from '../utils/compose-network.js';
 
 function isStackAwareLocalConfigTemplate(
     template: GlobalLocalConfigTemplateSelection | undefined
@@ -826,6 +827,15 @@ export async function main(): Promise<void> {
             }
         }
 
+        if (
+            cliArgs?.commandName === 'regen' &&
+            cliArgs.config.composeEnvFiles === true &&
+            projectConfig?.file.path
+        ) {
+            projectFileOutputPath = projectConfig.file.path;
+            existingProjectFileDetected = true;
+        }
+
         let manifest: SuperpositionManifest | undefined;
         let manifestDir: string | undefined;
         let backupDir: string | undefined;
@@ -1236,6 +1246,10 @@ export async function main(): Promise<void> {
         }
 
         const sharedAnswersForProjectFile = answers;
+        assertComposeNetworkNameSupported(
+            sharedAnswersForProjectFile.stack,
+            sharedAnswersForProjectFile.composeNetworkName
+        );
 
         if (!manifest && projectConfig?.selection.customizations) {
             const materializedOutputPath = path.resolve(answers.outputPath);

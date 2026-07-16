@@ -225,6 +225,7 @@ export interface QuestionnaireAnswers {
     baseImage: BaseImage;
     customImage?: string; // Only used when baseImage is 'custom'
     containerName?: string; // Container/project name from devcontainer.json
+    composeNetworkName?: string; // Actual docker-compose network name for compose stacks
     preset?: string; // ID of preset used, if any
     presetChoices?: Record<string, string>; // User choices made within preset
     presetGlueConfig?: PresetGlueConfig; // Glue configuration from preset
@@ -247,6 +248,7 @@ export interface QuestionnaireAnswers {
     projectShell?: ProjectShellConfig; // First-class shell profile customizations
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
     overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
+    composeEnvFiles?: boolean; // Whether .devcontainer/.env and .env.example should be generated for compose stacks
 }
 
 /**
@@ -620,11 +622,13 @@ export interface ProjectConfigSelection {
     baseImage?: BaseImage;
     customImage?: string;
     containerName?: string;
+    composeNetworkName?: string;
     preset?: string;
     presetChoices?: Record<string, string>;
     overlays?: OverlayId[];
     outputPath?: string;
     portOffset?: number;
+    composeEnvFiles?: boolean;
     target?: DeploymentTarget;
     minimal?: boolean;
     editor?: EditorProfile;

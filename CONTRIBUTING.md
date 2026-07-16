@@ -34,6 +34,30 @@ npm run init      # Run the tool
 npm test          # Run tests
 ```
 
+## Mandatory Validation Before Handoff
+
+Run the repo-root Taskfile from the repository root before considering work complete:
+
+```bash
+task validate
+```
+
+This is mandatory for contributor handoff/completion. It runs `lint:fix` before `lint`, then runs `npm test`.
+
+When your change touches generated artifacts or generated-output behavior, run the broader validation flow instead (or in addition, if you prefer the explicit individual commands):
+
+```bash
+task validate:generated
+```
+
+Use that broader flow when any of the following apply:
+
+- overlays changed → `docs:generate` is required
+- overlays or `ProjectConfigSelection` types changed → `schema:generate` is required
+- user-visible or tooling changes affect generated output → `init -- regen` and `init -- doctor` are required
+
+The Taskfile is a thin convenience layer only; the existing npm scripts and CI workflows remain the source of truth.
+
 ### Project Structure
 
 ```
@@ -163,12 +187,13 @@ volumes:
 
 networks:
     devnet:
-        name: devnet
+        name: my-project-devnet
 ```
 
 **Important:**
 
-- Always use `name: devnet` (not `external: true`)
+- Keep the logical network key `devnet` and never use `external: true`
+- Document generated compose output with a project-specific `networks.devnet.name` example such as `my-project-devnet`; the generator owns the final merged network name
 - Use service names for inter-container communication (not localhost)
 
 ### 5. Add Environment Variables (Optional)
@@ -372,6 +397,8 @@ npm run init -- --stack my-stack
 
 ```bash
 npm test
+# or use the mandatory pre-completion flow:
+task validate
 ```
 
 ### Run Smoke Tests
@@ -384,6 +411,8 @@ npm run test:smoke
 
 ```bash
 npm run init -- doctor
+# or, when generated-artifact checks are required:
+task validate:generated
 ```
 
 This validates:
@@ -456,20 +485,20 @@ This validates that overlay combinations work correctly.
 
 ### Running CI Locally
 
-Before pushing changes, run the same checks CI will run:
+Before pushing changes, run the required contributor validation first, then any extra CI-adjacent checks you need:
 
 ```bash
+# Required contributor validation
+task validate
+
+# Or use the broader generated-artifact flow when its triggers apply
+task validate:generated
+
 # Install dependencies
 npm ci
 
 # Build TypeScript
 npm run build
-
-# Run doctor
-npm run init -- doctor
-
-# Run tests
-npm test
 
 # Run smoke tests
 npm run test:smoke

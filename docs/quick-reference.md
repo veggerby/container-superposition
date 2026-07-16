@@ -24,10 +24,10 @@
 
 ## Base Templates
 
-| Template    | Use Case           | Contents                                             |
-| ----------- | ------------------ | ---------------------------------------------------- |
-| **plain**   | Simple projects    | Minimal Debian image, git, zsh, basic tools          |
-| **compose** | Multi-service apps | Docker Compose, devcontainer service, devnet network |
+| Template    | Use Case           | Contents                                                                |
+| ----------- | ------------------ | ----------------------------------------------------------------------- |
+| **plain**   | Simple projects    | Minimal Debian image, git, zsh, basic tools                             |
+| **compose** | Multi-service apps | Docker Compose, devcontainer service, project-specific `devnet` network |
 
 ## Interactive Overlay Selection
 

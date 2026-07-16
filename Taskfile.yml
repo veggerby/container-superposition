@@ -1,0 +1,74 @@
+version: '3'
+
+tasks:
+    default:
+        desc: List available contributor tasks
+        cmds:
+            - task --list-all
+        silent: true
+
+    lint:
+        desc: Run type-checking and formatting checks
+        cmds:
+            - npm run lint
+
+    'lint:fix':
+        desc: Auto-fix formatting issues
+        cmds:
+            - npm run lint:fix
+
+    test:
+        desc: Run the unit test suite
+        cmds:
+            - npm test
+
+    build:
+        desc: Compile TypeScript to dist/
+        cmds:
+            - npm run build
+
+    'docs:generate':
+        desc: Regenerate overlay reference docs
+        cmds:
+            - npm run docs:generate
+
+    'schema:generate':
+        desc: Regenerate project schema outputs
+        cmds:
+            - npm run schema:generate
+
+    init:
+        desc: Run the CLI from source
+        cmds:
+            - npm run init
+
+    'init:build':
+        desc: Run the CLI from compiled output
+        cmds:
+            - npm run init:build
+
+    regen:
+        desc: Regenerate project output from the project file
+        cmds:
+            - npm run init -- regen
+
+    doctor:
+        desc: Run reproducibility and project health checks
+        cmds:
+            - npm run init -- doctor
+
+    validate:
+        desc: Required pre-completion validation
+        cmds:
+            - task: 'lint:fix'
+            - task: lint
+            - task: test
+
+    'validate:generated':
+        desc: Validation plus generated-artifact and reproducibility checks
+        cmds:
+            - task: validate
+            - task: 'docs:generate'
+            - task: 'schema:generate'
+            - task: regen
+            - task: doctor

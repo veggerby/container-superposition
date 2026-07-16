@@ -70,6 +70,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--stack <type>', 'Base template: plain, compose')
         .option(
+            '--compose-network-name <name>',
+            'Actual Docker network name for compose stacks (defaults to a repo-derived name)'
+        )
+        .option(
             '--language <list>',
             'Comma-separated language overlays: dotnet, nodejs, python, mkdocs, java, go, rust, bun, powershell'
         )
@@ -93,6 +97,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option(
             '--port-offset <number>',
             'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)'
+        )
+        .option(
+            '--compose-env-files',
+            'Persist composeEnvFiles: true and generate .devcontainer/.env plus .devcontainer/.env.example'
         )
         .option(
             '--target <environment>',
@@ -147,6 +155,14 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option(
             '--from-manifest <path>',
             '(Deprecated) Load from superposition.json; use `cs migrate` to create a project file first'
+        )
+        .option(
+            '--compose-network-name <name>',
+            'Actual Docker network name for compose stacks (defaults to a repo-derived name)'
+        )
+        .option(
+            '--compose-env-files',
+            'Persist composeEnvFiles: true and generate .devcontainer/.env plus .devcontainer/.env.example'
         )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .option(
@@ -365,6 +381,8 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         'cloudTools',
         'devTools',
         'portOffset',
+        'composeNetworkName',
+        'composeEnvFiles',
         'preset',
     ];
     const hasPresetParams =
@@ -422,6 +440,12 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     }
     if (initOptions.portOffset) {
         config.portOffset = parseInt(initOptions.portOffset, 10);
+    }
+    if (initOptions.composeNetworkName) {
+        config.composeNetworkName = initOptions.composeNetworkName;
+    }
+    if (initOptions.composeEnvFiles) {
+        config.composeEnvFiles = true;
     }
     if (initOptions.target && initOptions._targetSource !== 'default') {
         config.target = initOptions.target as DeploymentTarget;
