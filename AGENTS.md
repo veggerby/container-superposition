@@ -15,8 +15,12 @@ Use these documents together, with each one owning a different concern:
 
 ## Commands
 
+`Taskfile.yml` is the repo-root contributor entrypoint for routine local runs; the underlying npm scripts remain the source of truth for CI and automation.
+
+- `task validate` — required pre-completion validation; runs `lint:fix`, `lint`, and `test` in order
+- `task validate:generated` — broader validation for overlay/schema/generated-output changes; runs `task validate` plus `docs:generate`, `schema:generate`, `regen`, and `doctor`
 - `npm run lint` — TypeScript type-check + Prettier (CI-enforced; run before committing)
-- `npm run lint:fix` — auto-fix Prettier formatting issues (run after adding/changing files)
+- `npm run lint:fix` — auto-fix Prettier formatting issues (run after adding/changing files and before `npm run lint`)
 - `npm test` — Vitest unit tests
 - `npm run build` — compile TypeScript to `dist/`
 - `npm run docs:generate` — regenerate `docs/overlays.md` (run after adding/changing overlays)
@@ -41,13 +45,13 @@ Use these documents together, with each one owning a different concern:
 
 ## Definition of Done
 
-- **Code quality**: `npm run lint:fix` then `npm run lint` pass.
-- **Tests**: run targeted tests for changed areas at minimum; run `npm test` for broader changes.
+- **Mandatory validation**: run `task validate` before handoff/completion; it must pass and it always runs `lint:fix` before `lint`.
+- **Tests**: run targeted tests for changed areas at minimum; `task validate` already includes `npm test`, so use it as the required final gate.
 - **Spec-first**: before writing implementation code for a new feature, commit a spec under `docs/specs/`.
-- **Generated docs**: if overlays changed, run `npm run docs:generate` and commit updated `docs/overlays.md`.
-- **Generated schema**: if overlays or `ProjectConfigSelection` types changed, run `npm run schema:generate` and commit updated `tool/schema/superposition.schema.json`.
-- **Reproducibility**: run `npm run init -- regen` from project root after user-visible/tooling changes that affect generated output.
-- **Doctor check**: run `npm run init -- doctor`; no `Reproducibility` errors are allowed before merge.
+- **Generated docs**: if overlays changed, run `task validate:generated` or at minimum `npm run docs:generate` and commit updated `docs/overlays.md`.
+- **Generated schema**: if overlays or `ProjectConfigSelection` types changed, run `task validate:generated` or at minimum `npm run schema:generate` and commit updated `tool/schema/superposition.schema.json`.
+- **Reproducibility**: after user-visible/tooling changes that affect generated output, run `task validate:generated` or at minimum `npm run init -- regen` from project root.
+- **Doctor check**: before merge, run `task validate:generated` when generated-output triggers apply, or at minimum `npm run init -- doctor`; no `Reproducibility` errors are allowed.
 - **Changelog**: user-visible changes must be reflected in `CHANGELOG.md` under `Unreleased` per project changelog rules.
 - **Changelog categorization**: when something is introduced for the first time in the current unreleased cycle, keep it as one consolidated entry under `Added`; do not also list the same new item under `Changed` or `Fixed`. Iterative work on an unreleased new item should be folded into that single `Added` entry.
 

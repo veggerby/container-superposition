@@ -161,12 +161,13 @@ _No specs yet._
 
 ### DOCS-GUIDE
 
-| Spec                                                                                                       | Title                                            | Status |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------ |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)               | Discovery Surface and Canonical Docs Alignment   | Draft  |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)             | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft  |
-| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md) | Project-Local Contributor Skills Initiative      | Draft  |
-| [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)     | Overlay Solution Discovery and Write Loop        | Final  |
+| Spec                                                                                                                     | Title                                                  | Status      |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ | ----------- |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)                             | Discovery Surface and Canonical Docs Alignment         | Draft       |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)                           | Preset-Led Onboarding for Common Jobs-to-be-Done       | Draft       |
+| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md)               | Project-Local Contributor Skills Initiative            | Draft       |
+| [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)                   | Overlay Solution Discovery and Write Loop              | Final       |
+| [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run | Final       |
 
 ### DOCS-API
 
@@ -186,10 +187,11 @@ _No specs yet._
 
 ### INFRA-BUILD
 
-| Spec                                                                                   | Title                                                     | Status                        |
-| -------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------- |
-| [023-pr-prerelease-gate](023-pr-prerelease-gate/spec.md)                               | PR Prerelease Deployment Gate                             | Final                         |
-| [028-publish-summaries-and-pr-comments](028-publish-summaries-and-pr-comments/spec.md) | Publish Workflow Summaries and Shared Prerelease Tag Only | Implemented — QA: Needs Fixes |
+| Spec                                                                                                                     | Title                                                     | Status                        |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- | ----------------------------- |
+| [023-pr-prerelease-gate](023-pr-prerelease-gate/spec.md)                                                                 | PR Prerelease Deployment Gate                             | Final                         |
+| [028-publish-summaries-and-pr-comments](028-publish-summaries-and-pr-comments/spec.md)                                   | Publish Workflow Summaries and Shared Prerelease Tag Only | Implemented — QA: Needs Fixes |
+| [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run    | Final                         |
 
 ---
 
