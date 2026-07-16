@@ -1102,9 +1102,17 @@ export function loadProjectConfig(
         containerName: expectOptionalString(document.containerName, 'containerName'),
         composeNetworkName:
             document.composeNetworkName !== undefined && document.composeNetworkName !== null
-                ? validateComposeNetworkName(
-                      expectString(document.composeNetworkName, 'composeNetworkName')
-                  )
+                ? (() => {
+                      try {
+                          return validateComposeNetworkName(
+                              expectString(document.composeNetworkName, 'composeNetworkName')
+                          );
+                      } catch (error) {
+                          throw new ProjectConfigError(
+                              error instanceof Error ? error.message : String(error)
+                          );
+                      }
+                  })()
                 : undefined,
         preset: expectOptionalString(document.preset, 'preset'),
         presetChoices: parsePresetChoices(document.presetChoices),
