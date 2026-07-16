@@ -7,14 +7,19 @@
 **Status**: Final
 **Input**: Feature assessment — `cs doctor` does not detect when `.env.example` is stale: missing keys for parameters added by new overlays, or keys left over from overlays that were removed.
 
+> **Implementation note (amended by spec 044):** for compose stacks, `.env.example` drift matters
+> only when `composeEnvFiles: true` is part of the shared project intent. Default-off projects
+> should treat missing `.devcontainer/.env.example` as expected, not drift.
+
 ## Problem Statement
 
 When a developer adds or removes overlays and runs `cs regen`, the generated `docker-compose.yml`
 and `devcontainer.json` are updated, but `.env.example` may drift from the actual parameter set
-in use. A key missing from `.env.example` means a new team member who onboards by copying the
-file will silently omit a required secret. A stale key left behind from a removed overlay
-creates confusion about which variables are needed. Doctor should detect both directions of drift
-and offer a `--fix` that regenerates `.env.example` to match the current overlay selection.
+in use when env-file generation is enabled. A key missing from `.env.example` means a new team
+member who onboards by copying the file will silently omit a required secret. A stale key left
+behind from a removed overlay creates confusion about which variables are needed. Doctor should
+still detect both directions of drift and offer a `--fix` that regenerates `.env.example` to
+match the current overlay selection when that artifact is expected.
 
 ## Goals
 

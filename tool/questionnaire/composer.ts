@@ -1442,9 +1442,10 @@ function buildResolvedProjectRemoteEnvEntries(
     return entries;
 }
 
-function buildComposeProjectEnvInterpolationEntries(
+function buildComposeProjectEnvEntries(
     projectEnv: QuestionnaireAnswers['projectEnv'],
-    stack: QuestionnaireAnswers['stack']
+    stack: QuestionnaireAnswers['stack'],
+    rootEnv: Record<string, string>
 ): Record<string, string> {
     const entries: Record<string, string> = {};
 
@@ -1453,7 +1454,7 @@ function buildComposeProjectEnvInterpolationEntries(
             continue;
         }
 
-        entries[key] = `\${${key}}`;
+        entries[key] = resolveRootEnvReferences(entry.value, rootEnv);
     }
 
     return entries;
@@ -2267,7 +2268,8 @@ function mergeDockerComposeFiles(
     projectEnv?: QuestionnaireAnswers['projectEnv'],
     projectMounts?: QuestionnaireAnswers['projectMounts'],
     resolvedProjectPorts: PreparedProjectPort[] = [],
-    resolvedParams: Record<string, string> = {}
+    resolvedParams: Record<string, string> = {},
+    rootEnv: Record<string, string> = {}
 ): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
@@ -2375,7 +2377,7 @@ function mergeDockerComposeFiles(
 
     // Ensure devcontainer service has an image
     if (merged.services.devcontainer) {
-        const composeEnv = buildComposeProjectEnvInterpolationEntries(projectEnv, baseStack);
+        const composeEnv = buildComposeProjectEnvEntries(projectEnv, baseStack, rootEnv);
         if (Object.keys(composeEnv).length > 0) {
             merged.services.devcontainer.environment = deepMerge(
                 merged.services.devcontainer.environment ?? {},
@@ -2806,19 +2808,6 @@ export async function generateManifestOnly(
 /**
  * Main composition logic
  */
-function requiresComposeEnvFiles(
-    projectEnv: QuestionnaireAnswers['projectEnv'] | undefined,
-    stack: QuestionnaireAnswers['stack']
-): boolean {
-    if (stack !== 'compose' || !projectEnv) {
-        return false;
-    }
-
-    return Object.values(projectEnv).some(
-        (entry) => resolveProjectEnvTarget(entry, stack) === 'composeEnv'
-    );
-}
-
 export async function composeDevContainer(
     answers: CompositionInput,
     overlaysDir?: string,
@@ -2972,12 +2961,6 @@ export async function composeDevContainer(
     // Apply {{cs.KEY}} substitution to project env values (in-memory; no file modified)
     const substitutedProjectEnv = substituteProjectEnvTokens(answers.projectEnv, resolvedParams);
     validateEnvTokensResolved(substitutedProjectEnv, resolvedParams);
-    if (!envArtifactsEnabled && requiresComposeEnvFiles(substitutedProjectEnv, answers.stack)) {
-        throw new Error(
-            'Compose project env values require generated compose env files. ' +
-                'Re-run with --compose-env-files or set composeEnvFiles: true in your project file because .devcontainer/.env and .devcontainer/.env.example are opt-in artifacts only.'
-        );
-    }
     const superpositionEnv = extractSuperpositionEnvStrings(substitutedProjectEnv);
     const preparedProjectPorts = prepareProjectPorts(
         answers.stack,
@@ -3092,7 +3075,8 @@ export async function composeDevContainer(
             substitutedProjectEnv,
             answers.projectMounts,
             preparedProjectPorts,
-            resolvedParams
+            resolvedParams,
+            rootEnv
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {

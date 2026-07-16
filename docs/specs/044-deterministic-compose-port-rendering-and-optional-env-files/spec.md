@@ -36,46 +36,48 @@ normative_references:
 
 ## Description
 
-Make generated compose output deterministic by default for tool-owned port bindings, and stop generating `.devcontainer/.env` plus `.devcontainer/.env.example` unless the user explicitly opts in with a CLI flag.
+Make generated compose output deterministic by default for tool-owned port bindings, keep `.devcontainer/.env` plus `.devcontainer/.env.example` opt-in only, and support compose-targeted project `env:` entries without requiring those files.
 
 ## Evidence
 
 - `docs/foundation.md` — generated output must stay deterministic for the same project inputs.
-- `docs/specs/009-project-env/spec.md` — current compose env bridge expects `.devcontainer/.env` to exist for compose-targeted project env values.
-- `docs/specs/010-compose-env-materialization/spec.md` — current approved behavior explicitly materializes compose env values into `.devcontainer/.env` and writes `.env.example` content.
-- `docs/specs/024-project-ports/spec.md` — user-authored first-class compose `ports` are currently written verbatim and must not be silently conflated with tool-owned overlay/service defaults.
-- `tool/questionnaire/composer.ts` — `mergeEnvExamples()` always writes `.env.example` and writes `.env` whenever `portOffset` is set; later generation steps also regenerate `.env` after parameter substitution.
-- `tool/utils/summary.ts` — current next steps always instruct users to copy `.devcontainer/.env.example` to `.devcontainer/.env`.
-- `tool/commands/plan/artifacts.ts` — plan currently predicts `.env.example` creation whenever selected overlays contain one.
-- `tool/commands/doctor/checks.ts` — doctor currently treats `.env.example` as an expected compose-side artifact in several checks.
+- `docs/specs/009-project-env/spec.md` — defines project-level `env:` semantics that this spec refines for compose output.
+- `docs/specs/010-compose-env-materialization/spec.md` — current approved compose behavior materializes project env into `.devcontainer/.env`; this draft narrows and partially supersedes that rule.
+- `docs/specs/024-project-ports/spec.md` — user-authored first-class compose `ports` must remain verbatim.
+- `tool/questionnaire/composer.ts` — current behavior still throws when compose-targeted project `env:` is used without env-file emission.
+- `tool/__tests__/project-env.test.ts` and `tool/__tests__/composition.test.ts` — current regression coverage locks in the fail-fast behavior that this draft reverses.
+- `README.md`, `docs/superposition-yml.md`, `docs/README.md`, `docs/filesystem-contract.md`, `scripts/generate-schema.ts` — user-facing wording is partially aligned for opt-in env files but still inconsistent about compose env handling and emitted artifacts.
 
 ## Problem Statement
 
-Generated compose files still depend on emitted env companion files for tool-owned defaults such as offset port bindings. That produces non-deterministic-looking output like `${FUSEKI_PORT:-3030}:3030`, requires extra generated files to realize the actual host port, and makes the default generated artifact set larger than users want. The requested behavior is a smaller default output contract: hard-render deterministic compose host ports directly into generated files, and emit `.devcontainer/.env` / `.devcontainer/.env.example` only when a user explicitly asks for them.
+The current spec and implementation correctly make `.devcontainer/.env` and `.devcontainer/.env.example` opt-in, but they still treat compose-targeted project `env:` as unsupported unless env files are enabled. That is narrower than intended behavior. Users want default compose generation to succeed, render deterministic tool-owned ports numerically, and inline compose project `env:` into generated `docker-compose.yml` even when env artifacts are disabled.
 
 ## User Goals / Jobs To Be Done
 
 - Inspect generated compose files and see the actual host ports that will be used.
 - Regenerate a compose project without always carrying env companion files.
-- Still opt into `.devcontainer/.env` and `.devcontainer/.env.example` when a team wants template-style env files.
+- Declare compose-targeted project `env:` values and have generation succeed by default.
+- Still opt into `.devcontainer/.env` and `.devcontainer/.env.example` when a team wants those extra artifacts.
 
 ## Success Signals
 
 - Default compose generation no longer emits `${...}` host-port expressions for tool-owned offsettable service bindings.
 - Default compose generation omits `.devcontainer/.env` and `.devcontainer/.env.example`.
-- An explicit CLI option restores env-file generation for teams that want the current template workflow.
+- Default compose generation succeeds when compose-targeted project `env:` is present and writes the expected environment entries into `docker-compose.yml`.
+- `composeEnvFiles` changes only env artifact emission expectations, not whether compose project `env:` is supported.
 
 ## Confidence
 
 - Overall confidence: medium
-- Confidence notes: current port/env behavior is clear from specs and code; main remaining implementation risk is migrating doctor/plan/docs from file-presence heuristics to persisted intent.
+- Confidence notes: user intent is now explicit; main remaining work is aligning current implementation, tests, and stale docs/spec text.
 
 ## Goals
 
 - Hard-render tool-owned compose host ports using the effective `portOffset` in generated compose output.
 - Make `.devcontainer/.env` and `.devcontainer/.env.example` opt-in rather than default output.
-- Preserve a CLI-accessible path for users who still want env companion files.
-- Keep deterministic replay and doctor behavior aligned with the chosen default.
+- Inline compose-targeted project `env:` entries into generated `docker-compose.yml` by default.
+- Define explicit compose `env:` resolution behavior for literals, `${NAME:-default}`, and unresolved `${NAME}` values.
+- Keep deterministic replay, doctor behavior, and docs/schema wording aligned with the chosen default.
 
 ## Non-Goals
 
@@ -83,6 +85,7 @@ Generated compose files still depend on emitted env companion files for tool-own
 - Changing plain-stack env behavior.
 - Silently changing the meaning of first-class project `ports` declared in `superposition.yml`.
 - Defining a new local-config surface for this feature.
+- Reworking broader secret-management policy beyond the compose rendering contract described here.
 
 ## Authority and References
 
@@ -103,8 +106,8 @@ This spec must align with:
 ### Architecture Ownership
 
 - `tool/cli/args.ts` and `tool/cli/run.ts` own the user-facing opt-in flag and the write-through flow that persists shared generation intent.
-- `tool/schema/types.ts`, `tool/schema/project-config.ts`, `scripts/generate-schema.ts`, and `docs/superposition-yml.md` own the new shared project-file field that records whether compose env artifacts are part of the intended generated output.
-- `tool/questionnaire/composer.ts` owns deterministic compose port rendering, conditional env-file emission, and pre-write validation when compose env materialization would otherwise be required.
+- `tool/schema/types.ts`, `tool/schema/project-config.ts`, `scripts/generate-schema.ts`, and `docs/superposition-yml.md` own the shared project-file field that records whether compose env artifacts are part of the intended generated output.
+- `tool/questionnaire/composer.ts` owns deterministic compose port rendering, compose project `env:` rendering, and conditional env-artifact emission.
 - `tool/commands/plan/**`, `tool/commands/doctor/**`, `tool/utils/summary.ts`, and related UX helpers must consume the same persisted intent and must not infer env-file expectations from incidental overlay contents alone.
 - User-authored first-class project `ports` remain owned by spec `024` behavior and must not be reinterpreted by the deterministic tool-owned port renderer.
 
@@ -119,8 +122,13 @@ This spec must align with:
     - `superposition.yml -> ports` stays verbatim on `stack: compose` per spec `024`.
     - No new offsetting, substitution, or normalization is allowed for those bindings in this feature.
 
-3. **Compose env artifacts**
-    - `.devcontainer/.env` and `.devcontainer/.env.example` become conditional generated artifacts, not default artifacts.
+3. **Compose project `env:` rendering**
+    - Compose-targeted project `env:` entries must be supported whether `composeEnvFiles` is enabled or disabled.
+    - Generated `docker-compose.yml` is the canonical default output for these entries; env-file emission must not be a prerequisite for support.
+    - `composeEnvFiles` must not switch compose project `env:` between “supported” and “unsupported” modes.
+
+4. **Compose env artifacts**
+    - `.devcontainer/.env` and `.devcontainer/.env.example` remain conditional generated artifacts, not default artifacts.
     - Overlay `.env.example` source files remain valid catalog inputs; the change is only whether the composer emits merged output files.
 
 ### Canonical Data Flow
@@ -131,7 +139,7 @@ flowchart LR
     Flag --> ProjectFile[superposition.yml shared intent]
     ProjectFile --> Answers[buildAnswersFromProjectConfig]
     Answers --> Composer[composeDevContainer]
-    Composer --> Compose[docker-compose.yml numeric tool-owned ports]
+    Composer --> Compose[docker-compose.yml numeric tool-owned ports + compose project env]
     Composer --> EnvArtifacts{composeEnvFiles enabled?}
     EnvArtifacts -->|yes| EnvFiles[write .devcontainer/.env and .env.example]
     EnvArtifacts -->|no| NoEnvFiles[omit env companion files]
@@ -146,8 +154,8 @@ A per-invocation-only flag would violate the current project-file-first replay c
 
 Decision:
 
-- add a shared top-level boolean field named `composeEnvFiles` to `ProjectConfigSelection` and the generated schema/docs
-- add an affirmative CLI flag `--compose-env-files` on `init` and `regen`
+- keep a shared top-level boolean field named `composeEnvFiles` in `ProjectConfigSelection` and the generated schema/docs
+- keep an affirmative CLI flag `--compose-env-files` on `init` and `regen`
 - on `init`, the flag sets `composeEnvFiles: true` in the authored project file
 - on `regen`, the flag is a write-through shared-intent change: update the discovered project file to `composeEnvFiles: true` before replay, then regenerate
 - absence of the field means default-off (`false`)
@@ -155,16 +163,18 @@ Decision:
 
 This keeps replay deterministic from the canonical shared project file rather than from hidden local state or compatibility-manifest-only metadata.
 
-#### 2. Fail fast when compose project env would require `.devcontainer/.env`
+#### 2. Render compose project `env:` directly into generated compose output by default
 
 Decision:
 
-- hard-render only tool-owned host-port bindings in compose output
-- do **not** hard-render compose-targeted project `env:` values into `docker-compose.yml` in default-off mode
-- when `composeEnvFiles` is false and generation includes any `project env` entry whose resolved target is `composeEnv`, fail before write with a clear message that `--compose-env-files` (or `composeEnvFiles: true`) is required
-- overlay parameter substitution that already resolves into generated files at compose-write time remains allowed; only flows that depend on `.devcontainer/.env` stay blocked
+- compose-targeted project `env:` values must render into generated `docker-compose.yml` regardless of `composeEnvFiles`
+- literals embed directly as concrete compose environment values
+- `${NAME:-default}` resolves against the repository root `.env` first and otherwise embeds the inline default value
+- `${NAME}` resolves against the repository root `.env` when present; if unresolved, preserve `${NAME}` in generated compose output so Docker Compose shell/runtime fallback remains available
+- this rendering rule is independent from optional `.devcontainer/.env` and `.devcontainer/.env.example` emission
+- no fail-fast path is allowed solely because `composeEnvFiles` is false
 
-This is the smallest safe design because it preserves spec `010`'s secret-handling rationale instead of silently embedding values into committed compose YAML.
+This matches intended compose behavior: env artifacts are optional convenience outputs, not a support gate for compose project `env:`.
 
 #### 3. Doctor and fix behavior key off persisted intent, not file presence
 
@@ -178,75 +188,83 @@ Decision:
 ### Implementation Slices
 
 1. **Shared intent and CLI plumbing**
-    - Add `composeEnvFiles?: boolean` to shared config types, parser/serializer, generated schema, manifest receipt, and authoring docs.
+    - Keep `composeEnvFiles?: boolean` in shared config types, parser/serializer, generated schema, manifest receipt, and authoring docs.
     - Thread the value through `buildAnswersFromProjectConfig()` / `buildProjectConfigSelectionFromAnswers()` into `QuestionnaireAnswers`.
-    - Add `--compose-env-files` to `init` and `regen` and persist it before generation.
+    - Keep `--compose-env-files` on `init` and `regen` and persist it before generation.
 
 2. **Deterministic tool-owned compose port rendering**
     - In `mergeDockerComposeFiles()`, replace tool-owned `${VAR:-default}` host-port expressions with final numeric host ports derived from the effective default plus `portOffset`.
     - Preserve service/container ports, ordering, and conflict-resolution behavior.
     - Keep project `ports` injection verbatim and outside this renderer.
 
-3. **Conditional env artifact emission and validation**
-    - Guard `mergeEnvExamples()` and `materializeComposeProjectEnvFile()` behind `composeEnvFiles`.
-    - Remove the port-offset-only `.env` copy path when env files are disabled.
-    - Add pre-write validation for compose-targeted project env in default-off mode.
+3. **Compose project env rendering plus conditional env artifacts**
+    - Remove the compose-env fail-fast path when `composeEnvFiles` is false.
+    - Render compose-targeted project `env:` entries directly into generated `docker-compose.yml` using the resolution rules above.
+    - Keep `.devcontainer/.env` and `.devcontainer/.env.example` behind `composeEnvFiles`.
+    - Ensure optional env-file emission does not become a prerequisite for compose project `env:` support.
 
 4. **Plan, doctor, summary, and docs alignment**
     - `plan` file prediction uses persisted intent, not overlay `.env.example` presence by itself.
     - `doctor` reproducibility and env-related checks derive expected artifacts from `composeEnvFiles`.
     - Summary/README/help text only mentions copying `.env.example` when env-file emission is enabled.
-    - Update affected docs/spec references (`009`, `010`, `015`, authoring docs, README/changelog) to describe default-off behavior.
+    - Update affected docs/spec references (`010`, `015`, authoring docs, README/changelog) to describe default-off env artifacts and default-on compose `env:` rendering.
 
 ## Constraints
 
 - Deterministic replay remains a foundation requirement.
 - Shared project config remains the canonical durable input; no hidden local state or manifest-only replay switches.
 - Tool-owned compose defaults and user-authored project `ports` must stay conceptually separate.
-- Default behavior should minimize generated files without embedding compose secrets into committed YAML.
+- `composeEnvFiles` controls env-artifact emission only; it must not gate compose project `env:` support.
 
 ## Preferences / Tradeoffs
 
 - Prefer rendering final numeric host ports in generated compose YAML over relying on runtime env indirection for tool-owned defaults.
+- Prefer direct compose rendering for project `env:` over failing generation when env artifacts are disabled.
 - Prefer one explicit opt-in CLI flag that persists shared intent over a transient one-run toggle.
-- Prefer fail-fast behavior over silently dropping compose env data or silently embedding secrets.
+- Accept that teams who place sensitive values in compose-targeted project `env:` are choosing a generated-YAML output that may be committed; opt-in env artifacts remain available but do not change the default compose rendering contract.
 
 ## Risk Notes
 
-- Existing compose projects that rely on `env.target=composeEnv` will need a one-time shared config migration to `composeEnvFiles: true` before they can continue regenerating without errors.
+- This draft intentionally conflicts with spec `010`'s compose-stack secret-handling rationale; related spec and docs alignment is required so the repository has one authoritative product contract.
+- Current tests explicitly assert the old fail-fast behavior and must be updated.
 - Plan/doctor/remediation logic currently uses file-presence heuristics for `.env.example`; those heuristics must be replaced with intent-aware checks to avoid false drift.
-- Port docs and summaries currently read `.env.example` for connection-string hints; default-off mode must not regress those surfaces into misleading or empty output without fallback wording.
+- User-facing docs and schema/help text still contain stale statements implying `.env.example` is always generated or that compose env relies on env files.
 
 ## Architecture Decision Impact
 
 - aligned with current ADRs/foundation
+- follow-up alignment required for related specs and docs, especially `010` and `015`
 
 ## Implementation / Intent Mismatches
 
-- Spec `010` currently treats `.devcontainer/.env` and `.devcontainer/.env.example` as default compose outputs; this spec narrows that default and makes those files conditional on `composeEnvFiles: true`.
+- Spec `010` currently treats `.devcontainer/.env` and `.devcontainer/.env.example` as the primary compose env bridge; this draft supersedes that behavior for compose-stack project `env:` rendering.
 - Spec `015` currently treats `.env.example` drift as generally meaningful for compose projects; after this change it is meaningful only when env-file emission is part of shared intent.
+- Current implementation and regression tests still enforce the removed fail-fast path for compose-targeted project `env:` when `composeEnvFiles` is false.
 
 ## Acceptance Criteria
 
 - [x] Given a compose project with tool-owned overlay/service port bindings and `portOffset: 100`, when default generation runs, then generated `docker-compose.yml` contains final numeric host-port bindings using the effective offset and does not emit `${...}` host-port expressions for those tool-owned bindings.
 - [x] Given default compose generation with overlays that currently contribute `.env.example` content, when `init` or `regen` runs without the opt-in flag, then `.devcontainer/.env` and `.devcontainer/.env.example` are not written and user-facing output does not instruct the user to copy them.
-- [x] Given the explicit env-file opt-in flag, when `init` or `regen` runs for a compose project, then `.devcontainer/.env` and `.devcontainer/.env.example` are generated in a way that remains compatible with current overlay/template workflows.
+- [x] Given a compose project with `env: {API_KEY: abc123}` targeted to compose, when default generation runs with `composeEnvFiles` omitted or false, then generation succeeds and generated `docker-compose.yml` contains `API_KEY: abc123` without requiring `.devcontainer/.env`.
+- [x] Given a compose project with `env: {NAME: ${NAME:-default}}` targeted to compose, when a repository root `.env` contains `NAME=prod`, then generated `docker-compose.yml` contains `NAME: prod`; and when the root `.env` does not define `NAME`, then generated `docker-compose.yml` contains `NAME: default`.
+- [x] Given a compose project with `env: {NAME: ${NAME}}` targeted to compose and no repository root `.env` entry for `NAME`, when generation runs, then generated `docker-compose.yml` preserves `${NAME}` for Docker Compose shell/runtime fallback instead of failing.
+- [x] Given the explicit env-file opt-in flag, when `init` or `regen` runs for a compose project, then `.devcontainer/.env` and `.devcontainer/.env.example` are generated only as optional artifacts and compose project `env:` support still works without depending on them.
 - [x] Given a compose project that declares first-class project `ports`, when this feature ships, then spec `024` verbatim user-authored compose port behavior remains unchanged unless a follow-up approved spec explicitly broadens scope.
 - [x] Given a project generated in default-off mode, when `doctor` or planning surfaces run, then they do not report missing `.devcontainer/.env` or `.devcontainer/.env.example` as problems solely because those files were intentionally omitted by default.
-- [x] All new or changed behavior is covered by automated tests at the appropriate level.
-- [x] Documentation and workflow artifacts are updated to match the implemented or reviewed state.
+- [x] Automated tests cover the updated compose env success path, value-resolution cases, unresolved-variable preservation, opt-in env-file emission, and deterministic compose port rendering.
+- [x] Documentation and schema/help text are updated so they no longer contradict the shipped compose env and env-artifact behavior.
 
 ## Out of Scope
 
 - Reworking overlay docs or schema to remove `.env.example` from overlay source assets.
-- Any persistence surface beyond the new shared `composeEnvFiles` field.
-- Any broader reconsideration of secrets policy beyond what this default change forces.
+- Any persistence surface beyond the shared `composeEnvFiles` field.
+- Any broader reconsideration of secrets policy beyond what this rendering change forces.
 
 ## Assumptions
 
 - The feature request targets tool-owned compose defaults first, especially offset-derived service port bindings.
 - Overlay `.env.example` content remains catalog-owned source material even when merged env-file emission is disabled by default.
-- Existing compose projects that need generated env artifacts can accept a one-time shared project-file migration to persist `composeEnvFiles: true`.
+- Compose-targeted project `env:` is allowed to render into generated compose YAML as part of the intended product contract for this spec.
 
 ## Test Plan
 
@@ -254,10 +272,15 @@ Decision:
     - tool-owned compose bindings with and without `portOffset` write final numeric host ports
     - project `ports` on `stack: compose` remain verbatim
     - host-port conflict auto-resolution still updates the final written numeric port and dependent summaries
+- **Compose env rendering tests**
+    - default compose generation succeeds for compose-targeted project `env:` when `composeEnvFiles` is omitted or false
+    - literal values embed directly in generated `docker-compose.yml`
+    - `${NAME:-default}` resolves from root `.env` first, else uses the inline default
+    - unresolved `${NAME}` is preserved in generated compose output rather than failing
 - **Env artifact mode tests**
     - default compose generation omits `.env` and `.env.example`
-    - `composeEnvFiles: true` plus `--compose-env-files` regenerate both files compatibly with current overlay/template flows
-    - compose projects with `env.target=composeEnv` fail in default-off mode with actionable guidance
+    - `composeEnvFiles: true` plus `--compose-env-files` regenerate both files when requested
+    - optional env-file emission does not become a prerequisite for compose project `env:` support
 - **CLI/project-file tests**
     - `init --compose-env-files` writes `composeEnvFiles: true`
     - `regen --compose-env-files` updates persisted shared intent before replay
@@ -269,6 +292,7 @@ Decision:
     - reproducibility checks compare against the correct expected artifact set in both modes
 - **Docs/help tests**
     - summary/help/README guidance mentions `.env.example` copy steps only when env files are enabled
+    - stale docs/schema/help text no longer imply `.env.example` is always generated or that compose env fails without env files
 
 ## Definition of Done
 
@@ -304,9 +328,9 @@ Decision:
 
 ### Workflow artifacts
 
-- [x] Acceptance criteria checked off (met only — unmet left unchecked with explanation)
-- [x] `## Implementation Notes` written
-- [x] Spec status and index synchronized
+- [ ] Acceptance criteria checked off (met only — unmet left unchecked with explanation)
+- [ ] `## Implementation Notes` written
+- [ ] Spec status and index synchronized
 - [ ] QA feedback rows marked `Done` where applicable
 
 ### Architecture
@@ -325,26 +349,13 @@ Decision:
 
 **PM → Developer**
 
-Product scope, UX impact, and technical path are sufficiently resolved for implementation. No additional UX or ADR work is required before development; implementation should preserve the project-file-first contract, keep user-authored `ports` verbatim, and treat `.devcontainer/.env` plus `.devcontainer/.env.example` as opt-in artifacts only.
+Product scope and behavior are now explicit enough for implementation. No new UX or ADR work is required before development, but implementation must update related docs/spec text so compose env support, env-artifact opt-in, and deterministic compose port rendering all describe the same contract.
 
 ## Implementation Notes
 
-Implemented with the smallest safe change set across CLI parsing, project-config/schema plumbing, compose generation, doctor/plan/help surfaces, and user-visible docs.
-
-- Added shared `composeEnvFiles` intent, persisted via `--compose-env-files` and `composeEnvFiles: true`.
-- Hard-rendered final numeric host ports for tool-owned compose port bindings before write while preserving user-authored project `ports` verbatim.
-- Default compose generation now omits `.devcontainer/.env` and `.devcontainer/.env.example`; compose-targeted project `env` now fails fast unless env-file intent is enabled.
-- Updated plan, doctor, summaries, target help, README/docs, and schema output to reflect that `.devcontainer/.env` and `.devcontainer/.env.example` are opt-in artifacts only.
-- Added and updated automated coverage for compose env opt-in mode, deterministic compose port rendering, CLI/project-config persistence, README/summary behavior, doctor drift behavior, and local/global workflow regressions.
-
-Validation run:
-
-- `npm run schema:generate`
-- `npm run lint:fix`
-- `npm run lint`
-- `npm test -- --run tool/__tests__/project-env.test.ts tool/__tests__/project-ports.test.ts tool/__tests__/readme-generation.test.ts tool/__tests__/composition.test.ts tool/__tests__/overlay-imports.test.ts tool/__tests__/custom-patches.test.ts tool/__tests__/commands.test.ts tool/__tests__/summary.test.ts`
-- `npm test -- --run tool/__tests__/global-defaults.test.ts tool/__tests__/local-config.test.ts`
-- `npm test`
-- `npm run build`
-- `npm run init -- regen`
-- `npm run init -- doctor`
+- Removed the default-off compose-env failure path from `tool/questionnaire/composer.ts`.
+- Compose-targeted project `env:` now renders directly into generated `docker-compose.yml` using root `.env` resolution for `${NAME}` / `${NAME:-default}` and preserving unresolved `${NAME}`.
+- Kept `.devcontainer/.env` and `.devcontainer/.env.example` behind `composeEnvFiles: true`; default generation still omits them.
+- Updated compose env regression tests to cover default-off success, default resolution, unresolved preservation, and opt-in env artifact behavior.
+- Aligned `docs/superposition-yml.md`, `docs/filesystem-contract.md`, and related specs `010` / `015` with the default-off env-artifact contract.
+- Validation run: targeted `vitest` for project env, composition, summary, readme generation, and doctor command coverage; final `task validate` passed.

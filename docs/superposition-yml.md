@@ -294,9 +294,12 @@ Two syntaxes are supported in `env:` values. They are resolved at different time
   written verbatim into the generated output (`devcontainer.json`, `docker-compose.yml`,
   `.devcontainer/.env`). **Never use `{{cs.KEY}}` for secrets.**
 - **`${VAR:-default}`** is a Docker Compose expression. For `stack: plain` it is resolved at
-  generation time using the root `.env`, then the inline default. For `stack: compose` it is
-  passed through verbatim to `docker-compose.yml`; Docker Compose resolves it at container
-  start using `.devcontainer/.env` when `composeEnvFiles: true`.
+  generation time using the root `.env`, then the inline default. For `stack: compose` the tool
+  resolves it from the root `.env` when present and otherwise embeds the inline default directly
+  into `docker-compose.yml`.
+- **`${VAR}`** without a default resolves from the root `.env` when present. On `stack: compose`,
+  unresolved values are preserved as `${VAR}` in `docker-compose.yml` so Docker Compose shell/runtime
+  fallback still works.
 
 Decision tree:
 
@@ -341,9 +344,9 @@ env:
 The password reference `${POSTGRES_PASSWORD:-changeme}` bypasses the parameter token — it
 stays unresolved by the tool and is handled by Docker Compose at runtime.
 
-> Compose stacks that use `env.target: composeEnv` (or `target: auto` on compose) require
-> `composeEnvFiles: true`. By default, `.devcontainer/.env` and `.devcontainer/.env.example`
-> are opt-in artifacts only.
+> By default, compose-targeted `env:` entries render directly into `docker-compose.yml`.
+> `composeEnvFiles: true` only enables optional `.devcontainer/.env` and
+> `.devcontainer/.env.example` artifact generation.
 
 ---
 
@@ -614,17 +617,16 @@ port already applied. user-authored project `ports` remain verbatim and are not 
 composeEnvFiles: true
 ```
 
-Compose stacks only. Enables generation of `.devcontainer/.env` and `.devcontainer/.env.example`.
-By default these files are omitted.
+Compose stacks only. Enables generation of optional `.devcontainer/.env` and
+`.devcontainer/.env.example` artifacts. By default these files are omitted.
 
-Use this when your compose setup depends on generated compose env files, including:
+Use this when your team wants generated compose env companion files, for example to keep a
+local `.devcontainer/.env` beside the generated compose stack or to distribute a
+`.devcontainer/.env.example` template.
 
-- `env.target: composeEnv`
-- `env.target: auto` on `stack: compose`
-- teams that want template-style `.devcontainer/.env.example` output
-
-When omitted, the default is `false` and `.devcontainer/.env` plus `.devcontainer/.env.example`
-are opt-in artifacts only.
+When omitted, the default is `false`. Compose-targeted `env:` still works: values are rendered
+straight into `docker-compose.yml`, while unresolved `${NAME}` references are preserved there for
+Docker Compose fallback.
 
 ---
 

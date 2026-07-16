@@ -122,7 +122,7 @@ describe('Project Env', () => {
         expect(devcontainer.remoteEnv?.APP_NAME).toBe('plain-demo');
     });
 
-    it('routes auto project env to docker-compose via .devcontainer/.env and containerEnv references', async () => {
+    it('renders compose project env directly into docker-compose.yml by default and keeps containerEnv remoteEnv refs', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
         fs.writeFileSync(path.join(repoDir, '.env'), 'API_TOKEN=from-root\n');
 
@@ -137,7 +137,6 @@ describe('Project Env', () => {
             devTools: [],
             observability: [],
             outputPath,
-            composeEnvFiles: true,
             projectEnv: {
                 API_TOKEN: { value: '${API_TOKEN}' },
                 APP_NAME: { value: 'compose-demo' },
@@ -159,14 +158,11 @@ describe('Project Env', () => {
             fs.readFileSync(path.join(outputPath, 'devcontainer.json'), 'utf8')
         ) as { remoteEnv?: Record<string, string> };
 
-        expect(compose.services.devcontainer?.environment?.API_TOKEN).toBe('${API_TOKEN}');
-        expect(compose.services.devcontainer?.environment?.APP_NAME).toBe('${APP_NAME}');
+        expect(compose.services.devcontainer?.environment?.API_TOKEN).toBe('from-root');
+        expect(compose.services.devcontainer?.environment?.APP_NAME).toBe('compose-demo');
         expect(devcontainer.remoteEnv?.API_TOKEN).toBe('${containerEnv:API_TOKEN}');
         expect(devcontainer.remoteEnv?.APP_NAME).toBe('${containerEnv:APP_NAME}');
-
-        const composeEnvFile = fs.readFileSync(path.join(outputPath, '.env'), 'utf8');
-        expect(composeEnvFile).toContain('API_TOKEN=from-root');
-        expect(composeEnvFile).toContain('APP_NAME=compose-demo');
+        expect(fs.existsSync(path.join(outputPath, '.env'))).toBe(false);
     });
 
     it('omits unresolved ${NAME} project env entries from materialized compose .env when root .env is missing', async () => {
@@ -197,7 +193,57 @@ describe('Project Env', () => {
         expect(composeEnvFile).toContain('APP_NAME=compose-demo');
     });
 
-    it('requires composeEnvFiles for compose project env generation', async () => {
+    it('resolves ${NAME:-default} in compose project env from root .env first, else default', async () => {
+        const outputPath = path.join(repoDir, '.devcontainer');
+        fs.writeFileSync(path.join(repoDir, '.env'), 'NAME=prod\n');
+
+        const withRootEnv: QuestionnaireAnswers = {
+            stack: 'compose',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            projectEnv: {
+                NAME: { value: '${NAME:-default}' },
+            },
+        };
+
+        await composeDevContainer(withRootEnv);
+
+        let compose = yaml.load(
+            fs.readFileSync(path.join(outputPath, 'docker-compose.yml'), 'utf8')
+        ) as {
+            services: {
+                devcontainer?: {
+                    environment?: Record<string, string>;
+                };
+            };
+        };
+        expect(compose.services.devcontainer?.environment?.NAME).toBe('prod');
+
+        fs.rmSync(outputPath, { recursive: true, force: true });
+        fs.rmSync(path.join(repoDir, '.env'), { force: true });
+
+        const withoutRootEnv = { ...withRootEnv, outputPath };
+        await composeDevContainer(withoutRootEnv);
+        compose = yaml.load(
+            fs.readFileSync(path.join(outputPath, 'docker-compose.yml'), 'utf8')
+        ) as {
+            services: {
+                devcontainer?: {
+                    environment?: Record<string, string>;
+                };
+            };
+        };
+        expect(compose.services.devcontainer?.environment?.NAME).toBe('default');
+    });
+
+    it('preserves unresolved ${NAME} in docker-compose.yml when root .env is missing', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
 
         const answers: QuestionnaireAnswers = {
@@ -216,7 +262,20 @@ describe('Project Env', () => {
             },
         };
 
-        await expect(composeDevContainer(answers)).rejects.toThrow(/--compose-env-files/);
+        await composeDevContainer(answers);
+
+        const compose = yaml.load(
+            fs.readFileSync(path.join(outputPath, 'docker-compose.yml'), 'utf8')
+        ) as {
+            services: {
+                devcontainer?: {
+                    environment?: Record<string, string>;
+                };
+            };
+        };
+
+        expect(compose.services.devcontainer?.environment?.API_TOKEN).toBe('${API_TOKEN}');
+        expect(fs.existsSync(path.join(outputPath, '.env'))).toBe(false);
     });
 
     it('rejects composeEnv targets on plain stacks', async () => {
