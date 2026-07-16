@@ -296,7 +296,7 @@ Two syntaxes are supported in `env:` values. They are resolved at different time
 - **`${VAR:-default}`** is a Docker Compose expression. For `stack: plain` it is resolved at
   generation time using the root `.env`, then the inline default. For `stack: compose` it is
   passed through verbatim to `docker-compose.yml`; Docker Compose resolves it at container
-  start using `.devcontainer/.env`.
+  start using `.devcontainer/.env` when `composeEnvFiles: true`.
 
 Decision tree:
 
@@ -340,6 +340,10 @@ env:
 
 The password reference `${POSTGRES_PASSWORD:-changeme}` bypasses the parameter token — it
 stays unresolved by the tool and is handled by Docker Compose at runtime.
+
+> Compose stacks that use `env.target: composeEnv` (or `target: auto` on compose) require
+> `composeEnvFiles: true`. By default, `.devcontainer/.env` and `.devcontainer/.env.example`
+> are opt-in artifacts only.
 
 ---
 
@@ -598,6 +602,29 @@ portOffset: 100
 
 Shifts all overlay-declared host ports by the given integer. Useful when running multiple
 instances of the same stack on one machine (e.g. feature branches in parallel).
+
+For `stack: compose`, tool-owned compose port bindings are written with the final numeric host
+port already applied. user-authored project `ports` remain verbatim and are not shifted.
+
+---
+
+### `composeEnvFiles`
+
+```yaml
+composeEnvFiles: true
+```
+
+Compose stacks only. Enables generation of `.devcontainer/.env` and `.devcontainer/.env.example`.
+By default these files are omitted.
+
+Use this when your compose setup depends on generated compose env files, including:
+
+- `env.target: composeEnv`
+- `env.target: auto` on `stack: compose`
+- teams that want template-style `.devcontainer/.env.example` output
+
+When omitted, the default is `false` and `.devcontainer/.env` plus `.devcontainer/.env.example`
+are opt-in artifacts only.
 
 ---
 

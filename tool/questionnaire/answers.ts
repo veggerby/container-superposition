@@ -22,6 +22,7 @@ export function buildAnswersFromCliArgs(
     if (config.cloudTools) answers.cloudTools = config.cloudTools;
     if (config.devTools) answers.devTools = config.devTools;
     if (config.portOffset !== undefined) answers.portOffset = config.portOffset;
+    if (config.composeEnvFiles !== undefined) answers.composeEnvFiles = config.composeEnvFiles;
     if (config.outputPath) answers.outputPath = config.outputPath;
     if (config.preset) answers.preset = config.preset;
     if (config.presetChoices) answers.presetChoices = config.presetChoices;

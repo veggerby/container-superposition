@@ -234,6 +234,7 @@ describe('Overlay Imports', () => {
                 devTools: [],
                 observability: ['otel-collector'],
                 outputPath: outputSubdir,
+                composeEnvFiles: true,
             };
 
             await composeDevContainer(answers);
@@ -440,6 +441,7 @@ describe('Overlay Imports', () => {
                 devTools: [],
                 observability: ['prometheus'],
                 outputPath: outputSubdir,
+                composeEnvFiles: true,
             };
 
             await composeDevContainer(answers);

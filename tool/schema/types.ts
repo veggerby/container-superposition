@@ -248,6 +248,7 @@ export interface QuestionnaireAnswers {
     projectShell?: ProjectShellConfig; // First-class shell profile customizations
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
     overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
+    composeEnvFiles?: boolean; // Whether .devcontainer/.env and .env.example should be generated for compose stacks
 }
 
 /**
@@ -627,6 +628,7 @@ export interface ProjectConfigSelection {
     overlays?: OverlayId[];
     outputPath?: string;
     portOffset?: number;
+    composeEnvFiles?: boolean;
     target?: DeploymentTarget;
     minimal?: boolean;
     editor?: EditorProfile;

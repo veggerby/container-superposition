@@ -767,7 +767,7 @@ describe('Command Tests', () => {
             try {
                 fs.writeFileSync(
                     path.join(tmpDir, '.superposition.yml'),
-                    yaml.dump({ stack: 'compose', overlays: ['postgres'] })
+                    yaml.dump({ stack: 'compose', composeEnvFiles: true, overlays: ['postgres'] })
                 );
                 // .env.example that does NOT contain POSTGRES_PASSWORD
                 fs.writeFileSync(path.join(tmpDir, '.env.example'), '# empty\n');
@@ -866,7 +866,7 @@ describe('Command Tests', () => {
             try {
                 fs.writeFileSync(
                     path.join(tmpDir, '.superposition.yml'),
-                    yaml.dump({ stack: 'compose', overlays: ['postgres'] })
+                    yaml.dump({ stack: 'compose', composeEnvFiles: true, overlays: ['postgres'] })
                 );
                 fs.writeFileSync(path.join(tmpDir, '.env.example'), '# stale\n');
                 try {

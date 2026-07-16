@@ -64,6 +64,7 @@ npx container-superposition migrate
 - Base templates: `plain` (single image) and `compose` (multi-service).
 - Overlays: add languages, databases, observability, cloud tools, dev tools.
 - Composition: merges overlays into a standard `.devcontainer/` you can edit freely.
+- Compose defaults: tool-owned compose port bindings are hard-rendered to final numeric host ports; `.devcontainer/.env` and `.devcontainer/.env.example` are opt-in artifacts only via `--compose-env-files` / `composeEnvFiles: true`.
 - Project config: `superposition.yml` (or `.superposition.yml`) is the **canonical input** for all
   generation and regeneration flows. Commit it to your repo for reproducible team and CI builds.
     - `init` always writes `superposition.yml` as its primary output
@@ -75,10 +76,12 @@ npx container-superposition migrate
 ## Core Commands
 
 - `init` — run the interactive questionnaire; always writes `superposition.yml` and (by default) scaffolds `.devcontainer/`
+    - Add `--compose-env-files` to persist `composeEnvFiles: true` and generate `.devcontainer/.env` plus `.devcontainer/.env.example`
     - Add `--no-scaffold` to write only the project file without generating `.devcontainer/`
     - Add `--ignore-global-defaults` to bypass `~/.container-superposition.yml` and `~/.superposition.yml` for one run
     - Add `--project-root <path>` to resolve persisted input from a different repository root
 - `regen` — deterministically replay the repository project file (`superposition.yml` required)
+    - Add `--compose-env-files` to update shared intent to `composeEnvFiles: true` before regeneration
     - Add `--project-root <path>` to resolve persisted input from a different repository root
 - `migrate` — one-time migration: creates `superposition.yml` from an existing `superposition.json`
     - Required for repos that ran `init` before this project-file-first model was introduced

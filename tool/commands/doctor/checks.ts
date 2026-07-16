@@ -40,6 +40,10 @@ import {
 import { extractPorts } from '../../utils/port-utils.js';
 import type { CheckResult, DoctorReport } from './types.js';
 
+function composeEnvFilesEnabled(selection: ProjectConfigSelection): boolean {
+    return selection.stack !== 'compose' || selection.composeEnvFiles === true;
+}
+
 function isVersionAtLeast(current: string, required: string): boolean {
     const parse = (version: string): [number, number, number] => {
         const parts = version.split('.');
@@ -949,7 +953,9 @@ export function checkParameters(
     const filesToScan: Array<[string, string]> = [
         ['devcontainer.json', path.join(outputPath, 'devcontainer.json')],
         ['docker-compose.yml', path.join(outputPath, 'docker-compose.yml')],
-        ['.env.example', path.join(outputPath, '.env.example')],
+        ...(composeEnvFilesEnabled(projectConfig.selection)
+            ? ([['.env.example', path.join(outputPath, '.env.example')]] as Array<[string, string]>)
+            : []),
     ];
 
     const unresolvedByFile: string[] = [];
@@ -1015,7 +1021,11 @@ export function checkParameters(
         }
     })();
 
-    if (manifest?.baseTemplate === 'compose' && declaredCount > 0) {
+    if (
+        manifest?.baseTemplate === 'compose' &&
+        declaredCount > 0 &&
+        composeEnvFilesEnabled(projectConfig.selection)
+    ) {
         const envExamplePath = path.join(outputPath, '.env.example');
         if (!fs.existsSync(envExamplePath)) {
             results.push({
@@ -1358,6 +1368,17 @@ export function checkEnvExampleDrift(
         return [];
     }
     if (!projectConfig) return [];
+
+    if (!composeEnvFilesEnabled(projectConfig.selection)) {
+        return [
+            {
+                name: '.env.example drift',
+                status: 'pass',
+                message: 'composeEnvFiles disabled — skipping .env.example drift check',
+                fixEligibility: 'not-applicable',
+            },
+        ];
+    }
 
     const envExamplePath = path.join(outputPath, '.env.example');
     if (!fs.existsSync(envExamplePath)) {

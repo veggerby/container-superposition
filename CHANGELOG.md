@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Deterministic compose port rendering and optional env files** — tool-owned compose port bindings are now written with final numeric host ports instead of `${...}` host-port expressions, user-authored project `ports` remain verbatim, and `.devcontainer/.env` plus `.devcontainer/.env.example` are opt-in artifacts only via `--compose-env-files` or `composeEnvFiles: true`. `plan`, `doctor`, generated summaries, and related help now follow the same persisted intent.
+
 - **Project-specific compose network names** — compose-based generated projects now default `docker-compose.yml -> networks.devnet.name` from the repository folder name instead of one host-global `devnet`, support explicit `composeNetworkName` overrides in shared `superposition.yml`, preserve the logical `devnet` key inside overlays, and reject compose-network configuration on plain stacks
 
 - **Four project-local contributor Pi skills** — the repo now includes `/skill:cli-command-delivery`, `/skill:canonical-docs-alignment`, `/skill:workflow-sync`, and `/skill:dogfooding-safety` so contributors and agents can discover required workflows, validation commands, prohibited shortcuts, and escalation rules for CLI command work, documentation alignment, spec/index/changelog/Pi synchronization, and generated-artifact safety directly from Pi, without reconstructing guidance from scattered authority docs.

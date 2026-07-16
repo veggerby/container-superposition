@@ -1069,6 +1069,7 @@ export function loadProjectConfig(
         'playwright',
         'outputPath',
         'portOffset',
+        'composeEnvFiles',
         'target',
         'minimal',
         'editor',
@@ -1110,6 +1111,7 @@ export function loadProjectConfig(
         overlays,
         outputPath: expectOptionalString(document.outputPath, 'outputPath'),
         portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
+        composeEnvFiles: expectOptionalBoolean(document.composeEnvFiles, 'composeEnvFiles'),
         target: expectOptionalEnum(document.target, 'target', TARGET_VALUES),
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
@@ -1305,6 +1307,7 @@ export function buildAnswersFromProjectConfig(
         ...distributeOverlaysToAnswers(selection.overlays, overlaysConfig),
         outputPath: selection.outputPath,
         portOffset: selection.portOffset,
+        composeEnvFiles: selection.composeEnvFiles,
         target: selection.target,
         minimal: selection.minimal,
         editor: selection.editor,
@@ -1383,6 +1386,7 @@ export function buildProjectConfigSelectionFromAnswers(
         overlays: overlays.length > 0 ? [...new Set(overlays)] : undefined,
         outputPath: answers.outputPath,
         portOffset: answers.portOffset,
+        composeEnvFiles: answers.composeEnvFiles,
         target: answers.target,
         minimal: answers.minimal,
         editor: answers.editor,
@@ -1565,6 +1569,7 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.overlays?.length) document.overlays = selection.overlays;
     if (selection.outputPath) document.outputPath = selection.outputPath;
     if (selection.portOffset !== undefined) document.portOffset = selection.portOffset;
+    if (selection.composeEnvFiles === true) document.composeEnvFiles = true;
     if (selection.target) document.target = selection.target;
     if (selection.minimal !== undefined) document.minimal = selection.minimal;
     if (selection.editor) document.editor = selection.editor;

@@ -269,6 +269,7 @@ DATABASE_URL="postgresql://localhost:5432/mydb"
             devTools: [],
             observability: [],
             outputPath,
+            composeEnvFiles: true,
         };
 
         await composeDevContainer(answers);

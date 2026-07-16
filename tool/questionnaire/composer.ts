@@ -35,7 +35,6 @@ import {
     mergeRemoteEnv,
     mergePackages,
     filterDependsOn,
-    applyPortOffset,
     applyPortOffsetToEnv,
 } from '../utils/merge.js';
 import { generatePortsDocumentation } from '../utils/port-utils.js';
@@ -2051,6 +2050,66 @@ function applyGlueConfig(
  * Parse the effective host port from any docker-compose port binding format:
  *   "8081:8081", "127.0.0.1:8081:8081", "${VAR:-8081}:8081", 8081, {published:8081}
  */
+function renderDeterministicToolOwnedBinding(
+    binding: string | number | Record<string, unknown>,
+    portOffset: number
+): string | number | Record<string, unknown> {
+    if (typeof binding === 'object' && binding !== null) {
+        const published = (binding as any).published;
+        if (typeof published === 'string') {
+            const envMatch = published.match(/^\$\{[^}]+:-(\d+)\}$/);
+            if (envMatch) {
+                return {
+                    ...(binding as object),
+                    published: parseInt(envMatch[1], 10) + portOffset,
+                };
+            }
+        }
+        return binding;
+    }
+
+    if (typeof binding !== 'string') {
+        return binding;
+    }
+
+    const ipHostContainerMatch = binding.match(/^([^:]+:)\$\{[^}]+:-(\d+)\}(:.+)$/);
+    if (ipHostContainerMatch) {
+        const [, prefix, defaultPort, suffix] = ipHostContainerMatch;
+        return `${prefix}${parseInt(defaultPort, 10) + portOffset}${suffix}`;
+    }
+
+    const hostContainerMatch = binding.match(/^\$\{[^}]+:-(\d+)\}(:.+)$/);
+    if (hostContainerMatch) {
+        const [, defaultPort, suffix] = hostContainerMatch;
+        return `${parseInt(defaultPort, 10) + portOffset}${suffix}`;
+    }
+
+    return binding;
+}
+
+function hardRenderToolOwnedComposePorts(
+    services: Record<string, any>,
+    portOffset: number,
+    preservedDevcontainerBindings: Set<string>
+): void {
+    for (const [serviceName, service] of Object.entries(services)) {
+        if (!Array.isArray(service?.ports)) {
+            continue;
+        }
+
+        service.ports = service.ports.map((binding: string | number | Record<string, unknown>) => {
+            if (
+                serviceName === 'devcontainer' &&
+                typeof binding === 'string' &&
+                preservedDevcontainerBindings.has(binding)
+            ) {
+                return binding;
+            }
+            return renderDeterministicToolOwnedBinding(binding, portOffset);
+        });
+    }
+}
+
 function parseHostPortFromBinding(
     binding: string | number | Record<string, unknown>
 ): number | null {
@@ -2207,7 +2266,8 @@ function mergeDockerComposeFiles(
     customImage?: string,
     projectEnv?: QuestionnaireAnswers['projectEnv'],
     projectMounts?: QuestionnaireAnswers['projectMounts'],
-    resolvedProjectPorts: PreparedProjectPort[] = []
+    resolvedProjectPorts: PreparedProjectPort[] = [],
+    resolvedParams: Record<string, string> = {}
 ): Array<{ service: string; originalPort: number; newPort: number }> {
     const composeFiles: string[] = [];
 
@@ -2285,7 +2345,11 @@ function mergeDockerComposeFiles(
     };
 
     for (const composePath of composeFiles) {
-        const content = fs.readFileSync(composePath, 'utf-8');
+        const rawContent = fs.readFileSync(composePath, 'utf-8');
+        const content =
+            Object.keys(resolvedParams).length > 0
+                ? substituteParameters(rawContent, resolvedParams)
+                : rawContent;
         const compose = yaml.load(content) as any;
 
         if (compose.services) {
@@ -2362,6 +2426,12 @@ function mergeDockerComposeFiles(
     }
 
     applyComposeNetworkNameToMergedCompose(merged, composeNetworkName);
+
+    hardRenderToolOwnedComposePorts(
+        merged.services,
+        portOffset ?? 0,
+        new Set(resolvedProjectPorts.map((port) => port.rawBinding ?? port.value))
+    );
 
     // Filter depends_on to only include services that exist
     const serviceNames = Object.keys(merged.services);
@@ -2736,6 +2806,19 @@ export async function generateManifestOnly(
 /**
  * Main composition logic
  */
+function requiresComposeEnvFiles(
+    projectEnv: QuestionnaireAnswers['projectEnv'] | undefined,
+    stack: QuestionnaireAnswers['stack']
+): boolean {
+    if (stack !== 'compose' || !projectEnv) {
+        return false;
+    }
+
+    return Object.values(projectEnv).some(
+        (entry) => resolveProjectEnvTarget(entry, stack) === 'composeEnv'
+    );
+}
+
 export async function composeDevContainer(
     answers: CompositionInput,
     overlaysDir?: string,
@@ -2885,9 +2968,16 @@ export async function composeDevContainer(
     }
     const fileRegistry = new FileRegistry();
     const rootEnv = loadEnvFileIfExists(path.join(projectRoot, '.env'));
+    const envArtifactsEnabled = answers.stack !== 'compose' || answers.composeEnvFiles === true;
     // Apply {{cs.KEY}} substitution to project env values (in-memory; no file modified)
     const substitutedProjectEnv = substituteProjectEnvTokens(answers.projectEnv, resolvedParams);
     validateEnvTokensResolved(substitutedProjectEnv, resolvedParams);
+    if (!envArtifactsEnabled && requiresComposeEnvFiles(substitutedProjectEnv, answers.stack)) {
+        throw new Error(
+            'Compose project env values require generated compose env files. ' +
+                'Re-run with --compose-env-files or set composeEnvFiles: true in your project file because .devcontainer/.env and .devcontainer/.env.example are opt-in artifacts only.'
+        );
+    }
     const superpositionEnv = extractSuperpositionEnvStrings(substitutedProjectEnv);
     const preparedProjectPorts = prepareProjectPorts(
         answers.stack,
@@ -3001,7 +3091,8 @@ export async function composeDevContainer(
             customImage,
             substitutedProjectEnv,
             answers.projectMounts,
-            preparedProjectPorts
+            preparedProjectPorts,
+            resolvedParams
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {
@@ -3165,61 +3256,78 @@ export async function composeDevContainer(
     fileRegistry.addFile('superposition.json');
 
     // 14. Merge .env.example files from overlays and apply glue config environment variables
-    const envCreated = mergeEnvExamples(
-        outputPath,
-        overlays,
-        actualOverlaysDir,
-        answers.portOffset,
-        answers.presetGlueConfig,
-        answers.preset
-    );
-    if (envCreated) {
-        fileRegistry.addFile('.env.example');
-    }
+    let envCreated = false;
+    if (envArtifactsEnabled) {
+        envCreated = mergeEnvExamples(
+            outputPath,
+            overlays,
+            actualOverlaysDir,
+            answers.portOffset,
+            answers.presetGlueConfig,
+            answers.preset
+        );
+        if (envCreated) {
+            fileRegistry.addFile('.env.example');
+        }
 
-    // Apply parameter substitution to .env.example
-    // This must happen after mergeEnvExamples but before any consumer of .env reads it,
-    // because mergeEnvExamples may have written {{cs.*}} tokens into .env.example.
-    // We also regenerate .env (the port-offset copy) from the substituted content so that
-    // applyPortOffsetToEnv can correctly match numeric port values that were previously
-    // hidden behind {{cs.POSTGRES_PORT}} tokens.
-    if (hasResolvedParams) {
-        const envExamplePath = path.join(outputPath, '.env.example');
-        if (fs.existsSync(envExamplePath)) {
-            const original = fs.readFileSync(envExamplePath, 'utf8');
-            const substituted = substituteParameters(original, resolvedParams);
-            if (substituted !== original) {
-                fs.writeFileSync(envExamplePath, substituted);
-                // Regenerate .env from the substituted content when a port offset is active.
-                // mergeEnvExamples already wrote .env from the pre-substitution content, so
-                // the port offset was applied to unresolved tokens (e.g. {{cs.POSTGRES_PORT}})
-                // that had no numeric value to match — we must regenerate .env now that the
-                // tokens have been replaced with real numeric port values.
-                if (answers.portOffset) {
-                    const envPath = path.join(outputPath, '.env');
-                    const offsetContent = applyPortOffsetToEnv(substituted, answers.portOffset);
-                    fs.writeFileSync(envPath, offsetContent);
+        // Apply parameter substitution to .env.example
+        // This must happen after mergeEnvExamples but before any consumer of .env reads it,
+        // because mergeEnvExamples may have written {{cs.*}} tokens into .env.example.
+        // We also regenerate .env (the port-offset copy) from the substituted content so that
+        // applyPortOffsetToEnv can correctly match numeric port values that were previously
+        // hidden behind {{cs.POSTGRES_PORT}} tokens.
+        if (hasResolvedParams) {
+            const envExamplePath = path.join(outputPath, '.env.example');
+            if (fs.existsSync(envExamplePath)) {
+                const original = fs.readFileSync(envExamplePath, 'utf8');
+                const substituted = substituteParameters(original, resolvedParams);
+                if (substituted !== original) {
+                    fs.writeFileSync(envExamplePath, substituted);
+                    if (answers.portOffset) {
+                        const envPath = path.join(outputPath, '.env');
+                        const offsetContent = applyPortOffsetToEnv(substituted, answers.portOffset);
+                        fs.writeFileSync(envPath, offsetContent);
+                    }
                 }
             }
         }
-    }
 
-    // Apply custom environment variables (after .env.example is created)
-    if (customPatches) {
-        const customEnvCreated = applyCustomEnvironment(outputPath, customPatches);
-        // Add .env.example to registry if it was created by custom patches but not by overlays
-        if (customEnvCreated && !envCreated) {
-            fileRegistry.addFile('.env.example');
+        // Apply custom environment variables (after .env.example is created)
+        if (customPatches) {
+            const customEnvCreated = applyCustomEnvironment(outputPath, customPatches);
+            if (customEnvCreated && !envCreated) {
+                fileRegistry.addFile('.env.example');
+            }
+        }
+        if (answers.customizations) {
+            const customEnvCreated = applyCustomEnvironment(outputPath, answers.customizations);
+            if (customEnvCreated && !envCreated) {
+                fileRegistry.addFile('.env.example');
+            }
+        }
+
+        if (answers.stack === 'compose' && answers.composeEnvFiles === true && envCreated) {
+            const envExamplePath = path.join(outputPath, '.env.example');
+            const envPath = path.join(outputPath, '.env');
+            if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
+                fs.writeFileSync(envPath, fs.readFileSync(envExamplePath, 'utf8'));
+            }
+            if (fs.existsSync(envPath)) {
+                fileRegistry.addFile('.env');
+            }
+        }
+
+        if (
+            materializeComposeProjectEnvFile(
+                outputPath,
+                substitutedProjectEnv,
+                answers.stack,
+                rootEnv
+            )
+        ) {
+            fileRegistry.addFile('.env');
         }
     }
-    if (answers.customizations) {
-        const customEnvCreated = applyCustomEnvironment(outputPath, answers.customizations);
-        if (customEnvCreated && !envCreated) {
-            fileRegistry.addFile('.env.example');
-        }
-    }
-
-    materializeComposeProjectEnvFile(outputPath, substitutedProjectEnv, answers.stack, rootEnv);
 
     // 14b. Merge .gitignore files from overlays into project root .gitignore
     // Note: .gitignore lives at the project root (parent of outputPath), not inside outputPath,
@@ -3407,7 +3515,7 @@ export async function composeDevContainer(
 
     const warnings = detectWarnings(selectedOverlayMetadata, answers);
     const tips = generateTips(selectedOverlayMetadata, answers);
-    const nextSteps = generateNextSteps(false, options.isRegen === true);
+    const nextSteps = generateNextSteps(false, options.isRegen === true, envArtifactsEnabled);
 
     return {
         files,

@@ -36,6 +36,7 @@ describe('Project Env', () => {
             path.join(repoDir, 'superposition.yml'),
             yaml.dump({
                 stack: 'compose',
+                composeEnvFiles: true,
                 overlays: ['nodejs'],
                 env: {
                     APP_NAME: 'demo-app',
@@ -48,6 +49,7 @@ describe('Project Env', () => {
         );
 
         const loaded = loadProjectConfig(overlaysConfig, repoDir);
+        expect(loaded?.selection.composeEnvFiles).toBe(true);
         expect(loaded?.selection.env).toEqual({
             APP_NAME: { value: 'demo-app' },
             API_BASE_URL: {
@@ -57,6 +59,7 @@ describe('Project Env', () => {
         });
 
         const answers = buildAnswersFromProjectConfig(loaded!.selection, overlaysConfig);
+        expect(answers.composeEnvFiles).toBe(true);
         expect(answers.projectEnv).toEqual(loaded?.selection.env);
     });
 
@@ -134,6 +137,7 @@ describe('Project Env', () => {
             devTools: [],
             observability: [],
             outputPath,
+            composeEnvFiles: true,
             projectEnv: {
                 API_TOKEN: { value: '${API_TOKEN}' },
                 APP_NAME: { value: 'compose-demo' },
@@ -179,6 +183,7 @@ describe('Project Env', () => {
             devTools: [],
             observability: [],
             outputPath,
+            composeEnvFiles: true,
             projectEnv: {
                 API_TOKEN: { value: '${API_TOKEN}' },
                 APP_NAME: { value: 'compose-demo' },
@@ -190,6 +195,28 @@ describe('Project Env', () => {
         const composeEnvFile = fs.readFileSync(path.join(outputPath, '.env'), 'utf8');
         expect(composeEnvFile).not.toContain('API_TOKEN=');
         expect(composeEnvFile).toContain('APP_NAME=compose-demo');
+    });
+
+    it('requires composeEnvFiles for compose project env generation', async () => {
+        const outputPath = path.join(repoDir, '.devcontainer');
+
+        const answers: QuestionnaireAnswers = {
+            stack: 'compose',
+            baseImage: 'bookworm',
+            language: ['nodejs'],
+            needsDocker: false,
+            database: [],
+            playwright: false,
+            cloudTools: [],
+            devTools: [],
+            observability: [],
+            outputPath,
+            projectEnv: {
+                API_TOKEN: { value: '${API_TOKEN}' },
+            },
+        };
+
+        await expect(composeDevContainer(answers)).rejects.toThrow(/--compose-env-files/);
     });
 
     it('rejects composeEnv targets on plain stacks', async () => {

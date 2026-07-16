@@ -206,14 +206,14 @@ describe('Golden Tests - Composition', () => {
         fs.rmSync(outputPath, { recursive: true });
     });
 
-    it('should merge environment variables from overlays', async () => {
+    it('omits compose env artifacts by default and restores them when composeEnvFiles is enabled', async () => {
         const outputPath = path.join(TEST_OUTPUT_DIR, 'test-env-merge');
 
         if (fs.existsSync(outputPath)) {
             fs.rmSync(outputPath, { recursive: true });
         }
 
-        const answers: QuestionnaireAnswers = {
+        const baseAnswers: QuestionnaireAnswers = {
             stack: 'compose',
             baseImage: 'bookworm',
             language: [],
@@ -226,16 +226,21 @@ describe('Golden Tests - Composition', () => {
             outputPath,
         };
 
-        await composeDevContainer(answers);
+        await composeDevContainer(baseAnswers);
+        expect(fs.existsSync(path.join(outputPath, '.env.example'))).toBe(false);
+        expect(fs.existsSync(path.join(outputPath, '.env'))).toBe(false);
 
-        // Verify .env.example was created
+        fs.rmSync(outputPath, { recursive: true, force: true });
+
+        await composeDevContainer({ ...baseAnswers, composeEnvFiles: true });
+
         const envExamplePath = path.join(outputPath, '.env.example');
         expect(fs.existsSync(envExamplePath)).toBe(true);
+        expect(fs.existsSync(path.join(outputPath, '.env'))).toBe(true);
 
         const envContent = fs.readFileSync(envExamplePath, 'utf-8');
         expect(envContent).toContain('POSTGRES');
 
-        // Clean up
         fs.rmSync(outputPath, { recursive: true });
     });
 

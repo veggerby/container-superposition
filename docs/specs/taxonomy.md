@@ -87,7 +87,9 @@ _No specs yet._
 
 ### COMPOSER-FIX
 
-_No specs yet._
+| Spec                                                                                                                                       | Title                                                               | Status      |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ----------- |
+| [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Implemented |
 
 ---
 
@@ -119,10 +121,11 @@ _No specs yet._
 
 ### CLI-FLAG
 
-| Spec                                                               | Title                         | Status |
-| ------------------------------------------------------------------ | ----------------------------- | ------ |
-| [007-target-aware-generation](007-target-aware-generation/spec.md) | Target-Aware Generation       | Final  |
-| [017-doctor-dry-run](017-doctor-dry-run/spec.md)                   | Doctor `--fix --dry-run` Flag | Draft  |
+| Spec                                                                                                                                       | Title                                                               | Status      |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ----------- |
+| [007-target-aware-generation](007-target-aware-generation/spec.md)                                                                         | Target-Aware Generation                                             | Final       |
+| [017-doctor-dry-run](017-doctor-dry-run/spec.md)                                                                                           | Doctor `--fix --dry-run` Flag                                       | Draft       |
+| [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Implemented |
 
 ### CLI-UX
 

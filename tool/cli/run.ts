@@ -827,6 +827,15 @@ export async function main(): Promise<void> {
             }
         }
 
+        if (
+            cliArgs?.commandName === 'regen' &&
+            cliArgs.config.composeEnvFiles === true &&
+            projectConfig?.file.path
+        ) {
+            projectFileOutputPath = projectConfig.file.path;
+            existingProjectFileDetected = true;
+        }
+
         let manifest: SuperpositionManifest | undefined;
         let manifestDir: string | undefined;
         let backupDir: string | undefined;

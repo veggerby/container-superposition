@@ -99,6 +99,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             'Add offset to all exposed ports (e.g., 100 makes Grafana 3100 instead of 3000)'
         )
         .option(
+            '--compose-env-files',
+            'Persist composeEnvFiles: true and generate .devcontainer/.env plus .devcontainer/.env.example'
+        )
+        .option(
             '--target <environment>',
             'Deployment target: local (default), codespaces (adds hostRequirements + CODESPACES.md), gitpod (adds .gitpod.yml + GITPOD.md), devpod (adds devpod.yaml + DEVPOD.md)',
             'local'
@@ -155,6 +159,10 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option(
             '--compose-network-name <name>',
             'Actual Docker network name for compose stacks (defaults to a repo-derived name)'
+        )
+        .option(
+            '--compose-env-files',
+            'Persist composeEnvFiles: true and generate .devcontainer/.env plus .devcontainer/.env.example'
         )
         .option('-o, --output <path>', 'Output path (default: ./.devcontainer)')
         .option(
@@ -374,6 +382,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         'devTools',
         'portOffset',
         'composeNetworkName',
+        'composeEnvFiles',
         'preset',
     ];
     const hasPresetParams =
@@ -434,6 +443,9 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     }
     if (initOptions.composeNetworkName) {
         config.composeNetworkName = initOptions.composeNetworkName;
+    }
+    if (initOptions.composeEnvFiles) {
+        config.composeEnvFiles = true;
     }
     if (initOptions.target && initOptions._targetSource !== 'default') {
         config.target = initOptions.target as DeploymentTarget;

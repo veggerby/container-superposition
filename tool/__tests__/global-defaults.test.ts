@@ -477,7 +477,15 @@ describe('Global init defaults', () => {
         );
 
         const result = runCli(
-            ['init', '--stack', 'compose', '--language', 'nodejs'],
+            [
+                'init',
+                '--stack',
+                'compose',
+                '--language',
+                'nodejs',
+                '--compose-env-files',
+                '--no-interactive',
+            ],
             repoDir,
             homeDir
         );
