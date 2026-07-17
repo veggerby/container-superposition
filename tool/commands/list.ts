@@ -27,10 +27,6 @@ const CATEGORY_TITLES: Record<string, string> = {
     preset: 'preset',
 };
 
-function summarizeCurrentSetup(): string {
-    return findProjectConfig(process.cwd()).length > 0 ? 'shared project file present' : 'none yet';
-}
-
 function buildRecommendedStarts(overlaysConfig: OverlaysConfig): RecommendedStart[] {
     const presetIds = new Set(
         overlaysConfig.overlays
@@ -162,6 +158,10 @@ export async function listCommand(overlaysConfig: OverlaysConfig, options: ListO
         const overlays = filterOverlays(overlaysConfig, options);
         const source = describeSource({ hasCliSelection: true });
         const nextStep = renderNextStep(resolveNextStep({ command: 'list' }));
+        const currentSetup =
+            findProjectConfig(process.cwd()).length > 0
+                ? 'shared project file present'
+                : 'none yet';
         const model = {
             source,
             filters: {
@@ -185,7 +185,7 @@ export async function listCommand(overlaysConfig: OverlaysConfig, options: ListO
         const frame = renderFrame([
             { label: 'Mode', value: 'Discovery' },
             { label: 'Source', value: `${source.label} — ${source.detail}` },
-            { label: 'Current setup', value: summarizeCurrentSetup() },
+            { label: 'Current setup', value: currentSetup },
             {
                 label: 'What this helps you decide',
                 value: 'where to start before inspection or preview',
