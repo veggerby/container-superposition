@@ -19,10 +19,10 @@ This repository uses Container Superposition to generate its own development env
 2. Click "Reopen in Container" when prompted
 3. Everything is pre-configured: Node.js, TypeScript, Docker, Git tools
 
-The devcontainer configuration is in `.devcontainer/` and was generated using:
+The devcontainer configuration is in `.devcontainer/` and is regenerated from the repository-root `superposition.yml`:
 
 ```bash
-npm run init -- --stack plain --language nodejs --dev-tools codex,docker-sock,git-helpers,modern-cli-tools
+npm run init -- regen
 ```
 
 **Without Devcontainer:**
@@ -373,22 +373,16 @@ Edit `tool/schema/types.ts`:
 export type Stack = 'plain' | 'compose' | 'my-stack';
 ```
 
-### 6. Register in Overlays Index
+### 6. Update Stack Types and Selection Surfaces
 
-Add to `overlays/index.yml` under `base_templates`:
-
-```yaml
-base_templates:
-    - id: my-stack
-      name: My Stack
-      description: Description of the stack
-```
+Current stack support is defined in code, not `overlays/index.yml`.
+If you introduce a new stack, update the stack union in `tool/schema/types.ts` and the related CLI/questionnaire surfaces together.
 
 ### 7. Test
 
 ```bash
 npm run build
-npm run init -- --stack my-stack
+npm run init
 ```
 
 ## Testing Your Changes
@@ -431,7 +425,7 @@ npm run init
 ### Test Non-Interactive Mode
 
 ```bash
-npm run init -- --stack my-stack --postgres
+npm run init -- --stack compose --language nodejs --database postgres --no-interactive
 ```
 
 ### Verify Output
