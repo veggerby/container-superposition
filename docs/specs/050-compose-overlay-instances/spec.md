@@ -739,12 +739,12 @@ Verify both the new capability and the preserved boundaries:
 
 ### Must-fix
 
-| Status | Issue | Route |
-|---|---|---|
-| Open | AC “plan/doctor/migrate/generated documentation or summaries stay instance-aware” is not met for `plan --from-manifest`. The manifest now preserves `overlaySelections`, but plan still reads only flattened `manifest.overlays` in `tool/commands/plan/input.ts`, and presentation still reports `resolved overlays: nodejs, postgres` in family-only form (`tool/commands/plan/presentation.ts`). Repro: generate a project with two named `postgres` instances, then run `plan --from-manifest ./.devcontainer/superposition.json`; output collapses `postgres:app` and `postgres:analytics` into one `postgres` entry. | developer |
+| Status | Issue                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Route     |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Open   | AC “plan/doctor/migrate/generated documentation or summaries stay instance-aware” is not met for `plan --from-manifest`. The manifest now preserves `overlaySelections`, but plan still reads only flattened `manifest.overlays` in `tool/commands/plan/input.ts`, and presentation still reports `resolved overlays: nodejs, postgres` in family-only form (`tool/commands/plan/presentation.ts`). Repro: generate a project with two named `postgres` instances, then run `plan --from-manifest ./.devcontainer/superposition.json`; output collapses `postgres:app` and `postgres:analytics` into one `postgres` entry. | developer |
 
 ### Should-fix
 
-| Status | Issue | Route |
-|---|---|---|
-| Open | Add explicit automated coverage for instance-aware plan output so future manifest/plan changes cannot regress this surface again. | developer |
+| Status | Issue                                                                                                                             | Route     |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Open   | Add explicit automated coverage for instance-aware plan output so future manifest/plan changes cannot regress this surface again. | developer |
