@@ -68,11 +68,14 @@ export interface LoadedLocalProjectConfig {
 }
 
 export interface GlobalInitDefaultsSelection {
+    stack?: ProjectConfigSelection['stack'];
     baseImage?: ProjectConfigSelection['baseImage'];
+    customImage?: ProjectConfigSelection['customImage'];
     editor?: ProjectConfigSelection['editor'];
     target?: ProjectConfigSelection['target'];
     outputPath?: ProjectConfigSelection['outputPath'];
     minimal?: ProjectConfigSelection['minimal'];
+    composeEnvFiles?: ProjectConfigSelection['composeEnvFiles'];
     devcontainerGitignore?: ProjectConfigSelection['devcontainerGitignore'];
     overlays?: ProjectConfigSelection['overlays'];
 }
@@ -945,11 +948,14 @@ export function loadGlobalDefaults(
                 ? undefined
                 : expectPlainObject(document.initDefaults, 'initDefaults');
         const initDefaultsSupportedKeys = new Set([
+            'stack',
             'baseImage',
+            'customImage',
             'editor',
             'target',
             'outputPath',
             'minimal',
+            'composeEnvFiles',
             'devcontainerGitignore',
             'overlays',
         ]);
@@ -966,10 +972,19 @@ export function loadGlobalDefaults(
             $schema: expectOptionalString(document.$schema, '$schema'),
             initDefaults: initDefaultsDocument
                 ? {
+                      stack: expectOptionalEnum(
+                          initDefaultsDocument.stack,
+                          'initDefaults.stack',
+                          STACK_VALUES
+                      ),
                       baseImage: expectOptionalEnum(
                           initDefaultsDocument.baseImage,
                           'initDefaults.baseImage',
                           BASE_IMAGE_VALUES
+                      ),
+                      customImage: expectOptionalString(
+                          initDefaultsDocument.customImage,
+                          'initDefaults.customImage'
                       ),
                       editor: expectOptionalEnum(
                           initDefaultsDocument.editor,
@@ -988,6 +1003,10 @@ export function loadGlobalDefaults(
                       minimal: expectOptionalBoolean(
                           initDefaultsDocument.minimal,
                           'initDefaults.minimal'
+                      ),
+                      composeEnvFiles: expectOptionalBoolean(
+                          initDefaultsDocument.composeEnvFiles,
+                          'initDefaults.composeEnvFiles'
                       ),
                       devcontainerGitignore: expectOptionalBoolean(
                           initDefaultsDocument.devcontainerGitignore,
@@ -1257,7 +1276,12 @@ export function buildAnswersFromGlobalInitDefaults(
     const distributed = distributeOverlaysToAnswers(defaults.overlays, overlaysConfig);
     const answers: Partial<QuestionnaireAnswers> = {};
 
+    if (defaults.stack !== undefined) {
+        answers.stack = defaults.stack;
+        answers.needsDocker = defaults.stack === 'compose';
+    }
     if (defaults.baseImage !== undefined) answers.baseImage = defaults.baseImage;
+    if (defaults.customImage !== undefined) answers.customImage = defaults.customImage;
     if (distributed.language !== undefined) answers.language = distributed.language;
     if (distributed.database !== undefined) answers.database = distributed.database;
     if (distributed.observability !== undefined) answers.observability = distributed.observability;
@@ -1267,6 +1291,7 @@ export function buildAnswersFromGlobalInitDefaults(
     if (defaults.outputPath !== undefined) answers.outputPath = defaults.outputPath;
     if (defaults.target !== undefined) answers.target = defaults.target;
     if (defaults.minimal !== undefined) answers.minimal = defaults.minimal;
+    if (defaults.composeEnvFiles !== undefined) answers.composeEnvFiles = defaults.composeEnvFiles;
     if (defaults.editor !== undefined) answers.editor = defaults.editor;
     if (defaults.devcontainerGitignore !== undefined) {
         answers.devcontainerGitignore = defaults.devcontainerGitignore;
@@ -1368,6 +1393,16 @@ function buildProjectConfigCustomizationsFromAnswers(
     return hasValues ? input : undefined;
 }
 
+function normalizeProjectConfigSelectionForPersistence(
+    selection: ProjectConfigSelection
+): ProjectConfigSelection {
+    return {
+        ...selection,
+        customImage: selection.baseImage === 'custom' ? selection.customImage : undefined,
+        composeEnvFiles: selection.stack === 'compose' ? selection.composeEnvFiles : undefined,
+    };
+}
+
 export function buildProjectConfigSelectionFromAnswers(
     answers: QuestionnaireAnswers
 ): ProjectConfigSelection {
@@ -1383,7 +1418,7 @@ export function buildProjectConfigSelectionFromAnswers(
         overlays.push('playwright');
     }
 
-    return {
+    return normalizeProjectConfigSelectionForPersistence({
         stack: answers.stack,
         baseImage: answers.baseImage,
         customImage: answers.customImage,
@@ -1408,7 +1443,7 @@ export function buildProjectConfigSelectionFromAnswers(
             answers.overlayParameters && Object.keys(answers.overlayParameters).length > 0
                 ? answers.overlayParameters
                 : undefined,
-    };
+    });
 }
 
 function materializeCustomizationConfig(

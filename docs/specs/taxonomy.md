@@ -81,15 +81,16 @@ _No specs yet._
 
 ### COMPOSER-FEAT
 
-| Spec                                                                       | Title                                               | Status   |
-| -------------------------------------------------------------------------- | --------------------------------------------------- | -------- |
-| [010-compose-env-materialization](010-compose-env-materialization/spec.md) | Compose Env Materialization and Env Template Naming | Approved |
+| Spec                                                                       | Title                                                   | Status   |
+| -------------------------------------------------------------------------- | ------------------------------------------------------- | -------- |
+| [010-compose-env-materialization](010-compose-env-materialization/spec.md) | Compose Env Materialization and Env Template Naming     | Approved |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)     | Multi-Instance Compose Overlays with Instance Overrides | Draft    |
 
 ### COMPOSER-FIX
 
-| Spec                                                                                                                                       | Title                                                               | Status      |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ----------- |
-| [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Implemented |
+| Spec                                                                                                                                       | Title                                                               | Status |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ------ |
+| [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Final  |
 
 ---
 
@@ -97,15 +98,17 @@ _No specs yet._
 
 ### SCHEMA-FIELD
 
-| Spec                                                     | Title                                     | Status |
-| -------------------------------------------------------- | ----------------------------------------- | ------ |
-| [011-overlay-parameters](011-overlay-parameters/spec.md) | Overlay Parameters with Safe Substitution | Final  |
+| Spec                                                                   | Title                                                   | Status |
+| ---------------------------------------------------------------------- | ------------------------------------------------------- | ------ |
+| [011-overlay-parameters](011-overlay-parameters/spec.md)               | Overlay Parameters with Safe Substitution               | Final  |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md) | Multi-Instance Compose Overlays with Instance Overrides | Draft  |
 
 ### SCHEMA-VALID
 
 | Spec                                                                         | Title                                                        | Status |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------ | ------ |
 | [042-global-default-configuration](042-global-default-configuration/spec.md) | User-Scoped Global Defaults with Stack-Aware Local Templates | Final  |
+| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md) | Expand User-Scoped Global Init Defaults Surface              | Final  |
 
 ---
 
@@ -121,11 +124,11 @@ _No specs yet._
 
 ### CLI-FLAG
 
-| Spec                                                                                                                                       | Title                                                               | Status      |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ----------- |
-| [007-target-aware-generation](007-target-aware-generation/spec.md)                                                                         | Target-Aware Generation                                             | Final       |
-| [017-doctor-dry-run](017-doctor-dry-run/spec.md)                                                                                           | Doctor `--fix --dry-run` Flag                                       | Draft       |
-| [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Implemented |
+| Spec                                                                                                                                       | Title                                                               | Status |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ------ |
+| [007-target-aware-generation](007-target-aware-generation/spec.md)                                                                         | Target-Aware Generation                                             | Final  |
+| [017-doctor-dry-run](017-doctor-dry-run/spec.md)                                                                                           | Doctor `--fix --dry-run` Flag                                       | Draft  |
+| [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Final  |
 
 ### CLI-UX
 
@@ -140,6 +143,7 @@ _No specs yet._
 | [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)       | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft       |
 | [046-explain-port-rendering-and-readability](046-explain-port-rendering-and-readability/spec.md)     | Explain Port Rendering and Readability Polish    | Implemented |
 | [047-cli-output-relevance-and-noise-reduction](047-cli-output-relevance-and-noise-reduction/spec.md) | CLI Output Relevance and Noise Reduction         | Final       |
+| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)                         | Expand User-Scoped Global Init Defaults Surface  | Final       |
 
 ---
 
@@ -210,3 +214,5 @@ _No specs yet._
 | [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs                | Draft       |
 | [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml`   | Implemented |
 | [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Final       |
+| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final       |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Draft       |

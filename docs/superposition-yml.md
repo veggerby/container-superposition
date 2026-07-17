@@ -35,6 +35,10 @@ Supported top-level fields are `$schema`, `initDefaults`, and `localConfigTempla
 $schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.global.schema.json
 
 initDefaults:
+    stack: compose
+    baseImage: custom
+    customImage: ghcr.io/example/devcontainer-base:latest
+    composeEnvFiles: true
     devcontainerGitignore: true
     overlays:
         - git-helpers
@@ -64,13 +68,18 @@ localConfigTemplate:
                 - '[ -n "$BASH_VERSION" ] && export HISTFILE=/commandhistory/.bash_history'
 ```
 
-`initDefaults` supports only `baseImage`, `editor`, `target`, `outputPath`, `minimal`,
-`devcontainerGitignore`, and `overlays`.
+`initDefaults` supports only `stack`, `baseImage`, `customImage`, `editor`, `target`,
+`outputPath`, `minimal`, `composeEnvFiles`, `devcontainerGitignore`, and `overlays`.
+`customImage` is persisted only when the final effective `baseImage` is `custom`. `composeEnvFiles`
+is persisted only when the final effective `stack` is `compose`.
 
 `localConfigTemplate` is init-only scaffold input and supports either:
 
 - the legacy direct local-config shape (`env`, `mounts`, `shell`, `customizations`, `portOffset`, `ports`), or
 - a stack-aware object containing only `common`, `plain`, and/or `compose`
+
+It does not accept shared project-file fields such as `devcontainerGitignore`, `stack`,
+`composeEnvFiles`, or `customImage`.
 
 In stack-aware form, the tool writes `common + plain` for `stack: plain` and `common + compose`
 for `stack: compose`. Mixed shapes are invalid. Authored `${HOME}`, `${VAR}`, `${VAR:-default}`,
