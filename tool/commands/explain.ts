@@ -39,10 +39,6 @@ function loadPresetDefinition(overlaysDir: string, presetId: string): Record<str
     return (yaml.load(fs.readFileSync(presetPath, 'utf8')) as Record<string, any>) ?? null;
 }
 
-function summarizeCurrentSetup(): string {
-    return findProjectConfig(process.cwd()).length > 0 ? 'shared project file present' : 'none yet';
-}
-
 function inferBestFor(overlay: OverlayMetadata): string {
     if (overlay.category === 'preset') {
         return `teams starting from ${overlay.name.toLowerCase()}`;
@@ -145,6 +141,10 @@ export async function explainCommand(
 
         const source = describeSource({ hasCliSelection: true });
         const nextStepModel = resolveNextStep({ command: 'explain' });
+        const currentSetup =
+            findProjectConfig(process.cwd()).length > 0
+                ? 'shared project file present'
+                : 'none yet';
         const model = {
             source,
             overlay: buildExplainModel(overlaysConfig, overlaysDir, overlay),
@@ -159,7 +159,7 @@ export async function explainCommand(
         const frame = renderFrame([
             { label: 'Mode', value: 'Inspection' },
             { label: 'Source', value: `${source.label} — ${source.detail}` },
-            { label: 'Current setup', value: summarizeCurrentSetup() },
+            { label: 'Current setup', value: currentSetup },
             {
                 label: 'What this helps you decide',
                 value: 'whether this overlay or preset fits before preview',
