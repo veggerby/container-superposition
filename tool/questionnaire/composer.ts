@@ -8,7 +8,10 @@ import type {
     QuestionnaireAnswers,
     DevContainer,
     CloudTool,
+    OverlayApplication,
     OverlayMetadata,
+    OverlayId,
+    NormalizedOverlaySelection,
     OverlaysConfig,
     ProjectPort,
     SuperpositionManifest,
@@ -473,6 +476,206 @@ function getAllOverlayDefs(config: OverlaysConfig): OverlayMetadata[] {
 /** ID for the meta overlay that expands to all available overlays */
 const META_OVERLAY_ID = 'all';
 
+function getExplicitOverlaySelections(answers: CompositionInput): NormalizedOverlaySelection[] {
+    if (answers.overlaySelections && answers.overlaySelections.length > 0) {
+        return answers.overlaySelections;
+    }
+
+    const selections: NormalizedOverlaySelection[] = [];
+    for (const overlayId of answers.language ?? []) {
+        selections.push({ kind: 'singleton', overlayId, source: 'overlays' });
+    }
+    for (const overlayId of answers.database ?? []) {
+        selections.push({ kind: 'singleton', overlayId, source: 'overlays' });
+    }
+    for (const overlayId of answers.observability ?? []) {
+        selections.push({ kind: 'singleton', overlayId, source: 'overlays' });
+    }
+    for (const overlayId of answers.cloudTools ?? []) {
+        selections.push({ kind: 'singleton', overlayId, source: 'overlays' });
+    }
+    for (const overlayId of answers.devTools ?? []) {
+        selections.push({ kind: 'singleton', overlayId, source: 'overlays' });
+    }
+    if (answers.playwright) {
+        selections.push({ kind: 'singleton', overlayId: 'playwright', source: 'overlays' });
+    }
+    return selections;
+}
+
+function substituteStringTokens(input: string, values: Record<string, string>): string {
+    let output = input;
+    for (const [key, value] of Object.entries(values)) {
+        output = output.split(`{{cs.${key}}}`).join(value);
+    }
+    return output;
+}
+
+function substituteObjectKeysAndValues(input: unknown, values: Record<string, string>): unknown {
+    if (typeof input === 'string') {
+        return substituteStringTokens(input, values);
+    }
+    if (Array.isArray(input)) {
+        return input.map((entry) => substituteObjectKeysAndValues(entry, values));
+    }
+    if (input && typeof input === 'object') {
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+            result[substituteStringTokens(key, values)] = substituteObjectKeysAndValues(
+                value,
+                values
+            );
+        }
+        return result;
+    }
+    return input;
+}
+
+function buildApplicationTokenMap(application: OverlayApplication): Record<string, string> {
+    const instanceEnvSuffix = application.instanceName
+        ? `_${application.instanceName.toUpperCase().replace(/-/g, '_')}`
+        : '';
+
+    return {
+        CS_OVERLAY: application.overlayId,
+        CS_INSTANCE: application.instanceName ?? application.overlayId,
+        CS_INSTANCE_SUFFIX: application.instanceName ? `-${application.instanceName}` : '',
+        CS_INSTANCE_ENV_SUFFIX: instanceEnvSuffix,
+    };
+}
+
+function buildSummaryOverlayMetadata(
+    applications: OverlayApplication[],
+    allOverlayDefs: OverlayMetadata[]
+): OverlayMetadata[] {
+    const overlayMap = new Map(allOverlayDefs.map((overlay) => [overlay.id, overlay]));
+    return applications
+        .map((application) => {
+            const overlay = overlayMap.get(application.overlayId);
+            if (!overlay) {
+                return undefined;
+            }
+            const materialized = substituteObjectKeysAndValues(
+                overlay,
+                application.parameters
+            ) as OverlayMetadata;
+            if (application.mode === 'named' && application.instanceName) {
+                return {
+                    ...materialized,
+                    name: `${materialized.name} (${application.instanceName})`,
+                    ports: (materialized.ports ?? []).map((port) => {
+                        const effectivePort =
+                            application.overlayId === 'postgres' &&
+                            application.parameters.POSTGRES_PORT &&
+                            /^\d+$/.test(application.parameters.POSTGRES_PORT)
+                                ? Number.parseInt(application.parameters.POSTGRES_PORT, 10)
+                                : undefined;
+
+                        return typeof port === 'number'
+                            ? (effectivePort ?? port)
+                            : {
+                                  ...port,
+                                  ...(effectivePort ? { port: effectivePort } : {}),
+                                  service: port.service
+                                      ? `${port.service}-${application.instanceName}`
+                                      : port.service,
+                              };
+                    }),
+                };
+            }
+            return materialized;
+        })
+        .filter((overlay): overlay is OverlayMetadata => overlay !== undefined);
+}
+
+function buildOverlayApplications(
+    selections: NormalizedOverlaySelection[],
+    resolvedOverlayIds: string[],
+    answers: CompositionInput,
+    declaredParams: Record<string, import('../utils/parameters.js').DeclaredParameter>
+): OverlayApplication[] {
+    const applications: OverlayApplication[] = [];
+    const explicitOverlayIds = new Set(selections.map((selection) => selection.overlayId));
+
+    const resolveApplicationParameters = (
+        overlayId: OverlayId,
+        supplied: Record<string, string>,
+        application: Pick<OverlayApplication, 'overlayId' | 'mode' | 'instanceName' | 'source'>
+    ): Record<string, string> => {
+        const familyDeclarations = Object.fromEntries(
+            Object.entries(declaredParams).filter(
+                ([, definition]) => definition.overlayId === overlayId
+            )
+        );
+        return {
+            ...resolveParameters(familyDeclarations, supplied).values,
+            ...buildApplicationTokenMap({ ...application, parameters: {} }),
+        };
+    };
+
+    for (const selection of selections) {
+        if (selection.kind === 'singleton') {
+            applications.push({
+                overlayId: selection.overlayId,
+                mode: 'singleton',
+                source: 'explicit-singleton',
+                parameters: resolveApplicationParameters(
+                    selection.overlayId,
+                    answers.overlayParameters ?? {},
+                    {
+                        overlayId: selection.overlayId,
+                        mode: 'singleton',
+                        source: 'explicit-singleton',
+                    }
+                ),
+            });
+            continue;
+        }
+
+        applications.push({
+            overlayId: selection.overlayId,
+            mode: 'named',
+            instanceName: selection.instanceName,
+            source: 'explicit-named',
+            parameters: resolveApplicationParameters(
+                selection.overlayId,
+                {
+                    ...(answers.overlayParameters ?? {}),
+                    ...(selection.parameters ?? {}),
+                },
+                {
+                    overlayId: selection.overlayId,
+                    mode: 'named',
+                    instanceName: selection.instanceName,
+                    source: 'explicit-named',
+                }
+            ),
+        });
+    }
+
+    for (const overlayId of resolvedOverlayIds) {
+        if (explicitOverlayIds.has(overlayId as OverlayId)) {
+            continue;
+        }
+        applications.push({
+            overlayId: overlayId as OverlayId,
+            mode: 'singleton',
+            source: 'dependency',
+            parameters: resolveApplicationParameters(
+                overlayId as OverlayId,
+                answers.overlayParameters ?? {},
+                {
+                    overlayId: overlayId as OverlayId,
+                    mode: 'singleton',
+                    source: 'dependency',
+                }
+            ),
+        });
+    }
+
+    return applications;
+}
+
 /**
  * Resolve dependencies for a set of overlays
  * Returns the expanded list with dependencies and metadata about what was added
@@ -575,6 +778,7 @@ function prepareOverlaysForGeneration(
     overlays: string[];
     autoResolved: { added: string[]; reason: string };
     overlaysConfig: OverlaysConfig;
+    explicitSelections: NormalizedOverlaySelection[];
 } {
     // 1. Load overlay configuration
     const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
@@ -584,16 +788,12 @@ function prepareOverlaysForGeneration(
     // Collect all overlay definitions
     const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
 
-    // Build list of requested overlays
-    const requestedOverlays: string[] = [];
-    if (answers.language && answers.language.length > 0)
-        requestedOverlays.push(...answers.language);
-    if (answers.database && answers.database.length > 0)
-        requestedOverlays.push(...answers.database);
-    if (answers.observability) requestedOverlays.push(...answers.observability);
-    if (answers.playwright) requestedOverlays.push('playwright');
-    if (answers.cloudTools) requestedOverlays.push(...answers.cloudTools);
-    if (answers.devTools) requestedOverlays.push(...answers.devTools);
+    const explicitSelections = getExplicitOverlaySelections(answers);
+
+    // Build list of requested overlay families
+    const requestedOverlays = [
+        ...new Set(explicitSelections.map((selection) => selection.overlayId)),
+    ];
 
     // Filter out "minimal" overlays if --minimal flag is set
     let filteredRequestedOverlays = requestedOverlays;
@@ -680,6 +880,9 @@ function prepareOverlaysForGeneration(
         overlays: resolvedOverlays,
         autoResolved,
         overlaysConfig,
+        explicitSelections: explicitSelections.filter((selection) =>
+            filteredRequestedOverlays.includes(selection.overlayId)
+        ),
     };
 }
 
@@ -690,6 +893,7 @@ function generateManifest(
     outputPath: string,
     answers: CompositionInput,
     overlays: string[],
+    overlaySelections: NormalizedOverlaySelection[] | undefined,
     autoResolved: { added: string[]; reason: string },
     containerName?: string,
     effectiveTarget?: DeploymentTarget
@@ -707,6 +911,17 @@ function generateManifest(
                 ? answers.customImage
                 : answers.baseImage,
         overlays,
+        overlaySelections: overlaySelections?.length
+            ? overlaySelections.map((selection) =>
+                  selection.kind === 'singleton'
+                      ? selection.overlayId
+                      : {
+                            overlay: selection.overlayId,
+                            name: selection.instanceName,
+                            parameters: selection.parameters,
+                        }
+              )
+            : undefined,
         portOffset: answers.portOffset,
         preset: answers.preset,
         presetChoices: answers.presetChoices,
@@ -873,9 +1088,9 @@ export function applyOverlay(
     baseConfig: DevContainer,
     overlayName: string,
     overlaysDir: string,
-    options: { silent?: boolean } = {}
+    options: { silent?: boolean; tokenMap?: Record<string, string> } = {}
 ): DevContainer {
-    const { silent = false } = options;
+    const { silent = false, tokenMap = {} } = options;
     const overlayPath = path.join(overlaysDir, overlayName, 'devcontainer.patch.json');
 
     if (!fs.existsSync(overlayPath)) {
@@ -886,10 +1101,16 @@ export function applyOverlay(
     // First, load and apply any imports
     const importedConfig = loadImportsForOverlay(overlayName, overlaysDir, silent);
     if (Object.keys(importedConfig).length > 0) {
-        baseConfig = deepMerge(baseConfig, importedConfig);
+        baseConfig = deepMerge(
+            baseConfig,
+            substituteObjectKeysAndValues(importedConfig, tokenMap) as DevContainer
+        );
     }
 
-    const overlay = loadJson<DevContainer>(overlayPath);
+    const overlay = substituteObjectKeysAndValues(
+        loadJson<DevContainer>(overlayPath),
+        tokenMap
+    ) as DevContainer;
 
     // Special handling for apt-get packages (legacy)
     if (overlay.features?.['ghcr.io/devcontainers-extra/features/apt-get-packages:1']?.packages) {
@@ -1065,10 +1286,11 @@ function registerDirContents(registry: FileRegistry, dirPath: string, prefix: st
  */
 function copyOverlayFiles(
     outputPath: string,
-    overlayName: string,
+    application: OverlayApplication,
     registry: FileRegistry,
     overlaysDir: string
 ): void {
+    const overlayName = application.overlayId;
     const overlayPath = path.join(overlaysDir, overlayName);
 
     if (!fs.existsSync(overlayPath)) {
@@ -1101,14 +1323,26 @@ function copyOverlayFiles(
             // e.g., global-tools.txt -> global-tools-dotnet.txt
             const basename = path.basename(entry, path.extname(entry));
             const ext = path.extname(entry);
-            const destFilename = `${basename}-${overlayName}${ext}`;
+            const instanceSuffix =
+                application.mode === 'named' && application.instanceName
+                    ? `-${application.instanceName}`
+                    : '';
+            const destFilename = `${basename}-${overlayName}${instanceSuffix}${ext}`;
             const destPath = path.join(outputPath, destFilename);
-            fs.copyFileSync(srcPath, destPath);
+            const content = substituteStringTokens(
+                fs.readFileSync(srcPath, 'utf8'),
+                application.parameters
+            );
+            fs.writeFileSync(destPath, content);
             registry.addFile(destFilename);
             copiedFiles++;
         } else if (stat.isDirectory()) {
             // Copy directories recursively with overlay prefix
-            const destDirName = `${entry}-${overlayName}`;
+            const instanceSuffix =
+                application.mode === 'named' && application.instanceName
+                    ? `-${application.instanceName}`
+                    : '';
+            const destDirName = `${entry}-${overlayName}${instanceSuffix}`;
             const destPath = path.join(outputPath, destDirName);
             copyDir(srcPath, destPath);
             registry.addDirectory(destDirName);
@@ -2260,7 +2494,7 @@ function applyComposeNetworkNameToWrittenCompose(
 function mergeDockerComposeFiles(
     outputPath: string,
     baseStack: QuestionnaireAnswers['stack'],
-    overlays: string[],
+    applications: OverlayApplication[],
     overlaysDir: string,
     composeNetworkName: string,
     portOffset?: number,
@@ -2268,12 +2502,10 @@ function mergeDockerComposeFiles(
     projectEnv?: QuestionnaireAnswers['projectEnv'],
     projectMounts?: QuestionnaireAnswers['projectMounts'],
     resolvedProjectPorts: PreparedProjectPort[] = [],
-    resolvedParams: Record<string, string> = {},
     rootEnv: Record<string, string> = {}
 ): Array<{ service: string; originalPort: number; newPort: number }> {
-    const composeFiles: string[] = [];
+    const composeFiles: Array<{ path: string; tokenMap: Record<string, string> }> = [];
 
-    // Add base docker-compose if exists
     const baseComposePath = path.join(
         TEMPLATES_DIR,
         baseStack,
@@ -2281,12 +2513,11 @@ function mergeDockerComposeFiles(
         'docker-compose.yml'
     );
     if (fs.existsSync(baseComposePath)) {
-        composeFiles.push(baseComposePath);
+        composeFiles.push({ path: baseComposePath, tokenMap: {} });
     }
 
-    // Add overlay docker-compose files, interleaving any compose_imports before each overlay's own file
-    for (const overlay of overlays) {
-        // First load any compose_imports for this overlay (shared fragments applied before own file)
+    for (const application of applications) {
+        const overlay = application.overlayId;
         const manifestPath = path.join(overlaysDir, overlay, 'overlay.yml');
         if (fs.existsSync(manifestPath)) {
             try {
@@ -2315,14 +2546,16 @@ function mergeDockerComposeFiles(
                         console.log(
                             chalk.dim(`   📎 Applying shared compose fragment: ${importPath}`)
                         );
-                        composeFiles.push(fullImportPath);
+                        composeFiles.push({
+                            path: fullImportPath,
+                            tokenMap: application.parameters,
+                        });
                     }
                 }
             } catch (error) {
                 if (error instanceof Error) {
                     throw error;
                 }
-                // Non-Error throwables are unexpected; wrap and re-throw so compose_imports failures always fail fast
                 throw new Error(
                     `Unexpected error loading compose_imports for overlay '${overlay}': ${String(error)}`
                 );
@@ -2331,43 +2564,52 @@ function mergeDockerComposeFiles(
 
         const overlayComposePath = path.join(overlaysDir, overlay, 'docker-compose.yml');
         if (fs.existsSync(overlayComposePath)) {
-            composeFiles.push(overlayComposePath);
+            composeFiles.push({ path: overlayComposePath, tokenMap: application.parameters });
         }
     }
 
     if (composeFiles.length === 0) {
-        return []; // No docker-compose files to merge
+        return [];
     }
 
-    // Merge all compose files
-    let merged: any = {
+    const merged: any = {
         services: {},
         volumes: {},
         networks: {},
     };
 
-    for (const composePath of composeFiles) {
-        const rawContent = fs.readFileSync(composePath, 'utf-8');
-        const content =
-            Object.keys(resolvedParams).length > 0
-                ? substituteParameters(rawContent, resolvedParams)
-                : rawContent;
-        const compose = yaml.load(content) as any;
+    for (const composeFile of composeFiles) {
+        const rawContent = fs.readFileSync(composeFile.path, 'utf-8');
+        const compose = substituteObjectKeysAndValues(
+            yaml.load(rawContent) as any,
+            composeFile.tokenMap
+        ) as any;
 
         if (compose.services) {
-            // Deep merge services to preserve arrays like volumes, ports, etc.
-            for (const serviceName in compose.services) {
+            for (const serviceName of Object.keys(compose.services)) {
                 if (merged.services[serviceName]) {
-                    merged.services[serviceName] = deepMerge(
-                        merged.services[serviceName],
-                        compose.services[serviceName]
+                    if (serviceName === 'devcontainer') {
+                        merged.services[serviceName] = deepMerge(
+                            merged.services[serviceName],
+                            compose.services[serviceName]
+                        );
+                        continue;
+                    }
+                    throw new Error(
+                        `Repeated overlay instances resolved the same compose service name '${serviceName}'. Check instance names and repeatable overlay tokenization.`
                     );
-                } else {
-                    merged.services[serviceName] = compose.services[serviceName];
                 }
+                merged.services[serviceName] = compose.services[serviceName];
             }
         }
         if (compose.volumes) {
+            for (const volumeName of Object.keys(compose.volumes)) {
+                if (merged.volumes[volumeName]) {
+                    throw new Error(
+                        `Repeated overlay instances resolved the same compose volume name '${volumeName}'. Check instance names and repeatable overlay tokenization.`
+                    );
+                }
+            }
             merged.volumes = { ...merged.volumes, ...compose.volumes };
         }
         if (compose.networks) {
@@ -2375,7 +2617,6 @@ function mergeDockerComposeFiles(
         }
     }
 
-    // Ensure devcontainer service has an image
     if (merged.services.devcontainer) {
         const composeEnv = buildComposeProjectEnvEntries(projectEnv, baseStack, rootEnv);
         if (Object.keys(composeEnv).length > 0) {
@@ -2419,10 +2660,8 @@ function mergeDockerComposeFiles(
         }
 
         if (customImage) {
-            // Apply custom base image if specified
             merged.services.devcontainer.image = customImage;
         } else if (!merged.services.devcontainer.image) {
-            // Fallback to default if no image is set (shouldn't happen in normal flow)
             console.warn(chalk.yellow('⚠️  No image specified, this should not happen'));
         }
     }
@@ -2435,7 +2674,41 @@ function mergeDockerComposeFiles(
         new Set(resolvedProjectPorts.map((port) => port.rawBinding ?? port.value))
     );
 
-    // Filter depends_on to only include services that exist
+    const hasNamedApplications = applications.some((application) => application.mode === 'named');
+    let portRemappings: Array<{ service: string; originalPort: number; newPort: number }> = [];
+    if (hasNamedApplications) {
+        const portOwners = new Map<number, string>();
+        for (const [serviceName, service] of Object.entries(merged.services)) {
+            if (!Array.isArray((service as any)?.ports)) {
+                continue;
+            }
+            for (const binding of (service as any).ports) {
+                const hostPort = parseHostPortFromBinding(binding);
+                if (hostPort === null) {
+                    continue;
+                }
+                const existing = portOwners.get(hostPort);
+                if (existing) {
+                    throw new Error(
+                        `Repeated overlay instances resolved the same explicit host port ${hostPort} (${existing} vs ${serviceName}). Give each named instance a distinct port.`
+                    );
+                }
+                portOwners.set(hostPort, serviceName);
+            }
+        }
+    } else {
+        portRemappings = resolveDockerComposePortConflicts(merged.services);
+        if (portRemappings.length > 0) {
+            console.log(chalk.yellow('\n⚠️  Host port conflicts detected and auto-resolved:'));
+            for (const { service, originalPort, newPort } of portRemappings) {
+                console.log(
+                    chalk.yellow(`   • ${service}: host port ${originalPort} → ${newPort}`)
+                );
+            }
+            console.log();
+        }
+    }
+
     const serviceNames = Object.keys(merged.services);
     const serviceNameSet = new Set(serviceNames);
     for (const serviceName of serviceNames) {
@@ -2452,25 +2725,13 @@ function mergeDockerComposeFiles(
         }
     }
 
-    // Remove empty sections
     if (Object.keys(merged.volumes).length === 0) delete merged.volumes;
     if (Object.keys(merged.networks).length === 0) delete merged.networks;
 
-    // Auto-resolve host port conflicts across composed services
-    const portRemappings = resolveDockerComposePortConflicts(merged.services);
-    if (portRemappings.length > 0) {
-        console.log(chalk.yellow('\n⚠️  Host port conflicts detected and auto-resolved:'));
-        for (const { service, originalPort, newPort } of portRemappings) {
-            console.log(chalk.yellow(`   • ${service}: host port ${originalPort} → ${newPort}`));
-        }
-        console.log();
-    }
-
-    // Write combined docker-compose.yml
     const outputComposePath = path.join(outputPath, 'docker-compose.yml');
     const yamlContent = yaml.dump(merged, {
         indent: 2,
-        lineWidth: -1, // No line wrapping
+        lineWidth: -1,
         noRefs: true,
     });
 
@@ -2747,10 +3008,11 @@ export async function generateManifestOnly(
     options: { isRegen?: boolean } = {}
 ): Promise<GenerationSummary> {
     // Prepare overlays using shared logic
-    const { overlays: resolvedOverlays, autoResolved } = prepareOverlaysForGeneration(
-        answers,
-        overlaysDir
-    );
+    const {
+        overlays: resolvedOverlays,
+        autoResolved,
+        explicitSelections,
+    } = prepareOverlaysForGeneration(answers, overlaysDir);
 
     // Ensure output directory exists
     const outputPath = answers.outputPath || '.';
@@ -2761,7 +3023,14 @@ export async function generateManifestOnly(
     // Generate manifest only
     console.log(chalk.cyan('\n📋 Generating manifest only (team collaboration mode)...\n'));
 
-    generateManifest(outputPath, answers, resolvedOverlays, autoResolved, answers.containerName);
+    generateManifest(
+        outputPath,
+        answers,
+        resolvedOverlays,
+        explicitSelections,
+        autoResolved,
+        answers.containerName
+    );
 
     console.log(
         chalk.green(`\n✓ Manifest created: ${path.join(outputPath, 'superposition.json')}`)
@@ -2778,12 +3047,39 @@ export async function generateManifestOnly(
     const indexYmlPath = path.join(actualOverlaysDir, 'index.yml');
     const overlaysConfig = loadOverlaysConfig(actualOverlaysDir, indexYmlPath);
     const allOverlayDefs = getAllOverlayDefs(overlaysConfig);
-    const overlayMetadataMap = new Map<string, OverlayMetadata>(
-        allOverlayDefs.map((o) => [o.id, o])
+    const summaryApplications: OverlayApplication[] = [
+        ...explicitSelections.map((selection) =>
+            selection.kind === 'singleton'
+                ? {
+                      overlayId: selection.overlayId,
+                      mode: 'singleton' as const,
+                      source: 'explicit-singleton' as const,
+                      parameters: {},
+                  }
+                : {
+                      overlayId: selection.overlayId,
+                      mode: 'named' as const,
+                      instanceName: selection.instanceName,
+                      source: 'explicit-named' as const,
+                      parameters: {},
+                  }
+        ),
+        ...resolvedOverlays
+            .filter(
+                (overlayId) =>
+                    !explicitSelections.some((selection) => selection.overlayId === overlayId)
+            )
+            .map((overlayId) => ({
+                overlayId: overlayId as OverlayId,
+                mode: 'singleton' as const,
+                source: 'dependency' as const,
+                parameters: {},
+            })),
+    ];
+    const selectedOverlayMetadata = buildSummaryOverlayMetadata(
+        summaryApplications,
+        allOverlayDefs
     );
-    const selectedOverlayMetadata = resolvedOverlays
-        .map((id) => overlayMetadataMap.get(id))
-        .filter((m): m is OverlayMetadata => m !== undefined);
 
     // Return summary for manifest-only mode
     const services = overlaysToServices(selectedOverlayMetadata);
@@ -2819,6 +3115,7 @@ export async function composeDevContainer(
         overlays: resolvedOverlays,
         autoResolved,
         overlaysConfig,
+        explicitSelections,
     } = prepareOverlaysForGeneration(answers, overlaysDir);
 
     // Get all overlay definitions for later use
@@ -2945,6 +3242,13 @@ export async function composeDevContainer(
             console.log(chalk.dim(`      ${key}=${resolvedParams[key]}`));
         }
     }
+
+    const overlayApplications = buildOverlayApplications(
+        explicitSelections,
+        overlays,
+        answers,
+        declaredParams
+    );
     const outputPath = path.resolve(answers.outputPath);
     const projectRoot = path.dirname(outputPath);
     assertComposeNetworkNameSupported(answers.stack, answers.composeNetworkName);
@@ -3002,9 +3306,15 @@ export async function composeDevContainer(
     }
 
     // 6. Apply overlays
-    for (const overlay of overlays) {
-        console.log(chalk.dim(`   🔧 Applying overlay: ${chalk.cyan(overlay)}`));
-        config = applyOverlay(config, overlay, actualOverlaysDir);
+    for (const application of overlayApplications) {
+        const overlayLabel =
+            application.mode === 'named' && application.instanceName
+                ? `${application.overlayId}:${application.instanceName}`
+                : application.overlayId;
+        console.log(chalk.dim(`   🔧 Applying overlay: ${chalk.cyan(overlayLabel)}`));
+        config = applyOverlay(config, application.overlayId, actualOverlaysDir, {
+            tokenMap: application.parameters,
+        });
     }
 
     config = applyProjectEnvToDevcontainer(config, substitutedProjectEnv, answers.stack, rootEnv);
@@ -3029,8 +3339,8 @@ export async function composeDevContainer(
     }
 
     // 8. Copy overlay files (docker-compose, configs, etc.)
-    for (const overlay of overlays) {
-        copyOverlayFiles(outputPath, overlay, fileRegistry, actualOverlaysDir);
+    for (const application of overlayApplications) {
+        copyOverlayFiles(outputPath, application, fileRegistry, actualOverlaysDir);
     }
 
     // 8.5. Copy cross-distro-packages feature if used
@@ -3057,7 +3367,7 @@ export async function composeDevContainer(
     filterDockerComposeDependencies(outputPath, overlays);
 
     // 9. Merge runServices array in correct order
-    mergeRunServices(config, overlays, actualOverlaysDir);
+    mergeRunServices(config, overlayApplications, actualOverlaysDir);
 
     // 11. Merge docker-compose files into single combined file
     let composePortRemappings: Array<{ service: string; originalPort: number; newPort: number }> =
@@ -3067,7 +3377,7 @@ export async function composeDevContainer(
         composePortRemappings = mergeDockerComposeFiles(
             outputPath,
             answers.stack,
-            overlays,
+            overlayApplications,
             actualOverlaysDir,
             effectiveComposeNetworkName!,
             answers.portOffset,
@@ -3075,24 +3385,11 @@ export async function composeDevContainer(
             substitutedProjectEnv,
             answers.projectMounts,
             preparedProjectPorts,
-            resolvedParams,
             rootEnv
         );
         // Update devcontainer.json to reference the combined file
         if (config.dockerComposeFile) {
             config.dockerComposeFile = 'docker-compose.yml';
-        }
-
-        // Apply parameter substitution to the merged docker-compose.yml
-        if (hasResolvedParams) {
-            const composePath = path.join(outputPath, 'docker-compose.yml');
-            if (fs.existsSync(composePath)) {
-                const original = fs.readFileSync(composePath, 'utf8');
-                const substituted = substituteParameters(original, resolvedParams);
-                if (substituted !== original) {
-                    fs.writeFileSync(composePath, substituted);
-                }
-            }
         }
     }
 
@@ -3233,6 +3530,7 @@ export async function composeDevContainer(
         outputPath,
         options.manifestAnswers ?? answers,
         overlays,
+        explicitSelections,
         autoResolved,
         answers.containerName || config.name,
         activeTarget
@@ -3348,9 +3646,10 @@ export async function composeDevContainer(
     const portOffset = answers.portOffset ?? 0;
 
     // Prepare overlay metadata for summary
-    const selectedOverlayMetadata = overlays
-        .map((id) => overlayMetadataMap.get(id))
-        .filter((m): m is OverlayMetadata => m !== undefined);
+    const selectedOverlayMetadata = buildSummaryOverlayMetadata(
+        overlayApplications,
+        allOverlayDefs
+    );
 
     // Extract environment variables from .env.example for connection strings
     const envPath = path.join(outputPath, '.env.example');
@@ -3711,24 +4010,46 @@ function filterDockerComposeDependencies(outputPath: string, selectedOverlays: s
 /**
  * Merge runServices from all overlays in correct order
  */
-function mergeRunServices(config: DevContainer, overlays: string[], overlaysDir: string): void {
-    const services: Array<{ name: string; order: number }> = [];
+function mergeRunServices(
+    config: DevContainer,
+    applications: OverlayApplication[],
+    overlaysDir: string
+): void {
+    const services: Array<{ name: string; order: number; application: OverlayApplication }> = [];
 
-    for (const overlay of overlays) {
-        const overlayPath = path.join(overlaysDir, overlay, 'devcontainer.patch.json');
+    for (const application of applications) {
+        const overlayPath = path.join(
+            overlaysDir,
+            application.overlayId,
+            'devcontainer.patch.json'
+        );
         if (fs.existsSync(overlayPath)) {
-            const overlayConfig = loadJson<any>(overlayPath);
+            const overlayConfig = substituteObjectKeysAndValues(
+                loadJson<any>(overlayPath),
+                application.parameters
+            ) as any;
             if (overlayConfig.runServices) {
-                const manifestPath = path.join(overlaysDir, overlay, 'overlay.yml');
+                const manifestPath = path.join(overlaysDir, application.overlayId, 'overlay.yml');
                 const manifest = fs.existsSync(manifestPath)
                     ? (yaml.load(fs.readFileSync(manifestPath, 'utf8')) as OverlayMetadata)
                     : null;
                 const order = manifest?.serviceOrder ?? 0;
                 for (const service of overlayConfig.runServices) {
-                    services.push({ name: service, order });
+                    services.push({ name: service, order, application });
                 }
             }
         }
+    }
+
+    const seen = new Map<string, OverlayApplication>();
+    for (const service of services) {
+        const existing = seen.get(service.name);
+        if (existing) {
+            throw new Error(
+                `Named overlay instances produced the same runServices entry '${service.name}' (${existing.overlayId}${existing.instanceName ? `:${existing.instanceName}` : ''} vs ${service.application.overlayId}${service.application.instanceName ? `:${service.application.instanceName}` : ''}).`
+            );
+        }
+        seen.set(service.name, service.application);
     }
 
     // Sort by order, then merge

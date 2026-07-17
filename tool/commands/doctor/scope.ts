@@ -2,7 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
 import type { OverlaysConfig } from '../../schema/types.js';
-import { loadProjectConfig } from '../../schema/project-config.js';
+import {
+    getOverlayIdsFromProjectSelection,
+    loadProjectConfig,
+} from '../../schema/project-config.js';
 import type { DoctorMode } from '../../ux/semantics/types.js';
 import type { DoctorOptions } from './types.js';
 
@@ -114,8 +117,8 @@ export function resolveDoctorOverlayIds(
     if (preferProjectFile) {
         try {
             const projectConfig = loadProjectConfig(overlaysConfig, workingDir);
-            if (projectConfig?.selection.overlays) {
-                return [...projectConfig.selection.overlays];
+            if (projectConfig) {
+                return getOverlayIdsFromProjectSelection(projectConfig.selection, overlaysConfig);
             }
         } catch {
             // ignore and continue
@@ -137,8 +140,8 @@ export function resolveDoctorOverlayIds(
     if (!preferProjectFile) {
         try {
             const projectConfig = loadProjectConfig(overlaysConfig, workingDir);
-            if (projectConfig?.selection.overlays) {
-                return [...projectConfig.selection.overlays];
+            if (projectConfig) {
+                return getOverlayIdsFromProjectSelection(projectConfig.selection, overlaysConfig);
             }
         } catch {
             // ignore and continue

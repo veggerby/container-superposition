@@ -229,13 +229,41 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
             overlays: {
                 type: 'array',
                 description:
-                    'Flat list of overlay IDs to include. Preferred over the legacy category arrays. Dependency resolution runs automatically.',
+                    'Canonical overlay selection surface. Accepts legacy string entries for singletons and object entries for named repeatable compose instances.',
                 items: {
-                    type: 'string',
-                    enum: overlayIds,
-                    description: 'Overlay identifier',
+                    oneOf: [
+                        {
+                            type: 'string',
+                            enum: overlayIds,
+                            description: 'Legacy singleton overlay identifier',
+                        },
+                        {
+                            type: 'object',
+                            required: ['overlay', 'name'],
+                            additionalProperties: false,
+                            properties: {
+                                overlay: {
+                                    type: 'string',
+                                    enum: overlayIds,
+                                    description: 'Repeatable overlay identifier',
+                                },
+                                name: {
+                                    type: 'string',
+                                    pattern: '^[a-z0-9][a-z0-9-]*$',
+                                    description: 'Stable compose-safe instance name',
+                                },
+                                parameters: {
+                                    type: 'object',
+                                    description:
+                                        'Instance-local parameter overrides for this named overlay entry only.',
+                                    additionalProperties: {
+                                        oneOf: [{ type: 'string' }, { type: 'number' }],
+                                    },
+                                },
+                            },
+                        },
+                    ],
                 },
-                uniqueItems: true,
             },
             preset: {
                 type: 'string',
@@ -555,7 +583,16 @@ const globalSchema = {
                 minimal: schema.properties.minimal,
                 composeEnvFiles: schema.properties.composeEnvFiles,
                 devcontainerGitignore: schema.properties.devcontainerGitignore,
-                overlays: schema.properties.overlays,
+                overlays: {
+                    type: 'array',
+                    description:
+                        'Init-default singleton overlays only. Named object entries are not supported in initDefaults.',
+                    items: {
+                        type: 'string',
+                        enum: nonPresetOverlays.map((overlay) => overlay.id).sort(),
+                    },
+                    uniqueItems: true,
+                },
             },
         },
         localConfigTemplate: {

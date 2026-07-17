@@ -1,8 +1,8 @@
 ---
 spec: '050-compose-overlay-instances'
 title: 'Multi-Instance Compose Overlays with Instance Overrides'
-status: 'Draft'
-qa_status: ''
+status: 'Implemented'
+qa_status: 'Needs Fixes'
 priority: 'P1'
 owner: 'pm'
 product_approval: 'approved'
@@ -33,12 +33,13 @@ normative_references:
 # Multi-Instance Compose Overlays with Instance Overrides
 
 **Spec**: `050-compose-overlay-instances`
-**Status**: Draft
+**Status**: Implemented
 **Created**: 2026-07-17
 **Priority**: P1
 **Product Approval**: approved
 **Architecture Review**: approved
 **UX Review**: not-needed
+**QA Status**: Needs Fixes
 
 ## Description
 
@@ -549,23 +550,24 @@ Rules:
 
 ## Acceptance Criteria
 
-- [ ] Given a compose project whose `overlays:` array contains two object-form entries for the same repeatable overlay, when generation runs, then both instances are materialized and are not deduplicated away.
-- [ ] Given shared top-level `parameters:` values for an overlay family and an object-form entry that overrides only one of those values, when generation runs, then that entry inherits unspecified values from the shared defaults and uses its own override for the changed value.
-- [ ] Given a project uses only legacy string entries in `overlays:`, when generation runs after this feature ships, then generated output is unchanged from current behavior.
-- [ ] Given a project mixes legacy string entries and object entries in one `overlays:` array for different overlay families, when generation runs, then the stack is accepted and each entry keeps its expected semantics.
-- [ ] Given a project attempts to select the same overlay family through both a legacy string entry and one or more object entries, when validation runs, then generation fails before write with a clear same-family mixed-selection error.
-- [ ] Given a project uses category-sugar overlay fields together with any object-form `overlays:` entry, when validation runs, then generation fails before write with a clear single-surface authoring error.
-- [ ] Given a project attempts to repeat a singleton overlay by listing the same legacy string overlay twice, when validation runs, then generation fails before write with guidance to use named object entries on a repeatable overlay.
-- [ ] Given a project attempts to use an object-form entry for a non-repeatable or non-compose overlay, when validation runs, then generation fails before write with a clear overlay-specific error.
-- [ ] Given two object-form entries of the same repeatable compose overlay, when generation runs, then generated compose output, devcontainer references, and copied overlay assets use distinct effective identities everywhere uniqueness is required.
-- [ ] Given repeated overlay entries resolve the same explicit host port, service name, volume name, copied destination path, or devcontainer keyed-map entry, when generation runs, then the tool fails before write with an error that identifies the specific entry name and conflicting field.
-- [ ] Given a repeatable overlay still contains hard-coded single-instance identities, when validation or tests exercise that overlay, then release validation fails before the overlay can ship with `repeatable: true`.
-- [ ] Given a plain-stack project attempts to use object-form repeated overlay entries, when validation runs, then the tool rejects it with a clear compose-only error in this slice.
-- [ ] Given an interactive project-editing or discovery flow encounters a project file that contains object-form `overlays:` entries, when that flow cannot safely represent or edit those entries, then it exits gracefully before any lossy rewrite and tells the user to edit `superposition.yml` manually for named multi-instance overlay changes.
-- [ ] Given multi-instance overlays affect plan, doctor, migrate, generated documentation, or summaries, when those surfaces describe the stack, then they refer to effective instance identities rather than collapsing all instances into one overlay-level entry.
-- [ ] Given a manifest is generated for a repeated-overlay project, when compatibility flows read that manifest later, then repeated intent is recovered from the receipt without making the manifest canonical.
-- [ ] All new or changed behavior is covered by automated tests at the appropriate level.
-- [ ] Documentation, schema/help text, and workflow artifacts are updated to match the implemented or reviewed state.
+- [x] Given a compose project whose `overlays:` array contains two object-form entries for the same repeatable overlay, when generation runs, then both instances are materialized and are not deduplicated away.
+- [x] Given shared top-level `parameters:` values for an overlay family and an object-form entry that overrides only one of those values, when generation runs, then that entry inherits unspecified values from the shared defaults and uses its own override for the changed value.
+- [x] Given a project uses only legacy string entries in `overlays:`, when generation runs after this feature ships, then generated output is unchanged from current behavior.
+- [x] Given a project mixes legacy string entries and object entries in one `overlays:` array for different overlay families, when generation runs, then the stack is accepted and each entry keeps its expected semantics.
+- [x] Given a project attempts to select the same overlay family through both a legacy string entry and one or more object entries, when validation runs, then generation fails before write with a clear same-family mixed-selection error.
+- [x] Given a project uses category-sugar overlay fields together with any object-form `overlays:` entry, when validation runs, then generation fails before write with a clear single-surface authoring error.
+- [x] Given a project attempts to repeat a singleton overlay by listing the same legacy string overlay twice, when validation runs, then generation fails before write with guidance to use named object entries on a repeatable overlay.
+- [x] Given a project attempts to use an object-form entry for a non-repeatable or non-compose overlay, when validation runs, then generation fails before write with a clear overlay-specific error.
+- [x] Given two object-form entries of the same repeatable compose overlay, when generation runs, then generated compose output, devcontainer references, and copied overlay assets use distinct effective identities everywhere uniqueness is required.
+- [x] Given repeated overlay entries resolve the same explicit host port, service name, volume name, copied destination path, or devcontainer keyed-map entry, when generation runs, then the tool fails before write with an error that identifies the specific entry name and conflicting field.
+- [x] Given a repeatable overlay still contains hard-coded single-instance identities, when validation or tests exercise that overlay, then release validation fails before the overlay can ship with `repeatable: true`.
+- [x] Given a plain-stack project attempts to use object-form repeated overlay entries, when validation runs, then the tool rejects it with a clear compose-only error in this slice.
+- [x] Given interactive `init` is run against an existing project file that contains object-form `overlays:` entries, when the current questionnaire-based edit path cannot safely represent or edit those entries, then the command exits that edit path gracefully before any lossy rewrite and tells the user to edit `superposition.yml` manually for named multi-instance overlay changes.
+- [x] Given any future questionnaire-driven project-editing surface reuses the existing overlay-selection UX without explicit support for object-form `overlays:` entries, when it encounters a project file that contains those entries, then it must fail closed with the same manual-edit guidance rather than flattening, dropping, or rewriting named-instance selections.
+- [x] Given multi-instance overlays affect plan, doctor, migrate, generated documentation, or summaries, when those surfaces describe the stack, then they refer to effective instance identities rather than collapsing all instances into one overlay-level entry.
+- [x] Given a manifest is generated for a repeated-overlay project, when compatibility flows read that manifest later, then repeated intent is recovered from the receipt without making the manifest canonical.
+- [x] All new or changed behavior is covered by automated tests at the appropriate level.
+- [x] Documentation, schema/help text, and workflow artifacts are updated to match the implemented or reviewed state.
 
 ## Test Plan
 
@@ -598,7 +600,7 @@ Rules:
 ## Out of Scope
 
 - Plain-stack multi-instance support.
-- Interactive authoring or editing UX for object-form named overlay entries; v1 expects manual editing of `superposition.yml` for this advanced configuration.
+- Interactive authoring or editing UX for object-form named overlay entries. In v1, users author and maintain these entries by manually editing `superposition.yml`, and interactive `init` does not attempt to round-trip them through the current questionnaire edit path.
 - A general-purpose templating language for per-instance overlay logic.
 - Automatic migration of all existing projects onto a new instance-aware schema.
 - Cross-project or user-home defaults for repeated overlay instances.
@@ -615,6 +617,7 @@ Rules:
 ## Open Questions
 
 - None blocking implementation.
+- Interactive `init` against an existing project file is the concrete v1 surface that must detect unsupported object-form `overlays:` editing and fail closed with manual-edit guidance.
 
 ## Architecture Decision Impact
 
@@ -634,7 +637,7 @@ Developer handoff is approved for this slice only:
 - Add optional manifest `overlaySelections` receipt support without changing manifest authority.
 - Gate named entries behind `repeatable: true`, compose-only support, and explicit collision checks.
 - Enable `postgres` as the only repeatable catalog overlay in v1 unless scope is explicitly expanded by a follow-on spec.
-- Keep `plain` stack multi-instance support, interactive authoring/editing UX for object-form named entries, instance-targeted CLI `--param`, and broader catalog repeatability out of scope.
+- Keep `plain` stack multi-instance support, interactive authoring/editing UX for object-form named entries beyond safe bail-out in interactive `init`, instance-targeted CLI `--param`, and broader catalog repeatability out of scope.
 
 ## Routing Decision
 
@@ -659,7 +662,8 @@ Verify both the new capability and the preserved boundaries:
 - legacy string-only projects regenerate unchanged
 - same-family mixed shorthand/object selection and category-sugar + named-instance authoring fail early
 - non-repeatable, non-compose, and plain-stack named entries are rejected
-- interactive editing/discovery flows bail out safely rather than attempting a lossy rewrite when object-form named entries are present
+- interactive `init` existing-project edit flows bail out safely rather than attempting a lossy rewrite when object-form named entries are present
+- any future questionnaire-driven project-editing surface also fails closed with the same manual-edit guidance until it gains explicit named-instance support
 - manifest compatibility preserves repeated intent through `overlaySelections`
 - plan/doctor/summary/docs surfaces stay instance-aware where they report effective stack content
 
@@ -667,7 +671,7 @@ Verify both the new capability and the preserved boundaries:
 
 - no parallel top-level overlay-instance authoring field
 - no plain-stack multi-instance support
-- no interactive authoring/editing UX for object-form named entries in v1
+- no interactive authoring/editing UX for object-form named entries in v1 beyond safe bail-out in interactive `init`
 - no instance-targeted CLI `--param` syntax
 - no repeatability enablement for overlays beyond explicitly audited v1 scope
 - no local-config expansion into a second instance-authoring surface
@@ -725,4 +729,22 @@ Verify both the new capability and the preserved boundaries:
 
 ## Implementation Notes
 
-Awaiting PM finalization, then developer implementation.
+- Added mixed `overlays:` parsing/serialization with normalized named-instance selections, same-family validation, category-sugar exclusion, compose/repeatable gating, reserved `CS_` key rejection, and manifest `overlaySelections` compatibility receipt support.
+- Extended generation to preserve repeated selections through explicit overlay applications, instance-aware token substitution, manifest replay, safe interactive `init` bail-out, and postgres-only v1 repeatability.
+- Hardened `overlays/postgres/*` for repeatable materialization with instance-aware compose service/volume names, runServices, remoteEnv keys, and distinct host-port validation.
+- Added regression coverage in `tool/__tests__/overlay-instances.test.ts` plus updated command/composition/doctor coverage for schema, manifest, and generated-output behavior.
+- Validation run: `npm test -- tool/__tests__/overlay-instances.test.ts tool/__tests__/composition.test.ts tool/__tests__/commands.test.ts tool/__tests__/doctor-checks.test.ts tool/__tests__/local-config.test.ts tool/__tests__/manifest-migrations.test.ts`, then `task validate:generated`.
+
+## QA Feedback
+
+### Must-fix
+
+| Status | Issue | Route |
+|---|---|---|
+| Open | AC “plan/doctor/migrate/generated documentation or summaries stay instance-aware” is not met for `plan --from-manifest`. The manifest now preserves `overlaySelections`, but plan still reads only flattened `manifest.overlays` in `tool/commands/plan/input.ts`, and presentation still reports `resolved overlays: nodejs, postgres` in family-only form (`tool/commands/plan/presentation.ts`). Repro: generate a project with two named `postgres` instances, then run `plan --from-manifest ./.devcontainer/superposition.json`; output collapses `postgres:app` and `postgres:analytics` into one `postgres` entry. | developer |
+
+### Should-fix
+
+| Status | Issue | Route |
+|---|---|---|
+| Open | Add explicit automated coverage for instance-aware plan output so future manifest/plan changes cannot regress this surface again. | developer |

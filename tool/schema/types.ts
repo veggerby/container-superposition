@@ -247,7 +247,8 @@ export interface QuestionnaireAnswers {
     projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
     projectShell?: ProjectShellConfig; // First-class shell profile customizations
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
-    overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
+    overlayParameters?: Record<string, string>; // Shared overlay parameter values ({{cs.KEY}} substitution)
+    overlaySelections?: NormalizedOverlaySelection[]; // Canonical overlay selections including named instances
     composeEnvFiles?: boolean; // Whether .devcontainer/.env and .env.example should be generated for compose stacks
 }
 
@@ -355,7 +356,40 @@ export interface OverlayMetadata {
     compose_imports?: string[]; // Shared docker-compose fragments to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
     hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
+    repeatable?: boolean; // Whether named multi-instance selection is supported for this compose overlay
     parameters?: Record<string, OverlayParameterDefinition>; // Configurable parameters for this overlay
+}
+
+export interface NamedOverlaySelectionEntry {
+    overlay: OverlayId;
+    name: string;
+    parameters?: Record<string, string>;
+}
+
+export type ProjectOverlayEntry = OverlayId | NamedOverlaySelectionEntry;
+
+export type OverlaySelectionSource = 'overlays' | 'category' | 'dependency' | 'manifest';
+
+export type NormalizedOverlaySelection =
+    | {
+          kind: 'singleton';
+          overlayId: OverlayId;
+          source: OverlaySelectionSource;
+      }
+    | {
+          kind: 'named';
+          overlayId: OverlayId;
+          instanceName: string;
+          parameters?: Record<string, string>;
+          source: Extract<OverlaySelectionSource, 'overlays' | 'manifest'>;
+      };
+
+export interface OverlayApplication {
+    overlayId: OverlayId;
+    mode: 'singleton' | 'named';
+    instanceName?: string;
+    source: 'explicit-singleton' | 'explicit-named' | 'dependency';
+    parameters: Record<string, string>;
 }
 
 /**
@@ -460,6 +494,7 @@ export interface SuperpositionManifest {
     baseTemplate: Stack;
     baseImage: string;
     overlays: string[];
+    overlaySelections?: ProjectOverlayEntry[];
     portOffset?: number;
     preset?: string; // ID of preset used, if any
     presetChoices?: Record<string, string>; // User choices made within preset
@@ -625,7 +660,7 @@ export interface ProjectConfigSelection {
     composeNetworkName?: string;
     preset?: string;
     presetChoices?: Record<string, string>;
-    overlays?: OverlayId[];
+    overlays?: ProjectOverlayEntry[];
     outputPath?: string;
     portOffset?: number;
     composeEnvFiles?: boolean;
@@ -638,5 +673,5 @@ export interface ProjectConfigSelection {
     mounts?: ProjectMount[];
     shell?: ProjectShellConfig;
     customizations?: ProjectConfigCustomizationsInput;
-    parameters?: Record<string, string>; // Overlay parameter values for {{cs.KEY}} substitution
+    parameters?: Record<string, string>; // Shared overlay parameter values for {{cs.KEY}} substitution
 }

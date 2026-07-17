@@ -39,7 +39,9 @@ import {
     findIgnoredLocalProjectConfig,
     findLocalProjectConfig,
     findManifestFile,
+    getOverlayIdsFromProjectSelection,
     hasMeaningfulLocalProjectConfig,
+    hasNamedProjectOverlaySelections,
     findProjectConfig,
     loadGlobalDefaults,
     loadLocalProjectConfig,
@@ -293,7 +295,10 @@ function assertNoGlobalDefaultOverlayConflicts(
         return;
     }
 
-    const requestedOverlays = buildProjectConfigSelectionFromAnswers(answers).overlays ?? [];
+    const requestedOverlays = getOverlayIdsFromProjectSelection(
+        buildProjectConfigSelectionFromAnswers(answers),
+        { overlays, base_images: [], base_templates: [] }
+    );
     const { conflicts } = resolveDependencies(requestedOverlays, overlays, {
         warnOnConflicts: false,
     });
@@ -1142,6 +1147,22 @@ export async function main(): Promise<void> {
                         ? 'existing'
                         : 'new'
                     : 'other';
+
+            if (
+                entryMode === 'existing' &&
+                projectConfigAnswers &&
+                projectConfig &&
+                hasNamedProjectOverlaySelections(projectConfig.selection)
+            ) {
+                console.log(
+                    chalk.yellow(
+                        '\n⚠️  Named multi-instance overlay selections are present in your project file.\n' +
+                            '   Interactive init editing cannot safely round-trip overlays[] object entries yet.\n' +
+                            '   No files were changed. Edit superposition.yml manually for named multi-instance overlay changes.\n'
+                    )
+                );
+                return;
+            }
 
             if (entryMode === 'existing' && projectConfigAnswers) {
                 const shortcutResult = await runInitShortcutFlow({

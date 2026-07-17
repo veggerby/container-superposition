@@ -120,6 +120,7 @@ export function migrateManifest(manifest: any): SuperpositionManifest {
             baseTemplate: manifest.baseTemplate,
             baseImage: manifest.baseImage,
             overlays: manifest.overlays,
+            overlaySelections: manifest.overlaySelections,
             portOffset: manifest.portOffset,
             preset: manifest.preset,
             presetChoices: manifest.presetChoices,
@@ -226,6 +227,16 @@ export function loadManifest(manifestPath: string): SuperpositionManifest | null
         if (!manifest.overlays.every((overlay) => typeof overlay === 'string')) {
             console.error(
                 chalk.red('✗ Invalid manifest format: all "overlays" entries must be strings')
+            );
+            return null;
+        }
+
+        if (
+            manifest.overlaySelections !== undefined &&
+            !Array.isArray(manifest.overlaySelections)
+        ) {
+            console.error(
+                chalk.red('✗ Invalid manifest format: "overlaySelections" must be an array')
             );
             return null;
         }

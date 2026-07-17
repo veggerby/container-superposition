@@ -57,7 +57,7 @@
                 },
                 "overlays": {
                     "type": "array",
-                    "description": "Flat list of overlay IDs to include. Preferred over the legacy category arrays. Dependency resolution runs automatically.",
+                    "description": "Init-default singleton overlays only. Named object entries are not supported in initDefaults.",
                     "items": {
                         "type": "string",
                         "enum": [
@@ -142,8 +142,7 @@
                             "terraform",
                             "tilt",
                             "windsurf-cli"
-                        ],
-                        "description": "Overlay identifier"
+                        ]
                     },
                     "uniqueItems": true
                 }

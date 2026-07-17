@@ -238,8 +238,41 @@ overlays:
     - docker-sock
 ```
 
-Flat list of overlay IDs to include. This is the **preferred** way to declare overlays.
-Dependency resolution runs automatically: if you select `grafana`, `prometheus` is added
+Canonical overlay selection surface. Legacy string entries still select one singleton overlay:
+
+```yaml
+overlays:
+    - nodejs
+    - postgres
+```
+
+For repeatable compose overlays, use object entries with a stable name and optional instance-local
+parameter overrides:
+
+```yaml
+overlays:
+    - nodejs
+    - overlay: postgres
+      name: app
+      parameters:
+          POSTGRES_DB: app
+    - overlay: postgres
+      name: analytics
+      parameters:
+          POSTGRES_DB: analytics
+          POSTGRES_PORT: '5433'
+```
+
+Rules:
+
+- string entries keep existing singleton behaviour
+- object entries are allowed only for overlays marked repeatable in the catalogue
+- `name` must match `[a-z0-9][a-z0-9-]*`
+- top-level `parameters:` still provides the shared default layer; `overlays[].parameters` overrides only that one named instance
+- do not mix a string entry and object entries for the same overlay family in one project file
+- when any object entry is present, legacy category fields such as `language:` or `database:` must be absent
+
+Dependency resolution still runs automatically: if you select `grafana`, `prometheus` is added
 because it is declared as `requires`.
 
 See `docs/overlays.md` for the full overlay catalogue.

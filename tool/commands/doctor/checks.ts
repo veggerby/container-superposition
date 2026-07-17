@@ -20,6 +20,7 @@ import {
 import {
     applyLocalConfigToAnswers,
     buildAnswersFromProjectConfig,
+    getOverlayIdsFromProjectSelection,
     loadLocalProjectConfig,
     loadProjectConfig,
     materializeLocalCustomizationConfig,
@@ -807,7 +808,9 @@ export function checkProjectFileDrift(
     }
 
     const autoResolvedAdded = new Set<string>(manifest.autoResolved?.added ?? []);
-    const projectOverlays = new Set<string>(projectConfig.selection.overlays ?? []);
+    const projectOverlays = new Set<string>(
+        getOverlayIdsFromProjectSelection(projectConfig.selection, overlaysConfig)
+    );
     const manifestBaseOverlays = new Set<string>(
         (manifest.overlays ?? []).filter((overlay) => !autoResolvedAdded.has(overlay))
     );
@@ -945,7 +948,10 @@ export function checkParameters(
         return [];
     }
 
-    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const selectedOverlays = getOverlayIdsFromProjectSelection(
+        projectConfig.selection,
+        overlaysConfig
+    );
     const suppliedParams = projectConfig.selection.parameters ?? {};
     const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
     const declaredCount = Object.keys(declared).length;
@@ -1157,7 +1163,10 @@ export function checkDependencies(
     try {
         const projectConfig = loadProjectConfig(overlaysConfig, workingDir);
         if (!projectConfig) return [];
-        rawSelectedOverlays = (projectConfig.selection.overlays ?? []) as string[];
+        rawSelectedOverlays = getOverlayIdsFromProjectSelection(
+            projectConfig.selection,
+            overlaysConfig
+        );
     } catch {
         for (const fileName of ['.superposition.yml', 'superposition.yml']) {
             const filePath = path.join(workingDir, fileName);
@@ -1392,7 +1401,10 @@ export function checkEnvExampleDrift(
         ];
     }
 
-    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const selectedOverlays = getOverlayIdsFromProjectSelection(
+        projectConfig.selection,
+        overlaysConfig
+    );
     const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
     const declaredKeys = new Set(Object.keys(declared));
     const exampleKeys = new Set<string>();

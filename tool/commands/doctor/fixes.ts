@@ -25,6 +25,7 @@ import { applyPresetSelections } from '../../questionnaire/presets.js';
 import { PRESETS_DIR } from '../../questionnaire/questionnaire.js';
 import {
     buildAnswersFromProjectConfig,
+    getOverlayIdsFromProjectSelection,
     loadProjectConfig,
     writeProjectConfig,
 } from '../../schema/project-config.js';
@@ -640,7 +641,10 @@ async function executeParametersRegen(
         };
     }
 
-    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const selectedOverlays = getOverlayIdsFromProjectSelection(
+        projectConfig.selection,
+        overlaysConfig
+    );
     const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
     const supplied = { ...(projectConfig.selection.parameters ?? {}) };
     const { missingRequired } = resolveParameters(declared, supplied);
@@ -765,12 +769,15 @@ async function executeDependencyFix(
         };
     }
 
-    const selectedOverlays = [...(projectConfig.selection.overlays ?? [])];
+    const selectedOverlays = getOverlayIdsFromProjectSelection(
+        projectConfig.selection,
+        overlaysConfig
+    );
     const overlayMap = new Map(overlaysConfig.overlays.map((overlay) => [overlay.id, overlay]));
     const toAdd: string[] = [];
-    const toProcess = [...(selectedOverlays as string[])];
+    const toProcess = [...selectedOverlays];
     const processed = new Set<string>();
-    const current = new Set<string>(selectedOverlays as string[]);
+    const current = new Set<string>(selectedOverlays);
 
     while (toProcess.length > 0) {
         const id = toProcess.shift()!;
@@ -782,7 +789,7 @@ async function executeDependencyFix(
             if (!current.has(requiredId)) {
                 current.add(requiredId);
                 toAdd.push(requiredId);
-                toProcess.push(requiredId);
+                toProcess.push(requiredId as OverlayId);
             }
         }
     }
@@ -800,7 +807,7 @@ async function executeDependencyFix(
 
     const updatedSelection = {
         ...projectConfig.selection,
-        overlays: [...(selectedOverlays as string[]), ...toAdd] as OverlayId[],
+        overlays: [...selectedOverlays, ...toAdd] as OverlayId[],
     };
     try {
         writeProjectConfig(projectConfig.file.path, updatedSelection);

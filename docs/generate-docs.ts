@@ -63,6 +63,10 @@ function formatOverlay(overlay: OverlayMetadata): string {
         sections.push(`| **Tags** | ${overlay.tags.map((t) => `\`${t}\``).join(', ')} |`);
     }
 
+    if (overlay.repeatable === true) {
+        sections.push(`| **Repeatable** | yes |`);
+    }
+
     if (overlay.ports && overlay.ports.length > 0) {
         const portStrings = overlay.ports.map((p) => {
             if (typeof p === 'number') {

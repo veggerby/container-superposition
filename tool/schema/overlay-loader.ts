@@ -140,6 +140,8 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             imports: ensureArray(manifest.imports),
             minimal: manifest.minimal !== undefined ? ensureBoolean(manifest.minimal) : false,
             hidden: manifest.hidden !== undefined ? ensureBoolean(manifest.hidden) : false,
+            repeatable:
+                manifest.repeatable !== undefined ? ensureBoolean(manifest.repeatable) : false,
             parameters: ensureParameters(manifest.parameters),
         };
     } catch (error) {

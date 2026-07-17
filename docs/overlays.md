@@ -188,14 +188,15 @@ PostgreSQL 16 with the pgvector extension for vector similarity search
 
 PostgreSQL 16 database
 
-| Property      | Value                         |
-| ------------- | ----------------------------- |
-| **Category**  | database                      |
-| **Supports**  | compose                       |
-| **Suggests**  | `prometheus`, `grafana`       |
-| **Conflicts** | `pgvector`                    |
-| **Tags**      | `database`, `sql`, `postgres` |
-| **Ports**     | 5432/tcp                      |
+| Property       | Value                         |
+| -------------- | ----------------------------- |
+| **Category**   | database                      |
+| **Supports**   | compose                       |
+| **Suggests**   | `prometheus`, `grafana`       |
+| **Conflicts**  | `pgvector`                    |
+| **Tags**       | `database`, `sql`, `postgres` |
+| **Repeatable** | yes                           |
+| **Ports**      | 5432/tcp                      |
 
 ### Qdrant (`qdrant`)
 

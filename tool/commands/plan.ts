@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import type { OverlaysConfig } from '../schema/types.js';
-import { loadProjectConfig } from '../schema/project-config.js';
+import { getOverlayIdsFromProjectSelection, loadProjectConfig } from '../schema/project-config.js';
 import { getFilesToCreate, getPortMappings } from './plan/artifacts.js';
 import { generatePlanDiff } from './plan/diff.js';
 import { resolvePlanInput } from './plan/input.js';
@@ -96,7 +96,11 @@ export async function planCommand(
                     return false;
                 }
                 const selected = [...new Set(selectedOverlays)].sort().join(',');
-                const configured = [...new Set(projectConfig.selection.overlays ?? [])]
+                const configured = [
+                    ...new Set(
+                        getOverlayIdsFromProjectSelection(projectConfig.selection, overlaysConfig)
+                    ),
+                ]
                     .sort()
                     .join(',');
                 return (
