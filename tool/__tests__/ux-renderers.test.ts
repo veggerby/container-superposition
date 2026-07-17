@@ -38,7 +38,7 @@ describe('UX contracts', () => {
         vi.restoreAllMocks();
     });
 
-    it('list shows frame, recommended starts, browse block, messaging category, single next step', async () => {
+    it('list shows frame, recommended starts, browse block, messaging category, and body-only guidance', async () => {
         await listCommand(overlaysConfig, {});
         const output = logSpy.mock.calls.join('\n');
         expect(output).toContain('Mode: Discovery');
@@ -62,7 +62,7 @@ describe('UX contracts', () => {
         expect(output.indexOf('Mode: Discovery')).toBeLessThan(
             output.indexOf('Recommended starts')
         );
-        expect(output.match(/Next step/g)?.length).toBe(1);
+        expect(output).not.toContain('Next step');
     });
 
     it('filtered list zero-result path shows recovery suggestions', async () => {
@@ -76,7 +76,7 @@ describe('UX contracts', () => {
         expect(output).toContain('inspect live categories with `cs list`');
     });
 
-    it('explain shows fixed sections with explicit none states and next step footer', async () => {
+    it('explain shows fixed sections with explicit none states and body-owned preview guidance', async () => {
         await explainCommand(overlaysConfig, OVERLAYS_DIR, 'nodejs', {});
         const output = logSpy.mock.calls.join('\n');
         expect(output).toContain('Mode: Inspection');
@@ -93,8 +93,8 @@ describe('UX contracts', () => {
         expect(output).toContain('none');
         expect(output).toContain('Preview this change');
         expect(output).toContain('Files, services, and ports');
-        expect(output).toContain('Try this next');
-        expect(output.match(/Next step/g)?.length).toBe(1);
+        expect(output).not.toContain('Try this next');
+        expect(output).not.toContain('Next step');
     });
 
     it('explain reuses one normalized rich port token across sections and keeps flat mixed lists', async () => {
@@ -122,9 +122,7 @@ describe('UX contracts', () => {
         expect(output.indexOf('Preview this change')).toBeLessThan(
             output.indexOf('Files, services, and ports')
         );
-        expect(output.indexOf('Files, services, and ports')).toBeLessThan(
-            output.indexOf('Try this next')
-        );
+        expect(output).not.toContain('Try this next');
         expect(output).toContain('- file: .env.example');
         expect(output).toContain('- file: README.md');
         expect(output).toContain('- service: postgres');
@@ -217,13 +215,14 @@ describe('UX contracts', () => {
         await listCommand(overlaysConfig, { json: true });
         const listJson = JSON.parse(logSpy.mock.calls.at(-1)?.[0]);
         expect(listJson.source.label).toBeDefined();
-        expect(listJson.nextStep.command).toBeDefined();
+        expect(listJson.nextStep.command).toBeNull();
 
         logSpy.mockClear();
         await explainCommand(overlaysConfig, OVERLAYS_DIR, 'nodejs', { json: true });
         const explainJson = JSON.parse(logSpy.mock.calls.at(-1)?.[0]);
         expect(explainJson.source.label).toBeDefined();
         expect(explainJson.overlay.id).toBe('nodejs');
+        expect(explainJson.nextStep.command).toBeNull();
 
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ux-plan-json-'));
         try {
@@ -267,6 +266,8 @@ describe('UX contracts', () => {
             expect(output).toContain('How to compare');
             expect(output).toContain('Write location');
             expect(output).toContain('changed file contents');
+            expect(output).toContain('Next step');
+            expect(output).toContain('cs plan --stack compose --overlays grafana,prometheus');
         } finally {
             fs.rmSync(tmpDir, { recursive: true, force: true });
         }
@@ -295,7 +296,7 @@ describe('UX contracts', () => {
             expect(output).toContain('Scope:');
             expect(output).toContain('Source inspected:');
             expect(output).toContain('What needs attention:');
-            expect(output).toContain('Recommended next action:');
+            expect(output).not.toContain('Recommended next action:');
             expect(output).toContain('Counts');
             expect(output).toContain('blocking:');
             expect(output).toContain('fix now:');
@@ -411,6 +412,8 @@ describe('UX contracts', () => {
             expect(output).toContain('Optional validation');
             expect(output).toContain('1. run cs regen');
             expect(output).toContain('unchanged by migrate');
+            expect(output).not.toContain('Recommended next action');
+            expect(output).not.toContain('Next step');
         } finally {
             process.chdir(originalCwd);
             fs.rmSync(repoDir, { recursive: true, force: true });

@@ -1,0 +1,33 @@
+Observed via `npx --yes tsx /workspaces/container-superposition/scripts/init.ts regen` with `.superposition.yml` containing `stack: plain` and `overlays: [nodejs]` in a clean temp directory on 2026-07-17.
+
+Mode: Replay shared setup
+Source: shared project file — /tmp/.../.superposition.yml
+Shared project file: .superposition.yml
+Generated output: ./.devcontainer
+Local-only config: Ignored by this run
+Recommended next action: cs doctor
+
+╭─────────────────────────────────────────────────────╮
+│   Regenerating from Project File (No Interactive)   │
+│   Configuration:                                    │
+│     Project file: .superposition.yml                │
+│     Output: ./.devcontainer                         │
+╰─────────────────────────────────────────────────────╯
+
+Source
+shared project file — /tmp/.../.superposition.yml
+
+...
+
+Changed
+- generated output written
+
+Preserved
+- custom/ patches when present
+- local-only config not used
+
+Next step
+cs doctor
+
+Manual review
+none

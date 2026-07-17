@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
@@ -24,7 +25,6 @@ import { describeSource } from '../ux/semantics/source.js';
 import { resolveLocalConfigTrust } from '../ux/semantics/local-config.js';
 import {
     renderFrame,
-    renderNextStep,
     renderSection,
     renderList,
     renderLocalConfigTrust,
@@ -213,7 +213,7 @@ function renderRunFraming(input: {
     sharedProjectFile: string;
     generatedOutput: string;
     localConfig: string;
-    nextAction: string;
+    nextAction?: string | null;
 }): string {
     return renderFrame([
         { label: 'Mode', value: input.mode },
@@ -221,7 +221,9 @@ function renderRunFraming(input: {
         { label: 'Shared project file', value: input.sharedProjectFile },
         { label: 'Generated output', value: input.generatedOutput },
         { label: 'Local-only config', value: input.localConfig },
-        { label: 'Recommended next action', value: input.nextAction },
+        ...(input.nextAction
+            ? [{ label: 'Recommended next action', value: input.nextAction }]
+            : []),
     ]);
 }
 
@@ -267,17 +269,17 @@ function renderPreflight(input: {
 function renderRunSuccess(input: {
     changed: string[];
     preserved: string[];
-    nextStep: string;
+    nextStep?: string | null;
     manualReview: string[];
 }): string {
     return [
         renderSection('Changed', renderList(input.changed, 'No material changes')),
         '',
         renderSection('Preserved', renderList(input.preserved, 'none')),
-        '',
-        renderSection('Next step', input.nextStep),
-        '',
-        renderSection('Manual review', renderList(input.manualReview, 'none')),
+        ...(input.nextStep ? ['', renderSection('Next step', input.nextStep)] : []),
+        ...(input.manualReview.length > 0
+            ? ['', renderSection('Manual review', renderList(input.manualReview, 'none'))]
+            : []),
     ].join('\n');
 }
 
@@ -349,6 +351,36 @@ function summarizeCurrentSetup(answers: Partial<QuestionnaireAnswers>): string[]
     summary.push(`editor: ${answers.editor ?? 'vscode'}`);
 
     return summary;
+}
+
+function hashPathState(targetPath: string): string | null {
+    if (!fs.existsSync(targetPath)) {
+        return null;
+    }
+
+    const hash = crypto.createHash('sha256');
+
+    const visit = (currentPath: string, relativePath: string): void => {
+        const stat = fs.statSync(currentPath);
+        if (stat.isDirectory()) {
+            hash.update(`dir:${relativePath}\n`);
+            for (const entry of fs.readdirSync(currentPath).sort()) {
+                visit(path.join(currentPath, entry), path.join(relativePath, entry));
+            }
+            return;
+        }
+
+        if (relativePath === 'superposition.json') {
+            return;
+        }
+
+        hash.update(`file:${relativePath}\n`);
+        hash.update(fs.readFileSync(currentPath));
+        hash.update('\n');
+    };
+
+    visit(targetPath, '.');
+    return hash.digest('hex');
 }
 
 export function buildShortcutOverlayChoices(flow: {
@@ -1016,11 +1048,6 @@ export async function main(): Promise<void> {
                             globalInitDefaultsAnswers?.outputPath ||
                             './.devcontainer',
                         localConfig: localTrustPreview.disposition,
-                        nextAction:
-                            resolveNextStep({
-                                command: cliArgs?.commandName === 'regen' ? 'regen' : 'init',
-                                sourceKind: sourceDescriptor.kind,
-                            }).command ?? 'No next step suggested',
                     })
             );
             if (localProjectConfig) {
@@ -1071,28 +1098,7 @@ export async function main(): Promise<void> {
                 manifestDir
             );
             answers = mergeAnswers(manifestAnswers);
-
-            console.log(
-                '\n' +
-                    boxen(
-                        chalk.bold.cyan('Regenerating from Manifest (No Interactive)\n\n') +
-                            chalk.white('Configuration:\n') +
-                            chalk.gray(`  Template: ${manifest.baseTemplate}\n`) +
-                            chalk.gray(`  Base Image: ${manifest.baseImage}\n`) +
-                            (manifest.containerName
-                                ? chalk.gray(`  Container: ${manifest.containerName}\n`)
-                                : '') +
-                            chalk.gray(`  Overlays: ${manifest.overlays.join(', ')}\n`) +
-                            (manifest.preset ? chalk.gray(`  Preset: ${manifest.preset}\n`) : '') +
-                            (manifest.portOffset
-                                ? chalk.gray(`  Port offset: ${manifest.portOffset}\n`)
-                                : '') +
-                            chalk.gray(`  Output: ${answers.outputPath}`),
-                        { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
-                    )
-            );
         } else if (useProjectOnly && projectConfigAnswers && !hasCliOverrides) {
-            const projectFileName = projectConfig?.file.fileName ?? '.superposition.yml';
             answers = mergeAnswers(projectConfigAnswers, {
                 outputPath:
                     cliArgs?.config?.outputPath ||
@@ -1101,22 +1107,6 @@ export async function main(): Promise<void> {
                 minimal: cliArgs?.config?.minimal,
                 editor: cliArgs?.config?.editor,
             });
-
-            console.log(
-                '\n' +
-                    boxen(
-                        chalk.bold.cyan('Regenerating from Project File (No Interactive)\n\n') +
-                            chalk.white('Configuration:\n') +
-                            chalk.gray(`  Project file: ${projectFileName}\n`) +
-                            chalk.gray(`  Output: ${answers.outputPath}`),
-                        {
-                            padding: 1,
-                            borderColor: 'cyan',
-                            borderStyle: 'round',
-                            margin: 1,
-                        }
-                    )
-            );
         } else if (
             (cliArgs && (cliArgs.config.stack || hasCliOverrides)) ||
             (projectConfigAnswers && (cliArgs?.noInteractive || hasAnyCliConfig)) ||
@@ -1136,24 +1126,6 @@ export async function main(): Promise<void> {
                     projectConfigAnswers?.outputPath ||
                     './.devcontainer',
             });
-
-            const modeLabel =
-                useManifestOnly && hasCliOverrides
-                    ? 'Regenerating from Manifest with Overrides'
-                    : useProjectOnly && projectConfigAnswers
-                      ? 'Regenerating from Project File with Overrides'
-                      : projectConfigAnswers && !manifest
-                        ? 'Running from Project Config'
-                        : 'Running in CLI mode';
-
-            console.log(
-                '\n' +
-                    boxen(chalk.bold(modeLabel), {
-                        padding: 0.5,
-                        borderColor: 'blue',
-                        borderStyle: 'round',
-                    })
-            );
 
             if ((useManifestOnly || useProjectOnly) && hasCliOverrides) {
                 const overrides: string[] = [];
@@ -1336,6 +1308,9 @@ export async function main(): Promise<void> {
             }
         }
 
+        const beforeGeneratedOutputHash = isManifestOnly
+            ? null
+            : hashPathState(path.resolve(answers.outputPath));
         const spinner = ora({
             text: isManifestOnly
                 ? chalk.cyan('Generating manifest file...')
@@ -1374,6 +1349,10 @@ export async function main(): Promise<void> {
             }
 
             printSummary(summary, true);
+            const afterGeneratedOutputHash = isManifestOnly
+                ? null
+                : hashPathState(path.resolve(answers.outputPath));
+            const generatedOutputChanged = beforeGeneratedOutputHash !== afterGeneratedOutputHash;
             const changed = [
                 ...(projectFileOutputPath
                     ? [
@@ -1382,7 +1361,11 @@ export async function main(): Promise<void> {
                               : 'shared project file created',
                       ]
                     : []),
-                isManifestOnly ? 'compatibility manifest written' : 'generated output written',
+                ...(isManifestOnly
+                    ? ['compatibility manifest written']
+                    : generatedOutputChanged
+                      ? ['generated output written']
+                      : []),
                 ...(createdLocalTemplate ? ['local-only config template created'] : []),
                 ...(actualBackupPath ? [`backup created: ${actualBackupPath}`] : []),
             ];
@@ -1394,9 +1377,16 @@ export async function main(): Promise<void> {
                       ? 'local-only config now lives in repository root'
                       : 'local-only config not used',
             ];
-            const nextStep =
-                resolveNextStep({ command: cliArgs?.commandName === 'regen' ? 'regen' : 'init' })
-                    .command ?? 'No next step suggested';
+            const nextStepModel = resolveNextStep({
+                command: cliArgs?.commandName === 'regen' ? 'regen' : 'init',
+                changeClass: generatedOutputChanged
+                    ? 'Change intent and regenerate'
+                    : 'No material change',
+                hasWarnings: summary.warnings.length > 0,
+            });
+            const nextStep = nextStepModel.command
+                ? `${nextStepModel.command}\n${nextStepModel.reason}`
+                : null;
             const manualReview = localProjectConfig
                 ? ['review generated diff for local-only settings before commit']
                 : [];

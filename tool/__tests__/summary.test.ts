@@ -253,18 +253,14 @@ describe('Summary Utilities', () => {
             expect(steps[2]).toContain('custom');
         });
 
-        it('should generate regular init next steps without env copy guidance by default', () => {
+        it('should omit regular init next steps by default', () => {
             const steps = generateNextSteps(false, false);
-            expect(steps).toHaveLength(3);
-            expect(steps.join('\n')).not.toContain('.env.example');
-            expect(steps[0]).toContain('code');
-            expect(steps[1]).toContain('Reopen');
-            expect(steps[2]).toContain('doctor');
+            expect(steps).toHaveLength(0);
         });
 
-        it('should generate env copy guidance when compose env files are enabled', () => {
+        it('should generate only env copy guidance when compose env files are enabled', () => {
             const steps = generateNextSteps(false, false, true);
-            expect(steps).toHaveLength(4);
+            expect(steps).toHaveLength(1);
             expect(steps[0]).toContain('.env.example');
         });
     });

@@ -1,0 +1,31 @@
+Observed via `npx --yes tsx /workspaces/container-superposition/scripts/init.ts init --stack plain --language nodejs --no-interactive` in a clean temp directory on 2026-07-17.
+
+Mode: New setup
+Source: CLI selection — flags resolved for this run
+Shared project file: will create on write
+Generated output: ./.devcontainer
+Local-only config: Ignored by this run
+Recommended next action: No next step suggested
+
+╭──────────────────────╮
+│ Running in CLI mode  │
+╰──────────────────────╯
+
+Source
+CLI selection — flags resolved for this run
+
+...
+
+Changed
+- shared project file created
+- generated output written
+
+Preserved
+- custom/ patches when present
+- local-only config not used
+
+Next step
+No next step suggested
+
+Manual review
+none

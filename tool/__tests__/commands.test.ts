@@ -75,6 +75,7 @@ describe('Command Tests', () => {
             expect(output).toContain('Browse all overlays');
             expect(output).toContain('How to inspect or preview next');
             expect(output).toContain('nodejs');
+            expect(output).not.toContain('Next step');
         });
 
         it('renders filtered results with recovery guidance', async () => {
@@ -94,7 +95,7 @@ describe('Command Tests', () => {
             expect(parsed.filters).toBeDefined();
             expect(Array.isArray(parsed.recommendedStarts)).toBe(true);
             expect(Array.isArray(parsed.overlays)).toBe(true);
-            expect(parsed.nextStep).toBeDefined();
+            expect(parsed.nextStep.command).toBeNull();
         });
     });
 
@@ -134,9 +135,8 @@ describe('Command Tests', () => {
             expect(output.indexOf('Preview this change')).toBeLessThan(
                 output.indexOf('Files, services, and ports')
             );
-            expect(output.indexOf('Files, services, and ports')).toBeLessThan(
-                output.indexOf('Try this next')
-            );
+            expect(output).not.toContain('Try this next');
+            expect(output).not.toContain('Next step');
         });
 
         it('renders legacy numeric ports compactly', async () => {
@@ -154,6 +154,7 @@ describe('Command Tests', () => {
             expect(parsed.source).toBeDefined();
             expect(parsed.overlay.id).toBe('postgres');
             expect(parsed.overlay.previewThisChange[0]).toContain('cs plan');
+            expect(parsed.nextStep.command).toBeNull();
             expect(Array.isArray(parsed.overlay.filesServicesPorts)).toBe(true);
             expect(parsed.overlay.ports).toEqual([
                 {
@@ -1292,6 +1293,8 @@ describe('Command Tests', () => {
             expect(output).toContain('compose');
             expect(output).toContain('short value:');
             expect(output).toContain('full value:');
+            expect(output).toContain('Next step');
+            expect(output).toContain('cs plan --stack compose --overlays postgres,redis');
         });
 
         it('outputs semantic JSON model including normalized dependencies', async () => {
@@ -1307,7 +1310,19 @@ describe('Command Tests', () => {
             expect(parsed.normalizedDependencies).toContain('prometheus');
             expect(typeof parsed.hash).toBe('string');
             expect(typeof parsed.hashFull).toBe('string');
-            expect(parsed.nextStep).toBeDefined();
+            expect(parsed.nextStep.command).toBe(
+                'cs plan --stack compose --overlays grafana,prometheus'
+            );
+        });
+
+        it('omits next-step footer when no equivalent concrete preview command exists', async () => {
+            await hashCommand(overlaysConfig, OVERLAYS_DIR, {
+                stack: 'compose',
+                overlays: 'postgres',
+                base: 'alpine',
+            });
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).not.toContain('Next step');
         });
 
         it('writes full hash to disk when requested', async () => {

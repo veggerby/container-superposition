@@ -10,7 +10,7 @@ import type {
 import { findProjectConfig } from '../schema/project-config.js';
 import { describeSource } from '../ux/semantics/source.js';
 import { resolveNextStep } from '../ux/semantics/next-step.js';
-import { renderFrame, renderList, renderNextStep, renderSection } from '../ux/renderers/common.js';
+import { renderFrame, renderList, renderSection } from '../ux/renderers/common.js';
 
 interface ExplainOptions {
     json?: boolean;
@@ -125,11 +125,10 @@ function buildExplainModel(
         dependsOn: overlay.requires ?? [],
         conflictsWith: overlay.conflicts ?? [],
         previewThisChange: [
-            previewCommand,
-            'likely outcome: preview resolved change before any write',
+            `run \`${previewCommand}\``,
+            'preview whether this would be a first write, update, or no-op',
         ],
         filesServicesPorts,
-        tryThisNext: previewCommand,
         files,
         ports: normalizedPorts.map(({ raw }) => raw),
         normalizedPortTokens: normalizedPorts.map(({ token }) => token),
@@ -229,12 +228,6 @@ export async function explainCommand(
             );
         }
 
-        sections.push(
-            '',
-            renderSection('Try this next', model.overlay.tryThisNext),
-            '',
-            renderNextStep(nextStepModel)
-        );
         console.log([frame, '', ...sections].join('\n'));
     } catch (error) {
         console.error(error);

@@ -26,7 +26,10 @@ export function renderList(items: string[], empty = 'none'): string {
 }
 
 export function renderNextStep(nextStep: NextStep): string {
-    return `Next step\n${nextStep.command ?? 'No next step suggested'}\n${nextStep.reason}`;
+    if (!nextStep.command) {
+        return '';
+    }
+    return `Next step\n${nextStep.command}\n${nextStep.reason}`;
 }
 
 export function renderArtifactTable(rows: ArtifactReviewRow[]): string {
