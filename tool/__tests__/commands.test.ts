@@ -99,9 +99,10 @@ describe('Command Tests', () => {
     });
 
     describe('explainCommand', () => {
-        it('renders inspection sections in decision order', async () => {
+        it('renders inspection sections in decision order with normalized rich port text', async () => {
             await explainCommand(overlaysConfig, OVERLAYS_DIR, 'postgres', {});
             const output = consoleLogSpy.mock.calls.join('\n');
+            const token = '5432/tcp — postgres — PostgreSQL database connection';
             expect(output).toContain('Mode: Inspection');
             expect(output).toContain('Current setup');
             expect(output).toContain('Best for');
@@ -110,16 +111,64 @@ describe('Command Tests', () => {
             expect(output).toContain('What to watch out for');
             expect(output).toContain('Preview this change');
             expect(output).toContain('Files, services, and ports');
-            expect(output.indexOf('Best for')).toBeLessThan(output.indexOf('Preview this change'));
+            expect(output).toContain(`- port: ${token}`);
+            expect(output).toContain(`- opens port: ${token}`);
+            expect(output.match(new RegExp(token, 'g'))?.length).toBe(3);
+            expect(output).not.toContain('[object Object]');
+            expect(output.indexOf('Best for')).toBeLessThan(
+                output.indexOf('Why pick this over nearby options')
+            );
+            expect(output.indexOf('Why pick this over nearby options')).toBeLessThan(
+                output.indexOf('What it adds')
+            );
+            expect(output.indexOf('What it adds')).toBeLessThan(
+                output.indexOf('What to watch out for')
+            );
+            expect(output.indexOf('What to watch out for')).toBeLessThan(
+                output.indexOf('Depends on')
+            );
+            expect(output.indexOf('Depends on')).toBeLessThan(output.indexOf('Conflicts with'));
+            expect(output.indexOf('Conflicts with')).toBeLessThan(
+                output.indexOf('Preview this change')
+            );
+            expect(output.indexOf('Preview this change')).toBeLessThan(
+                output.indexOf('Files, services, and ports')
+            );
+            expect(output.indexOf('Files, services, and ports')).toBeLessThan(
+                output.indexOf('Try this next')
+            );
         });
 
-        it('outputs semantic JSON model', async () => {
-            await explainCommand(overlaysConfig, OVERLAYS_DIR, 'nodejs', { json: true });
+        it('renders legacy numeric ports compactly', async () => {
+            await explainCommand(overlaysConfig, OVERLAYS_DIR, 'ngrok', {});
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain('- port: 4040');
+            expect(output).toContain('- opens port: 4040');
+            expect(output).not.toContain('4040/');
+            expect(output).not.toContain('[object Object]');
+        });
+
+        it('outputs semantic JSON model with structured port data and normalized tokens', async () => {
+            await explainCommand(overlaysConfig, OVERLAYS_DIR, 'postgres', { json: true });
             const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
             expect(parsed.source).toBeDefined();
-            expect(parsed.overlay.id).toBe('nodejs');
+            expect(parsed.overlay.id).toBe('postgres');
             expect(parsed.overlay.previewThisChange[0]).toContain('cs plan');
             expect(Array.isArray(parsed.overlay.filesServicesPorts)).toBe(true);
+            expect(parsed.overlay.ports).toEqual([
+                {
+                    port: 5432,
+                    service: 'postgres',
+                    protocol: 'tcp',
+                    description: 'PostgreSQL database connection',
+                    onAutoForward: 'notify',
+                    connectionStringTemplate:
+                        'postgresql://{postgres_user}:{postgres_password}@{host}:{port}/{postgres_db}',
+                },
+            ]);
+            expect(parsed.overlay.normalizedPortTokens).toEqual([
+                '5432/tcp — postgres — PostgreSQL database connection',
+            ]);
         });
 
         it('exits with error for missing overlay', async () => {

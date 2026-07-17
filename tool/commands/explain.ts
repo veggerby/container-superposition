@@ -1,7 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import yaml from 'js-yaml';
-import type { OverlaysConfig, PresetParameter, OverlayMetadata } from '../schema/types.js';
+import type {
+    OverlaysConfig,
+    PresetParameter,
+    OverlayMetadata,
+    PortMetadata,
+} from '../schema/types.js';
 import { findProjectConfig } from '../schema/project-config.js';
 import { describeSource } from '../ux/semantics/source.js';
 import { resolveNextStep } from '../ux/semantics/next-step.js';
@@ -55,6 +60,20 @@ function inferBestFor(overlay: OverlayMetadata): string {
     return overlay.description;
 }
 
+function formatExplainPortToken(port: number | PortMetadata): string {
+    if (typeof port === 'number') {
+        return String(port);
+    }
+
+    const parts = [
+        `${port.port}${port.protocol ? `/${port.protocol}` : ''}`,
+        port.service,
+        port.description,
+    ].filter((part): part is string => Boolean(part));
+
+    return parts.join(' — ');
+}
+
 function buildExplainModel(
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
@@ -65,12 +84,14 @@ function buildExplainModel(
     const files = getOverlayFiles(overlaysDir, overlay.id);
     const presetDefinition =
         overlay.category === 'preset' ? loadPresetDefinition(overlaysDir, overlay.id) : null;
+    const normalizedPorts = (overlay.ports ?? []).map((port) => ({
+        raw: port,
+        token: formatExplainPortToken(port),
+    }));
     const adds = [
         overlay.description,
         ...(services.length > 0 ? [`compose services: ${services.join(', ')}`] : []),
-        ...(overlay.ports && overlay.ports.length > 0
-            ? [`ports: ${overlay.ports.join(', ')}`]
-            : []),
+        ...normalizedPorts.map(({ token }) => `port: ${token}`),
         ...(patch?.customizations?.vscode?.extensions?.length > 0
             ? [`VS Code extensions: ${patch.customizations.vscode.extensions.join(', ')}`]
             : []),
@@ -83,15 +104,13 @@ function buildExplainModel(
             ? `conflicts to watch: ${overlay.conflicts.join(', ')}`
             : null,
         services.length > 0 ? `starts sidecar services: ${services.join(', ')}` : null,
-        overlay.ports && overlay.ports.length > 0
-            ? `opens ports: ${overlay.ports.join(', ')}`
-            : null,
+        ...normalizedPorts.map(({ token }) => `opens port: ${token}`),
     ].filter((item): item is string => Boolean(item));
     const previewCommand = `cs plan --stack ${overlay.supports?.[0] ?? 'compose'} --overlays ${overlay.id}`;
     const filesServicesPorts = [
         ...(files.length > 0 ? files.map((file) => `file: ${file}`) : []),
         ...(services.length > 0 ? services.map((service) => `service: ${service}`) : []),
-        ...(overlay.ports ?? []).map((port) => `port: ${port}`),
+        ...normalizedPorts.map(({ token }) => `port: ${token}`),
     ];
 
     return {
@@ -112,6 +131,8 @@ function buildExplainModel(
         filesServicesPorts,
         tryThisNext: previewCommand,
         files,
+        ports: normalizedPorts.map(({ raw }) => raw),
+        normalizedPortTokens: normalizedPorts.map(({ token }) => token),
         devcontainerPatch: patch,
         dockerComposeServices: services,
         presetDefinition,

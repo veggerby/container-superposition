@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`cs explain` now renders rich overlay ports readably** — human-readable explain output no longer shows `[object Object]` for structured port metadata, now reuses one normalized port token across `What it adds`, `What to watch out for`, and `Files, services, and ports`, and keeps legacy numeric ports compact
 - **`services.md` no longer trips doctor reproducibility right after regen** — generated service reference output is now deterministic by default instead of embedding wall-clock time, so `cs doctor` no longer reports `services.md` as out of date immediately after `cs regen`
 - **Doctor now checks Git-tracking safety for generated output and local-only config** — `cs doctor` now warns when `devcontainerGitignore: true` output is still tracked, warns when `superposition.local.yml` is tracked, and `doctor --fix` can safely append `superposition.local.yml` to root `.gitignore` without mutating Git index
 - **Guided write review now gates init, doctor, and adopt mutations** — `init` now starts with lane or shortcut entry points and requires explicit `Write now` / `Go back` / `Abort` after preflight, `doctor --fix` now previews remediation rows before explicit `Apply fixes` / `Cancel`, and `adopt` now uses explicit `Write conversion artifacts` / `Cancel` approval with matching JSON artifact review data

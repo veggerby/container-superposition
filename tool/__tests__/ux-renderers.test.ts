@@ -97,6 +97,39 @@ describe('UX contracts', () => {
         expect(output.match(/Next step/g)?.length).toBe(1);
     });
 
+    it('explain reuses one normalized rich port token across sections and keeps flat mixed lists', async () => {
+        await explainCommand(overlaysConfig, OVERLAYS_DIR, 'postgres', {});
+        const output = logSpy.mock.calls.join('\n');
+        const token = '5432/tcp — postgres — PostgreSQL database connection';
+        expect(output).not.toContain('[object Object]');
+        expect(output).toContain(`- port: ${token}`);
+        expect(output).toContain(`- opens port: ${token}`);
+        expect(output.match(new RegExp(token, 'g'))?.length).toBe(3);
+        expect(output.indexOf('Best for')).toBeLessThan(
+            output.indexOf('Why pick this over nearby options')
+        );
+        expect(output.indexOf('Why pick this over nearby options')).toBeLessThan(
+            output.indexOf('What it adds')
+        );
+        expect(output.indexOf('What it adds')).toBeLessThan(
+            output.indexOf('What to watch out for')
+        );
+        expect(output.indexOf('What to watch out for')).toBeLessThan(output.indexOf('Depends on'));
+        expect(output.indexOf('Depends on')).toBeLessThan(output.indexOf('Conflicts with'));
+        expect(output.indexOf('Conflicts with')).toBeLessThan(
+            output.indexOf('Preview this change')
+        );
+        expect(output.indexOf('Preview this change')).toBeLessThan(
+            output.indexOf('Files, services, and ports')
+        );
+        expect(output.indexOf('Files, services, and ports')).toBeLessThan(
+            output.indexOf('Try this next')
+        );
+        expect(output).toContain('- file: .env.example');
+        expect(output).toContain('- file: README.md');
+        expect(output).toContain('- service: postgres');
+    });
+
     it('plan shows summary-first text and diff headline before unified diff', async () => {
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ux-plan-'));
         try {

@@ -129,15 +129,16 @@ _No specs yet._
 
 ### CLI-UX
 
-| Spec                                                                                           | Title                                            | Status |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------ |
-| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                       | Verbose Plan Graph                               | Final  |
-| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                             | Doctor Overlay Dependency Resolution Check       | Draft  |
-| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md)   | Doctor Compose / Port Cross-Validation           | Draft  |
-| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                           | Doctor `.env.example` Drift Detection            | Draft  |
-| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                   | Doctor Reproducibility Check                     | Draft  |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)   | Discovery Surface and Canonical Docs Alignment   | Draft  |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md) | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft  |
+| Spec                                                                                             | Title                                            | Status      |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ----------- |
+| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                         | Verbose Plan Graph                               | Final       |
+| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                               | Doctor Overlay Dependency Resolution Check       | Draft       |
+| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md)     | Doctor Compose / Port Cross-Validation           | Draft       |
+| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                             | Doctor `.env.example` Drift Detection            | Draft       |
+| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                     | Doctor Reproducibility Check                     | Draft       |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)     | Discovery Surface and Canonical Docs Alignment   | Draft       |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)   | Preset-Led Onboarding for Common Jobs-to-be-Done | Draft       |
+| [046-explain-port-rendering-and-readability](046-explain-port-rendering-and-readability/spec.md) | Explain Port Rendering and Readability Polish    | Implemented |
 
 ---
 
