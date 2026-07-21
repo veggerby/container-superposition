@@ -15,15 +15,16 @@ perform repo-aware overlay discovery.
 
 Requirements:
 
-1. Search existing overlays, presets, generated overlay docs, and related READMEs first.
-2. Classify the result as one of:
+1. If the request is too vague to classify confidently, ask the smallest focused blocker questions first or recommend `/overlay-spec` as the requirements-capture entrypoint.
+2. Search existing overlays, presets, generated overlay docs, and related READMEs first.
+3. Classify the result as one of:
     - existing overlay match
     - existing preset match
     - extend an existing overlay
     - new overlay needed
     - clarification needed
-3. If a new overlay or extension is needed, output a **short design description** only.
-4. End with exactly one explicit question asking whether to start `/overlay-write-loop`.
+4. If a new overlay or extension is needed, output a **short design description** only.
+5. End with exactly one explicit question asking whether to start `/overlay-write-loop`.
 
 Output shape:
 

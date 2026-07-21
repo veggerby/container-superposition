@@ -15,6 +15,8 @@ You are an expert at creating overlays for the container-superposition project. 
 
 Create a complete, correct overlay in `overlays/<id>/` given a description of what it should provide.
 
+Prefer an approved brief from `/overlay-spec` or `/overlay-discover`. If the request is still vague, report that the requirements brief should be clarified before writing files.
+
 ## Required files
 
 Every overlay needs:

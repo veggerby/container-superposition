@@ -7,6 +7,8 @@ description: Discover whether an existing overlay or preset already solves a sta
 
 Use this skill when a contributor starts from a problem statement rather than a known overlay id.
 
+If the request is only a rough technology name or the desired overlay shape is still unclear, start with `/skill:overlay-requirements-capture` or `/overlay-spec` first.
+
 Examples:
 
 - "I need an overlay for a MongoDB database"
@@ -152,4 +154,5 @@ If implementation begins after approval, follow `overlay-development` validation
 
 ## Related skills
 
+- `overlay-requirements-capture` — use first when the overlay idea still needs a focused requirements interview
 - `overlay-development` — use once discovery turns into actual overlay creation or modification
