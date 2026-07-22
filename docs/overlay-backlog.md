@@ -13,10 +13,9 @@ Capture early overlay ideas here when they are useful to preserve for discovery 
 
 Multiple overlays plus one existing-overlay extension:
 
-1. `copilot-cli`
-2. `ontop`
-3. `comunica`
-4. extend `fuseki` with generic RDF seed loading
+1. `ontop`
+2. `comunica`
+3. extend `fuseki` with generic RDF seed loading
 
 ### Why this backlog item exists
 
@@ -37,51 +36,7 @@ The repo already contains a working semantic-web playground under `data/graph/**
 
 ---
 
-## 1. `copilot-cli`
-
-### Intent
-
-Add a lightweight overlay that installs a standalone Copilot CLI/package for terminal-first AI assistance workflows.
-
-### Likely overlay shape
-
-- **shape**: single overlay
-- **likely support**: `[]`
-- **category**: `dev`
-- **service model**: no sidecar service expected
-
-### Minimum useful capability
-
-- install the CLI in the devcontainer
-- expose a simple verification command
-- document auth/setup expectations without hardcoding project-specific secrets
-
-### Likely files/artifacts
-
-- `overlay.yml`
-- `devcontainer.patch.json`
-- `README.md`
-- optional `setup.sh`
-- optional `verify.sh`
-
-### Likely parameters
-
-- package/version/channel
-- optional auth mode or host integration note
-
-### Validation expectations
-
-- `command -v <cli>` succeeds
-- version/help command succeeds
-
-### Open implementation questions
-
-- exact package name and distribution channel
-- whether host auth reuse is expected or whether the overlay should stay install-only
-
----
-
-## 2. `ontop`
+## 1. `ontop`
 
 ### Intent
 
@@ -169,7 +124,7 @@ From `data/graph/docs/ontop.md`:
 
 ---
 
-## 3. `comunica`
+## 2. `comunica`
 
 ### Intent
 
@@ -233,7 +188,7 @@ The overlay should at minimum decide which of these user-facing commands are ins
 
 ---
 
-## 4. Extend `fuseki` with generic RDF seed loading
+## 3. Extend `fuseki` with generic RDF seed loading
 
 ### Intent
 
@@ -310,7 +265,6 @@ The working `data/graph/**` example implies this stack shape:
 - `fuseki` acts as a triplestore and SPARQL server for materialized RDF
 - `ontop` exposes a SPARQL endpoint over live relational data
 - `comunica` can act as the terminal-first federation/query layer across one or more endpoints
-- `copilot-cli` is orthogonal developer tooling for working in this space
 
 ### Acceptance signals
 

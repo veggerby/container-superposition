@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **GitHub Copilot CLI overlay** — the overlay catalog now includes `copilot-cli`, a terminal-first GitHub Copilot CLI install for devcontainers with configurable npm versioning, post-create installation, verification guidance, and authentication setup via `copilot login` or supported token environment variables
+
 - **Root Taskfile contributor workflow** — the repository now ships a repo-root `Taskfile.yml` with thin wrappers over the existing npm scripts plus mandatory `task validate` and broader `task validate:generated` flows, so contributors have one discoverable entrypoint that runs `lint:fix` before `lint` and aligns local validation guidance with existing CI contracts
 
 - **Named multi-instance compose overlays for repeatable services** — `superposition.yml` now accepts mixed `overlays:` entries so compose projects can keep legacy string singletons and add named object-form instances with per-entry parameter overrides. Top-level `parameters:` remain the shared default layer, manifests now record `overlaySelections` as a compatibility receipt for repeated intent, interactive `init` safely bails out instead of flattening existing named instances, and v1 repeatability is enabled for the `postgres` overlay only.

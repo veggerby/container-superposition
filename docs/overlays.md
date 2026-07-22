@@ -638,6 +638,16 @@ Git LFS, GitHub CLI, GPG/SSH support for secure Git operations
 | **Category** | dev                                    |
 | **Tags**     | `dev`, `git`, `security`, `ssh`, `gpg` |
 
+### GitHub Copilot CLI (`copilot-cli`)
+
+GitHub Copilot CLI for terminal-first AI coding assistance
+
+| Property     | Value                                   |
+| ------------ | --------------------------------------- |
+| **Category** | dev                                     |
+| **Requires** | `nodejs`                                |
+| **Tags**     | `dev`, `ai`, `github`, `copilot`, `cli` |
+
 ### gRPC Tools (`grpc-tools`)
 
 Protocol Buffers compiler, Buf, and grpcurl for gRPC development
