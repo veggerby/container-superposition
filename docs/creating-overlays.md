@@ -131,7 +131,14 @@ overlays/my-overlay/
     └── additional.json
 ```
 
-If an overlay needs behavior-level acceptance coverage, put `.feature` files under `overlays/<id>/tests/behave/**/*.feature`. Shared Behave steps stay repo-owned under `tests/behave/`; overlays do not add their own step-definition modules in this first workflow slice.
+If an overlay needs behavior-level acceptance coverage, put `.feature` files under `overlays/<id>/tests/behave/**/*.feature`. Shared Behave steps stay repo-owned under `tests/behave/`; overlays do not add their own step-definition modules in this workflow.
+
+For workspace setup, use:
+
+- `Given an inline workspace fixture:` for small scenario-local setups that are clearer when the authored `superposition.yml`, `.superposition.yml`, `.env`, or small config files live directly in the `.feature` file
+- `Given a workspace fixture "..."` for reusable or larger fixture trees under `tests/behave/fixtures/` or `overlays/<id>/tests/behave/fixtures/`
+
+Inline fixtures stay file-first: the manifest only declares `files`, and project intent such as `stack`, `overlays`, `env`, `mounts`, or `outputPath` belongs inside authored file content like `files.superposition.yml.yaml`. Hybrid "named fixture + inline patch" setup is intentionally unsupported in this slice.
 
 For structured generated output, use the shared semantic assertions for JSON, YAML/Compose, scripts, exports, PATH ordering, extensions, and config values. Reserve raw substring checks for genuinely unstructured text.
 
@@ -626,7 +633,7 @@ npm run test:bdd -- overlays/my-overlay/tests/behave
  task test:bdd
 ```
 
-Keep step code centralized in `tests/behave/steps/`. If the scenario needs a new shared step, add it there in the same change. Prefer exact structured assertions over substring checks whenever the generated output is machine-readable.
+Keep step code centralized in `tests/behave/steps/`. If the scenario needs a new shared step, add it there in the same change. Prefer exact structured assertions over substring checks whenever the generated output is machine-readable, and promote repeated inline setup into a reusable fixture directory once scenario-local clarity stops outweighing reuse.
 
 ### 5. Verify Output
 

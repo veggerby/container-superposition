@@ -26,6 +26,40 @@ Feature: Core generation workflow
       ${containerEnv:HOME}/.local/share/pnpm:${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}
       """
 
+  Scenario: Regen materializes project-file-first inline fixture content
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: plain
+            overlays:
+              - nodejs
+            env:
+              APP_ENV: test
+            mounts:
+              - source=${localWorkspaceFolder}/.cache,target=/workspace/.cache,type=bind
+            outputPath: ./.devcontainer
+        .env:
+          text: |
+            APP_ENV=test
+      """
+    When I run the CLI command
+      """
+      regen
+      """
+    Then the command exits successfully
+    And the file ".env" should exist
+    And the file ".env" should contain "APP_ENV=test"
+    And the JSON file ".devcontainer/devcontainer.json" should have value at "remoteEnv.APP_ENV" equal:
+      """
+      test
+      """
+    And the JSON file ".devcontainer/devcontainer.json" should contain array item at "mounts" equal:
+      """
+      source=${localWorkspaceFolder}/.cache,target=/workspace/.cache,type=bind
+      """
+
   Scenario: Regen materializes semantic compose output for postgres
     Given a workspace fixture "compose-postgres"
     When I run the CLI command

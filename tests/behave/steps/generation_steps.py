@@ -10,14 +10,33 @@ from behave import given, then, when
 
 
 _BDD_ASSERT_SCRIPT = Path('scripts') / 'bdd-assert.ts'
+_BDD_INLINE_FIXTURE_SCRIPT = Path('scripts') / 'bdd-inline-fixture.ts'
 
 @given('a workspace fixture "{fixture_name}"')
 def step_given_workspace_fixture(context, fixture_name):
     fixture_path = _find_workspace_fixture(context, fixture_name)
 
-    context.workspace_parent = Path(tempfile.mkdtemp(prefix='cs-behave-'))
-    context.workspace_dir = context.workspace_parent / 'workspace'
-    shutil.copytree(fixture_path, context.workspace_dir)
+    _create_workspace_dir(context)
+    shutil.copytree(fixture_path, context.workspace_dir, dirs_exist_ok=True)
+
+
+@given('an inline workspace fixture')
+def step_given_inline_workspace_fixture(context):
+    manifest_text = _require_step_text(context)
+    _create_workspace_dir(context)
+
+    bridge_result = _invoke_bridge(
+        context,
+        _BDD_INLINE_FIXTURE_SCRIPT,
+        {
+            'workspaceRoot': str(context.workspace_dir),
+            'manifestText': manifest_text,
+        },
+        'Inline workspace fixture bridge produced no result.',
+    )
+
+    if not bridge_result.get('ok'):
+        raise AssertionError(bridge_result.get('message') or 'Inline workspace fixture failed.')
 
 
 @when('I run the CLI command')
@@ -266,14 +285,40 @@ def step_then_script_path_includes_segment(context, relative_path, segment):
 
 
 def _assert_with_bridge(context, assertion):
-    payload = {
-        **assertion,
-        'workspaceRoot': str(context.workspace_dir),
-    }
+    bridge_result = _invoke_bridge(
+        context,
+        _BDD_ASSERT_SCRIPT,
+        {
+            **assertion,
+            'workspaceRoot': str(context.workspace_dir),
+        },
+        'BDD assertion bridge produced no result.',
+    )
+    if not bridge_result.get('ok'):
+        raise AssertionError(bridge_result.get('message') or 'BDD assertion failed.')
+
+
+
+def _require_step_text(context):
+    text = (context.text or '').strip()
+    if not text:
+        raise AssertionError('Expected a step doc string with the structured value to compare.')
+    return text
+
+
+
+def _create_workspace_dir(context):
+    context.workspace_parent = Path(tempfile.mkdtemp(prefix='cs-behave-'))
+    context.workspace_dir = context.workspace_parent / 'workspace'
+    context.workspace_dir.mkdir(parents=True, exist_ok=True)
+
+
+
+def _invoke_bridge(context, script_path, payload, empty_result_message):
     command = [
         context.node_binary,
         str(context.repo_root / 'node_modules' / 'tsx' / 'dist' / 'cli.mjs'),
-        str(context.repo_root / _BDD_ASSERT_SCRIPT),
+        str(context.repo_root / script_path),
     ]
     result = subprocess.run(
         command,
@@ -285,21 +330,9 @@ def _assert_with_bridge(context, assertion):
     )
 
     if not result.stdout.strip():
-        raise AssertionError(
-            _command_failure_message(result, 'BDD assertion bridge produced no result.')
-        )
+        raise AssertionError(_command_failure_message(result, empty_result_message))
 
-    bridge_result = json.loads(result.stdout.strip())
-    if result.returncode != 0 or not bridge_result.get('ok'):
-        raise AssertionError(bridge_result.get('message') or 'BDD assertion failed.')
-
-
-
-def _require_step_text(context):
-    text = (context.text or '').strip()
-    if not text:
-        raise AssertionError('Expected a step doc string with the structured value to compare.')
-    return text
+    return json.loads(result.stdout.strip())
 
 
 
