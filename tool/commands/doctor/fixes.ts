@@ -774,7 +774,7 @@ async function executeDependencyFix(
         overlaysConfig
     );
     const overlayMap = new Map(overlaysConfig.overlays.map((overlay) => [overlay.id, overlay]));
-    const toAdd: string[] = [];
+    const toAdd: OverlayId[] = [];
     const toProcess = [...selectedOverlays];
     const processed = new Set<string>();
     const current = new Set<string>(selectedOverlays);
@@ -788,7 +788,7 @@ async function executeDependencyFix(
         for (const requiredId of definition.requires as string[]) {
             if (!current.has(requiredId)) {
                 current.add(requiredId);
-                toAdd.push(requiredId);
+                toAdd.push(requiredId as OverlayId);
                 toProcess.push(requiredId as OverlayId);
             }
         }
