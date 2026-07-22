@@ -195,6 +195,7 @@ _No specs yet._
 | [042-global-default-configuration](042-global-default-configuration/spec.md)                                             | User-Scoped Global Defaults with Stack-Aware Local Templates | Final       |
 | [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run       | Final       |
 | [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                | Implemented |
+| [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage and Overlay Feature Discovery            | Implemented |
 
 ### DOCS-API
 
@@ -206,7 +207,9 @@ _No specs yet._
 
 ### INFRA-TEST
 
-_No specs yet._
+| Spec                                                                         | Title                                             | Status      |
+| ---------------------------------------------------------------------------- | ------------------------------------------------- | ----------- |
+| [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md) | Behave BDD Coverage and Overlay Feature Discovery | Implemented |
 
 ### INFRA-LINT
 

@@ -33,6 +33,7 @@ describe('Taskfile contributor workflow', () => {
             lint: expect.any(Object),
             'lint:fix': expect.any(Object),
             test: expect.any(Object),
+            'test:bdd': expect.any(Object),
             build: expect.any(Object),
             'docs:generate': expect.any(Object),
             'schema:generate': expect.any(Object),
@@ -51,6 +52,7 @@ describe('Taskfile contributor workflow', () => {
         expect(taskfile.tasks.lint.cmds).toEqual(['npm run lint']);
         expect(taskfile.tasks['lint:fix'].cmds).toEqual(['npm run lint:fix']);
         expect(taskfile.tasks.test.cmds).toEqual(['npm test']);
+        expect(taskfile.tasks['test:bdd'].cmds).toEqual(['npm run test:bdd']);
         expect(taskfile.tasks.build.cmds).toEqual(['npm run build']);
         expect(taskfile.tasks['docs:generate'].cmds).toEqual(['npm run docs:generate']);
         expect(taskfile.tasks['schema:generate'].cmds).toEqual(['npm run schema:generate']);
@@ -70,6 +72,7 @@ describe('Taskfile contributor workflow', () => {
         ]);
         expect(taskfile.tasks['validate:generated'].cmds).toEqual([
             { task: 'validate' },
+            { task: 'test:bdd' },
             { task: 'docs:generate' },
             { task: 'schema:generate' },
             { task: 'regen' },

@@ -121,7 +121,7 @@ Start here:
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/veggerby/container-superposition/blob/main/CONTRIBUTING.md)
+See [CONTRIBUTING.md](https://github.com/veggerby/container-superposition/blob/main/CONTRIBUTING.md). Overlay and generated-output behavior changes now use the shared Behave workflow via `npm run test:bdd` / `task test:bdd`, with `task validate:generated` as the full pre-handoff path.
 
 ## License
 

@@ -17,7 +17,7 @@ This repository uses Container Superposition to generate its own development env
 
 1. Open the repository in VS Code
 2. Click "Reopen in Container" when prompted
-3. Everything is pre-configured: Node.js, TypeScript, Docker, Git tools
+3. Everything is pre-configured: Node.js, TypeScript, Docker, Git tools, and Python 3.12 for the repo-owned Behave suite
 
 The devcontainer configuration is in `.devcontainer/` and is regenerated from the repository-root `superposition.yml`:
 
@@ -32,6 +32,7 @@ npm install       # Install dependencies
 npm run build     # Compile TypeScript
 npm run init      # Run the tool
 npm test          # Run tests
+npm run test:bdd  # Run the Behave suite (requires python3)
 ```
 
 ## Mandatory Validation Before Handoff
@@ -44,6 +45,15 @@ task validate
 
 This is mandatory for contributor handoff/completion. It runs `lint:fix` before `lint`, then runs `npm test`.
 
+For focused behavior-level iteration, run the shared Behave entrypoint and optionally pass one repo or overlay feature path:
+
+```bash
+npm run test:bdd
+npm run test:bdd -- tests/behave/features/core-generation.feature
+npm run test:bdd -- overlays/task/tests/behave
+task test:bdd
+```
+
 When your change touches generated artifacts or generated-output behavior, run the broader validation flow instead (or in addition, if you prefer the explicit individual commands):
 
 ```bash
@@ -54,6 +64,7 @@ Use that broader flow when any of the following apply:
 
 - overlays changed → `docs:generate` is required
 - overlays or `ProjectConfigSelection` types changed → `schema:generate` is required
+- overlay behavior or generated-output behavior changed → `test:bdd` is required and already included in `task validate:generated`
 - user-visible or tooling changes affect generated output → `init -- regen` and `init -- doctor` are required
 
 The Taskfile is a thin convenience layer only; the existing npm scripts and CI workflows remain the source of truth.
@@ -395,6 +406,18 @@ npm test
 task validate
 ```
 
+### Run Behave BDD Tests
+
+```bash
+npm run test:bdd
+npm run test:bdd -- tests/behave/features/core-generation.feature
+npm run test:bdd -- overlays/task/tests/behave
+# or use the matching Taskfile wrapper:
+task test:bdd
+```
+
+Overlay-contributed feature files live under `overlays/<id>/tests/behave/**/*.feature`. Shared step code stays repo-owned under `tests/behave/`.
+
 ### Run Smoke Tests
 
 ```bash
@@ -438,7 +461,7 @@ The repository uses GitHub Actions for automated testing and validation.
 
 ### Workflow: Validate Overlays
 
-**Triggers:** Pull requests that modify overlays, tool code, or scripts
+**Triggers:** Pull requests that modify overlays, repo-owned BDD harness files, tool code, scripts, or BDD invocation/provisioning surfaces
 
 **File:** `.github/workflows/validate-overlays.yml`
 
@@ -446,7 +469,8 @@ The repository uses GitHub Actions for automated testing and validation.
 
 1. Run `doctor` command to check environment
 2. Run unit tests (`npm test`)
-3. Run smoke tests (`npm run test:smoke`)
+3. Run Behave BDD tests (`npm run test:bdd`)
+4. Run smoke tests (`npm run test:smoke`)
 
 This ensures all overlay changes are validated before merge.
 
@@ -486,6 +510,7 @@ Before pushing changes, run the required contributor validation first, then any 
 task validate
 
 # Or use the broader generated-artifact flow when its triggers apply
+# (includes npm test, npm run test:bdd, docs/schema regen, regen, and doctor)
 task validate:generated
 
 # Install dependencies
@@ -493,6 +518,9 @@ npm ci
 
 # Build TypeScript
 npm run build
+
+# Run the focused BDD suite
+npm run test:bdd
 
 # Run smoke tests
 npm run test:smoke

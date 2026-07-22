@@ -124,10 +124,14 @@ overlays/my-overlay/
 ├── docker-compose.yml          # Optional: Service definition
 ├── .env.example                # Optional: Environment variables
 ├── README.md                   # Optional: Documentation
+├── tests/behave/               # Optional: Overlay-owned .feature files + fixtures
+│   └── my-overlay.feature
 ├── my-config.yaml              # Optional: Configuration files
 └── config/                     # Optional: Configuration directory
     └── additional.json
 ```
+
+If an overlay needs behavior-level acceptance coverage, put `.feature` files under `overlays/<id>/tests/behave/**/*.feature`. Shared Behave steps stay repo-owned under `tests/behave/`; overlays do not add their own step-definition modules in this first workflow slice.
 
 ## devcontainer.patch.json
 
@@ -610,7 +614,19 @@ npm run init -- --stack compose --my-overlay --postgres --redis
 npm run init -- --stack compose --language nodejs --my-overlay --postgres
 ```
 
-### 4. Verify Output
+### 4. Add Overlay BDD Coverage When Behavior Changes
+
+If the overlay adds or changes observable generation behavior, add or update a `.feature` file under `overlays/<id>/tests/behave/` and run the focused suite while iterating:
+
+```bash
+npm run test:bdd -- overlays/my-overlay/tests/behave
+# or
+ task test:bdd
+```
+
+Keep step code centralized in `tests/behave/steps/`. If the scenario needs a new shared step, add it there in the same change.
+
+### 5. Verify Output
 
 Check that:
 
@@ -620,7 +636,7 @@ Check that:
 - [ ] Config files are copied correctly
 - [ ] Services start in correct order
 
-### 5. Test In Container
+### 6. Test In Container
 
 ```bash
 cd output-directory
@@ -684,6 +700,9 @@ CLI tools without services:
 Before submitting an overlay:
 
 - [ ] devcontainer.patch.json validates against schema
+- [ ] Any changed overlay behavior has matching `.feature` coverage under `overlays/<id>/tests/behave/` when warranted
+- [ ] Focused BDD iteration was run with `npm run test:bdd -- overlays/<id>/tests/behave` when overlay behavior changed
+- [ ] Full pre-handoff validation used `task validate:generated` when overlay or generated-output behavior changed
 - [ ] Packages available in standard repos use `cross-distro-packages` feature (not `apt-get install` in setup.sh)
 - [ ] `setup.sh` (if present) sources `setup-utils.sh` and uses `apt_install`/`install_binary`/`detect_arch`
 - [ ] docker-compose.yml uses version "3.8" and the logical `devnet` network key

@@ -15,6 +15,7 @@
 - User-visible changes are recorded under `CHANGELOG.md` in `[Unreleased]`.
 - If overlays changed, run `task validate:generated` or at minimum `npm run docs:generate` and commit the updated generated overlay reference docs.
 - If overlays or project-config schema types changed, run `task validate:generated` or at minimum `npm run schema:generate` and commit updated schema outputs.
+- If overlay behavior or generated-output behavior changed, run `task test:bdd` during iteration and keep relevant Behave scenarios updated.
 - If user-visible or tooling changes affect generated output, run `task validate:generated` or at minimum `npm run init -- regen` from project root.
 - Before merge, run `task validate:generated` when generated-output triggers apply, or at minimum `npm run init -- doctor`; no `Reproducibility` errors are allowed.
 
@@ -62,7 +63,7 @@
 
 - Preserve source-vs-compiled path resolution behavior where needed.
 - Validate both focused tests and broader CLI regressions when behavior spans multiple commands.
-- Keep public command contracts, workflow docs, and guidance aligned, including the mandatory `task validate` / `task validate:generated` contributor flow.
+- Keep public command contracts, workflow docs, and guidance aligned, including the mandatory `task validate` / `task validate:generated` contributor flow and the focused `task test:bdd` iteration path.
 
 ### Docs and workflow changes
 

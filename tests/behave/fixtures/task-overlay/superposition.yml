@@ -1,0 +1,4 @@
+stack: plain
+overlays:
+    - task
+outputPath: ./.devcontainer

@@ -21,6 +21,7 @@ Prefer project agents for large tasks:
 Focus edits on:
 
 - `overlays/**`
+- `tests/behave/**` for shared Behave steps and repo-level feature scenarios
 - `docs/overlays.md` after `npm run docs:generate`
 - `tool/schema/superposition.schema.json` after `npm run schema:generate`
 - `tool/schema/types.ts` and `tool/questionnaire/composer.ts` only when adding/changing overlay categories or selection types
@@ -41,6 +42,13 @@ Compose overlays also need:
 - `overlays/<id>/docker-compose.yml`
 - `.env.example` when parameters are declared
 - optional `setup.sh` / `verify.sh`
+
+Optional overlay-owned BDD coverage lives under:
+
+- `overlays/<id>/tests/behave/**/*.feature`
+- supporting fixture data under the same `tests/behave/` subtree
+
+Keep executable Behave environment and step code repo-owned under `tests/behave/`.
 
 ## Manifest rules
 
@@ -106,10 +114,12 @@ After overlay changes:
 npm run lint:fix
 npm run lint
 npm test
+npm run test:bdd -- overlays/<id>/tests/behave # when overlay behavior changes
 npm run docs:generate
 npm run schema:generate # if overlays or selection types changed
 npm run init -- regen # if generated output changes
 npm run init -- doctor
+# or use task validate:generated for the full pre-handoff flow
 ```
 
 No reproducibility errors before merge.

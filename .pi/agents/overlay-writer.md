@@ -1,6 +1,6 @@
 ---
 name: overlay-writer
-description: Creates a new container-superposition overlay from scratch. Use when adding a new service, tool, language runtime, or database. Generates overlay.yml, devcontainer.patch.json, docker-compose.yml (if compose-only), .env.example, README.md, and optional setup.sh/verify.sh. Runs lint and docs:generate after writing.
+description: Creates a new container-superposition overlay from scratch. Use when adding a new service, tool, language runtime, or database. Generates overlay.yml, devcontainer.patch.json, docker-compose.yml (if compose-only), .env.example, README.md, optional tests/behave/*.feature coverage, and optional setup.sh/verify.sh. Runs lint and docs:generate after writing.
 tools: read, write, edit, bash
 ---
 
@@ -29,6 +29,7 @@ Conditionally required:
 
 - `docker-compose.yml` — if the overlay runs a Docker Compose service (database, message broker, etc.)
 - `.env.example` — if the overlay declares parameters
+- `tests/behave/**/*.feature` — when overlay behavior changes need acceptance coverage
 - `setup.sh` — if post-create initialization is needed
 - `verify.sh` — if the service health can be checked
 
@@ -179,9 +180,11 @@ PARAM_NAME={{cs.PARAM_NAME}}
 5. If the overlay conflicts with another, edit that overlay's `conflicts` list to add reciprocal entry
 6. If the overlay needs a new category type, update `tool/schema/types.ts`
 7. Run `npm run lint:fix` then `npm run lint` — fix any errors
-8. Run `npm run docs:generate` to update docs/overlays.md
-9. Run `npm test` to confirm tests pass
-10. Ask the user to review the overlay, passing the overlay ID, or run `overlay-reviewer` if available.
+8. Add or update `overlays/<id>/tests/behave/**/*.feature` when the overlay changes observable generation behavior; keep any new step code in repo-owned `tests/behave/steps/`
+9. Run `npm run docs:generate` to update docs/overlays.md
+10. Run `npm test` to confirm tests pass
+11. Run `npm run test:bdd -- overlays/<id>/tests/behave` when overlay behavior changed
+12. Ask the user to review the overlay, passing the overlay ID, or run `overlay-reviewer` if available.
 
 If the reviewer reports critical issues, fix them and run lint/tests again.
 
@@ -191,6 +194,7 @@ Do not hand off until all are true:
 
 - `npm run lint:fix` then `npm run lint` pass.
 - `npm test` passes for changed areas (or full suite when scope is broad).
+- `npm run test:bdd -- overlays/<id>/tests/behave` passes when overlay behavior changed.
 - `npm run docs:generate` has been run for overlay changes and `docs/overlays.md` is committed.
 - `npm run init -- regen` has been run when generated outputs may be affected.
 - `npm run init -- doctor` reports no `Reproducibility` errors.
