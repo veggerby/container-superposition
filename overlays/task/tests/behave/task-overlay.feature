@@ -7,4 +7,8 @@ Feature: Task overlay behavior
       """
     Then the command exits successfully
     And the file ".devcontainer/scripts/setup-task.sh" should exist
-    And the JSON file ".devcontainer/devcontainer.json" should have property "postCreateCommand.setup-task" equal "bash .devcontainer/scripts/setup-task.sh"
+    And the JSON file ".devcontainer/devcontainer.json" should have value at "postCreateCommand" equal:
+      """
+      setup-task: bash .devcontainer/scripts/setup-task.sh
+      """
+    And the script ".devcontainer/scripts/setup-task.sh" should assign "TASK_VERSION" equal "${TASK_VERSION:-v3.45.4}"

@@ -91,6 +91,7 @@ Also check cross-cutting concerns: conflict reciprocity, parameter naming, port 
 - [ ] `.feature` files live under `overlays/<id>/tests/behave/`
 - [ ] No overlay-owned Behave step-definition modules were introduced
 - [ ] Shared-step needs are routed to repo-owned `tests/behave/steps/`
+- [ ] Structured generated-output checks use shared semantic assertions instead of substring checks when the output is machine-readable
 
 ### setup.sh / verify.sh (if present)
 

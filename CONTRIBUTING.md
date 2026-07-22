@@ -418,6 +418,8 @@ task test:bdd
 
 Overlay-contributed feature files live under `overlays/<id>/tests/behave/**/*.feature`. Shared step code stays repo-owned under `tests/behave/`.
 
+For generated JSON, YAML/Compose, scripts, PATH/export behavior, VS Code extensions, and config values, prefer the shared semantic assertions over raw `should contain` substring checks. Keep substring checks as the fallback for genuinely unstructured text only.
+
 ### Run Smoke Tests
 
 ```bash

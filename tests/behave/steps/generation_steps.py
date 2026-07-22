@@ -9,6 +9,8 @@ from pathlib import Path
 from behave import given, then, when
 
 
+_BDD_ASSERT_SCRIPT = Path('scripts') / 'bdd-assert.ts'
+
 @given('a workspace fixture "{fixture_name}"')
 def step_given_workspace_fixture(context, fixture_name):
     fixture_path = _find_workspace_fixture(context, fixture_name)
@@ -68,21 +70,237 @@ def step_then_file_should_contain(context, relative_path, expected_text):
 
 @then('the JSON file "{relative_path}" should have property "{property_path}" equal "{expected_value}"')
 def step_then_json_property_equals(context, relative_path, property_path, expected_value):
-    file_path = _workspace_path(context, relative_path)
-    document = json.loads(file_path.read_text(encoding='utf-8'))
-    actual_value = document
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'document-value-equals',
+            'fileType': 'json',
+            'relativePath': relative_path,
+            'selector': property_path,
+            'expectedValueText': json.dumps(expected_value),
+        },
+    )
 
-    for key in property_path.split('.'):
-        if not isinstance(actual_value, dict) or key not in actual_value:
-            raise AssertionError(
-                f'Missing property {property_path!r} in JSON file {relative_path}. Current value: {actual_value!r}'
-            )
-        actual_value = actual_value[key]
 
-    if str(actual_value) != expected_value:
+@then('the JSON file "{relative_path}" should have value at "{selector}" equal')
+def step_then_json_value_equals(context, relative_path, selector):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'document-value-equals',
+            'fileType': 'json',
+            'relativePath': relative_path,
+            'selector': selector,
+            'expectedValueText': _require_step_text(context),
+        },
+    )
+
+
+@then('the YAML file "{relative_path}" should have value at "{selector}" equal')
+def step_then_yaml_value_equals(context, relative_path, selector):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'document-value-equals',
+            'fileType': 'yaml',
+            'relativePath': relative_path,
+            'selector': selector,
+            'expectedValueText': _require_step_text(context),
+        },
+    )
+
+
+@then('the JSON file "{relative_path}" should contain array item at "{selector}" equal')
+def step_then_json_array_contains_item(context, relative_path, selector):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'document-array-contains-item',
+            'fileType': 'json',
+            'relativePath': relative_path,
+            'selector': selector,
+            'expectedValueText': _require_step_text(context),
+        },
+    )
+
+
+@then('the YAML file "{relative_path}" should contain array item at "{selector}" equal')
+def step_then_yaml_array_contains_item(context, relative_path, selector):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'document-array-contains-item',
+            'fileType': 'yaml',
+            'relativePath': relative_path,
+            'selector': selector,
+            'expectedValueText': _require_step_text(context),
+        },
+    )
+
+
+@then('the Compose file "{relative_path}" should define service "{service}"')
+def step_then_compose_defines_service(context, relative_path, service):
+    _assert_with_bridge(
+        context,
+        {'kind': 'compose-service-exists', 'relativePath': relative_path, 'service': service},
+    )
+
+
+@then('the Compose file "{relative_path}" should have service "{service}" environment "{variable}" equal "{expected_value}"')
+def step_then_compose_service_environment_equals(
+    context, relative_path, service, variable, expected_value
+):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'compose-service-environment-equals',
+            'relativePath': relative_path,
+            'service': service,
+            'variable': variable,
+            'expectedValue': expected_value,
+        },
+    )
+
+
+@then('the Compose file "{relative_path}" should have service "{service}" port "{port}"')
+def step_then_compose_service_has_port(context, relative_path, service, port):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'compose-service-has-port',
+            'relativePath': relative_path,
+            'service': service,
+            'port': port,
+        },
+    )
+
+
+@then('the Compose file "{relative_path}" should have service "{service}" on network "{network}"')
+def step_then_compose_service_on_network(context, relative_path, service, network):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'compose-service-on-network',
+            'relativePath': relative_path,
+            'service': service,
+            'network': network,
+        },
+    )
+
+
+@then('the Compose file "{relative_path}" should have network "{network}" named "{expected_name}"')
+def step_then_compose_network_named(context, relative_path, network, expected_name):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'compose-network-named',
+            'relativePath': relative_path,
+            'network': network,
+            'expectedName': expected_name,
+        },
+    )
+
+
+@then('the script "{relative_path}" should export "{variable}" equal "{expected_value}"')
+def step_then_script_exports_value(context, relative_path, variable, expected_value):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'script-export-equals',
+            'relativePath': relative_path,
+            'variable': variable,
+            'expectedValue': expected_value,
+        },
+    )
+
+
+@then('the script "{relative_path}" should assign "{variable}" equal "{expected_value}"')
+def step_then_script_assigns_value(context, relative_path, variable, expected_value):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'script-assignment-equals',
+            'relativePath': relative_path,
+            'variable': variable,
+            'expectedValue': expected_value,
+        },
+    )
+
+
+@then('the script "{relative_path}" should add PATH segment "{segment}" before "{other_segment}"')
+def step_then_script_path_segment_before(context, relative_path, segment, other_segment):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'script-path-segment-before',
+            'relativePath': relative_path,
+            'segment': segment,
+            'otherSegment': other_segment,
+        },
+    )
+
+
+@then('the script "{relative_path}" should add PATH segment "{segment}" after "{other_segment}"')
+def step_then_script_path_segment_after(context, relative_path, segment, other_segment):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'script-path-segment-after',
+            'relativePath': relative_path,
+            'segment': segment,
+            'otherSegment': other_segment,
+        },
+    )
+
+
+@then('the script "{relative_path}" should include PATH segment "{segment}"')
+def step_then_script_path_includes_segment(context, relative_path, segment):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'script-path-includes-segment',
+            'relativePath': relative_path,
+            'segment': segment,
+        },
+    )
+
+
+def _assert_with_bridge(context, assertion):
+    payload = {
+        **assertion,
+        'workspaceRoot': str(context.workspace_dir),
+    }
+    command = [
+        context.node_binary,
+        str(context.repo_root / 'node_modules' / 'tsx' / 'dist' / 'cli.mjs'),
+        str(context.repo_root / _BDD_ASSERT_SCRIPT),
+    ]
+    result = subprocess.run(
+        command,
+        cwd=context.repo_root,
+        capture_output=True,
+        text=True,
+        input=json.dumps(payload),
+        env={**os.environ, 'FORCE_COLOR': '0'},
+    )
+
+    if not result.stdout.strip():
         raise AssertionError(
-            f'Expected {property_path!r} in {relative_path} to equal {expected_value!r}, got {actual_value!r}'
+            _command_failure_message(result, 'BDD assertion bridge produced no result.')
         )
+
+    bridge_result = json.loads(result.stdout.strip())
+    if result.returncode != 0 or not bridge_result.get('ok'):
+        raise AssertionError(bridge_result.get('message') or 'BDD assertion failed.')
+
+
+
+def _require_step_text(context):
+    text = (context.text or '').strip()
+    if not text:
+        raise AssertionError('Expected a step doc string with the structured value to compare.')
+    return text
+
 
 
 def _find_workspace_fixture(context, fixture_name):

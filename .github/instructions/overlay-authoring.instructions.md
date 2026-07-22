@@ -873,6 +873,8 @@ The `composer.ts` file in `tool/questionnaire/` handles merging overlays into th
 
 Overlay-owned Behave scenarios live under `overlays/<id>/tests/behave/**/*.feature`. Keep all executable Behave environment and step code in the repo-owned harness under `tests/behave/`; overlays contribute feature files and supporting test data only.
 
+For structured generated output, use the shared JSON/YAML/Compose/script assertions instead of raw substring checks. Keep `should contain` for genuinely unstructured text only.
+
 **Before committing overlay files:**
 
 1. **Validate JSON syntax:**

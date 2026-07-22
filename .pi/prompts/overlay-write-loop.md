@@ -11,7 +11,7 @@ Run this workflow:
 2. Invoke the project `overlay-writer` agent with that brief and `cwd: "/workspaces/container-superposition"`.
 3. After writing or modifying the overlay, invoke the project `overlay-reviewer` agent on the resulting overlay.
 4. If the reviewer finds critical issues, fix them before final handoff.
-5. Ensure the overlay workflow also reports whether `overlays/<id>/tests/behave/**/*.feature` coverage was added or intentionally unnecessary, and whether `npm run test:bdd -- overlays/<id>/tests/behave` was run.
+5. Ensure the overlay workflow also reports whether `overlays/<id>/tests/behave/**/*.feature` coverage was added or intentionally unnecessary, whether shared semantic assertions were used for structured generated output, and whether `npm run test:bdd -- overlays/<id>/tests/behave` was run.
 6. Report:
     - files created or changed
     - validation results

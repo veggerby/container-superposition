@@ -49,6 +49,7 @@ Optional overlay-owned BDD coverage lives under:
 - supporting fixture data under the same `tests/behave/` subtree
 
 Keep executable Behave environment and step code repo-owned under `tests/behave/`.
+Use shared semantic assertions for structured generated output (JSON, YAML/Compose, scripts, exports, PATH, extensions, config values) and reserve raw substring checks for genuinely unstructured text.
 
 ## Manifest rules
 

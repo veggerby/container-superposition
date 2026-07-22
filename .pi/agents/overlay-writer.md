@@ -180,7 +180,7 @@ PARAM_NAME={{cs.PARAM_NAME}}
 5. If the overlay conflicts with another, edit that overlay's `conflicts` list to add reciprocal entry
 6. If the overlay needs a new category type, update `tool/schema/types.ts`
 7. Run `npm run lint:fix` then `npm run lint` — fix any errors
-8. Add or update `overlays/<id>/tests/behave/**/*.feature` when the overlay changes observable generation behavior; keep any new step code in repo-owned `tests/behave/steps/`
+8. Add or update `overlays/<id>/tests/behave/**/*.feature` when the overlay changes observable generation behavior; keep any new step code in repo-owned `tests/behave/steps/` and prefer shared semantic assertions for structured generated output instead of substring checks
 9. Run `npm run docs:generate` to update docs/overlays.md
 10. Run `npm test` to confirm tests pass
 11. Run `npm run test:bdd -- overlays/<id>/tests/behave` when overlay behavior changed

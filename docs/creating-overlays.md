@@ -133,6 +133,8 @@ overlays/my-overlay/
 
 If an overlay needs behavior-level acceptance coverage, put `.feature` files under `overlays/<id>/tests/behave/**/*.feature`. Shared Behave steps stay repo-owned under `tests/behave/`; overlays do not add their own step-definition modules in this first workflow slice.
 
+For structured generated output, use the shared semantic assertions for JSON, YAML/Compose, scripts, exports, PATH ordering, extensions, and config values. Reserve raw substring checks for genuinely unstructured text.
+
 ## devcontainer.patch.json
 
 This is the core configuration that gets merged into the final devcontainer.json.
@@ -624,7 +626,7 @@ npm run test:bdd -- overlays/my-overlay/tests/behave
  task test:bdd
 ```
 
-Keep step code centralized in `tests/behave/steps/`. If the scenario needs a new shared step, add it there in the same change.
+Keep step code centralized in `tests/behave/steps/`. If the scenario needs a new shared step, add it there in the same change. Prefer exact structured assertions over substring checks whenever the generated output is machine-readable.
 
 ### 5. Verify Output
 
