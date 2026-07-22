@@ -130,7 +130,51 @@ export function rewriteBehaveOutput(
     stageFeaturesRoot: string,
     repoRoot: string
 ): string {
-    const mappings = [
+    const mappings = getBehaveOutputRewriteMappings(stageFeaturesRoot, repoRoot);
+
+    return mappings.reduce(
+        (rewritten, [fromPrefix, toPrefix]) => rewritten.split(fromPrefix).join(toPrefix),
+        output
+    );
+}
+
+export class BehaveOutputRewriter {
+    private buffer = '';
+
+    constructor(
+        private readonly stageFeaturesRoot: string,
+        private readonly repoRoot: string
+    ) {}
+
+    push(chunk: string): string {
+        this.buffer += chunk;
+
+        const lastNewlineIndex = Math.max(
+            this.buffer.lastIndexOf('\n'),
+            this.buffer.lastIndexOf('\r')
+        );
+        if (lastNewlineIndex === -1) {
+            return '';
+        }
+
+        const completeOutput = this.buffer.slice(0, lastNewlineIndex + 1);
+        this.buffer = this.buffer.slice(lastNewlineIndex + 1);
+        return rewriteBehaveOutput(completeOutput, this.stageFeaturesRoot, this.repoRoot);
+    }
+
+    flush(): string {
+        if (!this.buffer) {
+            return '';
+        }
+
+        const remaining = rewriteBehaveOutput(this.buffer, this.stageFeaturesRoot, this.repoRoot);
+        this.buffer = '';
+        return remaining;
+    }
+}
+
+function getBehaveOutputRewriteMappings(stageFeaturesRoot: string, repoRoot: string) {
+    return [
         [withTrailingSeparator(stageFeaturesRoot), withTrailingSeparator(repoRoot)],
         [
             withTrailingSeparator(toPosixPath(stageFeaturesRoot)),
@@ -147,11 +191,6 @@ export function rewriteBehaveOutput(
         ['features/tests/behave/features/', 'tests/behave/features/'],
         ['features/overlays/', 'overlays/'],
     ] as const;
-
-    return mappings.reduce(
-        (rewritten, [fromPrefix, toPrefix]) => rewritten.split(fromPrefix).join(toPrefix),
-        output
-    );
 }
 
 function walkFeatureFiles(repoRoot: string, rootDir: string): string[] {

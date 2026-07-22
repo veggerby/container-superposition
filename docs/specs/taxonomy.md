@@ -207,9 +207,9 @@ _No specs yet._
 
 ### INFRA-TEST
 
-| Spec                                                                         | Title                                                                                      | Status      |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------- |
-| [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md) | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final       |
+| Spec                                                                         | Title                                                                                      | Status |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------ |
+| [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md) | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final  |
 
 ### INFRA-LINT
 

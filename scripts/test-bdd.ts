@@ -5,9 +5,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
+import * as pty from 'node-pty';
 import {
+    BehaveOutputRewriter,
     discoverBehaveFeatureFiles,
-    rewriteBehaveOutput,
     selectBehaveFeatureFiles,
     stageBehaveSuite,
 } from '../tool/testing/bdd.js';
@@ -50,34 +51,60 @@ async function main(): Promise<void> {
     const stagedSuite = stageBehaveSuite(REPO_ROOT, selectedFeatures);
 
     try {
-        const result = spawnSync(pythonBinary, ['-m', 'behave', 'features'], {
-            cwd: stagedSuite.stageRoot,
-            env: {
-                ...process.env,
-                CS_BDD_NODE_BINARY: process.execPath,
-                CS_BDD_REPO_ROOT: REPO_ROOT,
-                CS_BDD_STAGE_FEATURES_ROOT: stagedSuite.stageFeaturesRoot,
-                FORCE_COLOR: '0',
-            },
-            encoding: 'utf8',
+        const exitCode = await runBehaveInPty({
+            pythonBinary,
+            stageRoot: stagedSuite.stageRoot,
+            stageFeaturesRoot: stagedSuite.stageFeaturesRoot,
         });
-
-        if (result.stdout) {
-            process.stdout.write(
-                rewriteBehaveOutput(result.stdout, stagedSuite.stageFeaturesRoot, REPO_ROOT)
-            );
-        }
-
-        if (result.stderr) {
-            process.stderr.write(
-                rewriteBehaveOutput(result.stderr, stagedSuite.stageFeaturesRoot, REPO_ROOT)
-            );
-        }
-
-        process.exit(result.status ?? 1);
+        process.exit(exitCode);
     } finally {
         stagedSuite.cleanup();
     }
+}
+
+async function runBehaveInPty(input: {
+    pythonBinary: string;
+    stageRoot: string;
+    stageFeaturesRoot: string;
+}): Promise<number> {
+    const outputRewriter = new BehaveOutputRewriter(input.stageFeaturesRoot, REPO_ROOT);
+
+    const behaveProcess = pty.spawn(input.pythonBinary, ['-m', 'behave', '--color', 'features'], {
+        cwd: input.stageRoot,
+        env: {
+            ...process.env,
+            CS_BDD_NODE_BINARY: process.execPath,
+            CS_BDD_REPO_ROOT: REPO_ROOT,
+            CS_BDD_STAGE_FEATURES_ROOT: input.stageFeaturesRoot,
+            TERM: process.env.TERM || 'xterm-256color',
+        },
+        cols: process.stdout.columns || 120,
+        rows: process.stdout.rows || 40,
+        name: 'xterm-256color',
+    });
+
+    behaveProcess.onData((chunk) => {
+        const rewritten = outputRewriter.push(chunk);
+        if (rewritten) {
+            process.stdout.write(rewritten);
+        }
+    });
+
+    if (process.stdout.isTTY) {
+        process.stdout.on('resize', () => {
+            behaveProcess.resize(process.stdout.columns || 120, process.stdout.rows || 40);
+        });
+    }
+
+    return await new Promise<number>((resolve) => {
+        behaveProcess.onExit(({ exitCode }) => {
+            const remaining = outputRewriter.flush();
+            if (remaining) {
+                process.stdout.write(remaining);
+            }
+            resolve(exitCode);
+        });
+    });
 }
 
 function ensureBehaveRuntime(): string {
@@ -134,7 +161,7 @@ function hashFile(filePath: string): string {
 function runOrThrow(command: string, args: string[], cwd: string, errorMessage: string): void {
     const result = spawnSync(command, args, {
         cwd,
-        env: { ...process.env, FORCE_COLOR: '0' },
+        env: process.env,
         encoding: 'utf8',
         stdio: 'pipe',
     });

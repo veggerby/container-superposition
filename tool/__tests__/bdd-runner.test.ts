@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import {
+    BehaveOutputRewriter,
     discoverBehaveFeatureFiles,
     rewriteBehaveOutput,
     selectBehaveFeatureFiles,
@@ -150,6 +151,26 @@ describe('Behave discovery runner utilities', () => {
             expect(
                 rewriteBehaveOutput(stagedFailure, staged.stageFeaturesRoot, repoRoot)
             ).toContain(path.join(repoRoot, discovered[0]));
+        } finally {
+            staged.cleanup();
+            fs.rmSync(repoRoot, { recursive: true, force: true });
+        }
+    });
+
+    it('rewrites streamed behave output while preserving partial trailing chunks', () => {
+        const repoRoot = makeTempRepo();
+        const discovered = discoverBehaveFeatureFiles(repoRoot);
+        const staged = stageBehaveSuite(repoRoot, discovered);
+
+        try {
+            const rewriter = new BehaveOutputRewriter(staged.stageFeaturesRoot, repoRoot);
+            const streamed = rewriter.push(
+                `${path.join(staged.stageFeaturesRoot, discovered[0])}:7\npartial `
+            );
+            const flushed = rewriter.flush();
+
+            expect(streamed).toContain(path.join(repoRoot, discovered[0]));
+            expect(flushed).toBe('partial ');
         } finally {
             staged.cleanup();
             fs.rmSync(repoRoot, { recursive: true, force: true });
