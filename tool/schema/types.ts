@@ -32,6 +32,7 @@ export type DatabaseOverlay =
     | 'sqlite'
     | 'duckdb'
     | 'minio'
+    | 'fuseki'
     | MessagingOverlay;
 export type CloudTool =
     | 'azure-cli'

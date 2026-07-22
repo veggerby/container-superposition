@@ -50,7 +50,8 @@ HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
 if [ "$HTTP_STATUS" = "200" ]; then
     echo "   Dataset '${DATASET}' found"
 else
-    echo "   Dataset '${DATASET}' not found (HTTP ${HTTP_STATUS}) - it may still be initializing"
+    echo "   Dataset '${DATASET}' not found (HTTP ${HTTP_STATUS})"
+    exit 1
 fi
 
 echo ""

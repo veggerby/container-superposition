@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`fuseki` overlay seed loading** — Apache Jena Fuseki projects can now opt into automatic RDF seed imports from one file or one directory during devcontainer creation, with append-or-replace modes, optional named-graph targeting, content-type auto-detection/override, and a reusable `.devcontainer/seed-fuseki.sh` helper for reruns
+
 - **GitHub Copilot CLI overlay** — the overlay catalog now includes `copilot-cli`, a terminal-first GitHub Copilot CLI install for devcontainers with configurable npm versioning, post-create installation, verification guidance, and authentication setup via `copilot login` or supported token environment variables
 
 - **Root Taskfile contributor workflow** — the repository now ships a repo-root `Taskfile.yml` with thin wrappers over the existing npm scripts plus mandatory `task validate` and broader `task validate:generated` flows, so contributors have one discoverable entrypoint that runs `lint:fix` before `lint` and aligns local validation guidance with existing CI contracts

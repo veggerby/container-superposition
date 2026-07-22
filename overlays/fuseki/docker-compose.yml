@@ -27,4 +27,4 @@ volumes:
 
 networks:
     devnet:
-        name: devnet
+        name: my-project-devnet
