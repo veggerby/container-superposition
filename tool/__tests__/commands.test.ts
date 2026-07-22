@@ -676,6 +676,50 @@ describe('Command Tests', () => {
             }
         });
 
+        it('should preserve named overlay selections when adding missing required overlays', async () => {
+            const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-dep-fix-named-'));
+            try {
+                const projectPath = path.join(tmpDir, '.superposition.yml');
+                fs.writeFileSync(
+                    projectPath,
+                    yaml.dump({
+                        stack: 'compose',
+                        overlays: [
+                            'grafana',
+                            {
+                                overlay: 'postgres',
+                                name: 'app',
+                                parameters: { POSTGRES_DB: 'app' },
+                            },
+                        ],
+                        outputPath: '.devcontainer',
+                    })
+                );
+                try {
+                    await doctorCommand(overlaysConfig, OVERLAYS_DIR, {
+                        projectRoot: tmpDir,
+                        fromProject: true,
+                        fix: true,
+                    });
+                } catch {
+                    // process.exit
+                }
+                const updated = yaml.load(fs.readFileSync(projectPath, 'utf8')) as {
+                    overlays?: Array<
+                        | string
+                        | { overlay: string; name: string; parameters?: Record<string, string> }
+                    >;
+                };
+                expect(updated.overlays).toEqual([
+                    'grafana',
+                    { overlay: 'postgres', name: 'app', parameters: { POSTGRES_DB: 'app' } },
+                    'prometheus',
+                ]);
+            } finally {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
+        }, 10000);
+
         it('should surface suggestions in JSON output when selected overlay has suggestions not present', async () => {
             const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-dep-suggests-'));
             try {

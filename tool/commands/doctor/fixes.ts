@@ -807,7 +807,7 @@ async function executeDependencyFix(
 
     const updatedSelection = {
         ...projectConfig.selection,
-        overlays: [...selectedOverlays, ...toAdd] as OverlayId[],
+        overlays: [...(projectConfig.selection.overlays ?? []), ...toAdd],
     };
     try {
         writeProjectConfig(projectConfig.file.path, updatedSelection);
