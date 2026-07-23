@@ -58,6 +58,7 @@ Check for, in this order:
 2. near-match overlays in the same capability family
 3. presets that already solve the workflow well enough
 4. evidence that the capability should extend an existing overlay instead of creating a new one
+5. existing published Dev Container Features that could cover the capability without a bespoke overlay script
 
 Always use live repo evidence such as:
 
@@ -66,6 +67,13 @@ Always use live repo evidence such as:
 - generated overlay docs
 - preset definitions when relevant
 
+When repo assets do not fully answer the request, also do a feature-reuse check before recommending a scratch-built overlay:
+
+- Use the `fetch_content` tool to load `https://containers.dev/features` as the discovery catalog when needed; there is no canonical `devcontainer features search` command. If the fetched page is truncated, use `get_search_content` to inspect more of the stored content.
+- Treat catalog matches as candidates, not automatic approvals.
+- Validate any candidate feature reference directly before recommending reuse. Prefer `devcontainer features info` when available; direct OCI validation such as `oras manifest fetch <feature-ref>` is also acceptable.
+- Capture a balanced decision, not a one-way bias: reuse the feature when it is credible and sufficiently capable; prefer a custom overlay implementation when the feature is stale, under-scoped, poorly maintained, mismatched to repo patterns, or would hide too much bespoke logic.
+
 ### 3. Classify the result
 
 Choose exactly one primary result:
@@ -73,6 +81,7 @@ Choose exactly one primary result:
 - **Existing overlay match**
 - **Existing preset match**
 - **Extend an existing overlay**
+- **Reuse an existing Dev Container Feature in a thin overlay**
 - **New overlay needed**
 - **Need clarification before discovery can conclude**
 
@@ -113,15 +122,16 @@ Use this structure:
 
 ### Result
 
-- one of: existing overlay / existing preset / extend existing overlay / new overlay needed / clarification needed
+- one of: existing overlay / existing preset / extend existing overlay / reuse existing Dev Container Feature in thin overlay / new overlay needed / clarification needed
 
 ### Evidence
 
 - short bullets with exact file references
+- include feature-catalog / feature-validation evidence when external Dev Container Features affected the decision
 
 ### Short design description
 
-- include only when extension or new overlay is needed
+- include only when extension, feature-backed thin overlay, or new overlay is needed
 
 ### Question
 
@@ -133,6 +143,8 @@ Use this structure:
 - do not jump straight into implementation
 - do not produce a long architecture or product spec
 - do not invent detailed parameters or conflicts without evidence from similar overlays or repo conventions
+- do not assume every tool/runtime needs a custom `setup.sh` when a published feature may already solve it
+- do not recommend a published feature without validating the candidate and weighing maintainability, trust, and fit
 - do not duplicate the full overlay implementation handbook here; route implementation to `overlay-development`
 
 ## Escalate when

@@ -104,6 +104,7 @@ When scanning all overlays:
 - Check compose network rules
 - Check supports/compose alignment
 - Check parameter substitution across patch, compose, and `.env.example`
+- Check whether common tool/runtime overlays should reuse an existing published Dev Container Feature instead of bespoke setup logic; treat this as a balanced audit question, not an automatic rewrite order
 - Check type registration in `tool/schema/types.ts`
 - Check docs freshness with `npm run docs:generate`
 

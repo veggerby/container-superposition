@@ -138,6 +138,18 @@ Check that all compose overlays set `_serviceOrder` in their patch:
 
 Flag overlays missing `_serviceOrder` or using a value inconsistent with their category.
 
+### 15. Feature-backed overlay opportunities
+
+Look for overlays whose main job is installing a common CLI, runtime, or editor-adjacent tool.
+
+For each such overlay, ask:
+
+- Is there an existing published Dev Container Feature that credibly covers this capability?
+- If yes, would switching to that feature reduce custom maintenance without weakening trust, version pinning, distro support, or repo UX?
+- If no, is the current bespoke setup justified enough that we should keep owning it?
+
+Use `fetch_content` to load `https://containers.dev/features` for discovery when needed, and use `get_search_content` if needed for more of the stored page content. Treat matches as candidates that still need validation. Recommend reuse only when the feature appears maintained and aligned with repo standards.
+
 ## Output format
 
 Produce a structured improvement backlog:

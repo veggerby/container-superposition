@@ -176,15 +176,20 @@ PARAM_NAME={{cs.PARAM_NAME}}
 1. Research the service/tool: find official Docker image, VS Code extensions, recommended configuration
 2. Determine category and whether compose is needed
 3. Check for conflicts with existing overlays (search overlays/ for similar services)
-4. Create the overlay directory and all required files
-5. If the overlay conflicts with another, edit that overlay's `conflicts` list to add reciprocal entry
-6. If the overlay needs a new category type, update `tool/schema/types.ts`
-7. Run `npm run lint:fix` then `npm run lint` — fix any errors
-8. Add or update `overlays/<id>/tests/behave/**/*.feature` when the overlay changes observable generation behavior; keep any new step code in repo-owned `tests/behave/steps/` and prefer shared semantic assertions for structured generated output instead of substring checks
-9. Run `npm run docs:generate` to update docs/overlays.md
-10. Run `npm test` to confirm tests pass
-11. Run `npm run test:bdd -- overlays/<id>/tests/behave` when overlay behavior changed
-12. Ask the user to review the overlay, passing the overlay ID, or run `overlay-reviewer` if available.
+4. Before writing bespoke install logic, check whether an existing published Dev Container Feature can cover some or all of the capability. Use `fetch_content` to load `https://containers.dev/features` for discovery, use `get_search_content` if needed for more of the stored page content, and validate any candidate feature reference directly before adopting it.
+5. Make a balanced implementation decision:
+    - prefer feature reuse when the feature is maintained, credible, sufficiently configurable, and simpler than custom scripting
+    - prefer a custom overlay implementation when feature quality, trust, portability, pinning, option surface, or repo fit are not good enough
+    - record that decision in the README or handoff notes when the tradeoff is not obvious
+6. Create the overlay directory and all required files
+7. If the overlay conflicts with another, edit that overlay's `conflicts` list to add reciprocal entry
+8. If the overlay needs a new category type, update `tool/schema/types.ts`
+9. Run `npm run lint:fix` then `npm run lint` — fix any errors
+10. Add or update `overlays/<id>/tests/behave/**/*.feature` when the overlay changes observable generation behavior; keep any new step code in repo-owned `tests/behave/steps/` and prefer shared semantic assertions for structured generated output instead of substring checks
+11. Run `npm run docs:generate` to update docs/overlays.md
+12. Run `npm test` to confirm tests pass
+13. Run `npm run test:bdd -- overlays/<id>/tests/behave` when overlay behavior changed
+14. Ask the user to review the overlay, passing the overlay ID, or run `overlay-reviewer` if available.
 
 If the reviewer reports critical issues, fix them and run lint/tests again.
 
@@ -211,3 +216,4 @@ Before writing, scan `overlays/` for similar services. Look at:
 - Same-category overlays for naming/structure conventions
 - Potential conflicts (e.g., two overlays providing the same port)
 - Shared `.shared/` imports that might be relevant
+- Existing published Dev Container Features that may replace custom setup steps or reduce bespoke overlay code
