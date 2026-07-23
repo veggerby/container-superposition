@@ -200,7 +200,6 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
             await listCommand(overlaysConfig, options);
-            process.exit(0);
         });
 
     // Explain command
@@ -211,7 +210,6 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .action(async (overlayId, options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
             await explainCommand(overlaysConfig, OVERLAYS_DIR, overlayId, options);
-            process.exit(0);
         });
 
     // Plan command
@@ -247,7 +245,6 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
             await planCommand(overlaysConfig, OVERLAYS_DIR, options);
-            process.exit(0);
         });
 
     // Doctor command
@@ -313,7 +310,6 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             }
             const overlaysConfig = loadOverlaysConfigWrapper();
             await adoptCommand(overlaysConfig, OVERLAYS_DIR, options);
-            process.exit(0);
         });
 
     // Hash command
@@ -331,7 +327,6 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .action(async (options) => {
             const overlaysConfig = loadOverlaysConfigWrapper();
             await hashCommand(overlaysConfig, OVERLAYS_DIR, options);
-            process.exit(0);
         });
 
     // Migrate command

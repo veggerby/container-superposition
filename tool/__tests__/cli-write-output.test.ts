@@ -120,4 +120,40 @@ describe('init/regen output relevance', () => {
         expect(output).toContain('Next step\ncs doctor');
         expect(output).toContain('follow up on generation warnings');
     });
+
+    it('keeps read-only JSON commands parseable when stdout is piped', () => {
+        fs.writeFileSync(path.join(repoDir, 'README.md'), 'discovery workspace\n');
+
+        const listResult = runCli(['list', '--json'], repoDir);
+        expect(listResult.status).toBe(0);
+        expect(() => JSON.parse(listResult.stdout)).not.toThrow();
+
+        const explainResult = runCli(['explain', 'postgres', '--json'], repoDir);
+        expect(explainResult.status).toBe(0);
+        const explainJson = JSON.parse(explainResult.stdout);
+        expect(explainJson.overlay.dockerComposeServices).toContain('postgres');
+
+        fs.mkdirSync(path.join(repoDir, '.devcontainer'), { recursive: true });
+        fs.writeFileSync(
+            path.join(repoDir, '.devcontainer', 'devcontainer.json'),
+            JSON.stringify(
+                {
+                    $schema:
+                        'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json',
+                    image: 'mcr.microsoft.com/devcontainers/javascript-node:1-20-bookworm',
+                    features: {
+                        'ghcr.io/devcontainers/features/node:1': {
+                            version: 'lts',
+                        },
+                    },
+                },
+                null,
+                2
+            )
+        );
+
+        const adoptResult = runCli(['adopt', '--dir', '.devcontainer', '--json'], repoDir);
+        expect(adoptResult.status).toBe(0);
+        expect(() => JSON.parse(adoptResult.stdout)).not.toThrow();
+    });
 });

@@ -31,11 +31,15 @@ function getDevcontainerPatch(overlaysDir: string, overlayId: string): any {
     return JSON.parse(fs.readFileSync(patchPath, 'utf8'));
 }
 
+function normalizeExplainServiceName(serviceName: string): string {
+    return serviceName.replace(/\{\{cs\.CS_INSTANCE_SUFFIX\}\}/g, '');
+}
+
 function getDockerComposeServices(overlaysDir: string, overlayId: string): string[] {
     const composePath = path.join(overlaysDir, overlayId, 'docker-compose.yml');
     if (!fs.existsSync(composePath)) return [];
     const parsed = yaml.load(fs.readFileSync(composePath, 'utf8')) as any;
-    return Object.keys(parsed?.services ?? {});
+    return Object.keys(parsed?.services ?? {}).map(normalizeExplainServiceName);
 }
 
 function loadPresetDefinition(overlaysDir: string, presetId: string): Record<string, any> | null {

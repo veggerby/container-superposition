@@ -20,6 +20,18 @@ export type BddAssertionRequest =
           expectedValueText: string;
       }
     | {
+          kind: 'command-json-value-equals';
+          commandOutputText: string;
+          selector: string;
+          expectedValueText: string;
+      }
+    | {
+          kind: 'command-json-array-contains-item';
+          commandOutputText: string;
+          selector: string;
+          expectedValueText: string;
+      }
+    | {
           kind: 'compose-service-exists';
           workspaceRoot: string;
           relativePath: string;
@@ -117,6 +129,39 @@ export function runBddAssertion(request: BddAssertionRequest): BddAssertionResul
                 if (!containsItem) {
                     throw new Error(
                         `Expected ${request.fileType.toUpperCase()} file ${request.relativePath} path ${request.selector} to contain item ${formatValue(expectedValue)}; actual array was ${formatValue(actualValue)}`
+                    );
+                }
+                return { ok: true };
+            }
+            case 'command-json-value-equals': {
+                const actualValue = getValueAtSelector(
+                    JSON.parse(request.commandOutputText),
+                    request.selector
+                );
+                const expectedValue = parseStructuredValue(request.expectedValueText);
+                assertDeepEqual({
+                    expectationLabel: `command JSON path ${request.selector}`,
+                    assertionType: 'equal',
+                    expectedValue,
+                    actualValue,
+                });
+                return { ok: true };
+            }
+            case 'command-json-array-contains-item': {
+                const actualValue = getValueAtSelector(
+                    JSON.parse(request.commandOutputText),
+                    request.selector
+                );
+                if (!Array.isArray(actualValue)) {
+                    throw new Error(
+                        `Command JSON path ${request.selector} was not an array; actual was ${formatValue(actualValue)}`
+                    );
+                }
+                const expectedValue = parseStructuredValue(request.expectedValueText);
+                const containsItem = actualValue.some((item) => deepEqual(item, expectedValue));
+                if (!containsItem) {
+                    throw new Error(
+                        `Expected command JSON path ${request.selector} to contain item ${formatValue(expectedValue)}; actual array was ${formatValue(actualValue)}`
                     );
                 }
                 return { ok: true };

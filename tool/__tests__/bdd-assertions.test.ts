@@ -142,6 +142,40 @@ describe('BDD semantic assertions', () => {
         }
     });
 
+    it('supports semantic assertions against command JSON output', () => {
+        const commandOutput = JSON.stringify(
+            {
+                overlays: [
+                    { id: 'nodejs', category: 'language' },
+                    { id: 'postgres', category: 'database' },
+                ],
+                nextStep: {
+                    command: 'cs plan --stack plain --overlays nodejs',
+                },
+            },
+            null,
+            2
+        );
+
+        expect(
+            runBddAssertion({
+                kind: 'command-json-value-equals',
+                commandOutputText: commandOutput,
+                selector: 'nextStep.command',
+                expectedValueText: 'cs plan --stack plain --overlays nodejs\n',
+            })
+        ).toEqual({ ok: true });
+
+        expect(
+            runBddAssertion({
+                kind: 'command-json-array-contains-item',
+                commandOutputText: commandOutput,
+                selector: 'overlays',
+                expectedValueText: 'id: postgres\ncategory: database\n',
+            })
+        ).toEqual({ ok: true });
+    });
+
     it('supports compose convenience assertions', () => {
         const workspaceRoot = makeWorkspace({
             '.devcontainer/docker-compose.yml': [

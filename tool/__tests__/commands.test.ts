@@ -156,6 +156,7 @@ describe('Command Tests', () => {
             expect(parsed.overlay.previewThisChange[0]).toContain('cs plan');
             expect(parsed.nextStep.command).toBeNull();
             expect(Array.isArray(parsed.overlay.filesServicesPorts)).toBe(true);
+            expect(parsed.overlay.dockerComposeServices).toEqual(['postgres']);
             expect(parsed.overlay.ports).toEqual([
                 {
                     port: 5432,

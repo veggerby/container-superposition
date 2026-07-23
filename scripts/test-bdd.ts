@@ -4,8 +4,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { spawnSync } from 'child_process';
-import * as pty from 'node-pty';
+import { spawn, spawnSync } from 'child_process';
 import {
     BehaveOutputRewriter,
     discoverBehaveFeatureFiles,
@@ -51,7 +50,7 @@ async function main(): Promise<void> {
     const stagedSuite = stageBehaveSuite(REPO_ROOT, selectedFeatures);
 
     try {
-        const exitCode = await runBehaveInPty({
+        const exitCode = await runBehave({
             pythonBinary,
             stageRoot: stagedSuite.stageRoot,
             stageFeaturesRoot: stagedSuite.stageFeaturesRoot,
@@ -62,14 +61,53 @@ async function main(): Promise<void> {
     }
 }
 
-async function runBehaveInPty(input: {
+type PtySpawn = (
+    file: string,
+    args?: string[],
+    options?: {
+        cwd?: string;
+        env?: NodeJS.ProcessEnv;
+        cols?: number;
+        rows?: number;
+        name?: string;
+    }
+) => {
+    onData: (listener: (chunk: string) => void) => void;
+    onExit: (listener: (event: { exitCode: number }) => void) => void;
+    resize: (cols: number, rows: number) => void;
+};
+
+async function runBehave(input: {
     pythonBinary: string;
     stageRoot: string;
     stageFeaturesRoot: string;
 }): Promise<number> {
+    try {
+        const nodePtyModule = (await loadOptionalNodePty()) as { spawn: PtySpawn };
+        return await runBehaveInPty(input, nodePtyModule.spawn);
+    } catch {
+        return await runBehaveWithChildProcess(input);
+    }
+}
+
+async function loadOptionalNodePty(): Promise<unknown> {
+    const dynamicImport = new Function('specifier', 'return import(specifier);') as (
+        specifier: string
+    ) => Promise<unknown>;
+    return dynamicImport('node-pty');
+}
+
+async function runBehaveInPty(
+    input: {
+        pythonBinary: string;
+        stageRoot: string;
+        stageFeaturesRoot: string;
+    },
+    spawnPty: PtySpawn
+): Promise<number> {
     const outputRewriter = new BehaveOutputRewriter(input.stageFeaturesRoot, REPO_ROOT);
 
-    const behaveProcess = pty.spawn(input.pythonBinary, ['-m', 'behave', '--color', 'features'], {
+    const behaveProcess = spawnPty(input.pythonBinary, ['-m', 'behave', '--color', 'features'], {
         cwd: input.stageRoot,
         env: {
             ...process.env,
@@ -83,7 +121,7 @@ async function runBehaveInPty(input: {
         name: 'xterm-256color',
     });
 
-    behaveProcess.onData((chunk) => {
+    behaveProcess.onData((chunk: string) => {
         const rewritten = outputRewriter.push(chunk);
         if (rewritten) {
             process.stdout.write(rewritten);
@@ -97,12 +135,52 @@ async function runBehaveInPty(input: {
     }
 
     return await new Promise<number>((resolve) => {
-        behaveProcess.onExit(({ exitCode }) => {
+        behaveProcess.onExit(({ exitCode }: { exitCode: number }) => {
             const remaining = outputRewriter.flush();
             if (remaining) {
                 process.stdout.write(remaining);
             }
             resolve(exitCode);
+        });
+    });
+}
+
+async function runBehaveWithChildProcess(input: {
+    pythonBinary: string;
+    stageRoot: string;
+    stageFeaturesRoot: string;
+}): Promise<number> {
+    const outputRewriter = new BehaveOutputRewriter(input.stageFeaturesRoot, REPO_ROOT);
+    const behaveProcess = spawn(input.pythonBinary, ['-m', 'behave', '--color', 'features'], {
+        cwd: input.stageRoot,
+        env: {
+            ...process.env,
+            CS_BDD_NODE_BINARY: process.execPath,
+            CS_BDD_REPO_ROOT: REPO_ROOT,
+            CS_BDD_STAGE_FEATURES_ROOT: input.stageFeaturesRoot,
+            TERM: process.env.TERM || 'xterm-256color',
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    for (const stream of [behaveProcess.stdout, behaveProcess.stderr]) {
+        stream?.setEncoding('utf8');
+        stream?.on('data', (chunk: string) => {
+            const rewritten = outputRewriter.push(chunk);
+            if (rewritten) {
+                process.stdout.write(rewritten);
+            }
+        });
+    }
+
+    return await new Promise<number>((resolve, reject) => {
+        behaveProcess.on('error', reject);
+        behaveProcess.on('close', (code) => {
+            const remaining = outputRewriter.flush();
+            if (remaining) {
+                process.stdout.write(remaining);
+            }
+            resolve(code ?? 1);
         });
     });
 }

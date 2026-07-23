@@ -70,6 +70,32 @@ def step_then_command_exits_successfully(context):
         raise AssertionError(_command_failure_message(result, 'Expected the command to succeed.'))
 
 
+@then('the command JSON output should have value at "{selector}" equal')
+def step_then_command_json_value_equals(context, selector):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'command-json-value-equals',
+            'commandOutputText': _require_command_stdout(context),
+            'selector': selector,
+            'expectedValueText': _require_step_text(context),
+        },
+    )
+
+
+@then('the command JSON output should contain array item at "{selector}" equal')
+def step_then_command_json_array_contains_item(context, selector):
+    _assert_with_bridge(
+        context,
+        {
+            'kind': 'command-json-array-contains-item',
+            'commandOutputText': _require_command_stdout(context),
+            'selector': selector,
+            'expectedValueText': _require_step_text(context),
+        },
+    )
+
+
 @then('the file "{relative_path}" should exist')
 def step_then_file_should_exist(context, relative_path):
     file_path = _workspace_path(context, relative_path)
@@ -370,6 +396,14 @@ def _require_command_result(context):
     if context.command_result is None:
         raise AssertionError('No CLI command has been executed yet.')
     return context.command_result
+
+
+def _require_command_stdout(context):
+    result = _require_command_result(context)
+    stdout = result.stdout.strip()
+    if not stdout:
+        raise AssertionError(_command_failure_message(result, 'Expected command stdout to contain JSON output.'))
+    return stdout
 
 
 def _command_failure_message(result, message):

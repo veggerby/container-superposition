@@ -776,6 +776,9 @@ async function runInitShortcutFlow(flow: {
 export async function main(): Promise<void> {
     try {
         const cliArgs = await parseCliArgs();
+        if (cliArgs === null) {
+            return;
+        }
         const initialCwd = process.cwd();
 
         if (cliArgs?.projectRoot) {

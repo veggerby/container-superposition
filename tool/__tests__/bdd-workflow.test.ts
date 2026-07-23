@@ -22,6 +22,10 @@ interface WorkflowJob {
 
 interface ValidateOverlaysWorkflow {
     on: {
+        push?: {
+            branches?: string[];
+            paths: string[];
+        };
         pull_request: {
             paths: string[];
         };
@@ -40,24 +44,28 @@ describe('Behave command and workflow wiring', () => {
         expect(packageJson.scripts['test:bdd']).toBe('tsx scripts/test-bdd.ts');
     });
 
-    it('keeps validate-overlays CI wired to Behave and its owning surfaces', () => {
+    it('keeps validate-overlays CI wired to Behave on pull requests and main pushes', () => {
         const workflow = yaml.load(
             fs.readFileSync(WORKFLOW_PATH, 'utf8')
         ) as ValidateOverlaysWorkflow;
         const pullRequestPaths = workflow.on.pull_request.paths;
+        const pushPaths = workflow.on.push?.paths ?? [];
         const stepCommands = workflow.jobs.validate.steps?.map((step) => step.run ?? '') ?? [];
 
-        expect(pullRequestPaths).toEqual(
-            expect.arrayContaining([
-                'overlays/**',
-                'tests/behave/**',
-                'scripts/**',
-                'package.json',
-                'Taskfile.yml',
-                'superposition.yml',
-                '.github/workflows/validate-overlays.yml',
-            ])
-        );
+        const expectedPaths = [
+            'overlays/**',
+            'tool/**',
+            'tests/behave/**',
+            'scripts/**',
+            'package.json',
+            'Taskfile.yml',
+            'superposition.yml',
+            '.github/workflows/validate-overlays.yml',
+        ];
+
+        expect(pullRequestPaths).toEqual(expect.arrayContaining(expectedPaths));
+        expect(pushPaths).toEqual(expect.arrayContaining(expectedPaths));
+        expect(workflow.on.push?.branches).toEqual(expect.arrayContaining(['main']));
         expect(
             workflow.jobs.validate.steps?.some((step) => step.uses === 'actions/setup-python@v5')
         ).toBe(true);
