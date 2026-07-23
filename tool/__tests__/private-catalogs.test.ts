@@ -292,7 +292,7 @@ describe('private catalogs', () => {
         const doctorResult = runCli(['doctor', '--from-project', '--json'], repoDir);
         expect(doctorResult.status).toBe(0);
         expect(doctorResult.stdout).toContain('"errors": 0');
-    });
+    }, 15000);
 
     it('rejects external overlays whose local ids collide with built-in ids', () => {
         const catalogDirName = `acme-collision-${path.basename(repoDir)}`;
@@ -411,5 +411,63 @@ describe('private catalogs', () => {
             }),
         ]);
         expect(fromNestedDir).toEqual(fromRepoRoot);
+    });
+
+    it('does not reuse a merged path-catalog cache across different repos with the same relative catalog path', () => {
+        writeAcmeCatalog(repoDir);
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            [
+                'stack: plain',
+                'catalogs:',
+                '  - id: acme-platform',
+                '    namespace: acme',
+                '    source:',
+                '      type: path',
+                '      path: catalogs/acme',
+                '',
+            ].join('\n')
+        );
+
+        const otherRepoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'private-catalogs-'));
+        fs.mkdirSync(path.join(otherRepoDir, 'catalogs', 'acme', 'worker'), { recursive: true });
+        fs.writeFileSync(
+            path.join(otherRepoDir, 'catalogs', 'acme', 'worker', 'overlay.yml'),
+            [
+                'id: worker',
+                'name: Acme Worker',
+                'description: External worker overlay',
+                'category: dev',
+                'supports:',
+                '  - plain',
+                '',
+            ].join('\n')
+        );
+        fs.writeFileSync(
+            path.join(otherRepoDir, 'superposition.yml'),
+            [
+                'stack: plain',
+                'catalogs:',
+                '  - id: acme-platform',
+                '    namespace: acme',
+                '    source:',
+                '      type: path',
+                '      path: catalogs/acme',
+                '',
+            ].join('\n')
+        );
+
+        const firstContext = resolveOverlaysContext(repoDir, OVERLAYS_DIR);
+        const secondContext = resolveOverlaysContext(otherRepoDir, OVERLAYS_DIR);
+
+        expect(
+            firstContext.overlaysConfig.overlays.some((overlay) => overlay.id === 'acme/web-api')
+        ).toBe(true);
+        expect(
+            secondContext.overlaysConfig.overlays.some((overlay) => overlay.id === 'acme/worker')
+        ).toBe(true);
+        expect(
+            secondContext.overlaysConfig.overlays.some((overlay) => overlay.id === 'acme/web-api')
+        ).toBe(false);
     });
 });

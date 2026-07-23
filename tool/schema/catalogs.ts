@@ -614,6 +614,7 @@ function buildMergedCatalogRoot(
                 id: entry.declaration.id,
                 namespace: entry.declaration.namespace,
                 identity: entry.resolvedIdentity,
+                cacheRoot: entry.rootDir,
             }))
         )
     );
