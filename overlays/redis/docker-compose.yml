@@ -1,16 +1,16 @@
 version: '3.8'
 
 services:
-    redis:
-        image: redis:${REDIS_VERSION:-7}-alpine
+    redis{{cs.CS_INSTANCE_SUFFIX}}:
+        image: redis:${REDIS_VERSION:-{{cs.REDIS_VERSION}}}-alpine
         restart: unless-stopped
         volumes:
-            - redis-data:/data
+            - redis-data{{cs.CS_INSTANCE_SUFFIX}}:/data
         ports:
-            - '${REDIS_PORT:-6379}:6379'
+            - '${REDIS_PORT:-{{cs.REDIS_PORT}}}:6379'
         command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass "$REDIS_PASSWORD"}
         environment:
-            REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-{{cs.REDIS_PASSWORD}}}
         networks:
             - devnet
         healthcheck:
@@ -21,7 +21,7 @@ services:
             start_period: 10s
 
 volumes:
-    redis-data:
+    redis-data{{cs.CS_INSTANCE_SUFFIX}}:
 
 networks:
     devnet:

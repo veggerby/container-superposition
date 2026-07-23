@@ -1,24 +1,24 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
-    "runServices": ["fuseki"],
+    "runServices": ["fuseki{{cs.CS_INSTANCE_SUFFIX}}"],
     "_serviceOrder": 0,
-    "forwardPorts": [3030],
+    "forwardPorts": ["{{cs.FUSEKI_PORT}}"],
     "portsAttributes": {
-        "3030": {
+        "{{cs.FUSEKI_PORT}}": {
             "label": "Fuseki SPARQL Server",
             "onAutoForward": "openBrowser"
         }
     },
     "remoteEnv": {
-        "FUSEKI_HOST": "fuseki",
-        "FUSEKI_PORT": "3030",
-        "FUSEKI_DATASET": "{{cs.FUSEKI_DATASET}}",
-        "FUSEKI_ADMIN_PASSWORD": "{{cs.FUSEKI_ADMIN_PASSWORD}}",
-        "FUSEKI_URL": "http://fuseki:3030",
-        "FUSEKI_SEED_FILE": "{{cs.FUSEKI_SEED_FILE}}",
-        "FUSEKI_SEED_DIR": "{{cs.FUSEKI_SEED_DIR}}",
-        "FUSEKI_SEED_MODE": "{{cs.FUSEKI_SEED_MODE}}",
-        "FUSEKI_SEED_GRAPH": "{{cs.FUSEKI_SEED_GRAPH}}",
-        "FUSEKI_SEED_CONTENT_TYPE": "{{cs.FUSEKI_SEED_CONTENT_TYPE}}"
+        "FUSEKI_HOST{{cs.CS_INSTANCE_ENV_SUFFIX}}": "fuseki{{cs.CS_INSTANCE_SUFFIX}}",
+        "FUSEKI_PORT{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.FUSEKI_PORT}}",
+        "FUSEKI_DATASET{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.FUSEKI_DATASET}}",
+        "FUSEKI_ADMIN_PASSWORD{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.FUSEKI_ADMIN_PASSWORD}}",
+        "FUSEKI_URL{{cs.CS_INSTANCE_ENV_SUFFIX}}": "http://fuseki{{cs.CS_INSTANCE_SUFFIX}}:{{cs.FUSEKI_PORT}}",
+        "FUSEKI_SEED_FILE{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.FUSEKI_SEED_FILE}}",
+        "FUSEKI_SEED_DIR{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.FUSEKI_SEED_DIR}}",
+        "FUSEKI_SEED_MODE{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.FUSEKI_SEED_MODE}}",
+        "FUSEKI_SEED_GRAPH{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.FUSEKI_SEED_GRAPH}}",
+        "FUSEKI_SEED_CONTENT_TYPE{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.FUSEKI_SEED_CONTENT_TYPE}}"
     }
 }

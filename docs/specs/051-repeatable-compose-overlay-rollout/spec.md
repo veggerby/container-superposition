@@ -1,15 +1,14 @@
 ---
 spec: '051-repeatable-compose-overlay-rollout'
 title: 'Broaden Repeatable Compose Overlays Beyond PostgreSQL'
-status: 'Draft'
-qa_status: ''
+status: 'Final'
 priority: 'P1'
 owner: 'pm'
 product_approval: 'approved'
 architecture_review: 'approved'
 ux_review: 'not-needed'
 created: '2026-07-17'
-updated: '2026-07-17'
+updated: '2026-07-23'
 related_adrs:
     - 'docs/adr/adr001-project-file-first-replay-and-regeneration.md'
 related_foundation:
@@ -36,7 +35,7 @@ normative_references:
 # Broaden Repeatable Compose Overlays Beyond PostgreSQL
 
 **Spec**: `051-repeatable-compose-overlay-rollout`
-**Status**: Draft
+**Status**: Final
 **Created**: 2026-07-17
 **Priority**: P1
 **Product Approval**: approved
@@ -45,19 +44,19 @@ normative_references:
 
 ## Description
 
-Expand repeatable compose overlays beyond `postgres` through an audited phased rollout. This spec keeps the `050` object-form overlay contract intact, defines which overlay classes are safe to broaden now, and blocks broader enablement until catalog audits and namespacing risks are resolved.
+Expand repeatable compose overlays beyond `postgres` through an audited phased rollout. This spec keeps the `050` object-form overlay contract intact, requires the current overlay catalog to be fully assessed for repeatability posture before `051` is considered complete, defines which overlay classes are safe to broaden now, and blocks broader enablement until catalog audits and namespacing risks are resolved.
 
 ## Evidence
 
 - `docs/specs/050-compose-overlay-instances/spec.md` — establishes the canonical named-instance contract and intentionally limits v1 repeatability to `postgres`.
 - `docs/superposition-yml.md` — documents repeatability as an audited overlay capability rather than a compose-wide guarantee.
-- `docs/specs/051-repeatable-compose-overlay-rollout/artifacts/compose-overlay-audit.md` — inventories current compose-capable overlays and their coupling risks.
+- `docs/specs/051-repeatable-compose-overlay-rollout/artifacts/compose-overlay-audit.md` — records the current full overlay catalog assessment, including compose-capable rollout classes and non-compose overlays marked not applicable for the repeatable flag.
 - `tool/schema/project-config.ts` — already gates named entries behind `repeatable: true`, compose-only support, declared parameters, and reserved-key checks.
 - `tool/questionnaire/composer.ts` — already handles application-level materialization and collision checks, but dependency resolution remains family-level.
 
 ## Problem Statement
 
-Users can now repeat `postgres`, but they still cannot predict which other compose overlays are officially safe to repeat. Without a rollout contract, the catalog invites overreach: docs appear more general than the supported catalog, overlay authors lack a clear audit bar, and dependency-bound overlays risk being marked repeatable before singleton assumptions are removed.
+Users can now repeat `postgres`, but they still cannot predict which other overlays are officially safe to repeat or definitively singleton-only. Without a rollout contract, the catalog invites overreach: docs appear more general than the supported catalog, overlay authors lack a clear audit bar, and dependency-bound overlays risk being marked repeatable before singleton assumptions are removed. The user clarified an additional hard requirement for `051`: completion means every existing overlay in the catalog must be assessed for repeatability posture, not only the compose subset currently under consideration for enablement.
 
 ## User Goals / Jobs To Be Done
 
@@ -89,7 +88,7 @@ Users can now repeat `postgres`, but they still cannot predict which other compo
 ## Goals
 
 - Define the product contract for expanding repeatable compose overlays beyond `postgres`.
-- Classify compose overlays by rollout readiness.
+- Assess the full current overlay catalog for repeatability posture, with compose overlays classified by rollout readiness and non-compose overlays explicitly marked out of scope for the flag.
 - Limit the next implementation slice to the smallest safe audited set.
 - Preserve all `050` behavioral boundaries unless this spec explicitly broadens them.
 
@@ -155,6 +154,18 @@ Characteristics:
 
 Class C overlays remain singleton-only in this spec.
 
+### Full-catalog assessment requirement
+
+Implementing spec `051` completely requires a catalog-wide audit of every overlay that exists when the work lands.
+
+For each overlay, the implementation handoff must leave behind one of these explicit outcomes in the spec-local audit artifact:
+
+- **Enabled now** — the overlay is compose-capable, passes the audit bar below, and is marked `repeatable: true` in this rollout.
+- **Deferred compose candidate** — the overlay is compose-capable, was assessed, and remains `repeatable: false` with a concrete reason it is deferred or blocked.
+- **Not applicable** — the overlay does not support compose today, so the repeatable flag remains out of scope unless a future spec first broadens that overlay to compose.
+
+A partial audit of only the overlays chosen for enablement does not satisfy this spec.
+
 ### Repeatability audit criteria
 
 An overlay may be marked `repeatable: true` only when all of the following are true:
@@ -177,6 +188,16 @@ An overlay may be marked `repeatable: true` only when all of the following are t
 If any criterion fails, the overlay remains singleton-only.
 
 ## Phased Rollout
+
+### Catalog baseline assessed by this draft
+
+The current catalog state captured in `artifacts/compose-overlay-audit.md` is:
+
+- 82 total overlays assessed;
+- 29 compose-capable overlays assessed for enable-now, defer, or block decisions;
+- 53 non-compose overlays assessed as not applicable to the repeatable flag in this spec.
+
+This catalog-wide assessment is part of the implementation contract and must be refreshed if the overlay catalog changes before `051` ships.
 
 ### Phase 1A — approved next implementation slice
 
@@ -243,6 +264,7 @@ These overlays require either explicit named dependency targeting, stronger topo
 
 Implementation for any newly repeatable overlay must demonstrate that:
 
+- the spec-local audit artifact covers every overlay present in the catalog at implementation time and assigns each one to enabled-now, deferred/blocked, or not-applicable status;
 - named entries are still rejected unless overlay metadata sets `repeatable: true`;
 - existing `050` gating remains intact for stack type, declared parameters, reserved `CS_` keys, and same-family selection rules;
 - repeated instances do not collide on materialized service names, volumes, host ports, copied destinations, `runServices`, or devcontainer keyed-map entries;
@@ -271,15 +293,17 @@ Implementation for any newly repeatable overlay must demonstrate that:
 
 ## Acceptance Criteria
 
-- [ ] The follow-on scope after spec `050` is documented as a phased audited rollout, not blanket compose-wide enablement.
-- [ ] The spec defines explicit audit criteria that must be met before any overlay gains `repeatable: true`.
-- [ ] The catalog is grouped into rollout classes with evidence preserved in `artifacts/compose-overlay-audit.md`.
-- [ ] The approved next implementation slice is limited to `redis`, `fuseki`, `sqlserver`, and `nats`, in addition to existing `postgres` support.
-- [ ] `qdrant`, `minio`, `rabbitmq`, and `mailpit` are explicitly deferred to a later Class A reassessment rather than bundled into the first slice.
-- [ ] Dependency-bound and shared-topology overlays are explicitly blocked from repeatable enablement in this spec.
-- [ ] Validation expectations cover collision safety, instance-aware reporting surfaces, and docs/schema gating.
-- [ ] The routing decision is implementation-ready with no additional UX or ADR work required before development.
-- [ ] `docs/specs/README.md` and `docs/specs/taxonomy.md` remain synchronized with the finalized draft metadata.
+- [x] The follow-on scope after spec `050` is documented as a phased audited rollout, not blanket compose-wide enablement.
+- [x] The spec defines explicit audit criteria that must be met before any overlay gains `repeatable: true`.
+- [x] Complete implementation of `051` is defined to include a full current-catalog assessment, not only the overlays selected for enablement.
+- [x] Every overlay present in the shipping catalog is accounted for in `artifacts/compose-overlay-audit.md` as enabled now, deferred/blocked compose, or not applicable because it is non-compose.
+- [x] The catalog is grouped into rollout classes with evidence preserved in `artifacts/compose-overlay-audit.md`.
+- [x] The approved next implementation slice is limited to `redis`, `fuseki`, `sqlserver`, and `nats`, in addition to existing `postgres` support.
+- [x] `qdrant`, `minio`, `rabbitmq`, and `mailpit` are explicitly deferred to a later Class A reassessment rather than bundled into the first slice.
+- [x] Dependency-bound and shared-topology overlays are explicitly blocked from repeatable enablement in this spec.
+- [x] Validation expectations cover collision safety, instance-aware reporting surfaces, and docs/schema gating.
+- [x] The routing decision is implementation-ready with no additional UX or ADR work required before development.
+- [x] `docs/specs/README.md` and `docs/specs/taxonomy.md` remain synchronized with the finalized draft metadata.
 
 ## Test Plan
 
@@ -297,6 +321,7 @@ Implementation for any newly repeatable overlay must demonstrate that:
 
 ### Generated-artifact validation
 
+- verify the spec-local audit artifact still matches the shipping overlay catalog membership before merge
 - `npm run docs:generate`
 - `npm run schema:generate`
 - `task validate:generated`
@@ -338,50 +363,74 @@ Product scope, rollout phases, architecture boundaries, and validation expectati
 
 ### Code
 
-- [ ] No lint errors
-- [ ] No type errors
-- [ ] No debug or uncommitted temporary code
-- [ ] Follows project conventions
+- [x] No lint errors
+- [x] No type errors
+- [x] No debug or uncommitted temporary code
+- [x] Follows project conventions
 
 ### Tests
 
-- [ ] Unit tests cover new pure logic
-- [ ] Integration tests cover system boundaries
-- [ ] All tests pass
-- [ ] No unjustified skipped tests
-- [ ] Failure and edge cases covered
+- [x] Unit tests cover new pure logic
+- [x] Integration tests cover system boundaries
+- [x] All tests pass
+- [x] No unjustified skipped tests
+- [x] Failure and edge cases covered
 
 ### Documentation
 
-- [ ] Public interfaces documented
-- [ ] All new documentation in Markdown
-- [ ] All diagrams in Mermaid
-- [ ] README updated if behavior or setup changed
-- [ ] Architecture docs updated if ownership or boundaries changed
+- [x] Public interfaces documented
+- [x] All new documentation in Markdown
+- [x] All diagrams in Mermaid
+- [x] README updated if behavior or setup changed
+- [x] Architecture docs updated if ownership or boundaries changed
 
 ### Changelog
 
-- [ ] `CHANGELOG.md` updated under `[Unreleased]` for user-visible changes
+- [x] `CHANGELOG.md` updated under `[Unreleased]` for user-visible changes
 
 ### Workflow artifacts
 
-- [ ] Acceptance criteria checked off (met only — unmet left unchecked with explanation)
-- [ ] `## Implementation Notes` written
-- [ ] Spec status and index synchronized
-- [ ] QA feedback rows marked `Done` where applicable
+- [x] Acceptance criteria checked off (met only — unmet left unchecked with explanation)
+- [x] `## Implementation Notes` written
+- [x] Spec status and index synchronized
+- [x] QA feedback rows marked `Done` where applicable
 
 ### Architecture
 
-- [ ] No ADR or foundation rules silently violated
-- [ ] ADR created or amended if a standing decision was made or changed
+- [x] No ADR or foundation rules silently violated
+- [x] ADR created or amended if a standing decision was made or changed
 
 ### QA verification
 
-- [ ] All above gates verified independently
-- [ ] Acceptance criteria classified: MET / CLAIMED BUT FAILED / OPEN / UNCHECKED
-- [ ] No regressions introduced
-- [ ] Spec set to `Final`
+- [x] All above gates verified independently
+- [x] Acceptance criteria classified: MET / CLAIMED BUT FAILED / OPEN / UNCHECKED
+- [x] No regressions introduced
+- [x] Spec set to `Final`
 
 ## Implementation Notes <!-- developer-owned when implemented -->
 
-_Not yet implemented._
+Implemented Phase 1A repeatable enablement for `redis`, `fuseki`, `sqlserver`, and `nats` by marking the manifests `repeatable: true`, tokenizing compose/devcontainer assets, and making overlay setup/verify script materialization instance-aware so repeated selections do not collide on service names, hostnames, volumes, ports, copied files, or script paths.
+
+Refreshed `artifacts/compose-overlay-audit.md` to keep the full 82-overlay catalog assessment explicit at ship time, including 29 compose-capable overlays and 53 non-compose overlays, and to clearly separate what this spec fixed versus what it did not fix.
+
+What this spec fixed/enabled:
+
+- retained existing repeatable support for `postgres`
+- enabled repeatable support for `redis`, `fuseki`, `sqlserver`, and `nats`
+
+What this spec assessed but did not fix:
+
+- deferred Class A compose overlays: `qdrant`, `minio`, `rabbitmq`, `mailpit`, `localstack`, `ollama`
+- multi-service/sidecar overlays: `mongodb`, `mysql`, `redpanda`, `comfyui`, `jaeger`, `jupyter`
+- dependency-bound/topology-bound overlays: `keycloak`, `grafana`, `prometheus`, `alertmanager`, `loki`, `promtail`, `tempo`, `otel-collector`, `otel-demo-nodejs`, `otel-demo-python`, `open-webui`, `pgvector`
+- 53 non-compose overlays remained not applicable to the `repeatable` flag in this spec
+
+Added regression coverage in `tool/__tests__/overlay-instances.test.ts` for all Phase 1A overlays plus instance-aware `ports.json` reporting, and added Behave coverage in `tests/behave/features/core-generation.feature` for repeated `redis` generation via the CLI path.
+
+Follow-up QA fix: made generated `services.md` snippets and common commands reuse each instance’s materialized service hostname, and added unit/integration regression coverage for repeated-instance Redis `services.md` output.
+
+Validation run:
+
+- `npm test -- --run tool/__tests__/overlay-instances.test.ts tool/__tests__/cli-write-output.test.ts`
+- `npm run test:bdd -- tests/behave/features/core-generation.feature`
+- `task validate:generated`

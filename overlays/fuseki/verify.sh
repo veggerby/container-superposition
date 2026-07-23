@@ -4,8 +4,8 @@
 
 set -e
 
-FUSEKI_HOST="${FUSEKI_HOST:-fuseki}"
-FUSEKI_PORT="${FUSEKI_PORT:-3030}"
+FUSEKI_HOST="${FUSEKI_HOST:-fuseki{{cs.CS_INSTANCE_SUFFIX}}}"
+FUSEKI_PORT="${FUSEKI_PORT:-{{cs.FUSEKI_PORT}}}"
 FUSEKI_URL="http://${FUSEKI_HOST}:${FUSEKI_PORT}"
 
 echo "Verifying Apache Jena Fuseki overlay..."
@@ -39,8 +39,8 @@ if [ "$FUSEKI_READY" = false ]; then
 fi
 
 # Check dataset exists
-DATASET="${FUSEKI_DATASET:-ds}"
-ADMIN_PASSWORD="${FUSEKI_ADMIN_PASSWORD:-admin}"
+DATASET="${FUSEKI_DATASET:-{{cs.FUSEKI_DATASET}}}"
+ADMIN_PASSWORD="${FUSEKI_ADMIN_PASSWORD:-{{cs.FUSEKI_ADMIN_PASSWORD}}}"
 echo ""
 echo "3. Checking dataset '${DATASET}' exists..."
 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \

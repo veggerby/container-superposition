@@ -20,12 +20,20 @@ fi
 # Check if Redis service is running
 echo ""
 echo "2️⃣ Checking Redis service..."
+REDIS_HOST="${REDIS_HOST:-redis{{cs.CS_INSTANCE_SUFFIX}}}"
+REDIS_PORT="${REDIS_PORT:-{{cs.REDIS_PORT}}}"
+REDIS_PASSWORD="${REDIS_PASSWORD:-{{cs.REDIS_PASSWORD}}}"
+REDIS_AUTH_ARGS=()
+if [ -n "$REDIS_PASSWORD" ]; then
+    REDIS_AUTH_ARGS=(-a "$REDIS_PASSWORD")
+fi
+
 # Wait up to 10 seconds for redis to be ready
 REDIS_READY=false
 for i in {1..10}; do
-    if redis-cli -h redis ping &> /dev/null; then
+    if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" "${REDIS_AUTH_ARGS[@]}" ping &> /dev/null; then
         echo "   ✅ Redis service is ready"
-        redis-cli -h redis ping
+        redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" "${REDIS_AUTH_ARGS[@]}" ping
         REDIS_READY=true
         break
     fi

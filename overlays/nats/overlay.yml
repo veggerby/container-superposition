@@ -4,6 +4,7 @@ description: Lightweight pub/sub messaging with JetStream
 category: messaging
 supports:
     - compose
+repeatable: true
 requires: []
 suggests:
     - prometheus

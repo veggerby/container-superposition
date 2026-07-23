@@ -78,6 +78,45 @@ Feature: Core generation workflow
     And the Compose file ".devcontainer/docker-compose.yml" should have service "postgres" on network "devnet"
     And the Compose file ".devcontainer/docker-compose.yml" should have network "devnet" named "workspace-devnet"
 
+  Scenario: Regen materializes named repeatable redis instances
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: compose
+            overlays:
+              - overlay: redis
+                name: cache
+              - overlay: redis
+                name: queue
+                parameters:
+                  REDIS_PORT: '6380'
+            outputPath: ./.devcontainer
+      """
+    When I run the CLI command
+      """
+      regen
+      """
+    Then the command exits successfully
+    And the Compose file ".devcontainer/docker-compose.yml" should define service "redis-cache"
+    And the Compose file ".devcontainer/docker-compose.yml" should define service "redis-queue"
+    And the Compose file ".devcontainer/docker-compose.yml" should have service "redis-cache" port "6379:6379"
+    And the Compose file ".devcontainer/docker-compose.yml" should have service "redis-queue" port "6380:6379"
+    And the JSON file ".devcontainer/devcontainer.json" should have value at "runServices" equal:
+      """
+      - redis-cache
+      - redis-queue
+      """
+    And the JSON file ".devcontainer/devcontainer.json" should have value at "remoteEnv.REDIS_HOST_CACHE" equal:
+      """
+      redis-cache
+      """
+    And the JSON file ".devcontainer/devcontainer.json" should have value at "remoteEnv.REDIS_HOST_QUEUE" equal:
+      """
+      redis-queue
+      """
+
   Scenario: Regen materializes semantic script output for setup helpers
     Given a workspace fixture "plain-nodejs"
     When I run the CLI command

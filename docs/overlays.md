@@ -114,13 +114,14 @@ Rust stable with cargo, rustfmt, and clippy
 
 SPARQL 1.1 server and triplestore backed by Apache Jena TDB
 
-| Property     | Value                                                                             |
-| ------------ | --------------------------------------------------------------------------------- |
-| **Category** | database                                                                          |
-| **Supports** | compose                                                                           |
-| **Suggests** | `java`, `python`, `nodejs`                                                        |
-| **Tags**     | `database`, `rdf`, `sparql`, `triplestore`, `semantic-web`, `linked-data`, `jena` |
-| **Ports**    | 3030/http                                                                         |
+| Property       | Value                                                                             |
+| -------------- | --------------------------------------------------------------------------------- |
+| **Category**   | database                                                                          |
+| **Supports**   | compose                                                                           |
+| **Suggests**   | `java`, `python`, `nodejs`                                                        |
+| **Tags**       | `database`, `rdf`, `sparql`, `triplestore`, `semantic-web`, `linked-data`, `jena` |
+| **Repeatable** | yes                                                                               |
+| **Ports**      | 3030/http                                                                         |
 
 ### DuckDB (`duckdb`)
 
@@ -214,25 +215,27 @@ High-performance vector database for similarity search and embeddings
 
 Redis 7 cache
 
-| Property     | Value                        |
-| ------------ | ---------------------------- |
-| **Category** | database                     |
-| **Supports** | compose                      |
-| **Suggests** | `prometheus`, `grafana`      |
-| **Tags**     | `database`, `cache`, `redis` |
-| **Ports**    | 6379/tcp                     |
+| Property       | Value                        |
+| -------------- | ---------------------------- |
+| **Category**   | database                     |
+| **Supports**   | compose                      |
+| **Suggests**   | `prometheus`, `grafana`      |
+| **Tags**       | `database`, `cache`, `redis` |
+| **Repeatable** | yes                          |
+| **Ports**      | 6379/tcp                     |
 
 ### SQL Server (`sqlserver`)
 
 SQL Server 2022 for Linux
 
-| Property     | Value                                       |
-| ------------ | ------------------------------------------- |
-| **Category** | database                                    |
-| **Supports** | compose                                     |
-| **Suggests** | `dotnet`, `prometheus`, `grafana`           |
-| **Tags**     | `database`, `sql`, `sqlserver`, `microsoft` |
-| **Ports**    | 1433                                        |
+| Property       | Value                                       |
+| -------------- | ------------------------------------------- |
+| **Category**   | database                                    |
+| **Supports**   | compose                                     |
+| **Suggests**   | `dotnet`, `prometheus`, `grafana`           |
+| **Tags**       | `database`, `sql`, `sqlserver`, `microsoft` |
+| **Repeatable** | yes                                         |
+| **Ports**      | 1433                                        |
 
 ### SQLite (`sqlite`)
 

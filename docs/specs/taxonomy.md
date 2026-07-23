@@ -59,7 +59,7 @@ INFRA            — Project infrastructure (tests, CI, tooling)
 
 | Spec                                                                                     | Title                                                 | Status |
 | ---------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------ |
-| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL | Draft  |
+| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL | Final  |
 
 ### OVERLAY-FIX
 
@@ -88,7 +88,7 @@ _No specs yet._
 | [010-compose-env-materialization](010-compose-env-materialization/spec.md)               | Compose Env Materialization and Env Template Naming     | Final  |
 | [043-compose-network-name](043-compose-network-name/spec.md)                             | Project-Specific Compose Network Names                  | Final  |
 | [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides | Final  |
-| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL   | Draft  |
+| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL   | Final  |
 
 ### COMPOSER-FIX
 

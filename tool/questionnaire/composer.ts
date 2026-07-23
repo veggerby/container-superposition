@@ -546,46 +546,79 @@ function buildApplicationTokenMap(application: OverlayApplication): Record<strin
 
 function buildSummaryOverlayMetadata(
     applications: OverlayApplication[],
-    allOverlayDefs: OverlayMetadata[]
+    allOverlayDefs: OverlayMetadata[],
+    overlaysDir: string
 ): OverlayMetadata[] {
     const overlayMap = new Map(allOverlayDefs.map((overlay) => [overlay.id, overlay]));
-    return applications
-        .map((application) => {
-            const overlay = overlayMap.get(application.overlayId);
-            if (!overlay) {
-                return undefined;
-            }
-            const materialized = substituteObjectKeysAndValues(
-                overlay,
-                application.parameters
-            ) as OverlayMetadata;
-            if (application.mode === 'named' && application.instanceName) {
-                return {
-                    ...materialized,
-                    name: `${materialized.name} (${application.instanceName})`,
-                    ports: (materialized.ports ?? []).map((port) => {
-                        const effectivePort =
-                            application.overlayId === 'postgres' &&
-                            application.parameters.POSTGRES_PORT &&
-                            /^\d+$/.test(application.parameters.POSTGRES_PORT)
-                                ? Number.parseInt(application.parameters.POSTGRES_PORT, 10)
-                                : undefined;
+    const summaries: OverlayMetadata[] = [];
 
-                        return typeof port === 'number'
-                            ? (effectivePort ?? port)
-                            : {
-                                  ...port,
-                                  ...(effectivePort ? { port: effectivePort } : {}),
-                                  service: port.service
-                                      ? `${port.service}-${application.instanceName}`
-                                      : port.service,
-                              };
-                    }),
-                };
+    for (const application of applications) {
+        const overlay = overlayMap.get(application.overlayId);
+        if (!overlay) {
+            continue;
+        }
+
+        const materialized = substituteObjectKeysAndValues(
+            overlay,
+            application.parameters
+        ) as OverlayMetadata;
+        const overlayComposePath = path.join(
+            overlaysDir,
+            application.overlayId,
+            'docker-compose.yml'
+        );
+        let composeServices: string[] = [];
+        const hostPortByInternalPort = new Map<number, number>();
+        if (fs.existsSync(overlayComposePath)) {
+            const compose = substituteObjectKeysAndValues(
+                yaml.load(fs.readFileSync(overlayComposePath, 'utf8')) as any,
+                application.parameters
+            ) as any;
+            composeServices = Object.keys(compose?.services ?? {});
+            for (const service of Object.values(compose?.services ?? {})) {
+                if (!Array.isArray((service as any)?.ports)) {
+                    continue;
+                }
+                for (const binding of (service as any).ports) {
+                    const parsed = parsePortBinding(binding);
+                    if (!parsed) {
+                        continue;
+                    }
+                    hostPortByInternalPort.set(parsed.containerPort, parsed.hostPort);
+                }
             }
-            return materialized;
-        })
-        .filter((overlay): overlay is OverlayMetadata => overlay !== undefined);
+        }
+
+        const primaryServiceName = composeServices.length === 1 ? composeServices[0] : undefined;
+        const ports: OverlayMetadata['ports'] = materialized.ports?.map((port) => {
+            const declaredPort = typeof port === 'number' ? port : port.port;
+            const effectivePort = hostPortByInternalPort.get(declaredPort);
+            const serviceName =
+                primaryServiceName ??
+                (typeof port === 'number' ? application.overlayId : port.service);
+
+            return typeof port === 'number'
+                ? {
+                      port: effectivePort ?? port,
+                      service: serviceName,
+                  }
+                : {
+                      ...port,
+                      ...(effectivePort ? { port: effectivePort } : {}),
+                      service: serviceName,
+                  };
+        });
+
+        summaries.push({
+            ...materialized,
+            ...(application.mode === 'named' && application.instanceName
+                ? { name: `${materialized.name} (${application.instanceName})` }
+                : {}),
+            ports,
+        });
+    }
+
+    return summaries;
 }
 
 function buildOverlayApplications(
@@ -2349,32 +2382,50 @@ function hardRenderToolOwnedComposePorts(
 function parseHostPortFromBinding(
     binding: string | number | Record<string, unknown>
 ): number | null {
+    const parsed = parsePortBinding(binding);
+    return parsed?.hostPort ?? null;
+}
+
+function parsePortBinding(
+    binding: string | number | Record<string, unknown>
+): { hostPort: number; containerPort: number } | null {
     if (typeof binding === 'number') {
-        // A bare number in docker-compose ports means container port → random host port.
-        // There is no deterministic host port to conflict on, so treat as "no host port".
         return null;
     }
     if (typeof binding === 'object' && binding !== null) {
         const pub = (binding as any).published;
-        if (pub == null) return null;
-        if (typeof pub === 'number') return pub;
-        const m = String(pub).match(/^(\d+)$/);
-        return m ? parseInt(m[1], 10) : null;
+        const target = (binding as any).target;
+        if (pub == null || target == null) return null;
+        const hostPort = typeof pub === 'number' ? pub : Number.parseInt(String(pub), 10);
+        const containerPort =
+            typeof target === 'number' ? target : Number.parseInt(String(target), 10);
+        return Number.isNaN(hostPort) || Number.isNaN(containerPort)
+            ? null
+            : { hostPort, containerPort };
     }
     if (typeof binding !== 'string') return null;
-    // "${VAR:-8081}:..." — extract default
-    const envMatch = binding.match(/^\$\{[^}]+:-(\d+)\}/);
-    if (envMatch) return parseInt(envMatch[1], 10);
+    const envMatch = binding.match(/^\$\{[^}]+:-(\d+)\}:(\d+)$/);
+    if (envMatch) {
+        return {
+            hostPort: Number.parseInt(envMatch[1], 10),
+            containerPort: Number.parseInt(envMatch[2], 10),
+        };
+    }
     const parts = binding.split(':');
     if (parts.length === 3) {
-        const n = parseInt(parts[1], 10);
-        return isNaN(n) ? null : n;
+        const hostPort = Number.parseInt(parts[1], 10);
+        const containerPort = Number.parseInt(parts[2], 10);
+        return Number.isNaN(hostPort) || Number.isNaN(containerPort)
+            ? null
+            : { hostPort, containerPort };
     }
     if (parts.length === 2) {
-        const n = parseInt(parts[0], 10);
-        return isNaN(n) ? null : n;
+        const hostPort = Number.parseInt(parts[0], 10);
+        const containerPort = Number.parseInt(parts[1], 10);
+        return Number.isNaN(hostPort) || Number.isNaN(containerPort)
+            ? null
+            : { hostPort, containerPort };
     }
-    // Single segment: "8081" string — same as bare number, random host port.
     return null;
 }
 
@@ -3079,7 +3130,8 @@ export async function generateManifestOnly(
     ];
     const selectedOverlayMetadata = buildSummaryOverlayMetadata(
         summaryApplications,
-        allOverlayDefs
+        allOverlayDefs,
+        actualOverlaysDir
     );
 
     // Return summary for manifest-only mode
@@ -3402,7 +3454,7 @@ export async function composeDevContainer(
     config = applyProjectPortsToDevcontainer(config, preparedProjectPorts);
 
     // Merge setup scripts from overlays into postCreateCommand
-    mergeSetupScripts(config, overlays, outputPath, fileRegistry, actualOverlaysDir);
+    mergeSetupScripts(config, overlayApplications, outputPath, fileRegistry, actualOverlaysDir);
     config = applyProjectShellConfig(config, answers.projectShell, outputPath, fileRegistry);
 
     // 10. Apply custom patches from .devcontainer/custom/ (if present)
@@ -3649,7 +3701,8 @@ export async function composeDevContainer(
     // Prepare overlay metadata for summary
     const selectedOverlayMetadata = buildSummaryOverlayMetadata(
         overlayApplications,
-        allOverlayDefs
+        allOverlayDefs,
+        actualOverlaysDir
     );
 
     // Extract environment variables from .env.example for connection strings
@@ -3849,21 +3902,21 @@ function applyPortOffsetToDevcontainer(config: DevContainer, offset: number): vo
  */
 function mergeSetupScripts(
     config: DevContainer,
-    overlays: string[],
+    applications: OverlayApplication[],
     outputPath: string,
     fileRegistry: FileRegistry,
     overlaysDir: string
 ): void {
-    const setupScripts: string[] = [];
-    const verifyScripts: string[] = [];
+    const setupScripts: Array<{ key: string; command: string }> = [];
+    const verifyScripts: Array<{ key: string; command: string }> = [];
 
     const scriptsDir = path.join(outputPath, 'scripts');
 
     // Only create the scripts directory (and register it) if at least one overlay needs it
-    const hasScripts = overlays.some(
-        (o) =>
-            fs.existsSync(path.join(overlaysDir, o, 'setup.sh')) ||
-            fs.existsSync(path.join(overlaysDir, o, 'verify.sh'))
+    const hasScripts = applications.some(
+        (application) =>
+            fs.existsSync(path.join(overlaysDir, application.overlayId, 'setup.sh')) ||
+            fs.existsSync(path.join(overlaysDir, application.overlayId, 'verify.sh'))
     );
     if (hasScripts) {
         if (!fs.existsSync(scriptsDir)) {
@@ -3880,77 +3933,81 @@ function mergeSetupScripts(
         }
     }
 
-    for (const overlay of overlays) {
+    for (const application of applications) {
+        const overlay = application.overlayId;
+        const instanceSuffix =
+            application.mode === 'named' && application.instanceName
+                ? `-${application.instanceName}`
+                : '';
+
         // Handle setup scripts
         const setupPath = path.join(overlaysDir, overlay, 'setup.sh');
         if (fs.existsSync(setupPath)) {
-            // Copy setup script to scripts subdirectory
-            const destPath = path.join(scriptsDir, `setup-${overlay}.sh`);
-            fs.copyFileSync(setupPath, destPath);
+            const fileName = `setup-${overlay}${instanceSuffix}.sh`;
+            const destPath = path.join(scriptsDir, fileName);
+            const content = substituteStringTokens(
+                fs.readFileSync(setupPath, 'utf8'),
+                application.parameters
+            );
+            fs.writeFileSync(destPath, content);
 
-            // Make it executable
             fs.chmodSync(destPath, 0o755);
-            fileRegistry.addFile(`scripts/setup-${overlay}.sh`);
+            fileRegistry.addFile(`scripts/${fileName}`);
 
-            setupScripts.push(`bash .devcontainer/scripts/setup-${overlay}.sh`);
+            setupScripts.push({
+                key: `setup-${overlay}${instanceSuffix}`,
+                command: `bash .devcontainer/scripts/${fileName}`,
+            });
         }
 
         // Handle verify scripts
         const verifyPath = path.join(overlaysDir, overlay, 'verify.sh');
         if (fs.existsSync(verifyPath)) {
-            // Copy verify script to scripts subdirectory
-            const destPath = path.join(scriptsDir, `verify-${overlay}.sh`);
-            fs.copyFileSync(verifyPath, destPath);
+            const fileName = `verify-${overlay}${instanceSuffix}.sh`;
+            const destPath = path.join(scriptsDir, fileName);
+            const content = substituteStringTokens(
+                fs.readFileSync(verifyPath, 'utf8'),
+                application.parameters
+            );
+            fs.writeFileSync(destPath, content);
 
-            // Make it executable
             fs.chmodSync(destPath, 0o755);
-            fileRegistry.addFile(`scripts/verify-${overlay}.sh`);
+            fileRegistry.addFile(`scripts/${fileName}`);
 
-            verifyScripts.push(`bash .devcontainer/scripts/verify-${overlay}.sh`);
+            verifyScripts.push({
+                key: `verify-${overlay}${instanceSuffix}`,
+                command: `bash .devcontainer/scripts/${fileName}`,
+            });
         }
     }
 
     if (setupScripts.length > 0) {
-        // Initialize postCreateCommand if it doesn't exist
         if (!config.postCreateCommand) {
             config.postCreateCommand = {};
         }
 
-        // If postCreateCommand is a string, convert to object
         if (typeof config.postCreateCommand === 'string') {
             config.postCreateCommand = { default: config.postCreateCommand };
         }
 
-        // Add setup scripts
-        for (let i = 0; i < setupScripts.length; i++) {
-            const overlay = overlays.filter((o) => {
-                const setupPath = path.join(overlaysDir, o, 'setup.sh');
-                return fs.existsSync(setupPath);
-            })[i];
-            config.postCreateCommand[`setup-${overlay}`] = setupScripts[i];
+        for (const script of setupScripts) {
+            config.postCreateCommand[script.key] = script.command;
         }
 
         console.log(chalk.dim(`   🔧 Added ${setupScripts.length} setup script(s)`));
     }
 
     if (verifyScripts.length > 0) {
-        // Initialize postStartCommand if it doesn't exist
         if (!config.postStartCommand) {
             config.postStartCommand = {};
         }
 
-        // If postStartCommand is a string, convert to object
         if (typeof config.postStartCommand === 'string') {
             config.postStartCommand = { default: config.postStartCommand };
         }
 
-        // Add verify scripts
-        for (let i = 0; i < verifyScripts.length; i++) {
-            const overlay = overlays.filter((o) => {
-                const verifyPath = path.join(overlaysDir, o, 'verify.sh');
-                return fs.existsSync(verifyPath);
-            })[i];
-            config.postStartCommand[`verify-${overlay}`] = verifyScripts[i];
+        for (const script of verifyScripts) {
+            config.postStartCommand[script.key] = script.command;
         }
 
         console.log(chalk.dim(`   ✓ Added ${verifyScripts.length} verification script(s)`));
