@@ -348,4 +348,3 @@ Validation run for the QA follow-up:
 **PM → Architect → Developer**
 
 Reason: ADR 002 closed the remaining architecture and policy decisions, enabling implementation.
-
