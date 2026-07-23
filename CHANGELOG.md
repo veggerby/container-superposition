@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Versioned private overlay and preset catalogs** — `superposition.yml` now supports project-declared external catalogs with immutable git/archive pinning or repo-relative path sources, namespace-qualified external IDs such as `acme/web-api`, strict no-override collision behavior in v1, shared catalog resolution across `init`/`regen`/`doctor`/`list`/`explain`/`plan`, and generated manifest receipts that record the resolved catalog identities used for replay
+
 - **`fuseki` overlay seed loading** — Apache Jena Fuseki projects can now opt into automatic RDF seed imports from one file or one directory during devcontainer creation, with append-or-replace modes, optional named-graph targeting, content-type auto-detection/override, and a reusable `.devcontainer/seed-fuseki.sh` helper for reruns
 
 - **GitHub Copilot CLI overlay** — the overlay catalog now includes `copilot-cli`, a terminal-first GitHub Copilot CLI install for devcontainers with configurable npm versioning, post-create installation, verification guidance, and authentication setup via `copilot login` or supported token environment variables

@@ -922,6 +922,7 @@ function generateManifest(
                         }
               )
             : undefined,
+        catalogs: answers.resolvedCatalogs,
         portOffset: answers.portOffset,
         preset: answers.preset,
         presetChoices: answers.presetChoices,

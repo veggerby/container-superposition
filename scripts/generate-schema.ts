@@ -29,6 +29,8 @@ import {
     SUPERPOSITION_LOCAL_SCHEMA_URL,
 } from '../tool/schema/project-config.js';
 
+const QUALIFIED_ID_PATTERN = '^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -226,16 +228,78 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                     'Actual Docker network name for compose stacks. When omitted, the generated docker-compose.yml uses a deterministic default derived from the repository folder name. Plain stacks reject this field.',
                 examples: ['my-repo-devnet'],
             },
+            catalogs: {
+                type: 'array',
+                description:
+                    'Optional external overlay/preset catalogs. Built-in overlays remain available without listing them here.',
+                items: {
+                    type: 'object',
+                    required: ['id', 'namespace', 'source'],
+                    additionalProperties: false,
+                    properties: {
+                        id: { type: 'string', minLength: 1 },
+                        namespace: {
+                            type: 'string',
+                            pattern: '^[a-z0-9][a-z0-9-]*$',
+                            description:
+                                'Namespace prefix used for external IDs such as acme/web-api',
+                        },
+                        source: {
+                            oneOf: [
+                                {
+                                    type: 'object',
+                                    required: ['type', 'url', 'commit'],
+                                    additionalProperties: false,
+                                    properties: {
+                                        type: { const: 'git' },
+                                        url: { type: 'string' },
+                                        ref: { type: 'string' },
+                                        commit: {
+                                            type: 'string',
+                                            pattern: '^[a-fA-F0-9]{7,40}$',
+                                        },
+                                        subpath: { type: 'string' },
+                                    },
+                                },
+                                {
+                                    type: 'object',
+                                    required: ['type', 'url', 'checksum'],
+                                    additionalProperties: false,
+                                    properties: {
+                                        type: { const: 'archive' },
+                                        url: { type: 'string' },
+                                        checksum: {
+                                            type: 'string',
+                                            pattern: '^sha256:[a-fA-F0-9]{64}$',
+                                        },
+                                        subpath: { type: 'string' },
+                                    },
+                                },
+                                {
+                                    type: 'object',
+                                    required: ['type', 'path'],
+                                    additionalProperties: false,
+                                    properties: {
+                                        type: { const: 'path' },
+                                        path: { type: 'string' },
+                                        subpath: { type: 'string' },
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                },
+            },
             overlays: {
                 type: 'array',
                 description:
-                    'Canonical overlay selection surface. Accepts legacy string entries for singletons and object entries for named repeatable compose instances.',
+                    'Canonical overlay selection surface. Built-ins stay unqualified; external overlays must use namespace-qualified IDs such as acme/web-api.',
                 items: {
                     oneOf: [
                         {
                             type: 'string',
-                            enum: overlayIds,
-                            description: 'Legacy singleton overlay identifier',
+                            anyOf: [{ enum: overlayIds }, { pattern: QUALIFIED_ID_PATTERN }],
+                            description: 'Singleton overlay identifier',
                         },
                         {
                             type: 'object',
@@ -244,7 +308,10 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                             properties: {
                                 overlay: {
                                     type: 'string',
-                                    enum: overlayIds,
+                                    anyOf: [
+                                        { enum: overlayIds },
+                                        { pattern: QUALIFIED_ID_PATTERN },
+                                    ],
                                     description: 'Repeatable overlay identifier',
                                 },
                                 name: {
@@ -267,9 +334,9 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
             },
             preset: {
                 type: 'string',
-                enum: presetIds,
+                anyOf: [{ enum: presetIds }, { pattern: QUALIFIED_ID_PATTERN }],
                 description:
-                    'ID of a preset (meta-overlay) to expand. Use cs list --presets to browse available presets.',
+                    'ID of a preset (meta-overlay) to expand. Built-in presets stay unqualified; external presets must be namespace-qualified.',
             },
             presetChoices: {
                 type: 'object',

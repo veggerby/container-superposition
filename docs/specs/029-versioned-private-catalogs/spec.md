@@ -4,7 +4,7 @@
 **Taxonomy**: `PROJECT`
 **Created**: 2026-06-15
 **Author**: Workflow Orchestrator
-**Status**: Draft
+**Status**: Final
 **Input**: Opportunity backlog item 2 from `docs/opportunities/README.md` — add versioned private overlay/preset catalogs for platform teams, covering source options, pinning, trust model, precedence, upgrade workflow, and compatibility with current `superposition.yml` / `regen` architecture.
 
 ---
@@ -107,7 +107,6 @@ Project config gains top-level `catalogs:` array. Each entry declares enough dat
 - immutable pin
 - resolved identity / integrity material
 - optional subpath
-- optional explicit override policy
 
 Illustrative shape:
 
@@ -165,12 +164,13 @@ Therefore:
 
 ### 5. Namespace and collision rules
 
-Default behavior: no silent collisions.
+V1 adopts strict namespace-only collision handling.
 
 - Built-in IDs remain unqualified.
 - External catalogs MUST be addressable through namespace-qualified IDs (example: `acme/web-api`).
-- Unqualified external IDs MUST NOT silently shadow built-ins.
-- Explicit override policy, if supported, must be narrow, reviewable, and deterministic.
+- Unqualified external IDs MUST NOT be selectable from project config.
+- Any external item whose local ID collides with a built-in ID or another external item MUST fail resolution unless the namespace-qualified reference is unique and used explicitly.
+- V1 MUST NOT provide any override mechanism for replacing or shadowing built-in IDs.
 - Same project file must resolve same precedence in every command surface.
 
 ### 6. Upgrade workflow
@@ -212,7 +212,7 @@ Static schema/editor validation may remain partially relaxed for dynamic IDs so 
 4. resolve and verify each catalog source
 5. materialize catalog contents into local cache/work area
 6. load bundled registry + external registry entries
-7. detect namespace/collision/override violations
+7. detect namespace/collision violations
 8. validate selected overlays/presets against effective registry
 9. execute existing composition/planning/list/explain flows using same effective registry object
 10. emit receipt metadata including resolved catalog identities
@@ -248,7 +248,7 @@ Origin metadata must be available to diagnostics and explain/list output when re
 | Risk                                              | Impact                               | Mitigation                                                                            |
 | ------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
 | Dynamic registry breaks static schema enums       | weaker editor UX or false validation | use two-stage validation; relax static enum where needed; keep runtime errors precise |
-| Silent shadowing between built-in and private IDs | wrong overlay/preset resolved        | require namespace-qualified external IDs by default; explicit override only           |
+| Silent shadowing between built-in and private IDs | wrong overlay/preset resolved        | require namespace-qualified external IDs; disallow overrides in v1                    |
 | Non-deterministic remote sources                  | CI drift                             | require immutable pins and integrity metadata                                         |
 | Credential leakage into config                    | security issue                       | only use ambient auth/environment; reject inline secrets                              |
 | Different commands resolve different registries   | trust break                          | centralize resolution behind one shared effective-registry pipeline                   |
@@ -258,7 +258,7 @@ Origin metadata must be available to diagnostics and explain/list output when re
 
 1. config/schema slice — raw `catalogs:` parsing and structural validation
 2. resolver slice — fetch/verify/materialize supported source types
-3. registry slice — merge bundled + external catalogs with origin metadata and collision rules
+3. registry slice — merge bundled + external catalogs with origin metadata and strict namespace-only collision rules
 4. command integration slice — route `init`, `regen`, `doctor`, `list`, `explain`, `plan` through same resolved registry
 5. diagnostics slice — receipt metadata, doctor findings, user-facing error/help text
 6. editor/schema slice — clear authoring story for dynamic IDs
@@ -267,7 +267,7 @@ Origin metadata must be available to diagnostics and explain/list output when re
 
 - unit tests for catalog declaration validation per source type
 - unit tests for pin rejection (`main`, `latest`, missing checksum, missing commit)
-- unit tests for namespace/collision/override rules
+- unit tests for namespace qualification and collision rejection rules
 - unit tests for effective-registry merge and origin metadata
 - integration tests for `regen`, `list`, `explain`, `doctor`, and `plan` using sample external catalogs
 - regression tests proving same project file yields same effective registry across commands
@@ -295,7 +295,6 @@ Even if technically possible, v1 does not require:
 
 1. Should repo-shared config allow any non-repo-relative `path` source, or should shared configs reject `path` entirely outside local/dev mode?
 2. Does v1 need explicit built-in allowlist/host allowlist policy in addition to immutable pins and integrity checks?
-3. Should override policy exist in v1 at all, or should v1 require strict namespace-only usage with no shadowing escape hatch?
 
 ## Acceptance Criteria
 
@@ -306,21 +305,38 @@ Even if technically possible, v1 does not require:
 | AC-3  | Supported v1 source types are explicitly limited to `git`, `archive`, and `path`, with unsupported kinds rejected clearly.                                                                   |
 | AC-4  | Credentials are never stored in project file; authentication relies on environment or host tooling.                                                                                          |
 | AC-5  | External catalog overlays/presets are selectable through existing project-file concepts rather than parallel selection model.                                                                |
-| AC-6  | Built-in and external catalog collisions fail closed by default; no silent shadowing occurs.                                                                                                 |
+| AC-6  | Built-in IDs remain unqualified, external IDs are selected only through namespace-qualified references, and collisions fail closed with no v1 override path.                                 |
 | AC-7  | Every command surface that consumes registry data resolves same effective merged registry for same project file.                                                                             |
 | AC-8  | Generated receipt/manifest records resolved catalog identities sufficient for audit and troubleshooting.                                                                                     |
 | AC-9  | Validation supports dynamic catalog-backed IDs through two-stage resolution and produces actionable errors when referenced items are missing.                                                |
 | AC-10 | Upgrade workflow based on reviewable pin changes is documented, and failures caused by removed/renamed catalog items are surfaced clearly.                                                   |
-| AC-11 | Automated tests cover successful resolution plus failure paths for pinning, integrity, collisions, and cross-command consistency.                                                            |
+| AC-11 | Automated tests cover successful resolution plus failure paths for pinning, namespace qualification, collision rejection, and cross-command consistency.                                     |
 
 ## Architecture Decision Impact
 
-New ADR needed.
+Implemented via `docs/adr/adr002-versioned-private-catalog-resolution.md`.
 
 Reason: feature changes trust boundary, registry resolution order, validation model, cache/materialization responsibilities, and cross-command ownership model.
 
+## Implementation Notes
+
+Implemented with a shared resolved-catalog context used by `init`, `regen`, `doctor`, `list`, `explain`, and `plan`.
+
+Key shipped decisions:
+
+- `path` catalogs are repo-relative only in v1; absolute/out-of-repo paths are rejected as non-portable shared intent.
+- v1 trust policy relies on explicit project declaration, ambient auth, immutable pins, and archive checksums; no separate host allowlist was added in this slice.
+- External overlays and presets are materialized into one effective registry with namespace-qualified IDs only; built-ins stay unqualified.
+- Generated `superposition.json` now records resolved catalog identity receipts used for replay and diagnostics.
+
+Validation and coverage added:
+
+- Vitest coverage for namespace qualification, unqualified rejection, floating ref rejection, checksum validation, local git catalogs, manifest receipts, cross-command consistency, token-only inline credential rejection, and cwd-stable path receipt identities.
+- Behave coverage for external path-catalog discovery/replay and doctor health from project-file replay.
+- Schema generation updated for `catalogs:` and qualified dynamic IDs.
+
 ## Routing Decision
 
-**PM → Developer**
+**PM → Architect → Developer**
 
-Reason: product scope, UX constraints, technical ownership, risks, implementation slices, and test strategy now explicit. ADR creation remains required alongside implementation planning, but no further discovery is blocking spec readiness.
+Reason: ADR 002 closed the remaining architecture and policy decisions, enabling implementation.

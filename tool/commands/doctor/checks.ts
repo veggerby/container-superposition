@@ -28,7 +28,7 @@ import {
 import { composeDevContainer } from '../../questionnaire/composer.js';
 import { mergeAnswers } from '../../questionnaire/answers.js';
 import { applyPresetSelections } from '../../questionnaire/presets.js';
-import { PRESETS_DIR } from '../../questionnaire/questionnaire.js';
+import { loadOverlaysContextWrapper } from '../../questionnaire/questionnaire.js';
 import { isPathIgnored, listTrackedFilesUnder } from '../../utils/git.js';
 import { parseSimpleEnvFile } from '../../utils/env-file.js';
 import { resolveComposeNetworkName } from '../../utils/compose-network.js';
@@ -1490,13 +1490,17 @@ export async function checkReproducibility(
                 projectConfig.selection,
                 overlaysConfig
             );
+            const overlaysContext = loadOverlaysContextWrapper(workingDir);
             const withPreset = await applyPresetSelections(
                 baseAnswers,
                 overlaysConfig,
-                PRESETS_DIR
+                overlaysContext.presetsDir
             );
             const localProjectConfig = loadLocalProjectConfig(workingDir);
-            mergedAnswers = mergeAnswers(withPreset, { outputPath: tmpDir });
+            mergedAnswers = mergeAnswers(withPreset, {
+                outputPath: tmpDir,
+                resolvedCatalogs: overlaysContext.catalogs,
+            });
             if (localProjectConfig) {
                 answers = applyLocalConfigToAnswers(mergedAnswers, localProjectConfig.selection);
                 answers.customizations = materializeLocalCustomizationConfig(

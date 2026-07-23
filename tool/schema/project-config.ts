@@ -35,6 +35,11 @@ import {
     assertComposeNetworkNameSupported,
     validateComposeNetworkName,
 } from '../utils/compose-network.js';
+import {
+    isNamespaceQualifiedId,
+    parseCatalogDeclarations,
+    resolveOverlaysContext,
+} from './catalogs.js';
 
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
 export const LOCAL_PROJECT_CONFIG_FILENAME = 'superposition.local.yml' as const;
@@ -290,7 +295,7 @@ function parseNamedOverlaySelectionEntry(
     }
 
     const overlayId = expectString(record.overlay, `${fieldName}.overlay`);
-    if (!lookup.isKnownOverlay(overlayId)) {
+    if (!isSelectableOverlayId(overlayId, lookup)) {
         throw new ProjectConfigError(
             `${fieldName}.overlay contains unsupported entry: ${overlayId}`
         );
@@ -322,6 +327,13 @@ function parseNamedOverlaySelectionEntry(
     };
 }
 
+function isSelectableOverlayId(
+    overlayId: string,
+    lookup: ReturnType<typeof buildCategoryLookup>
+): boolean {
+    return lookup.isKnownOverlay(overlayId) || isNamespaceQualifiedId(overlayId);
+}
+
 function parseProjectOverlayEntries(
     value: unknown,
     lookup: ReturnType<typeof buildCategoryLookup>
@@ -337,7 +349,7 @@ function parseProjectOverlayEntries(
     const parsed = value.map((entry, index): ProjectOverlayEntry => {
         if (typeof entry === 'string') {
             const overlayId = expectString(entry, `overlays[${index}]`);
-            if (!lookup.isKnownOverlay(overlayId)) {
+            if (!isSelectableOverlayId(overlayId, lookup)) {
                 throw new ProjectConfigError(`overlays contains unsupported entries: ${overlayId}`);
             }
             return overlayId as OverlayId;
@@ -603,6 +615,11 @@ function validateNormalizedOverlaySelections(
     }
 
     for (const overlaySelection of selections) {
+        const overlay = lookup.overlayById.get(overlaySelection.overlayId);
+        if (!overlay) {
+            throw new ProjectConfigError(`Unknown overlay '${overlaySelection.overlayId}'.`);
+        }
+
         if (overlaySelection.kind !== 'named') {
             continue;
         }
@@ -613,10 +630,6 @@ function validateNormalizedOverlaySelections(
             );
         }
 
-        const overlay = lookup.overlayById.get(overlaySelection.overlayId);
-        if (!overlay) {
-            throw new ProjectConfigError(`Unknown overlay '${overlaySelection.overlayId}'.`);
-        }
         if (!overlay.supports?.includes('compose')) {
             throw new ProjectConfigError(
                 `Overlay '${overlaySelection.overlayId}' does not support compose and cannot be selected as a named instance.`
@@ -1346,6 +1359,7 @@ export function loadProjectConfig(
         'customImage',
         'containerName',
         'composeNetworkName',
+        'catalogs',
         'preset',
         'presetChoices',
         'overlays',
@@ -1377,7 +1391,11 @@ export function loadProjectConfig(
         );
     }
 
-    const lookup = buildCategoryLookup(overlaysConfig);
+    const catalogs = parseCatalogDeclarations(document.catalogs, repoRoot);
+    const effectiveOverlaysConfig = catalogs?.length
+        ? resolveOverlaysContext(repoRoot, undefined, catalogs).overlaysConfig
+        : overlaysConfig;
+    const lookup = buildCategoryLookup(effectiveOverlaysConfig);
 
     const overlays = parseProjectOverlayEntries(document.overlays, lookup);
     const normalizedOverlaySelections = normalizeProjectOverlaySelections(
@@ -1406,6 +1424,7 @@ export function loadProjectConfig(
                       }
                   })()
                 : undefined,
+        catalogs,
         preset: expectOptionalString(document.preset, 'preset'),
         presetChoices: parsePresetChoices(document.presetChoices),
         overlays: projectOverlayEntriesFromSelections(normalizedOverlaySelections, {
@@ -1437,6 +1456,10 @@ export function loadProjectConfig(
         throw new ProjectConfigError(
             'customImage may only be used when baseImage is set to custom'
         );
+    }
+
+    if (selection.preset && !lookup.overlayById.has(selection.preset)) {
+        throw new ProjectConfigError(`preset contains unsupported entry: ${selection.preset}`);
     }
 
     if (selection.presetChoices && !selection.preset) {
@@ -1613,6 +1636,7 @@ export function buildAnswersFromProjectConfig(
         customImage: selection.customImage,
         containerName: selection.containerName,
         composeNetworkName: selection.composeNetworkName,
+        catalogs: selection.catalogs,
         preset: selection.preset,
         presetChoices: selection.presetChoices,
         ...distributeOverlaysToAnswers(
@@ -1706,6 +1730,7 @@ export function buildProjectConfigSelectionFromAnswers(
         customImage: answers.customImage,
         containerName: answers.containerName,
         composeNetworkName: answers.composeNetworkName,
+        catalogs: answers.catalogs,
         preset: answers.preset,
         presetChoices: answers.presetChoices,
         overlays:
@@ -1891,6 +1916,33 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.customImage) document.customImage = selection.customImage;
     if (selection.containerName) document.containerName = selection.containerName;
     if (selection.composeNetworkName) document.composeNetworkName = selection.composeNetworkName;
+    if (selection.catalogs?.length) {
+        document.catalogs = selection.catalogs.map((catalog) => ({
+            id: catalog.id,
+            namespace: catalog.namespace,
+            source:
+                catalog.source.type === 'path'
+                    ? {
+                          type: 'path',
+                          path: catalog.source.path,
+                          ...(catalog.source.subpath ? { subpath: catalog.source.subpath } : {}),
+                      }
+                    : catalog.source.type === 'git'
+                      ? {
+                            type: 'git',
+                            url: catalog.source.url,
+                            commit: catalog.source.commit,
+                            ...(catalog.source.ref ? { ref: catalog.source.ref } : {}),
+                            ...(catalog.source.subpath ? { subpath: catalog.source.subpath } : {}),
+                        }
+                      : {
+                            type: 'archive',
+                            url: catalog.source.url,
+                            checksum: catalog.source.checksum,
+                            ...(catalog.source.subpath ? { subpath: catalog.source.subpath } : {}),
+                        },
+        }));
+    }
     if (selection.preset) document.preset = selection.preset;
     if (hasKeys(selection.presetChoices)) document.presetChoices = selection.presetChoices;
     if (selection.overlays?.length) {

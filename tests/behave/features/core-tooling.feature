@@ -45,6 +45,60 @@ Feature: Core CLI tooling workflows
       language
       """
 
+  Scenario: External path catalogs stay namespace-qualified across discovery and replay
+    Given an inline workspace fixture:
+      """
+      files:
+        catalogs/acme/web-api/overlay.yml:
+          text: |
+            id: web-api
+            name: Acme Web API
+            description: External web API overlay
+            category: dev
+            supports:
+              - plain
+              - compose
+        superposition.yml:
+          yaml:
+            stack: plain
+            outputPath: .devcontainer
+            catalogs:
+              - id: acme-platform
+                namespace: acme
+                source:
+                  type: path
+                  path: catalogs/acme
+            overlays:
+              - acme/web-api
+      """
+    When I run the CLI command
+      """
+      explain acme/web-api --json
+      """
+    Then the command exits successfully
+    And the command JSON output should have value at "overlay.id" equal:
+      """
+      acme/web-api
+      """
+    When I run the CLI command
+      """
+      init --from-project --no-interactive
+      """
+    Then the command exits successfully
+    And the JSON file ".devcontainer/superposition.json" should have value at "catalogs[0].namespace" equal:
+      """
+      acme
+      """
+    When I run the CLI command
+      """
+      doctor --from-project --json
+      """
+    Then the command exits successfully
+    And the command JSON output should have value at "summary.errors" equal:
+      """
+      0
+      """
+
   Scenario: Explain inspects a compose overlay with files and services
     Given an inline workspace fixture:
       """

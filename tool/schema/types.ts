@@ -87,7 +87,14 @@ export type ObservabilityTool =
  * Union of all overlay ID types — used for the flat `overlays` field
  * in project config and anywhere an overlay ID is accepted regardless of category.
  */
-export type OverlayId = LanguageOverlay | DatabaseOverlay | CloudTool | DevTool | ObservabilityTool;
+export type BuiltInOverlayId =
+    | LanguageOverlay
+    | DatabaseOverlay
+    | CloudTool
+    | DevTool
+    | ObservabilityTool;
+
+export type OverlayId = string;
 
 // Legacy type for backwards compatibility
 export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
@@ -227,6 +234,8 @@ export interface QuestionnaireAnswers {
     customImage?: string; // Only used when baseImage is 'custom'
     containerName?: string; // Container/project name from devcontainer.json
     composeNetworkName?: string; // Actual docker-compose network name for compose stacks
+    catalogs?: CatalogDeclaration[]; // External catalog declarations loaded from the project file
+    resolvedCatalogs?: CatalogReceiptEntry[]; // Effective catalog identities used for this run
     preset?: string; // ID of preset used, if any
     presetChoices?: Record<string, string>; // User choices made within preset
     presetGlueConfig?: PresetGlueConfig; // Glue configuration from preset
@@ -359,6 +368,12 @@ export interface OverlayMetadata {
     hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
     repeatable?: boolean; // Whether named multi-instance selection is supported for this compose overlay
     parameters?: Record<string, OverlayParameterDefinition>; // Configurable parameters for this overlay
+    origin?: {
+        catalogId: string;
+        namespace?: string;
+        sourceKind: 'builtin' | 'external';
+        resolvedIdentity?: string;
+    };
 }
 
 export interface NamedOverlaySelectionEntry {
@@ -496,6 +511,7 @@ export interface SuperpositionManifest {
     baseImage: string;
     overlays: string[];
     overlaySelections?: ProjectOverlayEntry[];
+    catalogs?: CatalogReceiptEntry[];
     portOffset?: number;
     preset?: string; // ID of preset used, if any
     presetChoices?: Record<string, string>; // User choices made within preset
@@ -652,6 +668,40 @@ export interface CompositionInput extends QuestionnaireAnswers {
     database: DatabaseOverlay[];
 }
 
+export interface CatalogDeclaration {
+    id: string;
+    namespace: string;
+    source: CatalogDeclarationSource;
+}
+
+export type CatalogDeclarationSource =
+    | {
+          type: 'git';
+          url: string;
+          ref?: string;
+          commit: string;
+          subpath?: string;
+      }
+    | {
+          type: 'archive';
+          url: string;
+          checksum: string;
+          subpath?: string;
+      }
+    | {
+          type: 'path';
+          path: string;
+          resolvedPath: string;
+          subpath?: string;
+      };
+
+export interface CatalogReceiptEntry {
+    id: string;
+    namespace: string;
+    sourceType: CatalogDeclarationSource['type'];
+    resolvedIdentity: string;
+}
+
 export interface ProjectConfigSelection {
     $schema?: string; // Optional schema reference URI — preserved on round-trip, defaults to SUPERPOSITION_SCHEMA_URL
     stack?: Stack;
@@ -659,6 +709,7 @@ export interface ProjectConfigSelection {
     customImage?: string;
     containerName?: string;
     composeNetworkName?: string;
+    catalogs?: CatalogDeclaration[];
     preset?: string;
     presetChoices?: Record<string, string>;
     overlays?: ProjectOverlayEntry[];

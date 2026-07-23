@@ -43,8 +43,12 @@ function getDockerComposeServices(overlaysDir: string, overlayId: string): strin
 }
 
 function loadPresetDefinition(overlaysDir: string, presetId: string): Record<string, any> | null {
-    const presetPath = path.join(overlaysDir, '.presets', `${presetId}.yml`);
-    if (!fs.existsSync(presetPath)) return null;
+    const presetCandidates = [
+        path.join(overlaysDir, '.presets', `${presetId}.yml`),
+        path.join(overlaysDir, '.presets', `${presetId}.yaml`),
+    ];
+    const presetPath = presetCandidates.find((candidate) => fs.existsSync(candidate));
+    if (!presetPath) return null;
     return (yaml.load(fs.readFileSync(presetPath, 'utf8')) as Record<string, any>) ?? null;
 }
 

@@ -18,7 +18,7 @@ import { doctorCommand } from '../commands/doctor.js';
 import { adoptCommand } from '../commands/adopt.js';
 import { hashCommand } from '../commands/hash.js';
 import { migrateCommand } from '../commands/migrate.js';
-import { loadOverlaysConfigWrapper, OVERLAYS_DIR } from '../questionnaire/questionnaire.js';
+import { loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
 
 export interface CliArgs {
     commandName?: 'init' | 'regen';
@@ -198,8 +198,8 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--supports <stack>', 'Filter by stack support: plain, compose')
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
-            const overlaysConfig = loadOverlaysConfigWrapper();
-            await listCommand(overlaysConfig, options);
+            const overlaysContext = loadOverlaysContextWrapper();
+            await listCommand(overlaysContext.overlaysConfig, options);
         });
 
     // Explain command
@@ -208,8 +208,13 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .description('Inspect fit, tradeoffs, and preview notes for one overlay or preset')
         .option('--json', 'Output as JSON for scripting')
         .action(async (overlayId, options) => {
-            const overlaysConfig = loadOverlaysConfigWrapper();
-            await explainCommand(overlaysConfig, OVERLAYS_DIR, overlayId, options);
+            const overlaysContext = loadOverlaysContextWrapper();
+            await explainCommand(
+                overlaysContext.overlaysConfig,
+                overlaysContext.overlaysDir,
+                overlayId,
+                options
+            );
         });
 
     // Plan command
@@ -243,8 +248,8 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--verbose', 'Explain why each overlay was included in the resolved plan')
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
-            const overlaysConfig = loadOverlaysConfigWrapper();
-            await planCommand(overlaysConfig, OVERLAYS_DIR, options);
+            const overlaysContext = loadOverlaysContextWrapper();
+            await planCommand(overlaysContext.overlaysConfig, overlaysContext.overlaysDir, options);
         });
 
     // Doctor command
@@ -270,8 +275,12 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         )
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
-            const overlaysConfig = loadOverlaysConfigWrapper();
-            await doctorCommand(overlaysConfig, OVERLAYS_DIR, options);
+            const overlaysContext = loadOverlaysContextWrapper();
+            await doctorCommand(
+                overlaysContext.overlaysConfig,
+                overlaysContext.overlaysDir,
+                options
+            );
         });
 
     // Adopt command
@@ -308,8 +317,12 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
                     )
                 );
             }
-            const overlaysConfig = loadOverlaysConfigWrapper();
-            await adoptCommand(overlaysConfig, OVERLAYS_DIR, options);
+            const overlaysContext = loadOverlaysContextWrapper();
+            await adoptCommand(
+                overlaysContext.overlaysConfig,
+                overlaysContext.overlaysDir,
+                options
+            );
         });
 
     // Hash command
@@ -325,8 +338,8 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--write', 'Write hash to .devcontainer/superposition.hash')
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
-            const overlaysConfig = loadOverlaysConfigWrapper();
-            await hashCommand(overlaysConfig, OVERLAYS_DIR, options);
+            const overlaysContext = loadOverlaysContextWrapper();
+            await hashCommand(overlaysContext.overlaysConfig, overlaysContext.overlaysDir, options);
         });
 
     // Migrate command

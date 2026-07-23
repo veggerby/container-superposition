@@ -59,11 +59,7 @@ import {
 import { isInsideGitRepo, createBackup, ensureBackupPatternsInGitignore } from '../utils/backup.js';
 import { buildAnswersFromCliArgs, mergeAnswers } from '../questionnaire/answers.js';
 import { applyPresetSelections } from '../questionnaire/presets.js';
-import {
-    runQuestionnaire,
-    loadOverlaysConfigWrapper,
-    PRESETS_DIR,
-} from '../questionnaire/questionnaire.js';
+import { runQuestionnaire, loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
 import { parseCliArgs } from './args.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
@@ -829,7 +825,8 @@ export async function main(): Promise<void> {
         let globalDefaults = undefined;
         let globalInitDefaultsAnswers: Partial<QuestionnaireAnswers> | undefined;
         const projectRoot = process.cwd();
-        const mainOverlaysConfig = loadOverlaysConfigWrapper();
+        const mainOverlaysContext = loadOverlaysContextWrapper(projectRoot);
+        const mainOverlaysConfig = mainOverlaysContext.overlaysConfig;
 
         printIgnoredLocalConfigWarning(projectRoot);
 
@@ -859,11 +856,14 @@ export async function main(): Promise<void> {
                 ensureLocalConfigIgnored(projectRoot);
             }
             if (projectConfig) {
-                projectConfigAnswers = await applyPresetSelections(
-                    buildAnswersFromProjectConfig(projectConfig.selection, mainOverlaysConfig),
-                    mainOverlaysConfig,
-                    PRESETS_DIR
-                );
+                projectConfigAnswers = {
+                    ...(await applyPresetSelections(
+                        buildAnswersFromProjectConfig(projectConfig.selection, mainOverlaysConfig),
+                        mainOverlaysConfig,
+                        mainOverlaysContext.presetsDir
+                    )),
+                    resolvedCatalogs: mainOverlaysContext.catalogs,
+                };
             }
         }
 
@@ -1345,12 +1345,12 @@ export async function main(): Promise<void> {
         try {
             let summary;
             if (isManifestOnly) {
-                summary = await generateManifestOnly(answers, undefined, {
+                summary = await generateManifestOnly(answers, mainOverlaysContext.overlaysDir, {
                     isRegen: isReplayMode,
                 });
                 spinner.succeed(chalk.green('Manifest created successfully!'));
             } else {
-                summary = await composeDevContainer(answers, undefined, {
+                summary = await composeDevContainer(answers, mainOverlaysContext.overlaysDir, {
                     isRegen: isReplayMode,
                     manifestAnswers: sharedAnswersForProjectFile,
                 });
