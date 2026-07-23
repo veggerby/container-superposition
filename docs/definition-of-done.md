@@ -15,7 +15,8 @@
 - User-visible changes are recorded under `CHANGELOG.md` in `[Unreleased]`.
 - If overlays changed, run `task validate:generated` or at minimum `npm run docs:generate` and commit the updated generated overlay reference docs.
 - If overlays or project-config schema types changed, run `task validate:generated` or at minimum `npm run schema:generate` and commit updated schema outputs.
-- If overlay behavior or generated-output behavior changed, run `task test:bdd` during iteration and keep relevant Behave scenarios updated.
+- If user-visible behavior changed in overlays, generation, generated output, or command/workflow flows such as `init`, `regen`, `plan`, `explain`, `list`, `doctor`, `adopt`, or `migrate`, add or update relevant Behave scenarios and run `task test:bdd` during iteration before handoff.
+- If no Behave scenario changed for a user-visible behavior change in those areas, document why existing BDD coverage is still sufficient.
 - If user-visible or tooling changes affect generated output, run `task validate:generated` or at minimum `npm run init -- regen` from project root.
 - Before merge, run `task validate:generated` when generated-output triggers apply, or at minimum `npm run init -- doctor`; no `Reproducibility` errors are allowed.
 
@@ -33,6 +34,7 @@
 
 - New pure logic gets focused unit coverage.
 - Command or workflow changes preserve command-level regression coverage where appropriate.
+- User-visible command/workflow behavior changes in covered flows also preserve or extend BDD coverage, not just unit-level regression tests.
 - Edge cases and failure paths are covered where relevant.
 - No unjustified skipped tests are introduced.
 
@@ -64,6 +66,7 @@
 - Preserve source-vs-compiled path resolution behavior where needed.
 - Validate both focused tests and broader CLI regressions when behavior spans multiple commands.
 - Keep public command contracts, workflow docs, and guidance aligned, including the mandatory `task validate` / `task validate:generated` contributor flow and the focused `task test:bdd` iteration path.
+- Treat Behave coverage as part of Definition of Done for user-visible workflow changes, not an optional follow-up.
 
 ### Docs and workflow changes
 
@@ -78,5 +81,6 @@ A change is not done until reviewers can confirm:
 
 - the right validation commands were run
 - the relevant workflow docs were updated
+- Behave coverage was added/updated for user-visible workflow changes, or an explicit justification was given for why existing BDD coverage already covers the change
 - no generated file was hand-edited in violation of repo rules
 - architecture authority (`docs/foundation.md` plus ADRs) still matches the implementation

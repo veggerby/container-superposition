@@ -97,6 +97,7 @@ export interface VerbosePlanData {
 export interface PlanResult {
     stack: Stack;
     selectedOverlays: string[];
+    selectedOverlayLabels: string[];
     autoAddedOverlays: string[];
     conflicts: Array<{ overlay: string; conflictsWith: string[] }>;
     portMappings: Array<{ overlay: string; ports: number[]; offsetPorts: number[] }>;

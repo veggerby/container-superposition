@@ -51,7 +51,8 @@ Use these documents together, with each one owning a different concern:
 - **Tests**: run targeted tests for changed areas at minimum; `task validate` already includes `npm test`, so use it as the required final gate.
 - **Spec-first**: before writing implementation code for a new feature, commit a spec under `docs/specs/`.
 - **Generated docs**: if overlays changed, run `task validate:generated` or at minimum `npm run docs:generate` and commit updated `docs/overlays.md`.
-- **BDD coverage**: when overlay behavior or generated-output behavior changes, add or update shared-step `.feature` coverage and run `task test:bdd` during iteration.
+- **BDD coverage**: when user-visible behavior changes in overlays, generation, generated output, or command/workflow flows such as `init`, `regen`, `plan`, `explain`, `list`, `doctor`, `adopt`, or `migrate`, add or update shared-step `.feature` coverage and run `task test:bdd` during iteration before handoff.
+- **BDD justification**: if no Behave scenario changed for one of those user-visible workflow changes, record why existing BDD coverage is already sufficient.
 - **Generated schema**: if overlays or `ProjectConfigSelection` types changed, run `task validate:generated` or at minimum `npm run schema:generate` and commit updated `tool/schema/superposition.schema.json`.
 - **Reproducibility**: after user-visible/tooling changes that affect generated output, run `task validate:generated` or at minimum `npm run init -- regen` from project root.
 - **Doctor check**: before merge, run `task validate:generated` when generated-output triggers apply, or at minimum `npm run init -- doctor`; no `Reproducibility` errors are allowed.

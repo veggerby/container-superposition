@@ -156,4 +156,48 @@ describe('init/regen output relevance', () => {
         expect(adoptResult.status).toBe(0);
         expect(() => JSON.parse(adoptResult.stdout)).not.toThrow();
     });
+
+    it('keeps plan --from-manifest instance-aware for named overlay selections', () => {
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            yaml.dump({
+                stack: 'compose',
+                overlays: [
+                    'nodejs',
+                    { overlay: 'postgres', name: 'app', parameters: { POSTGRES_DB: 'app' } },
+                    {
+                        overlay: 'postgres',
+                        name: 'analytics',
+                        parameters: { POSTGRES_DB: 'analytics', POSTGRES_PORT: '5433' },
+                    },
+                ],
+                outputPath: './.devcontainer',
+            })
+        );
+
+        expect(runCli(['regen'], repoDir).status).toBe(0);
+
+        const jsonResult = runCli(
+            ['plan', '--from-manifest', '.devcontainer/superposition.json', '--json'],
+            repoDir
+        );
+        expect(jsonResult.status).toBe(0);
+        const jsonStart = jsonResult.stdout.indexOf('{');
+        expect(jsonStart).toBeGreaterThanOrEqual(0);
+        const planJson = JSON.parse(jsonResult.stdout.slice(jsonStart));
+        expect(planJson.selectedOverlays).toEqual(['nodejs', 'postgres']);
+        expect(planJson.selectedOverlayLabels).toEqual([
+            'nodejs',
+            'postgres:app',
+            'postgres:analytics',
+        ]);
+
+        const textResult = runCli(
+            ['plan', '--from-manifest', '.devcontainer/superposition.json'],
+            repoDir
+        );
+        expect(textResult.status).toBe(0);
+        const output = outputOf(textResult);
+        expect(output).toContain('resolved overlays: nodejs, postgres:app, postgres:analytics');
+    });
 });

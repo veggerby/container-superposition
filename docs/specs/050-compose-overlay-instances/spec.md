@@ -1,15 +1,15 @@
 ---
 spec: '050-compose-overlay-instances'
 title: 'Multi-Instance Compose Overlays with Instance Overrides'
-status: 'Implemented'
-qa_status: 'Needs Fixes'
+status: 'Final'
+qa_status: 'Passed'
 priority: 'P1'
 owner: 'pm'
 product_approval: 'approved'
 architecture_review: 'approved'
 ux_review: 'not-needed'
 created: '2026-07-17'
-updated: '2026-07-17'
+updated: '2026-07-23'
 related_adrs:
     - 'docs/adr/adr001-project-file-first-replay-and-regeneration.md'
 related_foundation:
@@ -33,13 +33,13 @@ normative_references:
 # Multi-Instance Compose Overlays with Instance Overrides
 
 **Spec**: `050-compose-overlay-instances`
-**Status**: Implemented
+**Status**: Final
 **Created**: 2026-07-17
 **Priority**: P1
 **Product Approval**: approved
 **Architecture Review**: approved
 **UX Review**: not-needed
-**QA Status**: Needs Fixes
+**QA Status**: Passed
 
 ## Description
 
@@ -698,34 +698,34 @@ Verify both the new capability and the preserved boundaries:
 
 ### Documentation
 
-- [ ] Public interfaces documented
-- [ ] All new documentation in Markdown
-- [ ] All diagrams in Mermaid
-- [ ] README updated if behavior or setup changed
-- [ ] Architecture docs updated if ownership or boundaries changed
+- [x] Public interfaces documented
+- [x] All new documentation in Markdown
+- [x] All diagrams in Mermaid
+- [x] README updated if behavior or setup changed
+- [x] Architecture docs updated if ownership or boundaries changed
 
 ### Changelog
 
-- [ ] `CHANGELOG.md` updated under `[Unreleased]` for user-visible changes
+- [x] `CHANGELOG.md` updated under `[Unreleased]` for user-visible changes
 
 ### Workflow artifacts
 
-- [ ] Acceptance criteria checked off (met only — unmet left unchecked with explanation)
-- [ ] `## Implementation Notes` written
-- [ ] Spec status and index synchronized
-- [ ] QA feedback rows marked `Done` where applicable
+- [x] Acceptance criteria checked off (met only — unmet left unchecked with explanation)
+- [x] `## Implementation Notes` written
+- [x] Spec status and index synchronized
+- [x] QA feedback rows marked `Done` where applicable
 
 ### Architecture
 
-- [ ] No ADR or foundation rules silently violated
-- [ ] ADR created or amended if a standing decision was made or changed
+- [x] No ADR or foundation rules silently violated
+- [x] ADR created or amended if a standing decision was made or changed
 
 ### QA verification
 
-- [ ] All above gates verified independently
-- [ ] Acceptance criteria classified: MET / CLAIMED BUT FAILED / OPEN / UNCHECKED
-- [ ] No regressions introduced
-- [ ] Spec set to `Final`
+- [x] All above gates verified independently
+- [x] Acceptance criteria classified: MET / CLAIMED BUT FAILED / OPEN / UNCHECKED
+- [x] No regressions introduced
+- [x] Spec set to `Final`
 
 ## Implementation Notes
 
@@ -733,7 +733,8 @@ Verify both the new capability and the preserved boundaries:
 - Extended generation to preserve repeated selections through explicit overlay applications, instance-aware token substitution, manifest replay, safe interactive `init` bail-out, and postgres-only v1 repeatability.
 - Hardened `overlays/postgres/*` for repeatable materialization with instance-aware compose service/volume names, runServices, remoteEnv keys, and distinct host-port validation.
 - Added regression coverage in `tool/__tests__/overlay-instances.test.ts` plus updated command/composition/doctor coverage for schema, manifest, and generated-output behavior.
-- Validation run: `npm test -- tool/__tests__/overlay-instances.test.ts tool/__tests__/composition.test.ts tool/__tests__/commands.test.ts tool/__tests__/doctor-checks.test.ts tool/__tests__/local-config.test.ts tool/__tests__/manifest-migrations.test.ts`, then `task validate:generated`.
+- Follow-up fix completed for `plan --from-manifest`: plan input now preserves manifest `overlaySelections` as instance-aware display labels, plan presentation now reports `postgres:app` / `postgres:analytics` instead of collapsing to one family-only `postgres` label, and regression coverage now asserts both JSON and human-readable plan surfaces.
+- Validation run: `npm test -- tool/__tests__/cli-write-output.test.ts tool/__tests__/commands.test.ts`, then `task validate`.
 
 ## QA Feedback
 
@@ -741,10 +742,10 @@ Verify both the new capability and the preserved boundaries:
 
 | Status | Issue                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Route     |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Open   | AC “plan/doctor/migrate/generated documentation or summaries stay instance-aware” is not met for `plan --from-manifest`. The manifest now preserves `overlaySelections`, but plan still reads only flattened `manifest.overlays` in `tool/commands/plan/input.ts`, and presentation still reports `resolved overlays: nodejs, postgres` in family-only form (`tool/commands/plan/presentation.ts`). Repro: generate a project with two named `postgres` instances, then run `plan --from-manifest ./.devcontainer/superposition.json`; output collapses `postgres:app` and `postgres:analytics` into one `postgres` entry. | developer |
+| Done   | AC “plan/doctor/migrate/generated documentation or summaries stay instance-aware” was fixed for `plan --from-manifest`. Plan now reads manifest `overlaySelections`, preserves named-instance display labels in `tool/commands/plan/input.ts`, and presentation reports `resolved overlays: nodejs, postgres:app, postgres:analytics` instead of collapsing to one family-only `postgres` entry. Regression coverage covers both JSON and human-readable plan output in `tool/__tests__/cli-write-output.test.ts`. | developer |
 
 ### Should-fix
 
 | Status | Issue                                                                                                                             | Route     |
 | ------ | --------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Open   | Add explicit automated coverage for instance-aware plan output so future manifest/plan changes cannot regress this surface again. | developer |
+| Done   | Added explicit automated coverage for instance-aware plan output so future manifest/plan changes cannot regress this surface again. Coverage now asserts both JSON `selectedOverlayLabels` and human-readable `resolved overlays:` output for `plan --from-manifest` in `tool/__tests__/cli-write-output.test.ts`. | developer |

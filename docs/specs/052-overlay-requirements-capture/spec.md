@@ -1,15 +1,15 @@
 ---
 spec: '052-overlay-requirements-capture'
 title: 'Overlay Requirements Capture Prompt and Skill'
-status: 'Implemented'
-qa_status: ''
+status: 'Final'
+qa_status: 'Passed'
 priority: 'P2'
 owner: 'developer'
 product_approval: 'not-needed'
 architecture_review: 'not-needed'
 ux_review: 'not-needed'
 created: '2026-07-21'
-updated: '2026-07-21'
+updated: '2026-07-23'
 related_adrs: []
 related_foundation:
     - 'docs/foundation.md'
@@ -26,12 +26,13 @@ normative_references:
 # Overlay Requirements Capture Prompt and Skill
 
 **Spec**: `052-overlay-requirements-capture`
-**Status**: Implemented
+**Status**: Final
 **Created**: 2026-07-21
 **Priority**: P2
 **Product Approval**: not-needed
 **Architecture Review**: not-needed
 **UX Review**: not-needed
+**QA Status**: Passed
 
 > P0 = unusable without; P1 = core value, ship v1; P2 = post-launch; P3 = backlog
 
@@ -221,10 +222,10 @@ Adjacent `.pi` assets must be updated so they reflect the new workflow accuratel
 
 ### QA verification
 
-- [ ] All above gates verified independently
-- [ ] Acceptance criteria classified: MET / CLAIMED BUT FAILED / OPEN / UNCHECKED
-- [ ] No regressions introduced
-- [ ] Spec set to `Final`
+- [x] All above gates verified independently
+- [x] Acceptance criteria classified: MET / CLAIMED BUT FAILED / OPEN / UNCHECKED
+- [x] No regressions introduced
+- [x] Spec set to `Final`
 
 ## Implementation Notes
 

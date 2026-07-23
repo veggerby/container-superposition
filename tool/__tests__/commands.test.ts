@@ -286,6 +286,7 @@ describe('Command Tests', () => {
             const plan = {
                 stack: 'compose' as const,
                 selectedOverlays: ['postgres'],
+                selectedOverlayLabels: ['postgres'],
                 autoAddedOverlays: [],
                 portMappings: [{ overlay: 'postgres', ports: [5432], offsetPorts: [5432] }],
                 files: [],
@@ -316,6 +317,7 @@ describe('Command Tests', () => {
             const plan = {
                 stack: 'compose' as const,
                 selectedOverlays: ['nodejs', 'postgres'],
+                selectedOverlayLabels: ['nodejs', 'postgres'],
                 autoAddedOverlays: [],
                 portMappings: [{ overlay: 'postgres', ports: [5432], offsetPorts: [5432] }],
                 files: [],
@@ -340,6 +342,7 @@ describe('Command Tests', () => {
             const plan = {
                 stack: 'compose' as const,
                 selectedOverlays: ['nodejs'],
+                selectedOverlayLabels: ['nodejs'],
                 autoAddedOverlays: [],
                 portMappings: [],
                 files: [],
@@ -362,6 +365,7 @@ describe('Command Tests', () => {
             const plan = {
                 stack: 'compose' as const,
                 selectedOverlays: ['postgres'],
+                selectedOverlayLabels: ['postgres'],
                 autoAddedOverlays: [],
                 portMappings: [{ overlay: 'postgres', ports: [5432], offsetPorts: [5432] }],
                 files: [],
@@ -383,6 +387,7 @@ describe('Command Tests', () => {
             const plan = {
                 stack: 'compose' as const,
                 selectedOverlays: ['nodejs'],
+                selectedOverlayLabels: ['nodejs'],
                 autoAddedOverlays: [],
                 portMappings: [],
                 files: [newFile],
@@ -403,6 +408,7 @@ describe('Command Tests', () => {
             const plan = {
                 stack: 'compose' as const,
                 selectedOverlays: [],
+                selectedOverlayLabels: [],
                 autoAddedOverlays: [],
                 portMappings: [],
                 files: [],
@@ -423,6 +429,7 @@ describe('Command Tests', () => {
             const plan = {
                 stack: 'plain' as const,
                 selectedOverlays: ['nodejs'],
+                selectedOverlayLabels: ['nodejs'],
                 autoAddedOverlays: [],
                 portMappings: [],
                 files: [existingReadme],
@@ -444,6 +451,7 @@ describe('Command Tests', () => {
             const plan = {
                 stack: 'compose' as const,
                 selectedOverlays: [],
+                selectedOverlayLabels: [],
                 autoAddedOverlays: [],
                 portMappings: [],
                 files: [], // stale script is NOT in plan

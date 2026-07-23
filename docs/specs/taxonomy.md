@@ -87,7 +87,7 @@ _No specs yet._
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
 | [010-compose-env-materialization](010-compose-env-materialization/spec.md)               | Compose Env Materialization and Env Template Naming     | Final                         |
 | [043-compose-network-name](043-compose-network-name/spec.md)                             | Project-Specific Compose Network Names                  | Final                         |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides | Implemented — QA: Needs Fixes |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides | Final                         |
 | [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL   | Draft                         |
 
 ### COMPOSER-FIX
@@ -109,7 +109,7 @@ _No specs yet._
 | [024-project-ports](024-project-ports/spec.md)                                       | Project-Level `ports` Field (plain/compose redesign)    | Final                         |
 | [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md) | Variable Expansion and Substitution Consolidation       | Final                         |
 | [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                 | Ad-hoc Project Parameters                               | Final                         |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)               | Multi-Instance Compose Overlays with Instance Overrides | Implemented — QA: Needs Fixes |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)               | Multi-Instance Compose Overlays with Instance Overrides | Final                         |
 
 ### SCHEMA-VALID
 
@@ -194,7 +194,7 @@ _No specs yet._
 | [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)                   | Overlay Solution Discovery and Write Loop                                                  | Final       |
 | [042-global-default-configuration](042-global-default-configuration/spec.md)                                             | User-Scoped Global Defaults with Stack-Aware Local Templates                               | Final       |
 | [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run                                     | Final       |
-| [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                                              | Implemented |
+| [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                                              | Final  |
 | [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final       |
 
 ### DOCS-API
@@ -240,4 +240,4 @@ _No specs yet._
 | [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Final                         |
 | [043-compose-network-name](043-compose-network-name/spec.md)                   | Project-Specific Compose Network Names                       | Final                         |
 | [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final                         |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Implemented — QA: Needs Fixes |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final                         |

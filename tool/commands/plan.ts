@@ -21,8 +21,15 @@ export async function planCommand(
     options: PlanOptions
 ) {
     try {
-        const { stack, selectedOverlays, inputMode, selectionOrigin, portOffset, outputPath } =
-            resolvePlanInput(options);
+        const {
+            stack,
+            selectedOverlays,
+            selectedOverlayLabels,
+            inputMode,
+            selectionOrigin,
+            portOffset,
+            outputPath,
+        } = resolvePlanInput(options);
 
         const overlayMap = new Map(overlaysConfig.overlays.map((overlay) => [overlay.id, overlay]));
         for (const id of selectedOverlays) {
@@ -140,6 +147,7 @@ export async function planCommand(
         const plan: PlanResult = {
             stack,
             selectedOverlays,
+            selectedOverlayLabels,
             autoAddedOverlays: compatibleAutoAdded,
             conflicts,
             portMappings,
