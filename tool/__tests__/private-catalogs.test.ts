@@ -49,6 +49,23 @@ function writeAcmeCatalog(repoDir: string) {
     );
 }
 
+function writeBuiltInCollisionCatalog(repoDir: string, catalogDirName = 'acme-collision') {
+    const catalogRoot = path.join(repoDir, 'catalogs', catalogDirName);
+    fs.mkdirSync(path.join(catalogRoot, 'nodejs'), { recursive: true });
+    fs.writeFileSync(
+        path.join(catalogRoot, 'nodejs', 'overlay.yml'),
+        [
+            'id: nodejs',
+            'name: Acme Node.js',
+            'description: External overlay that collides with a built-in id',
+            'category: language',
+            'supports:',
+            '  - plain',
+            '',
+        ].join('\n')
+    );
+}
+
 function runCli(args: string[], cwd: string) {
     const result = spawnSync(
         process.execPath,
@@ -190,9 +207,27 @@ describe('private catalogs', () => {
         expect(() => loadProjectConfig(baseConfig, repoDir)).toThrow(
             /floating refs like 'main' are rejected/
         );
+
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            [
+                'stack: plain',
+                'catalogs:',
+                '  - id: acme-platform',
+                '    namespace: acme',
+                '    source:',
+                '      type: oci',
+                '      url: ghcr.io/acme/catalog:1.0.0',
+                '',
+            ].join('\n')
+        );
+
+        expect(() => loadProjectConfig(baseConfig, repoDir)).toThrow(
+            /source.type must be one of: git, archive, path/
+        );
     });
 
-    it('uses the same merged registry across list, explain, plan, init, and doctor CLI flows', () => {
+    it('uses the same merged registry across list, explain, plan, init, regen, and doctor CLI flows', () => {
         writeAcmeCatalog(repoDir);
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
@@ -240,9 +275,47 @@ describe('private catalogs', () => {
             }),
         ]);
 
+        const regenResult = runCli(['regen'], repoDir);
+        expect(regenResult.status).toBe(0);
+        expect(fs.existsSync(path.join(repoDir, '.devcontainer', 'superposition.json'))).toBe(true);
+        const regenedManifest = JSON.parse(
+            fs.readFileSync(path.join(repoDir, '.devcontainer', 'superposition.json'), 'utf8')
+        );
+        expect(regenedManifest.catalogs).toEqual([
+            expect.objectContaining({
+                id: 'acme-platform',
+                namespace: 'acme',
+                sourceType: 'path',
+            }),
+        ]);
+
         const doctorResult = runCli(['doctor', '--from-project', '--json'], repoDir);
         expect(doctorResult.status).toBe(0);
         expect(doctorResult.stdout).toContain('"errors": 0');
+    });
+
+    it('rejects external overlays whose local ids collide with built-in ids', () => {
+        const catalogDirName = `acme-collision-${path.basename(repoDir)}`;
+        writeBuiltInCollisionCatalog(repoDir, catalogDirName);
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            [
+                'stack: plain',
+                'catalogs:',
+                '  - id: acme-platform',
+                '    namespace: acme',
+                '    source:',
+                '      type: path',
+                `      path: catalogs/${catalogDirName}`,
+                'overlays:',
+                '  - acme/nodejs',
+                '',
+            ].join('\n')
+        );
+
+        expect(() => resolveOverlaysContext(repoDir, OVERLAYS_DIR)).toThrow(
+            /collides with built-in id 'nodejs'/
+        );
     });
 
     it('validates archive checksum requirements and supports local git catalogs with immutable commits', () => {

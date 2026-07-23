@@ -91,6 +91,15 @@ Feature: Core CLI tooling workflows
       """
     When I run the CLI command
       """
+      regen
+      """
+    Then the command exits successfully
+    And the JSON file ".devcontainer/superposition.json" should have value at "catalogs[0].namespace" equal:
+      """
+      acme
+      """
+    When I run the CLI command
+      """
       doctor --from-project --json
       """
     Then the command exits successfully
@@ -98,6 +107,180 @@ Feature: Core CLI tooling workflows
       """
       0
       """
+
+  Scenario: External path catalogs stay consistent across list and plan JSON output
+    Given an inline workspace fixture:
+      """
+      files:
+        catalogs/acme/web-api/overlay.yml:
+          text: |
+            id: web-api
+            name: Acme Web API
+            description: External web API overlay
+            category: dev
+            supports:
+              - plain
+              - compose
+        superposition.yml:
+          yaml:
+            stack: plain
+            outputPath: .devcontainer
+            catalogs:
+              - id: acme-platform
+                namespace: acme
+                source:
+                  type: path
+                  path: catalogs/acme
+            overlays:
+              - acme/web-api
+      """
+    When I run the CLI command
+      """
+      list --json
+      """
+    Then the command exits successfully
+    And the command stdout should contain "acme/web-api"
+    When I run the CLI command
+      """
+      plan --stack plain --overlays acme/web-api --json
+      """
+    Then the command exits successfully
+    And the command stdout should contain "acme/web-api"
+    And the command JSON output should have value at "diff.overlayChanges.added[0].id" equal:
+      """
+      acme/web-api
+      """
+
+  Scenario: External catalog selections must stay namespace-qualified at the CLI boundary
+    Given an inline workspace fixture:
+      """
+      files:
+        catalogs/acme/web-api/overlay.yml:
+          text: |
+            id: web-api
+            name: Acme Web API
+            description: External web API overlay
+            category: dev
+            supports:
+              - plain
+        superposition.yml:
+          yaml:
+            stack: plain
+            outputPath: .devcontainer
+            catalogs:
+              - id: acme-platform
+                namespace: acme
+                source:
+                  type: path
+                  path: catalogs/acme
+            overlays:
+              - web-api
+      """
+    When I run the CLI command
+      """
+      doctor --from-project --json
+      """
+    Then the command exits with status 1
+    And the command stderr should contain "Failed to load project config"
+    And the command stderr should contain "unsupported entries: web-api"
+
+  Scenario: External catalog declarations reject unsupported sources and floating refs at the CLI boundary
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: plain
+            outputPath: .devcontainer
+            catalogs:
+              - id: acme-platform
+                namespace: acme
+                source:
+                  type: git
+                  url: ssh://git.example.com/acme/catalog.git
+                  ref: main
+                  commit: abcdef1
+      """
+    When I run the CLI command
+      """
+      doctor --from-project --json
+      """
+    Then the command exits with status 1
+    And the command stderr should contain "floating refs like 'main'"
+
+  Scenario: External catalog declarations reject unsupported source kinds at the CLI boundary
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: plain
+            outputPath: .devcontainer
+            catalogs:
+              - id: acme-platform
+                namespace: acme
+                source:
+                  type: oci
+                  url: ghcr.io/acme/catalog:1.0.0
+      """
+    When I run the CLI command
+      """
+      doctor --from-project --json
+      """
+    Then the command exits with status 1
+    And the command stderr should contain "source.type must be one of: git, archive, path"
+
+  Scenario: Replay fails clearly when a catalog change removes a referenced external overlay
+    Given an inline workspace fixture:
+      """
+      files:
+        catalogs/acme-v1/web-api/overlay.yml:
+          text: |
+            id: web-api
+            name: Acme Web API
+            description: External web API overlay
+            category: dev
+            supports:
+              - plain
+        catalogs/acme-v2/README.md:
+          text: |
+            web-api moved to another catalog release
+        .devcontainer/superposition.json:
+          json:
+            baseTemplate: plain
+            overlays:
+              - acme/web-api
+            outputPath: .devcontainer
+            catalogs:
+              - id: acme-platform
+                namespace: acme
+                sourceType: path
+                resolvedIdentity: path:catalogs/acme-v1
+        superposition.yml:
+          yaml:
+            stack: plain
+            outputPath: .devcontainer
+            catalogs:
+              - id: acme-platform
+                namespace: acme
+                source:
+                  type: path
+                  path: catalogs/acme-v2
+            overlays:
+              - acme/web-api
+      """
+    When I run the CLI command
+      """
+      init --from-project --no-interactive
+      """
+    Then the command exits with status 1
+    And the command stderr should contain "Unknown overlay 'acme/web-api'"
+    When I run the CLI command
+      """
+      doctor --from-project --json
+      """
+    Then the command exits with status 1
+    And the command stderr should contain "Unknown overlay 'acme/web-api'"
 
   Scenario: Explain inspects a compose overlay with files and services
     Given an inline workspace fixture:

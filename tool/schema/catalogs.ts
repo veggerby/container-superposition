@@ -460,10 +460,25 @@ function rewritePresetDefinition(
     return preset;
 }
 
+function assertNoBuiltInLocalIdCollision(
+    builtInIds: Set<string>,
+    localId: string,
+    namespace: string,
+    kind: 'overlay' | 'preset'
+): void {
+    if (builtInIds.has(localId)) {
+        throw new Error(
+            `Catalog collision: external ${kind} local id '${localId}' in namespace '${namespace}' collides with built-in id '${localId}'`
+        );
+    }
+}
+
 function mergeCatalogIntoRoot(
     mergedRoot: string,
     declaration: CatalogDeclaration,
-    catalogRoot: string
+    catalogRoot: string,
+    builtInOverlayIds: Set<string>,
+    builtInPresetIds: Set<string>
 ): void {
     const overlayDirs = catalogOverlayDirectories(catalogRoot);
     const localIds = new Set<string>(overlayDirs.map((overlayDir) => path.basename(overlayDir)));
@@ -472,6 +487,12 @@ function mergeCatalogIntoRoot(
 
     for (const overlayDir of overlayDirs) {
         const localId = path.basename(overlayDir);
+        assertNoBuiltInLocalIdCollision(
+            builtInOverlayIds,
+            localId,
+            declaration.namespace,
+            'overlay'
+        );
         const qualifiedId = `${declaration.namespace}/${localId}`;
         const targetOverlayDir = path.join(mergedRoot, qualifiedId);
         if (fs.existsSync(targetOverlayDir)) {
@@ -534,6 +555,12 @@ function mergeCatalogIntoRoot(
             );
             const rewritten = rewritePresetDefinition(rawPreset, declaration.namespace, localIds);
             const localPresetId = expectString(rawPreset.id, `${presetPath} id`);
+            assertNoBuiltInLocalIdCollision(
+                builtInPresetIds,
+                localPresetId,
+                declaration.namespace,
+                'preset'
+            );
             const targetPresetPath = path.join(
                 mergedRoot,
                 '.presets',
@@ -561,6 +588,20 @@ function buildMergedCatalogRoot(
         rootDir: string;
         resolvedIdentity: string;
     }>;
+    const builtInRegistry = loadOverlaysConfig(
+        builtInOverlaysDir,
+        path.join(builtInOverlaysDir, 'index.yml')
+    ).overlays;
+    const builtInOverlayIds = new Set(
+        builtInRegistry
+            .filter((overlay) => overlay.category !== 'preset')
+            .map((overlay) => overlay.id)
+    );
+    const builtInPresetIds = new Set(
+        builtInRegistry
+            .filter((overlay) => overlay.category === 'preset')
+            .map((overlay) => overlay.id)
+    );
 
     for (const declaration of declarations) {
         const materialized = materializeCatalogSource(declaration, cacheRoot, repoRoot);
@@ -581,7 +622,13 @@ function buildMergedCatalogRoot(
         ensureDirectory(path.dirname(mergedRoot));
         fs.cpSync(builtInOverlaysDir, mergedRoot, { recursive: true });
         for (const entry of resolvedCatalogs) {
-            mergeCatalogIntoRoot(mergedRoot, entry.declaration, entry.rootDir);
+            mergeCatalogIntoRoot(
+                mergedRoot,
+                entry.declaration,
+                entry.rootDir,
+                builtInOverlayIds,
+                builtInPresetIds
+            );
         }
     }
 

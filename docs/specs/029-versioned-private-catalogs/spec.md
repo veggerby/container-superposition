@@ -331,12 +331,21 @@ Key shipped decisions:
 
 Validation and coverage added:
 
-- Vitest coverage for namespace qualification, unqualified rejection, floating ref rejection, checksum validation, local git catalogs, manifest receipts, cross-command consistency, token-only inline credential rejection, and cwd-stable path receipt identities.
-- Behave coverage for external path-catalog discovery/replay and doctor health from project-file replay.
+- Vitest coverage for namespace qualification, unqualified rejection, floating ref rejection, unsupported source rejection, checksum validation, local git catalogs, manifest receipts, cross-command consistency across `list`, `explain`, `plan`, `init`, `regen`, and `doctor`, built-in/external collision rejection, token-only inline credential rejection, and cwd-stable path receipt identities.
+- Behave coverage for external path-catalog discovery/replay across `explain`, `init --from-project`, `regen`, and `doctor`; `list --json` / `plan --json` parity; CLI-boundary validation failures for unqualified IDs and invalid catalog declarations; and actionable replay/doctor failures after a catalog change removes a referenced external overlay.
 - Schema generation updated for `catalogs:` and qualified dynamic IDs.
+
+Validation run for the QA follow-up:
+
+- `npm test -- private-catalogs.test.ts`
+- `npm run test:bdd -- tests/behave/features/core-tooling.feature`
+- `npm run lint:fix`
+- `npm run lint`
+- `task validate`
 
 ## Routing Decision
 
 **PM → Architect → Developer**
 
 Reason: ADR 002 closed the remaining architecture and policy decisions, enabling implementation.
+

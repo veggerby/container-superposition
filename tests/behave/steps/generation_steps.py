@@ -70,6 +70,39 @@ def step_then_command_exits_successfully(context):
         raise AssertionError(_command_failure_message(result, 'Expected the command to succeed.'))
 
 
+@then('the command exits with status {expected_status:d}')
+def step_then_command_exits_with_status(context, expected_status):
+    result = _require_command_result(context)
+    if result.returncode != expected_status:
+        raise AssertionError(
+            _command_failure_message(
+                result, f'Expected the command to exit with status {expected_status}.'
+            )
+        )
+
+
+@then('the command stdout should contain "{expected_text}"')
+def step_then_command_stdout_should_contain(context, expected_text):
+    result = _require_command_result(context)
+    if expected_text not in result.stdout:
+        raise AssertionError(
+            _command_failure_message(
+                result, f'Expected command stdout to contain {expected_text!r}.'
+            )
+        )
+
+
+@then('the command stderr should contain "{expected_text}"')
+def step_then_command_stderr_should_contain(context, expected_text):
+    result = _require_command_result(context)
+    if expected_text not in result.stderr:
+        raise AssertionError(
+            _command_failure_message(
+                result, f'Expected command stderr to contain {expected_text!r}.'
+            )
+        )
+
+
 @then('the command JSON output should have value at "{selector}" equal')
 def step_then_command_json_value_equals(context, selector):
     _assert_with_bridge(
