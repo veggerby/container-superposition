@@ -1,6 +1,18 @@
 name: Validate Overlays
 
 on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'overlays/**'
+            - 'tool/**'
+            - 'tests/behave/**'
+            - 'scripts/**'
+            - 'package.json'
+            - 'Taskfile.yml'
+            - 'superposition.yml'
+            - '.github/workflows/validate-overlays.yml'
     pull_request:
         paths:
             - 'overlays/**'
