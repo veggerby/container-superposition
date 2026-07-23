@@ -63,7 +63,9 @@ INFRA            — Project infrastructure (tests, CI, tooling)
 
 ### OVERLAY-FIX
 
-_No specs yet._
+| Spec                                                                   | Title                          | Status |
+| ---------------------------------------------------------------------- | ------------------------------ | ------ |
+| [054-overlay-audit-remediation](054-overlay-audit-remediation/spec.md) | Full Overlay Audit Remediation | Draft  |
 
 ---
 
@@ -196,6 +198,7 @@ _No specs yet._
 | [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run                                     | Final  |
 | [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                                              | Final  |
 | [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final  |
+| [054-overlay-audit-remediation](054-overlay-audit-remediation/spec.md)                                                   | Full Overlay Audit Remediation                                                             | Draft  |
 
 ### DOCS-API
 

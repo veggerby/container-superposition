@@ -183,7 +183,6 @@ This is the core configuration that gets merged into the final devcontainer.json
         }
     },
     "runServices": ["my-service"],
-    "_serviceOrder": 1,
     "customizations": {
         "vscode": {
             "extensions": ["publisher.my-extension"],
@@ -225,19 +224,18 @@ Lists services that should start automatically. Only needed if your overlay incl
 }
 ```
 
-#### \_serviceOrder
+#### `serviceOrder` in `overlay.yml`
 
-Controls startup order (lower numbers start first):
+Compose overlays declare startup order in `overlay.yml`, not in `devcontainer.patch.json`. Lower numbers start first:
 
 - `0` - Infrastructure (postgres, redis)
 - `1` - Observability backends (jaeger, prometheus, loki)
 - `2` - Middleware (otel-collector)
 - `3` - UI/Visualization (grafana)
+- `4` - Demo apps and sample services
 
-```json
-{
-    "_serviceOrder": 1
-}
+```yaml
+serviceOrder: 1
 ```
 
 ## docker-compose.yml
@@ -250,7 +248,7 @@ Define services your overlay needs.
 version: '3.8'
 services:
     my-service:
-        image: my-image:${MY_SERVICE_VERSION:-latest}
+        image: my-image:${MY_SERVICE_VERSION:-1.2.3}
         environment:
             - ENV_VAR=${ENV_VAR:-default}
         ports:
@@ -268,7 +266,6 @@ volumes:
 
 networks:
     devnet:
-        name: my-project-devnet
 ```
 
 ### Important Notes
@@ -432,7 +429,7 @@ Define environment variables for your overlay.
 
 ```bash
 # My Service Configuration
-MY_SERVICE_VERSION=latest
+MY_SERVICE_VERSION=1.2.3
 MY_SERVICE_PORT=8080
 MY_SERVICE_HOST=localhost
 
@@ -530,7 +527,7 @@ server:
 
 ```bash
 # Service version
-MY_SERVICE_VERSION=latest
+MY_SERVICE_VERSION=1.2.3
 
 # Service port
 MY_SERVICE_PORT=8080
@@ -731,7 +728,7 @@ Before submitting an overlay:
 - [ ] .env.example has sensible defaults and comments
 - [ ] README.md documents ports, environment variables, usage
 - [ ] runServices includes service names
-- [ ] \_serviceOrder is set appropriately
+- [ ] `serviceOrder` is set appropriately in `overlay.yml` for compose overlays
 - [ ] depends_on lists all potential dependencies
 - [ ] Tested standalone and in combination
 - [ ] Added to overlays/README.md

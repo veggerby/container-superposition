@@ -30,7 +30,7 @@ ports:
 parameters:
     FUSEKI_VERSION:
         description: Apache Jena Fuseki image version tag
-        default: latest
+        default: '5.4.0'
     FUSEKI_PORT:
         description: Host port mapped to Fuseki (3030 inside container)
         default: '3030'

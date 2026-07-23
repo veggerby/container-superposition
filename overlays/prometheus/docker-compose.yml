@@ -1,7 +1,7 @@
 version: '3.8'
 services:
     prometheus:
-        image: prom/prometheus:${PROMETHEUS_VERSION:-latest}
+        image: prom/prometheus:${PROMETHEUS_VERSION:-v3.5.0}
         restart: unless-stopped
         command:
             - '--config.file=/etc/prometheus/prometheus.yml'
@@ -27,4 +27,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

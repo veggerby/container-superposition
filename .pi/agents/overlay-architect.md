@@ -127,16 +127,16 @@ Compare README files across overlays. Identify:
 Look for repeated `customizations.vscode.settings` blocks (e.g., format-on-save patterns, file exclusions) that appear nearly identically in multiple overlays of the same category.
 These are candidates for a shared VS Code settings fragment.
 
-### 14. `_serviceOrder` consistency
+### 14. `serviceOrder` consistency
 
-Check that all compose overlays set `_serviceOrder` in their patch:
+Check that all compose overlays set `serviceOrder` in `overlay.yml`:
 
 - 0 = infrastructure (databases, message brokers)
 - 1 = observability (prometheus, grafana, jaeger)
 - 2 = middleware (api gateways, proxies)
 - 3 = ui (frontends, dashboards)
 
-Flag overlays missing `_serviceOrder` or using a value inconsistent with their category.
+Flag overlays missing `serviceOrder` or using a value inconsistent with their category.
 
 ### 15. Feature-backed overlay opportunities
 

@@ -12,7 +12,7 @@ Apache Jena Fuseki provides a local SPARQL 1.1 server and TDB-backed triplestore
 
 | Parameter                  | Default  | Description                                                                 |
 | -------------------------- | -------- | --------------------------------------------------------------------------- |
-| `FUSEKI_VERSION`           | `latest` | Fuseki image tag                                                            |
+| `FUSEKI_VERSION`           | `5.4.0`  | Fuseki image tag                                                            |
 | `FUSEKI_PORT`              | `3030`   | Host port mapped to Fuseki                                                  |
 | `FUSEKI_ADMIN_PASSWORD`    | `admin`  | Admin password used by the management API and seed loader                   |
 | `FUSEKI_DATASET`           | `ds`     | Default dataset created on first start                                      |

@@ -58,7 +58,7 @@ Also check cross-cutting concerns: conflict reciprocity, parameter naming, port 
 - [ ] `remoteEnv` values use `{{cs.PARAM_NAME}}` for parameterized values (no hardcoded secrets)
 - [ ] VS Code extension IDs in `customizations.vscode.extensions` are correctly formatted (`publisher.extension-id`)
 - [ ] No deprecated DevContainer spec fields used
-- [ ] `_serviceOrder` present if overlay has compose services (0=infrastructure, 1=observability, 2=middleware, 3=ui)
+- [ ] `serviceOrder` present in `overlay.yml` if overlay has compose services (0=infrastructure, 1=observability, 2=middleware, 3=ui, 4=demo apps)
 
 ### docker-compose.yml (if present)
 

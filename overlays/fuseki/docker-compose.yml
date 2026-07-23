@@ -27,4 +27,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

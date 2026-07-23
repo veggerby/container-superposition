@@ -1,7 +1,7 @@
 version: '3.8'
 services:
     otel-collector:
-        image: otel/opentelemetry-collector-contrib:${OTEL_COLLECTOR_VERSION:-latest}
+        image: otel/opentelemetry-collector-contrib:${OTEL_COLLECTOR_VERSION:-0.122.1}
         restart: unless-stopped
         command: ['--config=/etc/otel-collector-config.yaml']
         volumes:
@@ -23,4 +23,3 @@ services:
 
 networks:
     devnet:
-        name: devnet

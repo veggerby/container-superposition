@@ -1,7 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
     "runServices": ["fuseki{{cs.CS_INSTANCE_SUFFIX}}"],
-    "_serviceOrder": 0,
     "forwardPorts": ["{{cs.FUSEKI_PORT}}"],
     "portsAttributes": {
         "{{cs.FUSEKI_PORT}}": {

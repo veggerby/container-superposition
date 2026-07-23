@@ -55,7 +55,7 @@ cp .env.example .env
 
 ```bash
 # Alertmanager version
-ALERTMANAGER_VERSION=latest
+ALERTMANAGER_VERSION=v0.28.1
 
 # Alertmanager port
 ALERTMANAGER_PORT=9093

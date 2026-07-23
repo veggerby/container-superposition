@@ -20,7 +20,7 @@ devcontainer (main application)
 
 ## Service Order Hints
 
-Overlays use `_serviceOrder` (custom field, non-standard) to indicate startup priority:
+Compose overlays use `serviceOrder` in `overlay.yml` to indicate startup priority:
 
 - **Order 0** (implicit): postgres, redis - base infrastructure
 - **Order 1**: jaeger, prometheus, loki - observability backends
@@ -103,14 +103,13 @@ Each overlay declares its service(s):
 ```json
 // postgres/devcontainer.patch.json
 {
-  "runServices": ["postgres"]
+    "runServices": ["postgres"]
 }
+```
 
-// otel-collector/devcontainer.patch.json
-{
-  "runServices": ["otel-collector"],
-  "_serviceOrder": 2
-}
+```yaml
+# otel-collector/overlay.yml
+serviceOrder: 2
 ```
 
 ### Composer Merge Strategy
@@ -118,7 +117,7 @@ Each overlay declares its service(s):
 When merging `runServices`:
 
 1. **Collect all services** from base template + selected overlays
-2. **Sort by \_serviceOrder** (ascending)
+2. **Sort by `serviceOrder`** (ascending)
 3. **Merge into single array** maintaining order
 4. **Remove duplicates** while preserving order
 
@@ -149,8 +148,8 @@ interface Overlay {
     name: string;
     devcontainer: {
         runServices?: string[];
-        _serviceOrder?: number;
     };
+    serviceOrder?: number;
     dockerCompose?: {
         services: Record<
             string,
@@ -171,7 +170,7 @@ function mergeOverlays(baseTemplate: any, overlays: Overlay[]) {
         .flatMap((o) =>
             (o.devcontainer.runServices || []).map((s) => ({
                 name: s,
-                order: o.devcontainer._serviceOrder || 0,
+                order: o.serviceOrder || 0,
             }))
         )
         .sort((a, b) => a.order - b.order);

@@ -70,7 +70,7 @@ Use shared semantic assertions for structured generated output (JSON, YAML/Compo
 - Parameterized values use `{{cs.PARAM_NAME}}`
 - `runServices` matches compose service names
 - `forwardPorts` and `portsAttributes` match exposed ports
-- Compose overlays set `_serviceOrder`:
+- Compose overlays set `serviceOrder` in `overlay.yml`:
     - `0` infrastructure
     - `1` observability
     - `2` middleware

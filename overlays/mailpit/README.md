@@ -30,7 +30,7 @@ cp .env.example .env
 
 ```bash
 # Mailpit Configuration
-MAILPIT_VERSION=latest
+MAILPIT_VERSION=v1.26.2
 MAILPIT_UI_PORT=8025
 MAILPIT_SMTP_PORT=1025
 ```

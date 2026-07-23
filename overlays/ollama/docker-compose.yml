@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
     ollama:
-        image: ollama/ollama:${OLLAMA_VERSION:-latest}
+        image: ollama/ollama:${OLLAMA_VERSION:-0.11.4}
         restart: unless-stopped
         volumes:
             - ${OLLAMA_MODELS_PATH:-~/.ollama}:/root/.ollama
@@ -22,4 +22,3 @@ services:
 
 networks:
     devnet:
-        name: devnet

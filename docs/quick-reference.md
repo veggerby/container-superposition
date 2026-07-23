@@ -117,7 +117,7 @@ This ensures valid configurations without manual dependency tracking!
 
 ## Service Startup Order
 
-Services start in this order (controlled by `_serviceOrder`):
+Services start in this order (controlled by `serviceOrder` in `overlay.yml`):
 
 1. **Order 0** - Infrastructure: postgres, redis
 2. **Order 1** - Observability backends: jaeger, prometheus, loki
@@ -321,21 +321,21 @@ REDIS_PASSWORD=  # Optional
 
 ```bash
 # OpenTelemetry Collector
-OTEL_COLLECTOR_VERSION=latest
+OTEL_COLLECTOR_VERSION=0.122.1
 
 # Jaeger
-JAEGER_VERSION=latest
+JAEGER_VERSION=1.67.0
 
 # Prometheus
-PROMETHEUS_VERSION=latest
+PROMETHEUS_VERSION=v3.5.0
 
 # Grafana
-GRAFANA_VERSION=latest
+GRAFANA_VERSION=11.6.0
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=admin
 
 # Loki
-LOKI_VERSION=latest
+LOKI_VERSION=3.4.2
 ```
 
 ## Port Reference

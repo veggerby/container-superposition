@@ -12,8 +12,6 @@ This directory contains reusable configuration fragments that can be imported by
 ├── compose/                           # Docker Compose patterns
 │   ├── nvidia-gpu-devcontainer.yml    # NVIDIA GPU passthrough for the devcontainer service
 │   └── common-healthchecks.md         # Standard healthcheck patterns (reference — not importable)
-└── vscode/                            # VS Code extension sets
-    └── recommended-extensions.json    # Commonly recommended extensions (devcontainer patch)
 ```
 
 ## Fragment Catalogue
@@ -31,7 +29,7 @@ This directory contains reusable configuration fragments that can be imported by
 - `OTEL_TRACES_SAMPLER`, `OTEL_TRACES_EXPORTER` — trace configuration
 - `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER` — metrics and log exporters
 
-**Imported by:** `otel-collector`, `prometheus`, `jaeger`
+**Imported by:** `otel-collector`, `prometheus`
 
 **Merge type:** `.env` — appended to `.env.example` with a `# from .shared/otel/instrumentation.env` comment
 
@@ -53,7 +51,7 @@ This directory contains reusable configuration fragments that can be imported by
 
 **Merge type:** `compose_imports:` — deep-merged into the final `docker-compose.yml` before the overlay's own `docker-compose.yml`.
 
-**Imported by:** `ollama`
+**Imported by:** `ollama`, `comfyui`
 
 **Prerequisites:** NVIDIA Container Toolkit must be installed on the host.
 
@@ -67,16 +65,6 @@ This directory contains reusable configuration fragments that can be imported by
 
 ---
 
-### `vscode/recommended-extensions.json`
-
-**Purpose:** A curated set of VS Code extensions commonly useful across many overlays (spell checking, error lens, GitLens, EditorConfig, Prettier, Docker, YAML, Markdown).
-
-**Format:** Valid devcontainer patch — `customizations.vscode.extensions` array.
-
-**Merge type:** `.json` — deep-merged into `devcontainer.json` patch
-
----
-
 ## Usage
 
 Reference shared devcontainer fragments in `overlay.yml` via the `imports` field:
@@ -85,7 +73,6 @@ Reference shared devcontainer fragments in `overlay.yml` via the `imports` field
 id: my-overlay
 imports:
     - .shared/otel/instrumentation.env
-    - .shared/vscode/recommended-extensions.json
 ```
 
 Reference shared docker-compose fragments via the `compose_imports` field:
@@ -106,7 +93,7 @@ compose_imports:
 
 ## Creating New Fragments
 
-1. Choose the right subdirectory (`otel/`, `compose/`, `vscode/`, or create a new one with a clear name)
+1. Choose the right subdirectory (`otel/`, `compose/`, or create a new one with a clear name)
 2. Use a descriptive file name — one concern per file
 3. For `.json` and `.yaml` fragments, ensure the content is valid devcontainer patch format
 4. Add a comment at the top explaining what the fragment does
