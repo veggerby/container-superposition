@@ -83,12 +83,12 @@ _No specs yet._
 
 ### COMPOSER-FEAT
 
-| Spec                                                                                     | Title                                                   | Status                        |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
-| [010-compose-env-materialization](010-compose-env-materialization/spec.md)               | Compose Env Materialization and Env Template Naming     | Final                         |
-| [043-compose-network-name](043-compose-network-name/spec.md)                             | Project-Specific Compose Network Names                  | Final                         |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides | Final                         |
-| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL   | Draft                         |
+| Spec                                                                                     | Title                                                   | Status |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------ |
+| [010-compose-env-materialization](010-compose-env-materialization/spec.md)               | Compose Env Materialization and Env Template Naming     | Final  |
+| [043-compose-network-name](043-compose-network-name/spec.md)                             | Project-Specific Compose Network Names                  | Final  |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides | Final  |
+| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL   | Draft  |
 
 ### COMPOSER-FIX
 
@@ -102,14 +102,14 @@ _No specs yet._
 
 ### SCHEMA-FIELD
 
-| Spec                                                                                 | Title                                                   | Status                        |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------- | ----------------------------- |
-| [011-overlay-parameters](011-overlay-parameters/spec.md)                             | Overlay Parameters with Safe Substitution               | Final                         |
-| [020-superposition-yml-schema](020-superposition-yml-schema/spec.md)                 | JSON Schema for `superposition.yml`                     | Final                         |
-| [024-project-ports](024-project-ports/spec.md)                                       | Project-Level `ports` Field (plain/compose redesign)    | Final                         |
-| [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md) | Variable Expansion and Substitution Consolidation       | Final                         |
-| [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                 | Ad-hoc Project Parameters                               | Final                         |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)               | Multi-Instance Compose Overlays with Instance Overrides | Final                         |
+| Spec                                                                                 | Title                                                   | Status |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------- | ------ |
+| [011-overlay-parameters](011-overlay-parameters/spec.md)                             | Overlay Parameters with Safe Substitution               | Final  |
+| [020-superposition-yml-schema](020-superposition-yml-schema/spec.md)                 | JSON Schema for `superposition.yml`                     | Final  |
+| [024-project-ports](024-project-ports/spec.md)                                       | Project-Level `ports` Field (plain/compose redesign)    | Final  |
+| [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md) | Variable Expansion and Substitution Consolidation       | Final  |
+| [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                 | Ad-hoc Project Parameters                               | Final  |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)               | Multi-Instance Compose Overlays with Instance Overrides | Final  |
 
 ### SCHEMA-VALID
 
@@ -186,16 +186,16 @@ _No specs yet._
 
 ### DOCS-GUIDE
 
-| Spec                                                                                                                     | Title                                                                                      | Status      |
-| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ----------- |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)                             | Discovery Surface and Canonical Docs Alignment                                             | Draft       |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)                           | Preset-Led Onboarding for Common Jobs-to-be-Done                                           | Draft       |
-| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md)               | Project-Local Contributor Skills Initiative                                                | Final       |
-| [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)                   | Overlay Solution Discovery and Write Loop                                                  | Final       |
-| [042-global-default-configuration](042-global-default-configuration/spec.md)                                             | User-Scoped Global Defaults with Stack-Aware Local Templates                               | Final       |
-| [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run                                     | Final       |
+| Spec                                                                                                                     | Title                                                                                      | Status |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------ |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)                             | Discovery Surface and Canonical Docs Alignment                                             | Draft  |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)                           | Preset-Led Onboarding for Common Jobs-to-be-Done                                           | Draft  |
+| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md)               | Project-Local Contributor Skills Initiative                                                | Final  |
+| [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)                   | Overlay Solution Discovery and Write Loop                                                  | Final  |
+| [042-global-default-configuration](042-global-default-configuration/spec.md)                                             | User-Scoped Global Defaults with Stack-Aware Local Templates                               | Final  |
+| [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run                                     | Final  |
 | [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                                              | Final  |
-| [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final       |
+| [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final  |
 
 ### DOCS-API
 
@@ -227,17 +227,17 @@ _No specs yet._
 
 ## PROJECT — Project-level configuration
 
-| Spec                                                                           | Title                                                        | Status                        |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------- |
-| [002-superposition-config-file](002-superposition-config-file/spec.md)         | Project Configuration File                                   | Final                         |
-| [008-project-file-canonical](008-project-file-canonical/spec.md)               | Make superposition.yml Canonical Input                       | Final                         |
-| [009-project-env](009-project-env/spec.md)                                     | Unified Project-Level Environment Variables                  | Final                         |
-| [018-init-project-file](018-init-project-file/spec.md)                         | `init --project-file`                                        | Final                         |
-| [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                   | Final                         |
-| [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                   | Final                         |
-| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs                | Draft                         |
-| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml`   | Final                         |
-| [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Final                         |
-| [043-compose-network-name](043-compose-network-name/spec.md)                   | Project-Specific Compose Network Names                       | Final                         |
-| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final                         |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final                         |
+| Spec                                                                           | Title                                                        | Status |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
+| [002-superposition-config-file](002-superposition-config-file/spec.md)         | Project Configuration File                                   | Final  |
+| [008-project-file-canonical](008-project-file-canonical/spec.md)               | Make superposition.yml Canonical Input                       | Final  |
+| [009-project-env](009-project-env/spec.md)                                     | Unified Project-Level Environment Variables                  | Final  |
+| [018-init-project-file](018-init-project-file/spec.md)                         | `init --project-file`                                        | Final  |
+| [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                   | Final  |
+| [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                   | Final  |
+| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs                | Draft  |
+| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml`   | Final  |
+| [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Final  |
+| [043-compose-network-name](043-compose-network-name/spec.md)                   | Project-Specific Compose Network Names                       | Final  |
+| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final  |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final  |
