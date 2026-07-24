@@ -13,10 +13,11 @@ Feature work is governed by specs committed under `docs/specs/`. Implementation 
 
 1. [Quick Reference](quick-reference.md) — command lookup and common flags
 2. [superposition.yml Reference](superposition-yml.md) — canonical project file format
-3. [Workflows and Regeneration](workflows.md) — preview, init, regen, migrate, and adopt flows
-4. [Examples](examples.md) — worked examples and patterns
-5. [Adopt Command](adopt.md) — convert an existing handwritten `.devcontainer/`
-6. [Presets Guide](presets.md) — optional shortcuts for common setups
+3. [Versioned Private Catalogs](private-catalogs.md) — add, pin, trust, and upgrade external catalogs
+4. [Workflows and Regeneration](workflows.md) — preview, init, regen, migrate, and adopt flows
+5. [Examples](examples.md) — worked examples and patterns
+6. [Adopt Command](adopt.md) — convert an existing handwritten `.devcontainer/`
+7. [Presets Guide](presets.md) — optional shortcuts for common setups
 
 ### Architecture and repository authority
 
@@ -30,6 +31,7 @@ Feature work is governed by specs committed under `docs/specs/`. Implementation 
 
 - [Filesystem Contract](filesystem-contract.md) — what the tool writes and what to edit
 - [Hash Command](hash.md) — semantic fingerprinting
+- [Versioned Private Catalogs](private-catalogs.md) — task guide for private overlay and preset catalogs
 - [Messaging Comparison](messaging-comparison.md) — choosing a messaging overlay
 - [Messaging Quick Start](messaging-quick-start.md) — messaging setup walkthrough
 - [Observability Workflow](observability-workflow.md) — monitoring and tracing workflow
