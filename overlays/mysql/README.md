@@ -47,7 +47,7 @@ MYSQL_PASSWORD=devpassword
 MYSQL_PORT=3306
 
 # phpMyAdmin Configuration
-PHPMYADMIN_VERSION=latest
+PHPMYADMIN_VERSION=5.2.2-apache
 PHPMYADMIN_PORT=8080
 ```
 

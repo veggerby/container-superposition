@@ -22,6 +22,11 @@ tasks:
         cmds:
             - npm test
 
+    'test:bdd':
+        desc: Run the Behave BDD suite
+        cmds:
+            - npm run test:bdd
+
     build:
         desc: Compile TypeScript to dist/
         cmds:
@@ -65,9 +70,10 @@ tasks:
             - task: test
 
     'validate:generated':
-        desc: Validation plus generated-artifact and reproducibility checks
+        desc: Validation plus BDD, generated-artifact, and reproducibility checks
         cmds:
             - task: validate
+            - task: 'test:bdd'
             - task: 'docs:generate'
             - task: 'schema:generate'
             - task: regen

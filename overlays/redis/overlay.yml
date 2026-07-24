@@ -4,6 +4,7 @@ description: Redis 7 cache
 category: database
 supports:
     - compose
+repeatable: true
 requires: []
 suggests:
     - prometheus

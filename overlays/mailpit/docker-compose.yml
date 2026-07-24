@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
     mailpit:
-        image: axllent/mailpit:${MAILPIT_VERSION:-latest}
+        image: axllent/mailpit:${MAILPIT_VERSION:-v1.26.2}
         restart: unless-stopped
         environment:
             MP_SMTP_AUTH_ACCEPT_ANY: '1'
@@ -15,4 +15,3 @@ services:
 
 networks:
     devnet:
-        name: devnet

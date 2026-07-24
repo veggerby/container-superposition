@@ -36,116 +36,338 @@
             "description": "Actual Docker network name for compose stacks. When omitted, the generated docker-compose.yml uses a deterministic default derived from the repository folder name. Plain stacks reject this field.",
             "examples": ["my-repo-devnet"]
         },
+        "catalogs": {
+            "type": "array",
+            "description": "Optional external overlay/preset catalogs. Built-in overlays remain available without listing them here.",
+            "items": {
+                "type": "object",
+                "required": ["id", "namespace", "source"],
+                "additionalProperties": false,
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "namespace": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]*$",
+                        "description": "Namespace prefix used for external IDs such as acme/web-api"
+                    },
+                    "source": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "required": ["type", "url", "commit"],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "type": {
+                                        "const": "git"
+                                    },
+                                    "url": {
+                                        "type": "string"
+                                    },
+                                    "ref": {
+                                        "type": "string"
+                                    },
+                                    "commit": {
+                                        "type": "string",
+                                        "pattern": "^[a-fA-F0-9]{7,40}$"
+                                    },
+                                    "subpath": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "object",
+                                "required": ["type", "url", "checksum"],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "type": {
+                                        "const": "archive"
+                                    },
+                                    "url": {
+                                        "type": "string"
+                                    },
+                                    "checksum": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[a-fA-F0-9]{64}$"
+                                    },
+                                    "subpath": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "object",
+                                "required": ["type", "path"],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "type": {
+                                        "const": "path"
+                                    },
+                                    "path": {
+                                        "type": "string"
+                                    },
+                                    "subpath": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
         "overlays": {
             "type": "array",
-            "description": "Flat list of overlay IDs to include. Preferred over the legacy category arrays. Dependency resolution runs automatically.",
+            "description": "Canonical overlay selection surface. Built-ins stay unqualified; external overlays must use namespace-qualified IDs such as acme/web-api.",
             "items": {
-                "type": "string",
-                "enum": [
-                    "alertmanager",
-                    "all",
-                    "amp",
-                    "ansible",
-                    "argocd",
-                    "aws-cli",
-                    "azure-cli",
-                    "bun",
-                    "claude-code",
-                    "cloudflared",
-                    "codex",
-                    "comfyui",
-                    "commitlint",
-                    "cuda",
-                    "devcontainer-cli",
-                    "direnv",
-                    "docker-in-docker",
-                    "docker-sock",
-                    "dotnet",
-                    "duckdb",
-                    "fuseki",
-                    "gcloud",
-                    "gemini-cli",
-                    "git-helpers",
-                    "go",
-                    "grafana",
-                    "grpc-tools",
-                    "jaeger",
-                    "java",
-                    "jupyter",
-                    "just",
-                    "k3d",
-                    "keycloak",
-                    "kind",
-                    "kubectl-helm",
-                    "localstack",
-                    "loki",
-                    "mailpit",
-                    "minio",
-                    "mkdocs",
-                    "mkdocs2",
-                    "modern-cli-tools",
-                    "mongodb",
-                    "mysql",
-                    "nats",
-                    "ngrok",
-                    "nodejs",
-                    "ollama",
-                    "ollama-cli",
-                    "open-webui",
-                    "openapi-tools",
-                    "opencode",
-                    "otel-collector",
-                    "otel-demo-nodejs",
-                    "otel-demo-python",
-                    "pandoc",
-                    "pgvector",
-                    "pi",
-                    "playwright",
-                    "postgres",
-                    "powershell",
-                    "pre-commit",
-                    "prometheus",
-                    "promtail",
-                    "pulumi",
-                    "python",
-                    "qdrant",
-                    "rabbitmq",
-                    "redis",
-                    "redpanda",
-                    "rocm",
-                    "rust",
-                    "skaffold",
-                    "spec-kit",
-                    "sqlite",
-                    "sqlserver",
-                    "task",
-                    "tempo",
-                    "terraform",
-                    "tilt",
-                    "windsurf-cli"
-                ],
-                "description": "Overlay identifier"
-            },
-            "uniqueItems": true
+                "oneOf": [
+                    {
+                        "type": "string",
+                        "anyOf": [
+                            {
+                                "enum": [
+                                    "alertmanager",
+                                    "all",
+                                    "amp",
+                                    "ansible",
+                                    "argocd",
+                                    "aws-cli",
+                                    "azure-cli",
+                                    "bun",
+                                    "claude-code",
+                                    "cloudflared",
+                                    "codex",
+                                    "comfyui",
+                                    "commitlint",
+                                    "copilot-cli",
+                                    "cuda",
+                                    "devcontainer-cli",
+                                    "direnv",
+                                    "docker-in-docker",
+                                    "docker-sock",
+                                    "dotnet",
+                                    "duckdb",
+                                    "fuseki",
+                                    "gcloud",
+                                    "gemini-cli",
+                                    "git-helpers",
+                                    "go",
+                                    "grafana",
+                                    "grpc-tools",
+                                    "jaeger",
+                                    "java",
+                                    "jupyter",
+                                    "just",
+                                    "k3d",
+                                    "keycloak",
+                                    "kind",
+                                    "kubectl-helm",
+                                    "localstack",
+                                    "loki",
+                                    "mailpit",
+                                    "minio",
+                                    "mkdocs",
+                                    "mkdocs2",
+                                    "modern-cli-tools",
+                                    "mongodb",
+                                    "mysql",
+                                    "nats",
+                                    "ngrok",
+                                    "nodejs",
+                                    "ollama",
+                                    "ollama-cli",
+                                    "open-webui",
+                                    "openapi-tools",
+                                    "opencode",
+                                    "otel-collector",
+                                    "otel-demo-nodejs",
+                                    "otel-demo-python",
+                                    "pandoc",
+                                    "pgvector",
+                                    "pi",
+                                    "playwright",
+                                    "postgres",
+                                    "powershell",
+                                    "pre-commit",
+                                    "prometheus",
+                                    "promtail",
+                                    "pulumi",
+                                    "python",
+                                    "qdrant",
+                                    "rabbitmq",
+                                    "redis",
+                                    "redpanda",
+                                    "rocm",
+                                    "rust",
+                                    "skaffold",
+                                    "spec-kit",
+                                    "sqlite",
+                                    "sqlserver",
+                                    "task",
+                                    "tempo",
+                                    "terraform",
+                                    "tilt",
+                                    "windsurf-cli"
+                                ]
+                            },
+                            {
+                                "pattern": "^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$"
+                            }
+                        ],
+                        "description": "Singleton overlay identifier"
+                    },
+                    {
+                        "type": "object",
+                        "required": ["overlay", "name"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "overlay": {
+                                "type": "string",
+                                "anyOf": [
+                                    {
+                                        "enum": [
+                                            "alertmanager",
+                                            "all",
+                                            "amp",
+                                            "ansible",
+                                            "argocd",
+                                            "aws-cli",
+                                            "azure-cli",
+                                            "bun",
+                                            "claude-code",
+                                            "cloudflared",
+                                            "codex",
+                                            "comfyui",
+                                            "commitlint",
+                                            "copilot-cli",
+                                            "cuda",
+                                            "devcontainer-cli",
+                                            "direnv",
+                                            "docker-in-docker",
+                                            "docker-sock",
+                                            "dotnet",
+                                            "duckdb",
+                                            "fuseki",
+                                            "gcloud",
+                                            "gemini-cli",
+                                            "git-helpers",
+                                            "go",
+                                            "grafana",
+                                            "grpc-tools",
+                                            "jaeger",
+                                            "java",
+                                            "jupyter",
+                                            "just",
+                                            "k3d",
+                                            "keycloak",
+                                            "kind",
+                                            "kubectl-helm",
+                                            "localstack",
+                                            "loki",
+                                            "mailpit",
+                                            "minio",
+                                            "mkdocs",
+                                            "mkdocs2",
+                                            "modern-cli-tools",
+                                            "mongodb",
+                                            "mysql",
+                                            "nats",
+                                            "ngrok",
+                                            "nodejs",
+                                            "ollama",
+                                            "ollama-cli",
+                                            "open-webui",
+                                            "openapi-tools",
+                                            "opencode",
+                                            "otel-collector",
+                                            "otel-demo-nodejs",
+                                            "otel-demo-python",
+                                            "pandoc",
+                                            "pgvector",
+                                            "pi",
+                                            "playwright",
+                                            "postgres",
+                                            "powershell",
+                                            "pre-commit",
+                                            "prometheus",
+                                            "promtail",
+                                            "pulumi",
+                                            "python",
+                                            "qdrant",
+                                            "rabbitmq",
+                                            "redis",
+                                            "redpanda",
+                                            "rocm",
+                                            "rust",
+                                            "skaffold",
+                                            "spec-kit",
+                                            "sqlite",
+                                            "sqlserver",
+                                            "task",
+                                            "tempo",
+                                            "terraform",
+                                            "tilt",
+                                            "windsurf-cli"
+                                        ]
+                                    },
+                                    {
+                                        "pattern": "^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$"
+                                    }
+                                ],
+                                "description": "Repeatable overlay identifier"
+                            },
+                            "name": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9-]*$",
+                                "description": "Stable compose-safe instance name"
+                            },
+                            "parameters": {
+                                "type": "object",
+                                "description": "Instance-local parameter overrides for this named overlay entry only.",
+                                "additionalProperties": {
+                                    "oneOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "number"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
         },
         "preset": {
             "type": "string",
-            "enum": [
-                "data-engineering",
-                "docs-site",
-                "event-sourced-service",
-                "frontend",
-                "full-observability",
-                "fullstack",
-                "k8s-dev",
-                "k8s-operator-dev",
-                "local-llm",
-                "microservice",
-                "sdd",
-                "vector-ai",
-                "web-api"
+            "anyOf": [
+                {
+                    "enum": [
+                        "data-engineering",
+                        "docs-site",
+                        "event-sourced-service",
+                        "frontend",
+                        "full-observability",
+                        "fullstack",
+                        "k8s-dev",
+                        "k8s-operator-dev",
+                        "local-llm",
+                        "microservice",
+                        "sdd",
+                        "vector-ai",
+                        "web-api"
+                    ]
+                },
+                {
+                    "pattern": "^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$"
+                }
             ],
-            "description": "ID of a preset (meta-overlay) to expand. Use cs list --presets to browse available presets."
+            "description": "ID of a preset (meta-overlay) to expand. Built-in presets stay unqualified; external presets must be namespace-qualified."
         },
         "presetChoices": {
             "type": "object",
@@ -573,6 +795,7 @@
                     "codex",
                     "comfyui",
                     "commitlint",
+                    "copilot-cli",
                     "cuda",
                     "devcontainer-cli",
                     "direnv",

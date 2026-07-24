@@ -87,6 +87,10 @@ describe('Global init defaults', () => {
             path.join(homeDir, '.superposition.yml'),
             yaml.dump({
                 initDefaults: {
+                    stack: 'compose',
+                    baseImage: 'custom',
+                    customImage: 'ghcr.io/example/custom:latest',
+                    composeEnvFiles: true,
                     devcontainerGitignore: true,
                     overlays: ['git-helpers'],
                     outputPath: './global-output',
@@ -111,6 +115,10 @@ describe('Global init defaults', () => {
         const loaded = loadGlobalDefaults(overlaysConfig, homeDir);
         expect(loaded?.path).toBe(path.join(homeDir, '.superposition.yml'));
         expect(loaded?.ignoredPath).toBeUndefined();
+        expect(loaded?.selection.initDefaults?.stack).toBe('compose');
+        expect(loaded?.selection.initDefaults?.baseImage).toBe('custom');
+        expect(loaded?.selection.initDefaults?.customImage).toBe('ghcr.io/example/custom:latest');
+        expect(loaded?.selection.initDefaults?.composeEnvFiles).toBe(true);
         expect(loaded?.selection.initDefaults?.devcontainerGitignore).toBe(true);
         expect((loaded?.selection.localConfigTemplate as any)?.mounts).toHaveLength(1);
 
@@ -123,6 +131,10 @@ describe('Global init defaults', () => {
             outputPath: './cli-output',
         });
 
+        expect(merged.stack).toBe('compose');
+        expect(merged.baseImage).toBe('custom');
+        expect(merged.customImage).toBe('ghcr.io/example/custom:latest');
+        expect(merged.composeEnvFiles).toBe(true);
         expect(merged.devTools).toContain('git-helpers');
         expect(merged.language).toContain('nodejs');
         expect(merged.outputPath).toBe('./cli-output');
@@ -249,6 +261,30 @@ describe('Global init defaults', () => {
         expect(fs.readFileSync(path.join(repoDir, '.gitignore'), 'utf8')).toContain(
             'superposition.local.yml'
         );
+    });
+
+    it('treats initDefaults.stack as persisted input for --no-interactive', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    stack: 'compose',
+                },
+            })
+        );
+
+        const result = runCli(
+            ['init', '--database', 'postgres', '--no-interactive'],
+            repoDir,
+            homeDir
+        );
+        expect(result.status).toBe(0);
+
+        const projectConfig = yaml.load(
+            fs.readFileSync(path.join(repoDir, '.superposition.yml'), 'utf8')
+        ) as any;
+        expect(projectConfig.stack).toBe('compose');
+        expect(projectConfig.overlays).toContain('postgres');
     });
 
     it('does not treat empty init defaults as persisted input for --no-interactive', () => {
@@ -493,6 +529,107 @@ describe('Global init defaults', () => {
         expect(fs.readFileSync(path.join(repoDir, 'superposition.local.yml'), 'utf8')).toBe(
             'env:\n  EXISTING: "true"\n'
         );
+    });
+
+    it('persists composeEnvFiles from global defaults only for compose stacks', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    stack: 'compose',
+                    composeEnvFiles: true,
+                },
+            })
+        );
+
+        const result = runCli(
+            ['init', '--database', 'postgres', '--no-interactive'],
+            repoDir,
+            homeDir
+        );
+        expect(result.status).toBe(0);
+
+        const projectConfig = yaml.load(
+            fs.readFileSync(path.join(repoDir, '.superposition.yml'), 'utf8')
+        ) as any;
+        expect(projectConfig.stack).toBe('compose');
+        expect(projectConfig.composeEnvFiles).toBe(true);
+        expect(fs.existsSync(path.join(repoDir, '.devcontainer', '.env'))).toBe(true);
+        expect(fs.existsSync(path.join(repoDir, '.devcontainer', '.env.example'))).toBe(true);
+    });
+
+    it('normalizes composeEnvFiles away when final effective stack is plain', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    stack: 'plain',
+                    composeEnvFiles: true,
+                },
+            })
+        );
+
+        const result = runCli(
+            ['init', '--language', 'nodejs', '--no-interactive'],
+            repoDir,
+            homeDir
+        );
+        expect(result.status).toBe(0);
+
+        const projectConfig = yaml.load(
+            fs.readFileSync(path.join(repoDir, '.superposition.yml'), 'utf8')
+        ) as any;
+        expect(projectConfig.stack).toBe('plain');
+        expect(projectConfig.composeEnvFiles).toBeUndefined();
+    });
+
+    it('persists customImage from global defaults when baseImage stays custom', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    baseImage: 'custom',
+                    customImage: 'ghcr.io/example/custom:latest',
+                },
+            })
+        );
+
+        const result = runCli(
+            ['init', '--language', 'nodejs', '--no-interactive'],
+            repoDir,
+            homeDir
+        );
+        expect(result.status).toBe(0);
+
+        const projectConfig = yaml.load(
+            fs.readFileSync(path.join(repoDir, '.superposition.yml'), 'utf8')
+        ) as any;
+        expect(projectConfig.baseImage).toBe('custom');
+        expect(projectConfig.customImage).toBe('ghcr.io/example/custom:latest');
+    });
+
+    it('normalizes customImage away when final effective baseImage is not custom', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    customImage: 'ghcr.io/example/custom:latest',
+                },
+            })
+        );
+
+        const result = runCli(
+            ['init', '--language', 'nodejs', '--no-interactive'],
+            repoDir,
+            homeDir
+        );
+        expect(result.status).toBe(0);
+
+        const projectConfig = yaml.load(
+            fs.readFileSync(path.join(repoDir, '.superposition.yml'), 'utf8')
+        ) as any;
+        expect(projectConfig.baseImage).toBe('bookworm');
+        expect(projectConfig.customImage).toBeUndefined();
     });
 
     it('ignores global defaults when --ignore-global-defaults is set', () => {

@@ -116,7 +116,7 @@ export function formatPlanAsText(input: {
     const resolvedIntent = [
         `source of intent: ${source.label}`,
         `stack: ${input.plan.stack}`,
-        `resolved overlays: ${input.plan.selectedOverlays.join(', ') || 'none'}`,
+        `resolved overlays: ${input.plan.selectedOverlayLabels.join(', ') || 'none'}`,
         `auto-added overlays: ${input.plan.autoAddedOverlays.join(', ') || 'none'}`,
         `skipped or conflicting overlays: ${input.plan.conflicts.map((item) => `${item.overlay} vs ${item.conflictsWith.join(', ')}`).join('; ') || 'none'}`,
         `change classification: ${input.headline}`,

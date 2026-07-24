@@ -57,9 +57,13 @@ export function loadPresetDefinition(
     presetId: string,
     presetsDir: string
 ): PresetDefinition | null {
-    const presetPath = path.join(presetsDir, `${presetId}.yml`);
-    if (!fs.existsSync(presetPath)) {
-        console.warn(chalk.yellow(`⚠️  Preset definition not found: ${presetPath}`));
+    const candidatePaths = [
+        path.join(presetsDir, `${presetId}.yml`),
+        path.join(presetsDir, `${presetId}.yaml`),
+    ];
+    const presetPath = candidatePaths.find((candidate) => fs.existsSync(candidate));
+    if (!presetPath) {
+        console.warn(chalk.yellow(`⚠️  Preset definition not found: ${candidatePaths[0]}`));
         return null;
     }
     const content = fs.readFileSync(presetPath, 'utf8');

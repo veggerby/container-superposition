@@ -1,12 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
-import type { Stack } from '../../schema/types.js';
+import type { ProjectOverlayEntry, Stack } from '../../schema/types.js';
 import type { PlanInputMode, PlanOptions, ResolutionOrigin } from './types.js';
 
 export interface ResolvedPlanInput {
     stack: Stack;
     selectedOverlays: string[];
+    selectedOverlayLabels: string[];
     inputMode: PlanInputMode;
     selectionOrigin: ResolutionOrigin;
     portOffset: number;
@@ -21,6 +22,7 @@ export function findManifest(manifestPath: string): string | null {
 export function loadPlanManifest(manifestPath: string): {
     baseTemplate: Stack;
     overlays: string[];
+    overlaySelections?: ProjectOverlayEntry[];
 } {
     let rawManifest: unknown;
 
@@ -67,10 +69,35 @@ export function loadPlanManifest(manifestPath: string): {
         process.exit(1);
     }
 
+    if (
+        manifest.overlaySelections !== undefined &&
+        (!Array.isArray(manifest.overlaySelections) ||
+            !manifest.overlaySelections.every(
+                (entry) =>
+                    typeof entry === 'string' ||
+                    (typeof entry === 'object' &&
+                        entry !== null &&
+                        typeof (entry as Record<string, unknown>).overlay === 'string' &&
+                        typeof (entry as Record<string, unknown>).name === 'string')
+            ))
+    ) {
+        console.error(
+            chalk.red(
+                '✗ Invalid manifest: "overlaySelections" must be an array of strings or named overlay entries'
+            )
+        );
+        process.exit(1);
+    }
+
     return {
         baseTemplate: manifest.baseTemplate as Stack,
         overlays: manifest.overlays as string[],
+        overlaySelections: manifest.overlaySelections as ProjectOverlayEntry[] | undefined,
     };
+}
+
+function formatOverlaySelectionLabel(selection: ProjectOverlayEntry): string {
+    return typeof selection === 'string' ? selection : `${selection.overlay}:${selection.name}`;
 }
 
 export function resolvePlanInput(options: PlanOptions): ResolvedPlanInput {
@@ -79,6 +106,7 @@ export function resolvePlanInput(options: PlanOptions): ResolvedPlanInput {
     let selectedOverlays: string[];
     let inputMode: PlanInputMode;
     let selectionOrigin: ResolutionOrigin;
+    let selectedOverlayLabels: string[];
 
     if (options.fromManifest) {
         if (options.overlays) {
@@ -107,9 +135,25 @@ export function resolvePlanInput(options: PlanOptions): ResolvedPlanInput {
         inputMode = 'manifest';
         selectionOrigin = 'manifest';
 
+        const manifestSelections = manifest.overlaySelections?.length
+            ? manifest.overlaySelections
+            : manifest.overlays;
+        const seenSelectionLabels = new Set<string>();
+        selectedOverlayLabels = manifestSelections
+            .map((entry) =>
+                typeof entry === 'string' ? entry.trim() : formatOverlaySelectionLabel(entry)
+            )
+            .filter((label) => {
+                if (!label || seenSelectionLabels.has(label)) {
+                    return false;
+                }
+                seenSelectionLabels.add(label);
+                return true;
+            });
+
         const seenOverlayIds = new Set<string>();
-        selectedOverlays = manifest.overlays
-            .map((id) => id.trim())
+        selectedOverlays = manifestSelections
+            .map((entry) => (typeof entry === 'string' ? entry.trim() : entry.overlay.trim()))
             .filter((id) => {
                 if (!id || seenOverlayIds.has(id)) {
                     return false;
@@ -156,11 +200,13 @@ export function resolvePlanInput(options: PlanOptions): ResolvedPlanInput {
                 seenOverlayIds.add(id);
                 return true;
             });
+        selectedOverlayLabels = [...selectedOverlays];
     }
 
     return {
         stack,
         selectedOverlays,
+        selectedOverlayLabels,
         inputMode,
         selectionOrigin,
         portOffset: options.portOffset || 0,

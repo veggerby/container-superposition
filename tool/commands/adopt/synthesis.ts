@@ -131,6 +131,15 @@ export function addGeneratedOverlayCommands(
     return nextConfig;
 }
 
+function buildSingletonOverlayTokenMap(overlayId: string): Record<string, string> {
+    return {
+        CS_OVERLAY: overlayId,
+        CS_INSTANCE: overlayId,
+        CS_INSTANCE_SUFFIX: '',
+        CS_INSTANCE_ENV_SUFFIX: '',
+    };
+}
+
 export function buildExpectedDevcontainerConfig(
     stack: 'plain' | 'compose',
     overlayIds: string[],
@@ -140,7 +149,10 @@ export function buildExpectedDevcontainerConfig(
     let config = loadJsonFile<DevContainer>(templatePath, {});
 
     for (const overlayId of overlayIds) {
-        config = applyOverlay(config, overlayId, overlaysDir, { silent: true });
+        config = applyOverlay(config, overlayId, overlaysDir, {
+            silent: true,
+            tokenMap: buildSingletonOverlayTokenMap(overlayId),
+        });
     }
 
     return addGeneratedOverlayCommands(config, overlayIds, overlaysDir);

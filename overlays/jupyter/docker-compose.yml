@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
     jupyter:
-        image: jupyter/minimal-notebook:${JUPYTER_VERSION:-latest}
+        image: jupyter/minimal-notebook:${JUPYTER_VERSION:-python-3.12}
         restart: unless-stopped
         volumes:
             - jupyter-data:/home/jovyan/work
@@ -21,4 +21,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

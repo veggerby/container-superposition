@@ -6,16 +6,16 @@
             "apk": "redis"
         }
     },
-    "runServices": ["redis"],
-    "forwardPorts": [6379],
+    "runServices": ["redis{{cs.CS_INSTANCE_SUFFIX}}"],
+    "forwardPorts": ["{{cs.REDIS_PORT}}"],
     "portsAttributes": {
-        "6379": {
+        "{{cs.REDIS_PORT}}": {
             "label": "Redis",
             "onAutoForward": "notify"
         }
     },
     "remoteEnv": {
-        "REDIS_HOST": "redis",
-        "REDIS_PORT": "6379"
+        "REDIS_HOST{{cs.CS_INSTANCE_ENV_SUFFIX}}": "redis{{cs.CS_INSTANCE_SUFFIX}}",
+        "REDIS_PORT{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.REDIS_PORT}}"
     }
 }

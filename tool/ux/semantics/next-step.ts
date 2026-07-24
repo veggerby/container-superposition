@@ -15,16 +15,17 @@ export function resolveNextStep(input: {
         | 'migrate';
     changeClass?: string;
     hasBlockingIssues?: boolean;
+    hasWarnings?: boolean;
     confidence?: string;
     projectFileChanged?: boolean;
 }): NextStep {
     if (input.command === 'list') {
-        return { command: 'cs explain <id>', reason: 'inspect fit before preview' };
+        return { command: null, reason: 'guidance is provided in-body' };
     }
     if (input.command === 'explain') {
         return {
-            command: 'cs plan --stack <plain|compose> --overlays <ids>',
-            reason: 'preview before write',
+            command: null,
+            reason: 'preview guidance is provided in-body',
         };
     }
     if (input.command === 'plan') {
@@ -52,7 +53,7 @@ export function resolveNextStep(input: {
         if (input.hasBlockingIssues) {
             return { command: 'cs doctor --fix', reason: 'review safe remediation plan first' };
         }
-        return { command: 'No next step suggested', reason: 'repo already healthy' };
+        return { command: null, reason: 'repo already healthy' };
     }
     if (input.command === 'adopt') {
         if (input.confidence === 'Low confidence' || input.confidence === 'No viable conversion') {
@@ -69,8 +70,23 @@ export function resolveNextStep(input: {
             reason: 'project file written; generated output still unchanged',
         };
     }
-    if (input.command === 'regen') {
-        return { command: 'cs doctor', reason: 'validate regenerated output' };
+    if (input.command === 'init') {
+        if (input.hasWarnings) {
+            return { command: 'cs doctor', reason: 'follow up on generation warnings' };
+        }
+        return { command: null, reason: 'no follow-up needed' };
     }
-    return { command: null, reason: 'No next step suggested' };
+    if (input.command === 'regen') {
+        if (input.hasWarnings) {
+            return { command: 'cs doctor', reason: 'follow up on generation warnings' };
+        }
+        if (input.changeClass === 'No material change') {
+            return { command: null, reason: 'generated output already matched shared intent' };
+        }
+        return {
+            command: 'review generated diff',
+            reason: 'confirm regenerated files match the intended setup change',
+        };
+    }
+    return { command: null, reason: 'no follow-up needed' };
 }

@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
     minio:
-        image: minio/minio:${MINIO_VERSION:-latest}
+        image: minio/minio:${MINIO_VERSION:-{{cs.MINIO_VERSION}}}
         restart: unless-stopped
         command: server /data --console-address ":9001"
         volumes:
@@ -26,4 +26,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

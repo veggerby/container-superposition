@@ -59,6 +59,18 @@ When creating overlays with package installations, prefer the `cross-distro-pack
 }
 ```
 
+Before adding custom install scripts for a tool/runtime overlay, also check whether an existing published Dev Container Feature already covers the capability.
+
+Use a two-stage decision process:
+
+1. **Discover candidates** via the canonical feature catalog at `https://containers.dev/features` (there is no official `devcontainer features search <term>` command). In Pi-driven workflows, use the `fetch_content` tool to load the catalog rather than relying on memory; if the page content is truncated, use `get_search_content` to inspect more of the stored result.
+2. **Validate the candidate** before adopting it — for example with `devcontainer features info <feature-ref>` when available, or a direct OCI check such as `oras manifest fetch <feature-ref>`.
+
+Treat feature matches as candidates, not automatic approvals. Make a balanced decision:
+
+- **Reuse the feature** when it is maintained, credible, sufficiently configurable, and clearly simpler than owning bespoke install logic.
+- **Keep a custom overlay implementation** when the feature is stale, under-scoped, poorly maintained, mismatched to repo conventions, or would still force large custom scripts around it.
+
 For packages that require a custom apt repository or are not in standard repos, use a `setup.sh` script instead (see [Setup Scripts](#setup-scripts) below).
 
 If you do need to detect the package manager in a setup script:
@@ -124,10 +136,23 @@ overlays/my-overlay/
 ├── docker-compose.yml          # Optional: Service definition
 ├── .env.example                # Optional: Environment variables
 ├── README.md                   # Optional: Documentation
+├── tests/behave/               # Optional: Overlay-owned .feature files + fixtures
+│   └── my-overlay.feature
 ├── my-config.yaml              # Optional: Configuration files
 └── config/                     # Optional: Configuration directory
     └── additional.json
 ```
+
+If an overlay needs behavior-level acceptance coverage, put `.feature` files under `overlays/<id>/tests/behave/**/*.feature`. Shared Behave steps stay repo-owned under `tests/behave/`; overlays do not add their own step-definition modules in this workflow.
+
+For workspace setup, use:
+
+- `Given an inline workspace fixture:` for small scenario-local setups that are clearer when the authored `superposition.yml`, `.superposition.yml`, `.env`, or small config files live directly in the `.feature` file
+- `Given a workspace fixture "..."` for reusable or larger fixture trees under `tests/behave/fixtures/` or `overlays/<id>/tests/behave/fixtures/`
+
+Inline fixtures stay file-first: the manifest only declares `files`, and project intent such as `stack`, `overlays`, `env`, `mounts`, or `outputPath` belongs inside authored file content like `files.superposition.yml.yaml`. Hybrid "named fixture + inline patch" setup is intentionally unsupported in this slice.
+
+For structured generated output, use the shared semantic assertions for JSON, YAML/Compose, scripts, exports, PATH ordering, extensions, and config values. Reserve raw substring checks for genuinely unstructured text.
 
 ## devcontainer.patch.json
 
@@ -158,7 +183,6 @@ This is the core configuration that gets merged into the final devcontainer.json
         }
     },
     "runServices": ["my-service"],
-    "_serviceOrder": 1,
     "customizations": {
         "vscode": {
             "extensions": ["publisher.my-extension"],
@@ -200,19 +224,18 @@ Lists services that should start automatically. Only needed if your overlay incl
 }
 ```
 
-#### \_serviceOrder
+#### `serviceOrder` in `overlay.yml`
 
-Controls startup order (lower numbers start first):
+Compose overlays declare startup order in `overlay.yml`, not in `devcontainer.patch.json`. Lower numbers start first:
 
 - `0` - Infrastructure (postgres, redis)
 - `1` - Observability backends (jaeger, prometheus, loki)
 - `2` - Middleware (otel-collector)
 - `3` - UI/Visualization (grafana)
+- `4` - Demo apps and sample services
 
-```json
-{
-    "_serviceOrder": 1
-}
+```yaml
+serviceOrder: 1
 ```
 
 ## docker-compose.yml
@@ -225,7 +248,7 @@ Define services your overlay needs.
 version: '3.8'
 services:
     my-service:
-        image: my-image:${MY_SERVICE_VERSION:-latest}
+        image: my-image:${MY_SERVICE_VERSION:-1.2.3}
         environment:
             - ENV_VAR=${ENV_VAR:-default}
         ports:
@@ -243,7 +266,6 @@ volumes:
 
 networks:
     devnet:
-        name: my-project-devnet
 ```
 
 ### Important Notes
@@ -407,7 +429,7 @@ Define environment variables for your overlay.
 
 ```bash
 # My Service Configuration
-MY_SERVICE_VERSION=latest
+MY_SERVICE_VERSION=1.2.3
 MY_SERVICE_PORT=8080
 MY_SERVICE_HOST=localhost
 
@@ -505,7 +527,7 @@ server:
 
 ```bash
 # Service version
-MY_SERVICE_VERSION=latest
+MY_SERVICE_VERSION=1.2.3
 
 # Service port
 MY_SERVICE_PORT=8080
@@ -610,7 +632,19 @@ npm run init -- --stack compose --my-overlay --postgres --redis
 npm run init -- --stack compose --language nodejs --my-overlay --postgres
 ```
 
-### 4. Verify Output
+### 4. Add Overlay BDD Coverage When Behavior Changes
+
+If the overlay adds or changes observable generation behavior, add or update a `.feature` file under `overlays/<id>/tests/behave/` and run the focused suite while iterating:
+
+```bash
+npm run test:bdd -- overlays/my-overlay/tests/behave
+# or
+ task test:bdd
+```
+
+Keep step code centralized in `tests/behave/steps/`. If the scenario needs a new shared step, add it there in the same change. Prefer exact structured assertions over substring checks whenever the generated output is machine-readable, and promote repeated inline setup into a reusable fixture directory once scenario-local clarity stops outweighing reuse.
+
+### 5. Verify Output
 
 Check that:
 
@@ -620,7 +654,7 @@ Check that:
 - [ ] Config files are copied correctly
 - [ ] Services start in correct order
 
-### 5. Test In Container
+### 6. Test In Container
 
 ```bash
 cd output-directory
@@ -684,13 +718,17 @@ CLI tools without services:
 Before submitting an overlay:
 
 - [ ] devcontainer.patch.json validates against schema
+- [ ] Any changed overlay behavior has matching `.feature` coverage under `overlays/<id>/tests/behave/` when warranted
+- [ ] Focused BDD iteration was run with `npm run test:bdd -- overlays/<id>/tests/behave` when overlay behavior changed
+- [ ] Full pre-handoff validation used `task validate:generated` when overlay or generated-output behavior changed
 - [ ] Packages available in standard repos use `cross-distro-packages` feature (not `apt-get install` in setup.sh)
+- [ ] Common tool/runtime installs were checked against existing published Dev Container Features before bespoke scripting was added
 - [ ] `setup.sh` (if present) sources `setup-utils.sh` and uses `apt_install`/`install_binary`/`detect_arch`
 - [ ] docker-compose.yml uses version "3.8" and the logical `devnet` network key
 - [ ] .env.example has sensible defaults and comments
 - [ ] README.md documents ports, environment variables, usage
 - [ ] runServices includes service names
-- [ ] \_serviceOrder is set appropriately
+- [ ] `serviceOrder` is set appropriately in `overlay.yml` for compose overlays
 - [ ] depends_on lists all potential dependencies
 - [ ] Tested standalone and in combination
 - [ ] Added to overlays/README.md

@@ -18,7 +18,7 @@ Ollama runs as a long-lived Docker Compose service (`ollama`) alongside your dev
 
 **Service configuration:**
 
-- Image: `ollama/ollama:latest`
+- Image: `ollama/ollama:0.11.4`
 - Network: `devnet` (shared with the dev container)
 - Port: `11434` (REST API)
 - Volume: `${OLLAMA_MODELS_PATH:-~/.ollama}:/root/.ollama` — mounts the host Ollama data directory
@@ -243,7 +243,7 @@ cp .env.example .env
 | Variable             | Default     | Description                                            |
 | -------------------- | ----------- | ------------------------------------------------------ |
 | `OLLAMA_MODELS_PATH` | `~/.ollama` | Host path to Ollama data directory (models are shared) |
-| `OLLAMA_VERSION`     | `latest`    | Ollama Docker image version                            |
+| `OLLAMA_VERSION`     | `0.11.4`    | Ollama Docker image version                            |
 | `OLLAMA_PORT`        | `11434`     | Host port for the Ollama API                           |
 
 ### Container Env in Devcontainer

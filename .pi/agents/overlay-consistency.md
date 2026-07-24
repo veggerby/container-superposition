@@ -128,6 +128,16 @@ For every parameter whose name strongly indicates secret material: `PASSWORD`, `
 - If not: **WARN** — "parameter PARAM_NAME in overlay X looks sensitive but lacks sensitive: true"
 - Do not flag parameters where `KEY` is part of a product name or non-secret concept, such as `KEYCLOAK_VERSION`, `KEYCLOAK_PORT`, or `KEYCLOAK_ADMIN`.
 
+### 13. Feature reuse opportunities vs bespoke overlay logic
+
+For overlays that install common tools or runtimes via custom `setup.sh`, ad hoc package logic, or large custom feature blocks:
+
+- Check whether an existing published Dev Container Feature likely covers the same capability
+- Use `fetch_content` to load `https://containers.dev/features` as the discovery catalog when needed; use `get_search_content` if needed for more of the stored page content. A feature candidate must be treated as a lead, not a conclusion
+- Prefer **WARN** findings, not automatic failures: the audit should surface reuse opportunities and ask for a balanced decision
+- Warn when an overlay appears to reinvent a maintained feature without obvious repo-specific benefit
+- Warn when an overlay adopts a published feature that looks stale, unvalidated, or poorly matched to the overlay's actual capability
+
 ## Output format
 
 Produce a structured report:

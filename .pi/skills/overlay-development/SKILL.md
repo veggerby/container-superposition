@@ -5,7 +5,11 @@ description: Container-superposition overlay development guidance. Use when crea
 
 # Overlay Development
 
-Use this skill for overlay work in container-superposition. Prefer project agents for large tasks:
+Use this skill for overlay work in container-superposition.
+
+If the work starts from a vague overlay idea instead of an approved brief, begin with `/overlay-spec` or `/overlay-discover` before implementation.
+
+Prefer project agents for large tasks:
 
 - `overlay-writer` — create or modify overlays
 - `overlay-reviewer` — review one overlay
@@ -17,6 +21,7 @@ Use this skill for overlay work in container-superposition. Prefer project agent
 Focus edits on:
 
 - `overlays/**`
+- `tests/behave/**` for shared Behave steps and repo-level feature scenarios
 - `docs/overlays.md` after `npm run docs:generate`
 - `tool/schema/superposition.schema.json` after `npm run schema:generate`
 - `tool/schema/types.ts` and `tool/questionnaire/composer.ts` only when adding/changing overlay categories or selection types
@@ -38,6 +43,14 @@ Compose overlays also need:
 - `.env.example` when parameters are declared
 - optional `setup.sh` / `verify.sh`
 
+Optional overlay-owned BDD coverage lives under:
+
+- `overlays/<id>/tests/behave/**/*.feature`
+- supporting fixture data under the same `tests/behave/` subtree
+
+Keep executable Behave environment and step code repo-owned under `tests/behave/`.
+Use shared semantic assertions for structured generated output (JSON, YAML/Compose, scripts, exports, PATH, extensions, config values) and reserve raw substring checks for genuinely unstructured text.
+
 ## Manifest rules
 
 - `id` exactly matches directory name; kebab-case
@@ -57,7 +70,7 @@ Compose overlays also need:
 - Parameterized values use `{{cs.PARAM_NAME}}`
 - `runServices` matches compose service names
 - `forwardPorts` and `portsAttributes` match exposed ports
-- Compose overlays set `_serviceOrder`:
+- Compose overlays set `serviceOrder` in `overlay.yml`:
     - `0` infrastructure
     - `1` observability
     - `2` middleware
@@ -91,6 +104,7 @@ When scanning all overlays:
 - Check compose network rules
 - Check supports/compose alignment
 - Check parameter substitution across patch, compose, and `.env.example`
+- Check whether common tool/runtime overlays should reuse an existing published Dev Container Feature instead of bespoke setup logic; treat this as a balanced audit question, not an automatic rewrite order
 - Check type registration in `tool/schema/types.ts`
 - Check docs freshness with `npm run docs:generate`
 
@@ -102,10 +116,12 @@ After overlay changes:
 npm run lint:fix
 npm run lint
 npm test
+npm run test:bdd -- overlays/<id>/tests/behave # when overlay behavior changes
 npm run docs:generate
 npm run schema:generate # if overlays or selection types changed
 npm run init -- regen # if generated output changes
 npm run init -- doctor
+# or use task validate:generated for the full pre-handoff flow
 ```
 
 No reproducibility errors before merge.

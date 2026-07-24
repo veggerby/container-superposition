@@ -1,6 +1,6 @@
 ---
 name: overlay-reviewer
-description: Reviews a container-superposition overlay for correctness, completeness, and consistency. Use when a new overlay has been written or modified. Checks overlay.yml fields, devcontainer.patch.json validity, docker-compose.yml network rules, parameter consistency, bidirectional conflicts, README completeness, and runs lint/tests.
+description: Reviews a container-superposition overlay for correctness, completeness, and consistency. Use when a new overlay has been written or modified. Checks overlay.yml fields, devcontainer.patch.json validity, docker-compose.yml network rules, parameter consistency, bidirectional conflicts, README completeness, optional tests/behave coverage, and runs lint/tests.
 tools: read, edit, bash
 ---
 
@@ -22,7 +22,7 @@ Given an overlay ID (e.g., `postgres`), review everything in `overlays/<id>/`:
 - `README.md` (if present)
 - `setup.sh` / `verify.sh` (if present)
 
-Also check cross-cutting concerns: conflict reciprocity, parameter naming, port uniqueness.
+Also check cross-cutting concerns: conflict reciprocity, parameter naming, port uniqueness, whether the implementation made a sound reuse-vs-custom decision for Dev Container Features, and whether overlay behavior changes should include `overlays/<id>/tests/behave/**/*.feature` coverage.
 
 ## Checklist
 
@@ -53,11 +53,12 @@ Also check cross-cutting concerns: conflict reciprocity, parameter naming, port 
 - [ ] Has `$schema` field pointing to devcontainer spec schema
 - [ ] `runServices` only lists services that exist in `docker-compose.yml`
 - [ ] `forwardPorts` lists all ports that the compose services expose
+- [ ] Published feature references are versioned and plausible when the overlay uses external Dev Container Features
 - [ ] `portsAttributes` keys match entries in `forwardPorts`
 - [ ] `remoteEnv` values use `{{cs.PARAM_NAME}}` for parameterized values (no hardcoded secrets)
 - [ ] VS Code extension IDs in `customizations.vscode.extensions` are correctly formatted (`publisher.extension-id`)
 - [ ] No deprecated DevContainer spec fields used
-- [ ] `_serviceOrder` present if overlay has compose services (0=infrastructure, 1=observability, 2=middleware, 3=ui)
+- [ ] `serviceOrder` present in `overlay.yml` if overlay has compose services (0=infrastructure, 1=observability, 2=middleware, 3=ui, 4=demo apps)
 
 ### docker-compose.yml (if present)
 
@@ -86,6 +87,19 @@ Also check cross-cutting concerns: conflict reciprocity, parameter naming, port 
 - [ ] Includes connection string or usage example
 - [ ] Notes any special requirements or limitations
 
+### Overlay BDD coverage (if behavior changed)
+
+- [ ] `.feature` files live under `overlays/<id>/tests/behave/`
+- [ ] No overlay-owned Behave step-definition modules were introduced
+- [ ] Shared-step needs are routed to repo-owned `tests/behave/steps/`
+- [ ] Structured generated-output checks use shared semantic assertions instead of substring checks when the output is machine-readable
+
+### Feature reuse / custom implementation decision
+
+- [ ] If the overlay installs a common tool/runtime, reviewer checked whether an existing published Dev Container Feature could cover the capability
+- [ ] Any adopted feature reference appears credible and validated, not copied blindly from search results
+- [ ] If the overlay still uses `setup.sh` or other bespoke logic where a feature exists, the tradeoff is reasonable (for example: better pinning, checksum verification, repo-fit, missing options, stale upstream feature, or compose/service needs beyond the feature)
+
 ### setup.sh / verify.sh (if present)
 
 - [ ] Has `#!/bin/bash` shebang
@@ -105,6 +119,7 @@ After the manual review, run:
 cd /workspaces/container-superposition
 npm run lint
 npm test
+npm run test:bdd -- overlays/<id>/tests/behave
 ```
 
 Report any failures with the exact error output.
@@ -131,5 +146,6 @@ Report results as:
 
 - lint: PASS or FAIL (with output)
 - tests: PASS or FAIL (with output)
+- BDD: PASS or FAIL (with output)
 
 Be specific: name the exact file, field, and issue. Quote the problematic value where helpful.

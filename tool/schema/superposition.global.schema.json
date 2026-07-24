@@ -14,11 +14,21 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "stack": {
+                    "type": "string",
+                    "enum": ["plain", "compose"],
+                    "description": "Base devcontainer template: plain (single image) or compose (multi-service Docker Compose)"
+                },
                 "baseImage": {
                     "type": "string",
                     "enum": ["bookworm", "trixie", "alpine", "ubuntu", "custom"],
                     "description": "Base OS image. Use \"custom\" together with customImage to specify an arbitrary image.",
                     "default": "bookworm"
+                },
+                "customImage": {
+                    "type": "string",
+                    "description": "Fully-qualified Docker image reference. Only valid when baseImage is \"custom\".",
+                    "examples": ["ghcr.io/myorg/my-base:latest"]
                 },
                 "editor": {
                     "type": "string",
@@ -47,7 +57,7 @@
                 },
                 "overlays": {
                     "type": "array",
-                    "description": "Flat list of overlay IDs to include. Preferred over the legacy category arrays. Dependency resolution runs automatically.",
+                    "description": "Init-default singleton overlays only. Named object entries are not supported in initDefaults.",
                     "items": {
                         "type": "string",
                         "enum": [
@@ -64,6 +74,7 @@
                             "codex",
                             "comfyui",
                             "commitlint",
+                            "copilot-cli",
                             "cuda",
                             "devcontainer-cli",
                             "direnv",
@@ -132,8 +143,7 @@
                             "terraform",
                             "tilt",
                             "windsurf-cli"
-                        ],
-                        "description": "Overlay identifier"
+                        ]
                     },
                     "uniqueItems": true
                 }

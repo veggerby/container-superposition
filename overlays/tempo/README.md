@@ -50,7 +50,7 @@ cp .env.example .env
 
 ```bash
 # Tempo version
-TEMPO_VERSION=latest
+TEMPO_VERSION=2.8.1
 
 # Tempo ports
 TEMPO_HTTP_PORT=3200

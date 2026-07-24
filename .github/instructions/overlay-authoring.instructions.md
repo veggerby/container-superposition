@@ -21,6 +21,7 @@ Optional files (as needed):
 - `verify.sh` - Verification script to test overlay functionality
 - `.env.example` - Environment variable template
 - `.gitignore` - Patterns merged into the project root `.gitignore` on generation
+- `tests/behave/**/*.feature` - Overlay-owned Behave scenarios and supporting fixture files
 - Configuration files - Service-specific configs (e.g., `grafana-datasources.yml`)
 - `global-packages.txt` - For language overlays (npm, pip packages)
 - `global-tools.txt` - For language overlays (.NET tools, Go binaries)
@@ -870,6 +871,10 @@ The `composer.ts` file in `tool/questionnaire/` handles merging overlays into th
 
 ## Testing and Validation
 
+Overlay-owned Behave scenarios live under `overlays/<id>/tests/behave/**/*.feature`. Keep all executable Behave environment and step code in the repo-owned harness under `tests/behave/`; overlays contribute feature files and supporting test data only.
+
+For structured generated output, use the shared JSON/YAML/Compose/script assertions instead of raw substring checks. Keep `should contain` for genuinely unstructured text only.
+
 **Before committing overlay files:**
 
 1. **Validate JSON syntax:**
@@ -925,7 +930,15 @@ The `composer.ts` file in `tool/questionnaire/` handles merging overlays into th
     # Verify PostgreSQL is on port 5532, not 5432
     ```
 
-7. **Run smoke tests:**
+7. **Run focused BDD coverage when overlay behavior changes:**
+
+    ```bash
+    npm run test:bdd -- overlays/<id>/tests/behave
+    # or use the shared wrapper
+    task test:bdd
+    ```
+
+8. **Run smoke tests:**
 
     ```bash
     npm run test:smoke
@@ -998,6 +1011,8 @@ Before submitting overlay files, verify:
 - [ ] Scripts are executable (`chmod +x`)
 - [ ] `.env.example` documents all variables
 - [ ] README.md created following overlay-docs.instructions.md guidelines
+- [ ] Overlay behavior changes add/update `.feature` files under `overlays/<id>/tests/behave/` when appropriate
+- [ ] Focused BDD coverage ran via `npm run test:bdd -- overlays/<id>/tests/behave`
 - [ ] Tested in actual devcontainer build
 - [ ] Works with port offset
 - [ ] No hardcoded secrets or credentials

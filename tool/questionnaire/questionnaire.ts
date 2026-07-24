@@ -20,6 +20,7 @@ import type {
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
 import { getIncompatibleOverlays, DEPLOYMENT_TARGETS } from '../schema/deployment-targets.js';
+import { resolveOverlaysContext } from '../schema/catalogs.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
 import { resolveRepoPath } from '../utils/paths.js';
 import { type PresetDefinition, type ChoiceResolver, expandPreset } from './presets.js';
@@ -35,8 +36,12 @@ const OVERLAYS_DIR = resolveRepoPath('overlays', REPO_ANCHOR);
 const OVERLAYS_CONFIG_PATH = resolveRepoPath(path.join('overlays', 'index.yml'), REPO_ANCHOR);
 const PRESETS_DIR = resolveRepoPath(path.join('overlays', '.presets'), REPO_ANCHOR);
 
-export function loadOverlaysConfigWrapper(): OverlaysConfig {
-    return loadOverlaysConfig(OVERLAYS_DIR, OVERLAYS_CONFIG_PATH);
+export function loadOverlaysConfigWrapper(repoRoot: string = process.cwd()): OverlaysConfig {
+    return resolveOverlaysContext(repoRoot, OVERLAYS_DIR).overlaysConfig;
+}
+
+export function loadOverlaysContextWrapper(repoRoot: string = process.cwd()) {
+    return resolveOverlaysContext(repoRoot, OVERLAYS_DIR);
 }
 
 export { OVERLAYS_DIR, PRESETS_DIR };

@@ -1,0 +1,9 @@
+{
+    "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json",
+    "postCreateCommand": {
+        "setup-copilot-cli": "bash .devcontainer/scripts/setup-copilot-cli.sh"
+    },
+    "remoteEnv": {
+        "COPILOT_CLI_VERSION": "{{cs.COPILOT_CLI_VERSION}}"
+    }
+}

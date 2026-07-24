@@ -133,6 +133,26 @@ describe('generateServicesMarkdown', () => {
         expect(result).toContain('import redis');
     });
 
+    it('should render instance-aware redis snippets and commands', () => {
+        const namedRedisOverlay: OverlayMetadata = {
+            ...redisOverlay,
+            name: 'Redis (cache)',
+            ports: [
+                {
+                    ...redisOverlay.ports![0],
+                    service: 'redis-cache',
+                },
+            ],
+        };
+
+        const result = generateServicesMarkdown([namedRedisOverlay], 0, {});
+        expect(result).toContain('redis://redis-cache:');
+        expect(result).toContain("host='redis-cache'");
+        expect(result).toContain('redis-cli -h redis-cache');
+        expect(result).not.toContain('redis://redis:${');
+        expect(result).not.toContain('redis-cli -h redis\n');
+    });
+
     it('should include common commands for known services', () => {
         const result = generateServicesMarkdown([postgresOverlay], 0, {});
         expect(result).toContain('**Common Commands:**');

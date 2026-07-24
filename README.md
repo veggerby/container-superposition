@@ -15,15 +15,22 @@ written.
 ## Quickstart
 
 ```bash
-# Guided questionnaire — always writes superposition.yml
+# Discover available overlays and presets
+npx container-superposition list
+npx container-superposition explain postgres
+
+# Preview before writing files
+npx container-superposition plan --stack compose --overlays nodejs,postgres,grafana
+npx container-superposition plan --stack compose --overlays grafana --verbose
+
+# Guided questionnaire — writes shared project intent and generated output
 npx container-superposition init
 
 # Declarative project config committed in the repo
-cat > .superposition.yml <<'YAML'
+cat > superposition.yml <<'YAML'
 stack: compose
-language:
+overlays:
   - nodejs
-database:
   - postgres
 env:
   APP_ENV: development
@@ -37,23 +44,17 @@ customizations:
 YAML
 npx container-superposition init --no-interactive
 
-# Regenerate from the repository project file (superposition.yml is required)
+# Regenerate from the repository project file
 npx container-superposition regen
 
 # Or select the project file explicitly
 npx container-superposition regen --from-project
 
-# Non-interactive example
+# Non-interactive CLI example
 npx container-superposition init --stack compose --language nodejs --database postgres
 
 # Write only superposition.yml without generating .devcontainer/
 npx container-superposition init --stack compose --language nodejs --no-scaffold
-
-# Preview before writing files
-npx container-superposition plan --stack compose --overlays nodejs,postgres,grafana
-
-# Explain why dependencies were included
-npx container-superposition plan --stack compose --overlays grafana --verbose
 
 # Migrate a manifest-only repo to the project-file model
 npx container-superposition migrate
@@ -86,9 +87,9 @@ npx container-superposition migrate
 - `migrate` — one-time migration: creates `superposition.yml` from an existing `superposition.json`
     - Required for repos that ran `init` before this project-file-first model was introduced
 - `adopt` — migrate an existing `.devcontainer/` to the overlay-based workflow
-- `list` — browse overlays
-- `explain` — overlay details
-- `plan` — preview output
+- `list` — browse overlays and presets
+- `explain` — inspect overlay or preset details
+- `plan` — preview output before writing
     - Add `--verbose` to narrate dependency resolution and inclusion reasons
     - Add `--from-manifest <path>` to preview an existing manifest with the same explanation model
 - `hash` — deterministic environment fingerprint
@@ -100,6 +101,7 @@ Start here:
 
 - [Docs index](https://github.com/veggerby/container-superposition/blob/main/docs/README.md)
 - [**superposition.yml reference**](https://github.com/veggerby/container-superposition/blob/main/docs/superposition-yml.md) ← project file authoring guide
+- [Versioned private catalogs](https://github.com/veggerby/container-superposition/blob/main/docs/private-catalogs.md)
 - [Quick reference](https://github.com/veggerby/container-superposition/blob/main/docs/quick-reference.md)
 - [Adopt command](https://github.com/veggerby/container-superposition/blob/main/docs/adopt.md)
 - [Hash command](https://github.com/veggerby/container-superposition/blob/main/docs/hash.md)
@@ -120,7 +122,7 @@ Start here:
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/veggerby/container-superposition/blob/main/CONTRIBUTING.md)
+See [CONTRIBUTING.md](https://github.com/veggerby/container-superposition/blob/main/CONTRIBUTING.md). Overlay and generated-output behavior changes now use the shared Behave workflow via `npm run test:bdd` / `task test:bdd`, with `task validate:generated` as the full pre-handoff path.
 
 ## License
 

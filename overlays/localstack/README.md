@@ -36,7 +36,7 @@ cp .env.example .env
 
 ```bash
 # LocalStack Configuration
-LOCALSTACK_VERSION=latest
+LOCALSTACK_VERSION=4.0
 LOCALSTACK_SERVICES=s3,sqs,sns,dynamodb,lambda,cloudformation
 LOCALSTACK_DEBUG=0
 LOCALSTACK_EDGE_PORT=4566

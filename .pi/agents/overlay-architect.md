@@ -127,16 +127,28 @@ Compare README files across overlays. Identify:
 Look for repeated `customizations.vscode.settings` blocks (e.g., format-on-save patterns, file exclusions) that appear nearly identically in multiple overlays of the same category.
 These are candidates for a shared VS Code settings fragment.
 
-### 14. `_serviceOrder` consistency
+### 14. `serviceOrder` consistency
 
-Check that all compose overlays set `_serviceOrder` in their patch:
+Check that all compose overlays set `serviceOrder` in `overlay.yml`:
 
 - 0 = infrastructure (databases, message brokers)
 - 1 = observability (prometheus, grafana, jaeger)
 - 2 = middleware (api gateways, proxies)
 - 3 = ui (frontends, dashboards)
 
-Flag overlays missing `_serviceOrder` or using a value inconsistent with their category.
+Flag overlays missing `serviceOrder` or using a value inconsistent with their category.
+
+### 15. Feature-backed overlay opportunities
+
+Look for overlays whose main job is installing a common CLI, runtime, or editor-adjacent tool.
+
+For each such overlay, ask:
+
+- Is there an existing published Dev Container Feature that credibly covers this capability?
+- If yes, would switching to that feature reduce custom maintenance without weakening trust, version pinning, distro support, or repo UX?
+- If no, is the current bespoke setup justified enough that we should keep owning it?
+
+Use `fetch_content` to load `https://containers.dev/features` for discovery when needed, and use `get_search_content` if needed for more of the stored page content. Treat matches as candidates that still need validation. Recommend reuse only when the feature appears maintained and aligned with repo standards.
 
 ## Output format
 

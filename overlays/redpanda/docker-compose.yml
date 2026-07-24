@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
     redpanda:
-        image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION:-latest}
+        image: docker.redpanda.com/redpandadata/redpanda:${REDPANDA_VERSION:-v25.2.3}
         restart: unless-stopped
         command:
             - redpanda
@@ -34,7 +34,7 @@ services:
             start_period: 30s
 
     redpanda-console:
-        image: docker.redpanda.com/redpandadata/console:${REDPANDA_CONSOLE_VERSION:-latest}
+        image: docker.redpanda.com/redpandadata/console:${REDPANDA_CONSOLE_VERSION:-v3.1.0}
         restart: unless-stopped
         entrypoint: /bin/sh
         command: -c "echo \"$$CONSOLE_CONFIG_FILE\" > /tmp/config.yml; /app/console"
@@ -63,4 +63,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

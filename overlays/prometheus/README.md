@@ -49,7 +49,7 @@ cp .env.example .env
 
 ```bash
 # Prometheus version
-PROMETHEUS_VERSION=latest
+PROMETHEUS_VERSION=v3.5.0
 
 # Prometheus port (default 9090)
 PROMETHEUS_PORT=9090
