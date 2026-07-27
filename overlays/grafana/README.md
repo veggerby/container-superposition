@@ -4,7 +4,7 @@ Adds Grafana to your development environment for metrics, logs, and traces visua
 
 ## What's Included
 
-- Grafana (latest)
+- Grafana (11.6.0 default)
 - Pre-configured datasources (Prometheus, Loki, Jaeger)
 - Persistent storage for dashboards and settings
 - Admin credentials configurable via environment variables
@@ -59,7 +59,7 @@ datasources:
 
 ```bash
 # Grafana version
-GRAFANA_VERSION=latest
+GRAFANA_VERSION=11.6.0
 
 # Admin credentials (change these!)
 GRAFANA_ADMIN_USER=admin

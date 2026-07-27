@@ -4,6 +4,7 @@ baseImage: trixie
 containerName: Container Superposition
 overlays:
     - nodejs
+    - python
     - pi
     - docker-sock
     - git-helpers

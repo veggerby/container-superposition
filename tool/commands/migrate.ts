@@ -12,12 +12,7 @@ import { mergeAnswers } from '../questionnaire/answers.js';
 import { loadOverlaysConfigWrapper } from '../questionnaire/questionnaire.js';
 import { buildArtifactRow } from '../ux/semantics/artifacts.js';
 import { resolveNextStep } from '../ux/semantics/next-step.js';
-import {
-    renderArtifactTable,
-    renderFrame,
-    renderNextStep,
-    renderSection,
-} from '../ux/renderers/common.js';
+import { renderArtifactTable, renderFrame, renderSection } from '../ux/renderers/common.js';
 
 export interface MigrateOptions {
     fromManifest?: string;
@@ -79,7 +74,6 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
         { label: 'Source analyzed', value: path.relative(process.cwd(), manifestPath) },
         { label: 'What will be written', value: path.relative(process.cwd(), projectFilePath) },
         { label: 'Generated output', value: 'unchanged by this command' },
-        { label: 'Recommended next action', value: nextStep.command ?? 'No next step suggested' },
     ]);
 
     const artifactRows = [
@@ -135,8 +129,6 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
             ]),
             '',
             renderSection('Optional validation', ['run `cs doctor` after replay']),
-            '',
-            renderNextStep(nextStep),
         ].join('\n')
     );
 }

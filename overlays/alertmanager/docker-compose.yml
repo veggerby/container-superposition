@@ -1,7 +1,7 @@
 version: '3.8'
 services:
     alertmanager:
-        image: prom/alertmanager:${ALERTMANAGER_VERSION:-latest}
+        image: prom/alertmanager:${ALERTMANAGER_VERSION:-v0.28.1}
         restart: unless-stopped
         command:
             - '--config.file=/etc/alertmanager/alertmanager.yml'
@@ -25,4 +25,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

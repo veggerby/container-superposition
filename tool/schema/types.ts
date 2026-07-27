@@ -32,6 +32,7 @@ export type DatabaseOverlay =
     | 'sqlite'
     | 'duckdb'
     | 'minio'
+    | 'fuseki'
     | MessagingOverlay;
 export type CloudTool =
     | 'azure-cli'
@@ -86,7 +87,14 @@ export type ObservabilityTool =
  * Union of all overlay ID types — used for the flat `overlays` field
  * in project config and anywhere an overlay ID is accepted regardless of category.
  */
-export type OverlayId = LanguageOverlay | DatabaseOverlay | CloudTool | DevTool | ObservabilityTool;
+export type BuiltInOverlayId =
+    | LanguageOverlay
+    | DatabaseOverlay
+    | CloudTool
+    | DevTool
+    | ObservabilityTool;
+
+export type OverlayId = string;
 
 // Legacy type for backwards compatibility
 export type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
@@ -226,6 +234,8 @@ export interface QuestionnaireAnswers {
     customImage?: string; // Only used when baseImage is 'custom'
     containerName?: string; // Container/project name from devcontainer.json
     composeNetworkName?: string; // Actual docker-compose network name for compose stacks
+    catalogs?: CatalogDeclaration[]; // External catalog declarations loaded from the project file
+    resolvedCatalogs?: CatalogReceiptEntry[]; // Effective catalog identities used for this run
     preset?: string; // ID of preset used, if any
     presetChoices?: Record<string, string>; // User choices made within preset
     presetGlueConfig?: PresetGlueConfig; // Glue configuration from preset
@@ -247,7 +257,8 @@ export interface QuestionnaireAnswers {
     projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
     projectShell?: ProjectShellConfig; // First-class shell profile customizations
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
-    overlayParameters?: Record<string, string>; // Resolved overlay parameter values ({{cs.KEY}} substitution)
+    overlayParameters?: Record<string, string>; // Shared overlay parameter values ({{cs.KEY}} substitution)
+    overlaySelections?: NormalizedOverlaySelection[]; // Canonical overlay selections including named instances
     composeEnvFiles?: boolean; // Whether .devcontainer/.env and .env.example should be generated for compose stacks
 }
 
@@ -355,7 +366,46 @@ export interface OverlayMetadata {
     compose_imports?: string[]; // Shared docker-compose fragments to import from overlays/.shared/
     minimal?: boolean; // Whether this overlay is excluded in minimal mode
     hidden?: boolean; // Whether this overlay is hidden from the interactive questionnaire
+    repeatable?: boolean; // Whether named multi-instance selection is supported for this compose overlay
     parameters?: Record<string, OverlayParameterDefinition>; // Configurable parameters for this overlay
+    origin?: {
+        catalogId: string;
+        namespace?: string;
+        sourceKind: 'builtin' | 'external';
+        resolvedIdentity?: string;
+    };
+}
+
+export interface NamedOverlaySelectionEntry {
+    overlay: OverlayId;
+    name: string;
+    parameters?: Record<string, string>;
+}
+
+export type ProjectOverlayEntry = OverlayId | NamedOverlaySelectionEntry;
+
+export type OverlaySelectionSource = 'overlays' | 'category' | 'dependency' | 'manifest';
+
+export type NormalizedOverlaySelection =
+    | {
+          kind: 'singleton';
+          overlayId: OverlayId;
+          source: OverlaySelectionSource;
+      }
+    | {
+          kind: 'named';
+          overlayId: OverlayId;
+          instanceName: string;
+          parameters?: Record<string, string>;
+          source: Extract<OverlaySelectionSource, 'overlays' | 'manifest'>;
+      };
+
+export interface OverlayApplication {
+    overlayId: OverlayId;
+    mode: 'singleton' | 'named';
+    instanceName?: string;
+    source: 'explicit-singleton' | 'explicit-named' | 'dependency';
+    parameters: Record<string, string>;
 }
 
 /**
@@ -460,6 +510,8 @@ export interface SuperpositionManifest {
     baseTemplate: Stack;
     baseImage: string;
     overlays: string[];
+    overlaySelections?: ProjectOverlayEntry[];
+    catalogs?: CatalogReceiptEntry[];
     portOffset?: number;
     preset?: string; // ID of preset used, if any
     presetChoices?: Record<string, string>; // User choices made within preset
@@ -616,6 +668,40 @@ export interface CompositionInput extends QuestionnaireAnswers {
     database: DatabaseOverlay[];
 }
 
+export interface CatalogDeclaration {
+    id: string;
+    namespace: string;
+    source: CatalogDeclarationSource;
+}
+
+export type CatalogDeclarationSource =
+    | {
+          type: 'git';
+          url: string;
+          ref?: string;
+          commit: string;
+          subpath?: string;
+      }
+    | {
+          type: 'archive';
+          url: string;
+          checksum: string;
+          subpath?: string;
+      }
+    | {
+          type: 'path';
+          path: string;
+          resolvedPath: string;
+          subpath?: string;
+      };
+
+export interface CatalogReceiptEntry {
+    id: string;
+    namespace: string;
+    sourceType: CatalogDeclarationSource['type'];
+    resolvedIdentity: string;
+}
+
 export interface ProjectConfigSelection {
     $schema?: string; // Optional schema reference URI — preserved on round-trip, defaults to SUPERPOSITION_SCHEMA_URL
     stack?: Stack;
@@ -623,9 +709,10 @@ export interface ProjectConfigSelection {
     customImage?: string;
     containerName?: string;
     composeNetworkName?: string;
+    catalogs?: CatalogDeclaration[];
     preset?: string;
     presetChoices?: Record<string, string>;
-    overlays?: OverlayId[];
+    overlays?: ProjectOverlayEntry[];
     outputPath?: string;
     portOffset?: number;
     composeEnvFiles?: boolean;
@@ -638,5 +725,5 @@ export interface ProjectConfigSelection {
     mounts?: ProjectMount[];
     shell?: ProjectShellConfig;
     customizations?: ProjectConfigCustomizationsInput;
-    parameters?: Record<string, string>; // Overlay parameter values for {{cs.KEY}} substitution
+    parameters?: Record<string, string>; // Shared overlay parameter values for {{cs.KEY}} substitution
 }

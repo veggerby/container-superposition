@@ -5,18 +5,18 @@
             "extensions": ["ms-mssql.mssql"]
         }
     },
-    "runServices": ["sqlserver"],
-    "forwardPorts": [1433],
+    "runServices": ["sqlserver{{cs.CS_INSTANCE_SUFFIX}}"],
+    "forwardPorts": ["{{cs.MSSQL_PORT}}"],
     "portsAttributes": {
-        "1433": {
+        "{{cs.MSSQL_PORT}}": {
             "label": "SQL Server",
             "onAutoForward": "notify"
         }
     },
     "remoteEnv": {
-        "MSSQL_HOST": "sqlserver",
-        "MSSQL_PORT": "1433",
-        "MSSQL_SA_PASSWORD": "YourStrong@Passw0rd",
-        "MSSQL_DATABASE": "master"
+        "MSSQL_HOST{{cs.CS_INSTANCE_ENV_SUFFIX}}": "sqlserver{{cs.CS_INSTANCE_SUFFIX}}",
+        "MSSQL_PORT{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.MSSQL_PORT}}",
+        "MSSQL_SA_PASSWORD{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.MSSQL_SA_PASSWORD}}",
+        "MSSQL_DATABASE{{cs.CS_INSTANCE_ENV_SUFFIX}}": "master"
     }
 }

@@ -41,7 +41,7 @@ cp .env.example .env
 
 ```bash
 # Jupyter Configuration
-JUPYTER_VERSION=latest
+JUPYTER_VERSION=python-3.12
 JUPYTER_ENABLE_LAB=yes
 JUPYTER_TOKEN=
 JUPYTER_PORT=8888

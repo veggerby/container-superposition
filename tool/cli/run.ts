@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import ora from 'ora';
@@ -24,7 +25,6 @@ import { describeSource } from '../ux/semantics/source.js';
 import { resolveLocalConfigTrust } from '../ux/semantics/local-config.js';
 import {
     renderFrame,
-    renderNextStep,
     renderSection,
     renderList,
     renderLocalConfigTrust,
@@ -39,7 +39,9 @@ import {
     findIgnoredLocalProjectConfig,
     findLocalProjectConfig,
     findManifestFile,
+    getOverlayIdsFromProjectSelection,
     hasMeaningfulLocalProjectConfig,
+    hasNamedProjectOverlaySelections,
     findProjectConfig,
     loadGlobalDefaults,
     loadLocalProjectConfig,
@@ -57,11 +59,7 @@ import {
 import { isInsideGitRepo, createBackup, ensureBackupPatternsInGitignore } from '../utils/backup.js';
 import { buildAnswersFromCliArgs, mergeAnswers } from '../questionnaire/answers.js';
 import { applyPresetSelections } from '../questionnaire/presets.js';
-import {
-    runQuestionnaire,
-    loadOverlaysConfigWrapper,
-    PRESETS_DIR,
-} from '../questionnaire/questionnaire.js';
+import { runQuestionnaire, loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
 import { parseCliArgs } from './args.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
@@ -213,7 +211,7 @@ function renderRunFraming(input: {
     sharedProjectFile: string;
     generatedOutput: string;
     localConfig: string;
-    nextAction: string;
+    nextAction?: string | null;
 }): string {
     return renderFrame([
         { label: 'Mode', value: input.mode },
@@ -221,7 +219,9 @@ function renderRunFraming(input: {
         { label: 'Shared project file', value: input.sharedProjectFile },
         { label: 'Generated output', value: input.generatedOutput },
         { label: 'Local-only config', value: input.localConfig },
-        { label: 'Recommended next action', value: input.nextAction },
+        ...(input.nextAction
+            ? [{ label: 'Recommended next action', value: input.nextAction }]
+            : []),
     ]);
 }
 
@@ -267,17 +267,17 @@ function renderPreflight(input: {
 function renderRunSuccess(input: {
     changed: string[];
     preserved: string[];
-    nextStep: string;
+    nextStep?: string | null;
     manualReview: string[];
 }): string {
     return [
         renderSection('Changed', renderList(input.changed, 'No material changes')),
         '',
         renderSection('Preserved', renderList(input.preserved, 'none')),
-        '',
-        renderSection('Next step', input.nextStep),
-        '',
-        renderSection('Manual review', renderList(input.manualReview, 'none')),
+        ...(input.nextStep ? ['', renderSection('Next step', input.nextStep)] : []),
+        ...(input.manualReview.length > 0
+            ? ['', renderSection('Manual review', renderList(input.manualReview, 'none'))]
+            : []),
     ].join('\n');
 }
 
@@ -291,7 +291,10 @@ function assertNoGlobalDefaultOverlayConflicts(
         return;
     }
 
-    const requestedOverlays = buildProjectConfigSelectionFromAnswers(answers).overlays ?? [];
+    const requestedOverlays = getOverlayIdsFromProjectSelection(
+        buildProjectConfigSelectionFromAnswers(answers),
+        { overlays, base_images: [], base_templates: [] }
+    );
     const { conflicts } = resolveDependencies(requestedOverlays, overlays, {
         warnOnConflicts: false,
     });
@@ -349,6 +352,36 @@ function summarizeCurrentSetup(answers: Partial<QuestionnaireAnswers>): string[]
     summary.push(`editor: ${answers.editor ?? 'vscode'}`);
 
     return summary;
+}
+
+function hashPathState(targetPath: string): string | null {
+    if (!fs.existsSync(targetPath)) {
+        return null;
+    }
+
+    const hash = crypto.createHash('sha256');
+
+    const visit = (currentPath: string, relativePath: string): void => {
+        const stat = fs.statSync(currentPath);
+        if (stat.isDirectory()) {
+            hash.update(`dir:${relativePath}\n`);
+            for (const entry of fs.readdirSync(currentPath).sort()) {
+                visit(path.join(currentPath, entry), path.join(relativePath, entry));
+            }
+            return;
+        }
+
+        if (relativePath === 'superposition.json') {
+            return;
+        }
+
+        hash.update(`file:${relativePath}\n`);
+        hash.update(fs.readFileSync(currentPath));
+        hash.update('\n');
+    };
+
+    visit(targetPath, '.');
+    return hash.digest('hex');
 }
 
 export function buildShortcutOverlayChoices(flow: {
@@ -739,6 +772,9 @@ async function runInitShortcutFlow(flow: {
 export async function main(): Promise<void> {
     try {
         const cliArgs = await parseCliArgs();
+        if (cliArgs === null) {
+            return;
+        }
         const initialCwd = process.cwd();
 
         if (cliArgs?.projectRoot) {
@@ -789,7 +825,8 @@ export async function main(): Promise<void> {
         let globalDefaults = undefined;
         let globalInitDefaultsAnswers: Partial<QuestionnaireAnswers> | undefined;
         const projectRoot = process.cwd();
-        const mainOverlaysConfig = loadOverlaysConfigWrapper();
+        const mainOverlaysContext = loadOverlaysContextWrapper(projectRoot);
+        const mainOverlaysConfig = mainOverlaysContext.overlaysConfig;
 
         printIgnoredLocalConfigWarning(projectRoot);
 
@@ -819,11 +856,14 @@ export async function main(): Promise<void> {
                 ensureLocalConfigIgnored(projectRoot);
             }
             if (projectConfig) {
-                projectConfigAnswers = await applyPresetSelections(
-                    buildAnswersFromProjectConfig(projectConfig.selection, mainOverlaysConfig),
-                    mainOverlaysConfig,
-                    PRESETS_DIR
-                );
+                projectConfigAnswers = {
+                    ...(await applyPresetSelections(
+                        buildAnswersFromProjectConfig(projectConfig.selection, mainOverlaysConfig),
+                        mainOverlaysConfig,
+                        mainOverlaysContext.presetsDir
+                    )),
+                    resolvedCatalogs: mainOverlaysContext.catalogs,
+                };
             }
         }
 
@@ -1016,11 +1056,6 @@ export async function main(): Promise<void> {
                             globalInitDefaultsAnswers?.outputPath ||
                             './.devcontainer',
                         localConfig: localTrustPreview.disposition,
-                        nextAction:
-                            resolveNextStep({
-                                command: cliArgs?.commandName === 'regen' ? 'regen' : 'init',
-                                sourceKind: sourceDescriptor.kind,
-                            }).command ?? 'No next step suggested',
                     })
             );
             if (localProjectConfig) {
@@ -1071,28 +1106,7 @@ export async function main(): Promise<void> {
                 manifestDir
             );
             answers = mergeAnswers(manifestAnswers);
-
-            console.log(
-                '\n' +
-                    boxen(
-                        chalk.bold.cyan('Regenerating from Manifest (No Interactive)\n\n') +
-                            chalk.white('Configuration:\n') +
-                            chalk.gray(`  Template: ${manifest.baseTemplate}\n`) +
-                            chalk.gray(`  Base Image: ${manifest.baseImage}\n`) +
-                            (manifest.containerName
-                                ? chalk.gray(`  Container: ${manifest.containerName}\n`)
-                                : '') +
-                            chalk.gray(`  Overlays: ${manifest.overlays.join(', ')}\n`) +
-                            (manifest.preset ? chalk.gray(`  Preset: ${manifest.preset}\n`) : '') +
-                            (manifest.portOffset
-                                ? chalk.gray(`  Port offset: ${manifest.portOffset}\n`)
-                                : '') +
-                            chalk.gray(`  Output: ${answers.outputPath}`),
-                        { padding: 1, borderColor: 'cyan', borderStyle: 'round', margin: 1 }
-                    )
-            );
         } else if (useProjectOnly && projectConfigAnswers && !hasCliOverrides) {
-            const projectFileName = projectConfig?.file.fileName ?? '.superposition.yml';
             answers = mergeAnswers(projectConfigAnswers, {
                 outputPath:
                     cliArgs?.config?.outputPath ||
@@ -1101,22 +1115,6 @@ export async function main(): Promise<void> {
                 minimal: cliArgs?.config?.minimal,
                 editor: cliArgs?.config?.editor,
             });
-
-            console.log(
-                '\n' +
-                    boxen(
-                        chalk.bold.cyan('Regenerating from Project File (No Interactive)\n\n') +
-                            chalk.white('Configuration:\n') +
-                            chalk.gray(`  Project file: ${projectFileName}\n`) +
-                            chalk.gray(`  Output: ${answers.outputPath}`),
-                        {
-                            padding: 1,
-                            borderColor: 'cyan',
-                            borderStyle: 'round',
-                            margin: 1,
-                        }
-                    )
-            );
         } else if (
             (cliArgs && (cliArgs.config.stack || hasCliOverrides)) ||
             (projectConfigAnswers && (cliArgs?.noInteractive || hasAnyCliConfig)) ||
@@ -1137,24 +1135,6 @@ export async function main(): Promise<void> {
                     './.devcontainer',
             });
 
-            const modeLabel =
-                useManifestOnly && hasCliOverrides
-                    ? 'Regenerating from Manifest with Overrides'
-                    : useProjectOnly && projectConfigAnswers
-                      ? 'Regenerating from Project File with Overrides'
-                      : projectConfigAnswers && !manifest
-                        ? 'Running from Project Config'
-                        : 'Running in CLI mode';
-
-            console.log(
-                '\n' +
-                    boxen(chalk.bold(modeLabel), {
-                        padding: 0.5,
-                        borderColor: 'blue',
-                        borderStyle: 'round',
-                    })
-            );
-
             if ((useManifestOnly || useProjectOnly) && hasCliOverrides) {
                 const overrides: string[] = [];
                 if (cliAnswers.minimal) overrides.push('minimal mode');
@@ -1170,6 +1150,22 @@ export async function main(): Promise<void> {
                         ? 'existing'
                         : 'new'
                     : 'other';
+
+            if (
+                entryMode === 'existing' &&
+                projectConfigAnswers &&
+                projectConfig &&
+                hasNamedProjectOverlaySelections(projectConfig.selection)
+            ) {
+                console.log(
+                    chalk.yellow(
+                        '\n⚠️  Named multi-instance overlay selections are present in your project file.\n' +
+                            '   Interactive init editing cannot safely round-trip overlays[] object entries yet.\n' +
+                            '   No files were changed. Edit superposition.yml manually for named multi-instance overlay changes.\n'
+                    )
+                );
+                return;
+            }
 
             if (entryMode === 'existing' && projectConfigAnswers) {
                 const shortcutResult = await runInitShortcutFlow({
@@ -1336,6 +1332,9 @@ export async function main(): Promise<void> {
             }
         }
 
+        const beforeGeneratedOutputHash = isManifestOnly
+            ? null
+            : hashPathState(path.resolve(answers.outputPath));
         const spinner = ora({
             text: isManifestOnly
                 ? chalk.cyan('Generating manifest file...')
@@ -1346,12 +1345,12 @@ export async function main(): Promise<void> {
         try {
             let summary;
             if (isManifestOnly) {
-                summary = await generateManifestOnly(answers, undefined, {
+                summary = await generateManifestOnly(answers, mainOverlaysContext.overlaysDir, {
                     isRegen: isReplayMode,
                 });
                 spinner.succeed(chalk.green('Manifest created successfully!'));
             } else {
-                summary = await composeDevContainer(answers, undefined, {
+                summary = await composeDevContainer(answers, mainOverlaysContext.overlaysDir, {
                     isRegen: isReplayMode,
                     manifestAnswers: sharedAnswersForProjectFile,
                 });
@@ -1374,6 +1373,10 @@ export async function main(): Promise<void> {
             }
 
             printSummary(summary, true);
+            const afterGeneratedOutputHash = isManifestOnly
+                ? null
+                : hashPathState(path.resolve(answers.outputPath));
+            const generatedOutputChanged = beforeGeneratedOutputHash !== afterGeneratedOutputHash;
             const changed = [
                 ...(projectFileOutputPath
                     ? [
@@ -1382,7 +1385,11 @@ export async function main(): Promise<void> {
                               : 'shared project file created',
                       ]
                     : []),
-                isManifestOnly ? 'compatibility manifest written' : 'generated output written',
+                ...(isManifestOnly
+                    ? ['compatibility manifest written']
+                    : generatedOutputChanged
+                      ? ['generated output written']
+                      : []),
                 ...(createdLocalTemplate ? ['local-only config template created'] : []),
                 ...(actualBackupPath ? [`backup created: ${actualBackupPath}`] : []),
             ];
@@ -1394,9 +1401,16 @@ export async function main(): Promise<void> {
                       ? 'local-only config now lives in repository root'
                       : 'local-only config not used',
             ];
-            const nextStep =
-                resolveNextStep({ command: cliArgs?.commandName === 'regen' ? 'regen' : 'init' })
-                    .command ?? 'No next step suggested';
+            const nextStepModel = resolveNextStep({
+                command: cliArgs?.commandName === 'regen' ? 'regen' : 'init',
+                changeClass: generatedOutputChanged
+                    ? 'Change intent and regenerate'
+                    : 'No material change',
+                hasWarnings: summary.warnings.length > 0,
+            });
+            const nextStep = nextStepModel.command
+                ? `${nextStepModel.command}\n${nextStepModel.reason}`
+                : null;
             const manualReview = localProjectConfig
                 ? ['review generated diff for local-only settings before commit']
                 : [];

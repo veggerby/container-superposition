@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import type { OverlaysConfig } from '../schema/types.js';
-import { loadProjectConfig } from '../schema/project-config.js';
+import { getOverlayIdsFromProjectSelection, loadProjectConfig } from '../schema/project-config.js';
 import { getFilesToCreate, getPortMappings } from './plan/artifacts.js';
 import { generatePlanDiff } from './plan/diff.js';
 import { resolvePlanInput } from './plan/input.js';
@@ -21,8 +21,15 @@ export async function planCommand(
     options: PlanOptions
 ) {
     try {
-        const { stack, selectedOverlays, inputMode, selectionOrigin, portOffset, outputPath } =
-            resolvePlanInput(options);
+        const {
+            stack,
+            selectedOverlays,
+            selectedOverlayLabels,
+            inputMode,
+            selectionOrigin,
+            portOffset,
+            outputPath,
+        } = resolvePlanInput(options);
 
         const overlayMap = new Map(overlaysConfig.overlays.map((overlay) => [overlay.id, overlay]));
         for (const id of selectedOverlays) {
@@ -96,7 +103,11 @@ export async function planCommand(
                     return false;
                 }
                 const selected = [...new Set(selectedOverlays)].sort().join(',');
-                const configured = [...new Set(projectConfig.selection.overlays ?? [])]
+                const configured = [
+                    ...new Set(
+                        getOverlayIdsFromProjectSelection(projectConfig.selection, overlaysConfig)
+                    ),
+                ]
                     .sort()
                     .join(',');
                 return (
@@ -136,6 +147,7 @@ export async function planCommand(
         const plan: PlanResult = {
             stack,
             selectedOverlays,
+            selectedOverlayLabels,
             autoAddedOverlays: compatibleAutoAdded,
             conflicts,
             portMappings,

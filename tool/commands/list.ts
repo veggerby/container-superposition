@@ -2,7 +2,7 @@ import type { OverlayMetadata, OverlaysConfig } from '../schema/types.js';
 import { findProjectConfig } from '../schema/project-config.js';
 import { describeSource } from '../ux/semantics/source.js';
 import { resolveNextStep } from '../ux/semantics/next-step.js';
-import { renderFrame, renderList, renderNextStep, renderSection } from '../ux/renderers/common.js';
+import { renderFrame, renderList, renderSection } from '../ux/renderers/common.js';
 
 interface ListOptions {
     category?: string;
@@ -157,7 +157,6 @@ export async function listCommand(overlaysConfig: OverlaysConfig, options: ListO
     try {
         const overlays = filterOverlays(overlaysConfig, options);
         const source = describeSource({ hasCliSelection: true });
-        const nextStep = renderNextStep(resolveNextStep({ command: 'list' }));
         const currentSetup =
             findProjectConfig(process.cwd()).length > 0
                 ? 'shared project file present'
@@ -219,7 +218,7 @@ export async function listCommand(overlaysConfig: OverlaysConfig, options: ListO
                       ]),
                   ].join('\n');
 
-        console.log([frame, '', body, '', nextStep].join('\n'));
+        console.log([frame, '', body].join('\n'));
     } catch (error) {
         console.error(error);
         process.exit(1);

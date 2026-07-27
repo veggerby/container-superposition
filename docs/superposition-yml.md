@@ -35,6 +35,10 @@ Supported top-level fields are `$schema`, `initDefaults`, and `localConfigTempla
 $schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.global.schema.json
 
 initDefaults:
+    stack: compose
+    baseImage: custom
+    customImage: ghcr.io/example/devcontainer-base:latest
+    composeEnvFiles: true
     devcontainerGitignore: true
     overlays:
         - git-helpers
@@ -64,13 +68,18 @@ localConfigTemplate:
                 - '[ -n "$BASH_VERSION" ] && export HISTFILE=/commandhistory/.bash_history'
 ```
 
-`initDefaults` supports only `baseImage`, `editor`, `target`, `outputPath`, `minimal`,
-`devcontainerGitignore`, and `overlays`.
+`initDefaults` supports only `stack`, `baseImage`, `customImage`, `editor`, `target`,
+`outputPath`, `minimal`, `composeEnvFiles`, `devcontainerGitignore`, and `overlays`.
+`customImage` is persisted only when the final effective `baseImage` is `custom`. `composeEnvFiles`
+is persisted only when the final effective `stack` is `compose`.
 
 `localConfigTemplate` is init-only scaffold input and supports either:
 
 - the legacy direct local-config shape (`env`, `mounts`, `shell`, `customizations`, `portOffset`, `ports`), or
 - a stack-aware object containing only `common`, `plain`, and/or `compose`
+
+It does not accept shared project-file fields such as `devcontainerGitignore`, `stack`,
+`composeEnvFiles`, or `customImage`.
 
 In stack-aware form, the tool writes `common + plain` for `stack: plain` and `common + compose`
 for `stack: compose`. Mixed shapes are invalid. Authored `${HOME}`, `${VAR}`, `${VAR:-default}`,
@@ -219,6 +228,65 @@ folder names differ.
 
 ---
 
+### `catalogs`
+
+```yaml
+catalogs:
+    - id: acme-platform
+      namespace: acme
+      source:
+          type: git
+          url: ssh://git.example.com/platform/superposition-catalog.git
+          ref: v1.4.2
+          commit: 9f4c2d1
+          subpath: catalog
+```
+
+Optional external overlay and preset catalogs.
+
+Use this when your team wants to publish organization-specific overlays or presets without forking
+the tool.
+
+Rules:
+
+- Built-in overlays and presets stay available without listing them here.
+- External overlays and presets must use namespace-qualified IDs such as `acme/web-api` and
+  `acme/starter`.
+- `namespace` must be unique per project.
+- `git` sources require an exact `commit`; floating refs such as `main`, `master`, `latest`,
+  `head`, and `trunk` are rejected.
+- `archive` sources require `checksum: sha256:<64 hex>`.
+- `path` sources must be repo-relative and stay inside the repository root.
+- Credentials must not be stored in the project file; use ambient auth instead.
+
+Supported source types:
+
+- `git`
+- `archive`
+- `path`
+
+Example mixed with built-ins:
+
+```yaml
+catalogs:
+    - id: acme-platform
+      namespace: acme
+      source:
+          type: path
+          path: catalogs/acme
+
+overlays:
+    - nodejs
+    - acme/web-api
+
+preset: acme/starter
+```
+
+See [Versioned Private Catalogs](private-catalogs.md) for task-oriented setup, trust, and upgrade
+workflow guidance.
+
+---
+
 ### `overlays`
 
 ```yaml
@@ -229,8 +297,41 @@ overlays:
     - docker-sock
 ```
 
-Flat list of overlay IDs to include. This is the **preferred** way to declare overlays.
-Dependency resolution runs automatically: if you select `grafana`, `prometheus` is added
+Canonical overlay selection surface. Legacy string entries still select one singleton overlay:
+
+```yaml
+overlays:
+    - nodejs
+    - postgres
+```
+
+For repeatable compose overlays, use object entries with a stable name and optional instance-local
+parameter overrides:
+
+```yaml
+overlays:
+    - nodejs
+    - overlay: postgres
+      name: app
+      parameters:
+          POSTGRES_DB: app
+    - overlay: postgres
+      name: analytics
+      parameters:
+          POSTGRES_DB: analytics
+          POSTGRES_PORT: '5433'
+```
+
+Rules:
+
+- string entries keep existing singleton behaviour
+- object entries are allowed only for overlays marked repeatable in the catalogue
+- `name` must match `[a-z0-9][a-z0-9-]*`
+- top-level `parameters:` still provides the shared default layer; `overlays[].parameters` overrides only that one named instance
+- do not mix a string entry and object entries for the same overlay family in one project file
+- when any object entry is present, legacy category fields such as `language:` or `database:` must be absent
+
+Dependency resolution still runs automatically: if you select `grafana`, `prometheus` is added
 because it is declared as `requires`.
 
 See `docs/overlays.md` for the full overlay catalogue.
@@ -246,8 +347,10 @@ presetChoices:
     database: postgres
 ```
 
-Expands a preset (meta-overlay) into a fixed set of overlays. Use `cs list --presets` to
-browse available presets. `presetChoices` passes parameter values to the preset.
+Expands a preset (meta-overlay) into a fixed set of overlays. Use `npx container-superposition list`
+and `npx container-superposition explain <preset-id>` to browse available presets. External presets
+must use namespace-qualified IDs such as `acme/starter`. `presetChoices` passes parameter values to
+the preset.
 
 ---
 
@@ -890,6 +993,7 @@ observability:
 
 ## See also
 
+- [Versioned private catalogs](private-catalogs.md)
 - [Overlays catalogue](overlays.md)
 - [Custom patches](custom-patches.md)
 - [Deployment targets](deployment-targets.md)

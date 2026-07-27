@@ -4,6 +4,7 @@ description: SPARQL 1.1 server and triplestore backed by Apache Jena TDB
 category: database
 supports:
     - compose
+repeatable: true
 requires: []
 suggests:
     - java
@@ -29,7 +30,7 @@ ports:
 parameters:
     FUSEKI_VERSION:
         description: Apache Jena Fuseki image version tag
-        default: latest
+        default: '5.4.0'
     FUSEKI_PORT:
         description: Host port mapped to Fuseki (3030 inside container)
         default: '3030'
@@ -40,3 +41,18 @@ parameters:
     FUSEKI_DATASET:
         description: Name of the default dataset to create on first start
         default: ds
+    FUSEKI_SEED_FILE:
+        description: Relative or absolute path to a single RDF seed file to load automatically
+        default: ''
+    FUSEKI_SEED_DIR:
+        description: Relative or absolute path to a directory of RDF seed files to load automatically
+        default: ''
+    FUSEKI_SEED_MODE:
+        description: Seed loading mode (append keeps existing triples, replace clears target graph first)
+        default: append
+    FUSEKI_SEED_GRAPH:
+        description: Optional named graph URI used for seed loading; empty uses the default graph
+        default: ''
+    FUSEKI_SEED_CONTENT_TYPE:
+        description: RDF media type override for seed loading; auto detects from file extension
+        default: auto

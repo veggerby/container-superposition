@@ -17,7 +17,7 @@ ComfyUI runs as a long-lived Docker Compose service (`comfyui`) alongside your d
 
 **Service configuration:**
 
-- Image: `ghcr.io/ai-dock/comfyui:latest-cuda` (configurable via `COMFYUI_VERSION`)
+- Image: `ghcr.io/ai-dock/comfyui:latest-cuda` (configurable via `COMFYUI_VERSION`; the repo intentionally keeps the upstream flavor alias until a fixed ai-dock release tag is validated)
 - Network: `devnet` (shared with the dev container)
 - Port: `8188` (ComfyUI web UI and REST API)
 - Volumes: single models root shared between devcontainer and ComfyUI sidecar
@@ -163,7 +163,7 @@ nvidia-smi
 docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
 ```
 
-> **Note:** On machines without an NVIDIA GPU or without the NVIDIA Container Toolkit, Docker Compose may warn about unresolvable device requests. Use `COMFYUI_VERSION=latest-cpu` to switch to CPU-only mode (see below).
+> **Note:** On machines without an NVIDIA GPU or without the NVIDIA Container Toolkit, Docker Compose may warn about unresolvable device requests. Use `COMFYUI_VERSION=latest-cpu` to switch to CPU-only mode (see below). The `latest-*` flavor aliases remain an explicit documented exception in this remediation because the overlay still needs separate CUDA/ROCm/CPU channels and this repo has not yet validated one fixed upstream tag per flavor.
 
 **See also:** The [`cuda`](../cuda/README.md) overlay installs NVIDIA CUDA toolkit support in the devcontainer itself.
 
@@ -255,14 +255,14 @@ while True:
 
 Set these in `.devcontainer/.env` (copy from `.devcontainer/.env.example`):
 
-| Variable                   | Default               | Description                                                                                          |
-| -------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------- |
-| `COMFYUI_MODELS_DIR`       | `/opt/comfyui-models` | Path inside devcontainer where models are accessible (set in devcontainer.patch.json; do not change) |
-| `COMFYUI_MODELS_HOST_PATH` | _(unset)_             | Host-side bind mount source; when unset the named volume `comfyui-models` is used                    |
-| `COMFYUI_OUTPUT_PATH`      | _(unset)_             | Host path for generated outputs; when unset the named volume `comfyui-output` is used                |
-| `COMFYUI_VERSION`          | `latest-cuda`         | Docker image tag (`latest-cuda`, `latest-cpu`, `latest-rocm`)                                        |
-| `COMFYUI_PORT`             | `8188`                | Host port for the web UI                                                                             |
-| `CLI_ARGS`                 | `--listen 0.0.0.0`    | Extra CLI arguments passed to ComfyUI at startup                                                     |
+| Variable                   | Default               | Description                                                                                                               |
+| -------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `COMFYUI_MODELS_DIR`       | `/opt/comfyui-models` | Path inside devcontainer where models are accessible (set in devcontainer.patch.json; do not change)                      |
+| `COMFYUI_MODELS_HOST_PATH` | _(unset)_             | Host-side bind mount source; when unset the named volume `comfyui-models` is used                                         |
+| `COMFYUI_OUTPUT_PATH`      | _(unset)_             | Host path for generated outputs; when unset the named volume `comfyui-output` is used                                     |
+| `COMFYUI_VERSION`          | `latest-cuda`         | Docker image tag (`latest-cuda`, `latest-cpu`, `latest-rocm`); documented exception until fixed flavor tags are validated |
+| `COMFYUI_PORT`             | `8188`                | Host port for the web UI                                                                                                  |
+| `CLI_ARGS`                 | `--listen 0.0.0.0`    | Extra CLI arguments passed to ComfyUI at startup                                                                          |
 
 ### Example `.env`
 

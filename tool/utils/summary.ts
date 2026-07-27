@@ -147,14 +147,9 @@ export function generateNextSteps(
         ];
     }
 
-    return [
-        ...(composeEnvFiles
-            ? ['Customize environment:\n     cp .devcontainer/.env.example .devcontainer/.env']
-            : []),
-        'Open in VS Code:\n     code .',
-        'Reopen in Container:\n     Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P) → "Dev Containers: Reopen in Container"',
-        'Verify setup:\n     npx container-superposition doctor',
-    ];
+    return composeEnvFiles
+        ? ['Customize environment:\n     cp .devcontainer/.env.example .devcontainer/.env']
+        : [];
 }
 
 /**
@@ -332,14 +327,16 @@ export function printSummary(summary: GenerationSummary, quiet: boolean = false)
     }
 
     // Next steps
-    lines.push(chalk.white('📝 Next Steps'));
-    lines.push('');
-    for (let i = 0; i < summary.nextSteps.length; i++) {
-        const step = summary.nextSteps[i];
-        const stepLines = step.split('\n');
-        lines.push(chalk.gray(`  ${i + 1}. ${stepLines[0]}`));
-        for (let j = 1; j < stepLines.length; j++) {
-            lines.push(chalk.dim(`     ${stepLines[j]}`));
+    if (summary.nextSteps.length > 0) {
+        lines.push(chalk.white('📝 Next Steps'));
+        lines.push('');
+        for (let i = 0; i < summary.nextSteps.length; i++) {
+            const step = summary.nextSteps[i];
+            const stepLines = step.split('\n');
+            lines.push(chalk.gray(`  ${i + 1}. ${stepLines[0]}`));
+            for (let j = 1; j < stepLines.length; j++) {
+                lines.push(chalk.dim(`     ${stepLines[j]}`));
+            }
         }
     }
 

@@ -14,7 +14,7 @@ serviceOrder: 0
 parameters:
     MINIO_VERSION:
         description: MinIO image version tag
-        default: latest
+        default: RELEASE.2025-07-23T15-54-02Z
     MINIO_API_PORT:
         description: Host port mapped to MinIO S3 API (9000 inside container)
         default: '9000'

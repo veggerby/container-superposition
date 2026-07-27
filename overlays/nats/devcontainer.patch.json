@@ -6,19 +6,19 @@
             "apk": "curl"
         }
     },
-    "runServices": ["nats"],
-    "forwardPorts": [4222, 8222],
+    "runServices": ["nats{{cs.CS_INSTANCE_SUFFIX}}"],
+    "forwardPorts": ["{{cs.NATS_CLIENT_PORT}}", "{{cs.NATS_HTTP_PORT}}"],
     "portsAttributes": {
-        "4222": {
+        "{{cs.NATS_CLIENT_PORT}}": {
             "label": "NATS Client Port",
             "onAutoForward": "notify"
         },
-        "8222": {
+        "{{cs.NATS_HTTP_PORT}}": {
             "label": "NATS Monitoring",
             "onAutoForward": "openBrowser"
         }
     },
     "remoteEnv": {
-        "NATS_URL": "nats://nats:4222"
+        "NATS_URL{{cs.CS_INSTANCE_ENV_SUFFIX}}": "nats://nats{{cs.CS_INSTANCE_SUFFIX}}:{{cs.NATS_CLIENT_PORT}}"
     }
 }

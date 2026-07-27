@@ -140,6 +140,8 @@ export function loadOverlayManifest(overlayDir: string): OverlayMetadata | null 
             imports: ensureArray(manifest.imports),
             minimal: manifest.minimal !== undefined ? ensureBoolean(manifest.minimal) : false,
             hidden: manifest.hidden !== undefined ? ensureBoolean(manifest.hidden) : false,
+            repeatable:
+                manifest.repeatable !== undefined ? ensureBoolean(manifest.repeatable) : false,
             parameters: ensureParameters(manifest.parameters),
         };
     } catch (error) {
@@ -158,33 +160,43 @@ export function loadOverlayManifests(overlaysDir: string): Map<string, OverlayMe
         return manifests;
     }
 
-    const entries = fs.readdirSync(overlaysDir, { withFileTypes: true });
+    const visit = (currentDir: string) => {
+        const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
-    for (const entry of entries) {
-        if (!entry.isDirectory()) {
-            continue;
-        }
-
-        // Skip special directories
-        if (entry.name.startsWith('.')) {
-            continue;
-        }
-
-        const overlayDir = path.join(overlaysDir, entry.name);
-        const manifest = loadOverlayManifest(overlayDir);
-
-        if (manifest) {
-            // Validate ID matches directory name
-            if (manifest.id !== entry.name) {
-                console.warn(
-                    `Warning: Manifest ID '${manifest.id}' doesn't match directory name '${entry.name}'`
-                );
+        for (const entry of entries) {
+            if (!entry.isDirectory()) {
                 continue;
             }
 
-            manifests.set(manifest.id, manifest);
+            if (entry.name.startsWith('.')) {
+                continue;
+            }
+
+            const overlayDir = path.join(currentDir, entry.name);
+            const manifestPath = path.join(overlayDir, 'overlay.yml');
+            if (fs.existsSync(manifestPath)) {
+                const manifest = loadOverlayManifest(overlayDir);
+                if (!manifest) {
+                    continue;
+                }
+
+                const relativeId = path.relative(overlaysDir, overlayDir).split(path.sep).join('/');
+                if (manifest.id !== relativeId) {
+                    console.warn(
+                        `Warning: Manifest ID '${manifest.id}' doesn't match directory path '${relativeId}'`
+                    );
+                    continue;
+                }
+
+                manifests.set(manifest.id, manifest);
+                continue;
+            }
+
+            visit(overlayDir);
         }
-    }
+    };
+
+    visit(overlaysDir);
 
     return manifests;
 }
@@ -201,33 +213,44 @@ export function loadPresetMetadata(overlaysDir: string): OverlayMetadata[] {
     }
 
     try {
-        const files = fs.readdirSync(presetsDir);
+        const visit = (currentDir: string) => {
+            const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
-        for (const file of files) {
-            if (!file.endsWith('.yml') && !file.endsWith('.yaml')) {
-                continue;
+            for (const entry of entries) {
+                const presetPath = path.join(currentDir, entry.name);
+                if (entry.isDirectory()) {
+                    visit(presetPath);
+                    continue;
+                }
+                if (
+                    !entry.isFile() ||
+                    (!entry.name.endsWith('.yml') && !entry.name.endsWith('.yaml'))
+                ) {
+                    continue;
+                }
+
+                const content = fs.readFileSync(presetPath, 'utf8');
+                const preset = yaml.load(content) as any;
+
+                if (preset.id && preset.name && preset.description) {
+                    presets.push({
+                        id: preset.id,
+                        name: preset.name,
+                        description: preset.description,
+                        category: 'preset',
+                        supports: preset.supports || [],
+                        requires: [],
+                        suggests: [],
+                        conflicts: [],
+                        tags: preset.tags || [],
+                        ports: [],
+                        origin: preset.origin,
+                    });
+                }
             }
+        };
 
-            const presetPath = path.join(presetsDir, file);
-            const content = fs.readFileSync(presetPath, 'utf8');
-            const preset = yaml.load(content) as any;
-
-            // Extract metadata from preset definition
-            if (preset.id && preset.name && preset.description) {
-                presets.push({
-                    id: preset.id,
-                    name: preset.name,
-                    description: preset.description,
-                    category: 'preset',
-                    supports: preset.supports || [],
-                    requires: [],
-                    suggests: [],
-                    conflicts: [],
-                    tags: preset.tags || [],
-                    ports: [],
-                });
-            }
-        }
+        visit(presetsDir);
     } catch (error) {
         console.warn('Warning: Failed to load preset metadata:', error);
     }

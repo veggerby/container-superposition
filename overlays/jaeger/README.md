@@ -76,7 +76,7 @@ cp .env.example .env
 
 ```bash
 # Jaeger version
-JAEGER_VERSION=latest
+JAEGER_VERSION=1.67.0
 
 # UI port (default 16686)
 JAEGER_UI_PORT=16686

@@ -14,6 +14,12 @@ All commands support `--json` output for scripting and automation.
 
 The `list` command displays all available overlays, optionally filtered by category, tags, or stack support.
 
+Current human-readable output is decision-led:
+
+- default `list` ends with `How to inspect or preview next` in the body
+- filtered `list` ends with `How to widen or inspect next`
+- `list` does not add a footer `Next step`
+
 ### Basic Usage
 
 ```bash
@@ -110,7 +116,7 @@ npx container-superposition list --category database --json
 
 ## Explain Command
 
-The `explain` command provides detailed information about a specific overlay, including files, patches, dependencies, and configuration.
+The `explain` command provides detailed information about a specific overlay, including fit, watch-outs, preview guidance, files, services, and ports.
 
 ### Basic Usage
 
@@ -165,15 +171,17 @@ Docker Compose Services:
 
 ### What's Included
 
-The `explain` command shows:
+The `explain` command now centers these sections:
 
-1. **Basic Information** - Name, description, category, tags
-2. **Stack Compatibility** - Which base templates it works with
-3. **Dependencies** - Required, suggested, and conflicting overlays
-4. **Ports** - All exposed ports
-5. **Files** - All files in the overlay directory
-6. **DevContainer Patches** - Features, extensions, port forwarding, environment variables
-7. **Docker Compose Services** - Services that will be added (for compose overlays)
+1. **Best for**
+2. **Why pick this over nearby options**
+3. **What it adds**
+4. **What to watch out for**
+5. **Depends on** / **Conflicts with**
+6. **Preview this change**
+7. **Files, services, and ports**
+
+`Preview this change` owns the follow-up action, so `explain` does not add a redundant `Try this next` or footer `Next step` block.
 
 ### JSON Output
 

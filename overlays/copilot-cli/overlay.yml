@@ -1,0 +1,20 @@
+id: copilot-cli
+name: GitHub Copilot CLI
+description: GitHub Copilot CLI for terminal-first AI coding assistance
+category: dev
+supports: []
+requires:
+    - nodejs
+suggests: []
+conflicts: []
+tags:
+    - dev
+    - ai
+    - github
+    - copilot
+    - cli
+ports: []
+parameters:
+    COPILOT_CLI_VERSION:
+        description: GitHub Copilot CLI npm version to install
+        default: latest

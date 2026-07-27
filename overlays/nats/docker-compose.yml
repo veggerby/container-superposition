@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-    nats:
-        image: nats:${NATS_VERSION:-2}-alpine
+    nats{{cs.CS_INSTANCE_SUFFIX}}:
+        image: nats:${NATS_VERSION:-{{cs.NATS_VERSION}}}-alpine
         restart: unless-stopped
         command:
             - '--jetstream'
@@ -10,11 +10,11 @@ services:
             - '--http_port=8222'
             - '--port=4222'
         volumes:
-            - nats-data:/data
+            - nats-data{{cs.CS_INSTANCE_SUFFIX}}:/data
         ports:
-            - '${NATS_CLIENT_PORT:-4222}:4222'
-            - '${NATS_HTTP_PORT:-8222}:8222'
-            - '${NATS_CLUSTER_PORT:-6222}:6222'
+            - '${NATS_CLIENT_PORT:-{{cs.NATS_CLIENT_PORT}}}:4222'
+            - '${NATS_HTTP_PORT:-{{cs.NATS_HTTP_PORT}}}:8222'
+            - '${NATS_CLUSTER_PORT:-{{cs.NATS_CLUSTER_PORT}}}:6222'
         networks:
             - devnet
         healthcheck:
@@ -25,8 +25,7 @@ services:
             start_period: 10s
 
 volumes:
-    nats-data:
+    nats-data{{cs.CS_INSTANCE_SUFFIX}}:
 
 networks:
     devnet:
-        name: devnet

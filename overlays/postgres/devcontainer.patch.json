@@ -3,19 +3,19 @@
     "features": {
         "ghcr.io/robbert229/devcontainer-features/postgresql-client:1": {}
     },
-    "runServices": ["postgres"],
-    "forwardPorts": [5432],
+    "runServices": ["postgres{{cs.CS_INSTANCE_SUFFIX}}"],
+    "forwardPorts": ["{{cs.POSTGRES_PORT}}"],
     "portsAttributes": {
-        "5432": {
+        "{{cs.POSTGRES_PORT}}": {
             "label": "PostgreSQL",
             "onAutoForward": "notify"
         }
     },
     "remoteEnv": {
-        "POSTGRES_HOST": "postgres",
-        "POSTGRES_PORT": "{{cs.POSTGRES_PORT}}",
-        "POSTGRES_DB": "{{cs.POSTGRES_DB}}",
-        "POSTGRES_USER": "{{cs.POSTGRES_USER}}",
-        "POSTGRES_PASSWORD": "{{cs.POSTGRES_PASSWORD}}"
+        "POSTGRES_HOST{{cs.CS_INSTANCE_ENV_SUFFIX}}": "postgres{{cs.CS_INSTANCE_SUFFIX}}",
+        "POSTGRES_PORT{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.POSTGRES_PORT}}",
+        "POSTGRES_DB{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.POSTGRES_DB}}",
+        "POSTGRES_USER{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.POSTGRES_USER}}",
+        "POSTGRES_PASSWORD{{cs.CS_INSTANCE_ENV_SUFFIX}}": "{{cs.POSTGRES_PASSWORD}}"
     }
 }

@@ -1,7 +1,7 @@
 version: '3.8'
 services:
     tempo:
-        image: grafana/tempo:${TEMPO_VERSION:-latest}
+        image: grafana/tempo:${TEMPO_VERSION:-2.8.1}
         restart: unless-stopped
         command: ['-config.file=/etc/tempo/tempo-config.yaml']
         volumes:
@@ -25,4 +25,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

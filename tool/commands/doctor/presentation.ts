@@ -28,6 +28,10 @@ export function renderDoctorReportModel(input: {
     );
     const passed = input.findings.filter((finding) => finding.status === 'pass');
 
+    const diagnosisNextStep = resolveNextStep({
+        command: 'doctor',
+        hasBlockingIssues: blocking.length > 0,
+    });
     const frame = renderFrame([
         { label: 'Mode', value: input.mode },
         { label: 'Verdict', value: disposition },
@@ -40,12 +44,14 @@ export function renderDoctorReportModel(input: {
                     ? 'nothing blocking; checks completed cleanly'
                     : `${blocking.length} blocking, ${autoFixable.length} safe fix now, ${manual.length} manual follow-up`,
         },
-        {
-            label: 'Recommended next action',
-            value:
-                resolveNextStep({ command: 'doctor', hasBlockingIssues: blocking.length > 0 })
-                    .command ?? 'No next step suggested',
-        },
+        ...(!input.executions && input.mode === 'Project diagnosis' && diagnosisNextStep.command
+            ? [
+                  {
+                      label: 'Recommended next action',
+                      value: diagnosisNextStep.command,
+                  },
+              ]
+            : []),
     ]);
 
     const body: string[] = [
@@ -185,12 +191,9 @@ export function renderDoctorReportModel(input: {
         }
     }
 
-    body.push(
-        '',
-        renderNextStep(
-            resolveNextStep({ command: 'doctor', hasBlockingIssues: blocking.length > 0 })
-        )
-    );
+    if (input.executions && diagnosisNextStep.command) {
+        body.push('', renderNextStep(diagnosisNextStep));
+    }
     return [frame, '', ...body].join('\n');
 }
 

@@ -62,7 +62,7 @@ cp .env.example .env
 
 ```bash
 # Collector version
-OTEL_COLLECTOR_VERSION=latest
+OTEL_COLLECTOR_VERSION=0.122.1
 
 # Port configuration
 OTEL_GRPC_PORT=4317

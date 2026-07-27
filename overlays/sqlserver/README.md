@@ -37,7 +37,7 @@ cp .env.example .env
 
 ```bash
 # SQL Server Configuration
-MSSQL_VERSION=2022-latest
+MSSQL_VERSION=2022-CU18-ubuntu-22.04
 MSSQL_SA_PASSWORD=YourStrong@Passw0rd
 MSSQL_PID=Developer
 MSSQL_PORT=1433

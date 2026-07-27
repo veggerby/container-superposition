@@ -21,7 +21,7 @@ const SERVICE_CODE_EXAMPLES: Record<string, { nodejs?: string; python?: string }
     postgres: {
         nodejs: `const { Client } = require('pg');
 const client = new Client({
-  host: 'postgres',
+  host: '{service}',
   port: parseInt(process.env.POSTGRES_PORT || '5432'),
   database: process.env.POSTGRES_DB,
   user: process.env.POSTGRES_USER,
@@ -30,7 +30,7 @@ const client = new Client({
         python: `import os
 import psycopg2
 conn = psycopg2.connect(
-  host="postgres",
+  host="{service}",
   port=int(os.getenv("POSTGRES_PORT", "5432")),
   database=os.getenv("POSTGRES_DB"),
   user=os.getenv("POSTGRES_USER"),
@@ -40,31 +40,31 @@ conn = psycopg2.connect(
     redis: {
         nodejs: `const redis = require('redis');
 const client = redis.createClient({
-  url: \`redis://redis:\${process.env.REDIS_PORT || 6379}\`
+  url: \`redis://{service}:\${process.env.REDIS_PORT || 6379}\`
 });`,
         python: `import os
 import redis
 r = redis.Redis(
-  host='redis',
+  host='{service}',
   port=int(os.getenv("REDIS_PORT", "6379"))
 )`,
     },
     mongodb: {
         nodejs: `const { MongoClient } = require('mongodb');
 const client = new MongoClient(
-  \`mongodb://\${process.env.MONGO_USER}:\${process.env.MONGO_PASSWORD}@mongodb:\${process.env.MONGO_PORT || 27017}/\${process.env.MONGO_DB}\`
+  \`mongodb://\${process.env.MONGO_USER}:\${process.env.MONGO_PASSWORD}@{service}:\${process.env.MONGO_PORT || 27017}/\${process.env.MONGO_DB}\`
 );`,
         python: `import os
 from pymongo import MongoClient
 client = MongoClient(
-  host='mongodb',
+  host='{service}',
   port=int(os.getenv("MONGO_PORT", "27017"))
 )`,
     },
     mysql: {
         nodejs: `const mysql = require('mysql2');
 const conn = mysql.createConnection({
-  host: 'mysql',
+  host: '{service}',
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE,
@@ -72,7 +72,7 @@ const conn = mysql.createConnection({
         python: `import os
 import mysql.connector
 conn = mysql.connector.connect(
-  host="mysql",
+  host="{service}",
   user=os.getenv("MYSQL_USER"),
   password=os.getenv("MYSQL_PASSWORD"),
   database=os.getenv("MYSQL_DATABASE")
@@ -81,25 +81,25 @@ conn = mysql.connector.connect(
     rabbitmq: {
         nodejs: `(async () => {
   const amqp = require('amqplib');
-  const conn = await amqp.connect('amqp://rabbitmq:5672');
+  const conn = await amqp.connect('amqp://{service}:5672');
   // use conn here
 })();`,
         python: `import pika
 connection = pika.BlockingConnection(
-  pika.ConnectionParameters('rabbitmq')
+  pika.ConnectionParameters('{service}')
 )`,
     },
     nats: {
         nodejs: `(async () => {
   const { connect } = require('nats');
-  const nc = await connect({ servers: 'nats://nats:4222' });
+  const nc = await connect({ servers: 'nats://{service}:4222' });
   // use nc here
 })();`,
         python: `import asyncio
 import nats
 
 async def main():
-    nc = await nats.connect("nats://nats:4222")
+    nc = await nats.connect("nats://{service}:4222")
 
 asyncio.run(main())`,
     },
@@ -112,43 +112,43 @@ const SERVICE_COMMANDS: Record<string, Array<{ name: string; command: string }>>
     postgres: [
         {
             name: 'Connect with psql',
-            command: 'psql -h postgres -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-devdb}',
+            command: 'psql -h {service} -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-devdb}',
         },
         {
             name: 'List databases',
-            command: "psql -h postgres -U ${POSTGRES_USER:-postgres} -c '\\l'",
+            command: "psql -h {service} -U ${POSTGRES_USER:-postgres} -c '\\l'",
         },
         {
             name: 'Dump database',
             command:
-                'pg_dump -h postgres -U ${POSTGRES_USER:-postgres} ${POSTGRES_DB:-devdb} > backup.sql',
+                'pg_dump -h {service} -U ${POSTGRES_USER:-postgres} ${POSTGRES_DB:-devdb} > backup.sql',
         },
         {
             name: 'Test connection',
-            command: "psql -h postgres -U ${POSTGRES_USER:-postgres} -c 'SELECT version();'",
+            command: "psql -h {service} -U ${POSTGRES_USER:-postgres} -c 'SELECT version();'",
         },
     ],
     redis: [
-        { name: 'Connect with redis-cli', command: 'redis-cli -h redis' },
-        { name: 'Test connection', command: 'redis-cli -h redis ping' },
-        { name: 'Monitor commands', command: 'redis-cli -h redis monitor' },
-        { name: 'List all keys', command: 'redis-cli -h redis keys "*"' },
+        { name: 'Connect with redis-cli', command: 'redis-cli -h {service}' },
+        { name: 'Test connection', command: 'redis-cli -h {service} ping' },
+        { name: 'Monitor commands', command: 'redis-cli -h {service} monitor' },
+        { name: 'List all keys', command: 'redis-cli -h {service} keys "*"' },
     ],
     mongodb: [
         {
             name: 'Connect with mongosh',
-            command: 'mongosh mongodb://mongodb:${MONGO_PORT:-27017}/${MONGO_DB:-devdb}',
+            command: 'mongosh mongodb://{service}:${MONGO_PORT:-27017}/${MONGO_DB:-devdb}',
         },
         { name: 'List databases', command: 'mongosh --eval "show dbs"' },
     ],
     mysql: [
         {
             name: 'Connect with mysql client',
-            command: 'mysql -h mysql -u ${MYSQL_USER:-root} -p',
+            command: 'mysql -h {service} -u ${MYSQL_USER:-root} -p',
         },
         {
             name: 'List databases',
-            command: 'mysql -h mysql -u ${MYSQL_USER:-root} -p -e "SHOW DATABASES;"',
+            command: 'mysql -h {service} -u ${MYSQL_USER:-root} -p -e "SHOW DATABASES;"',
         },
     ],
     grafana: [
@@ -203,6 +203,10 @@ const SERVICE_CREDENTIALS: Record<string, string> = {
     rabbitmq: '${RABBITMQ_DEFAULT_USER:-guest} / ${RABBITMQ_DEFAULT_PASS:-guest}',
     minio: '${MINIO_ROOT_USER:-minioadmin} / ${MINIO_ROOT_PASSWORD:-minioadmin}',
 };
+
+function renderServiceSnippet(template: string, service: string): string {
+    return template.replace(/\{service\}/g, service);
+}
 
 /**
  * Generate the services.md reference document
@@ -353,7 +357,7 @@ export function generateServicesMarkdown(
             if (examples.nodejs) {
                 lines.push('*Node.js:*');
                 lines.push('```javascript');
-                lines.push(examples.nodejs);
+                lines.push(renderServiceSnippet(examples.nodejs, service));
                 lines.push('```');
                 lines.push('');
             }
@@ -361,7 +365,7 @@ export function generateServicesMarkdown(
             if (examples.python) {
                 lines.push('*Python:*');
                 lines.push('```python');
-                lines.push(examples.python);
+                lines.push(renderServiceSnippet(examples.python, service));
                 lines.push('```');
                 lines.push('');
             }
@@ -375,7 +379,7 @@ export function generateServicesMarkdown(
             lines.push('```bash');
             for (const cmd of commands) {
                 lines.push(`# ${cmd.name}`);
-                lines.push(cmd.command);
+                lines.push(renderServiceSnippet(cmd.command, service));
             }
             lines.push('```');
             lines.push('');

@@ -1,158 +1,105 @@
 # Opportunity Backlog
 
-Last updated: 2026-06-30
+Last updated: 2026-07-23
 
 ## Prioritized
 
-### 1. Discovery surface clarity and docs alignment
-
-- **type**: UX
-- **status**: prioritized
-- **value summary**: Reduce first-run confusion and failed self-service discovery by making available overlays easier to find and current workflows easier to follow.
-- **urgency**: High
-- **confidence**: High
-- **rough effort/risk**: Low–Medium effort, Low risk
-- **evidence**:
-    - Default `list` output omits `messaging` category despite 3 live messaging overlays.
-    - `list --category messaging` and other filtered tables render many ports as `[object Object]`.
-    - User docs still show deprecated patterns such as category-centric project config (`language:` / `database:`), old CLI examples (`--postgres`, `cs list --presets`), and `_serviceOrder` references.
-    - `plan --diff` exists in CLI/help/tests but is lightly surfaced in docs.
-- **recommended next prompt or owner**: Spec captured in `docs/specs/030-discovery-surface-and-docs-alignment/spec.md`.
-
-### 2. Versioned private overlay and preset catalogs
+### 1. Versioned private overlay and preset catalogs
 
 - **type**: feature
-- **status**: candidate
-- **value summary**: Unlock platform-team adoption by letting orgs publish and pin private catalogs without forking tool.
+- **status**: prioritized
+- **value summary**: Unlock the biggest strategic expansion path by letting platform teams publish, pin, and evolve private catalogs without forking the tool, while preserving deterministic project-file-driven replay.
 - **urgency**: Medium
 - **confidence**: Medium
 - **rough effort/risk**: High effort, High architecture/security risk
 - **evidence**:
     - Draft spec exists: `docs/specs/029-versioned-private-catalogs/spec.md`.
-    - Opportunity aligns with platform/team workflow expansion and reproducible pinned project config model.
-    - Spec now includes technical-design and routing closure for implementation handoff.
-- **recommended next prompt or owner**: Spec captured in `docs/specs/029-versioned-private-catalogs/spec.md`.
+    - The spec identifies blocked platform-team outcomes today: central platform ownership, independent catalog release cadence, reproducible pinning, and explicit trust/upgrade workflows.
+    - The spec also identifies cross-command impact across `init`, `regen`, `doctor`, `list`, `explain`, and schema-aware authoring.
+    - The spec explicitly calls for a new ADR because the feature changes trust boundaries, registry resolution order, validation, and cache/materialization responsibilities.
+- **recommended next prompt or owner**: `/adr` for the catalog trust/resolution decision, then implementation planning against `docs/specs/029-versioned-private-catalogs/spec.md`.
 
-### 3. Command and doc model simplification sweep
+### 2. Broaden repeatable compose overlays beyond PostgreSQL
 
-- **type**: documentation
-- **status**: candidate
-- **value summary**: Lower learning cost by aligning README/docs/help/examples around one canonical mental model: `superposition.yml` + flat `overlays:` + discovery commands.
+- **type**: feature
+- **status**: prioritized
+- **value summary**: Expand real stack-building capability by making more infrastructure overlays repeatable through the now-final named-instance contract, increasing overlay availability and customization power for compose users.
+- **urgency**: High
+- **confidence**: Medium-High
+- **rough effort/risk**: Medium effort, Medium risk
+- **evidence**:
+    - `docs/specs/050-compose-overlay-instances/spec.md` is now `Final`, so the core object-form multi-instance contract is complete.
+    - `docs/specs/051-repeatable-compose-overlay-rollout/spec.md` already defines a phased rollout and approves Phase 1A candidates: `redis`, `fuseki`, `sqlserver`, and `nats`.
+    - The `051` audit explicitly separates low-risk Class A overlays from deferred dependency-bound or multi-service families.
+    - Recent BDD and plan-output hardening reduced regression risk for follow-on user-visible overlay work.
+- **recommended next prompt or owner**: `/spec` or implementation handoff for `docs/specs/051-repeatable-compose-overlay-rollout/spec.md`.
+
+### 3. Discovery surface clarity and canonical docs alignment
+
+- **type**: UX
+- **status**: prioritized
+- **value summary**: Improve user trust, discovery quality, and day-one experience by aligning CLI discovery surfaces, docs, examples, and preview-first workflow guidance around the current canonical model.
 - **urgency**: High
 - **confidence**: High
-- **rough effort/risk**: Medium effort, Low risk
+- **rough effort/risk**: Low-Medium effort, Low risk
 - **evidence**:
-    - `README.md` quickstart still shows category-based project file fields.
-    - `tool/README.md`, `docs/quick-reference.md`, `docs/examples.md`, `docs/team-workflow.md`, `docs/messaging-quick-start.md`, `docs/creating-overlays.md`, `docs/dependencies.md` contain stale CLI/config guidance.
-- **recommended next prompt or owner**: Covered by `docs/specs/030-discovery-surface-and-docs-alignment/spec.md`.
+    - Draft spec exists: `docs/specs/030-discovery-surface-and-docs-alignment/spec.md`.
+    - Repo evidence in the spec/backlog shows missing `messaging` in default discovery, `[object Object]` rendering in filtered output, stale category-centric config guidance, and underexposed `plan` / `plan --verbose` / `plan --diff` workflow.
+    - `docs/roadmap.md` currently places this theme in `Now`.
+- **recommended next prompt or owner**: `/spec` or implementation handoff for `docs/specs/030-discovery-surface-and-docs-alignment/spec.md`.
 
 ### 4. Preset-led onboarding for common jobs-to-be-done
 
 - **type**: feature
 - **status**: candidate
-- **value summary**: Increase successful first-run setup by steering users toward opinionated presets instead of large overlay catalogs.
+- **value summary**: Reduce first-run choice overload by steering users toward opinionated presets first, while preserving direct overlay customization when needed.
 - **urgency**: Medium
 - **confidence**: Medium
 - **rough effort/risk**: Medium effort, Medium risk
 - **evidence**:
-    - 94 catalog items create high choice load.
-    - 13 presets already exist for common scenarios (`frontend`, `web-api`, `microservice`, `local-llm`, etc.).
-    - Docs emphasize composability, but preset-first guidance appears secondary in some entrypoints.
-- **recommended next prompt or owner**: Spec captured in `docs/specs/031-preset-led-onboarding-for-common-jobs/spec.md`.
+    - Draft spec exists: `docs/specs/031-preset-led-onboarding-for-common-jobs/spec.md`.
+    - The spec cites 94 catalog items and 13 existing presets, with first-run surfaces still emphasizing manual composability in some places.
+    - `docs/roadmap.md` currently places this theme in `Next`.
+- **recommended next prompt or owner**: `/spec` or implementation handoff for `docs/specs/031-preset-led-onboarding-for-common-jobs/spec.md`.
 
-### 5. Power-user planning workflow visibility
-
-- **type**: UX
-- **status**: candidate
-- **value summary**: Improve confidence before generation by surfacing `plan`, `--verbose`, and `--diff` as safer preview workflow.
-- **urgency**: Medium
-- **confidence**: Medium
-- **rough effort/risk**: Low effort, Low risk
-- **evidence**:
-    - `plan --diff` fully exists in CLI/help/tests.
-    - Main docs center `init`/`regen`; preview workflow less prominent.
-- **recommended next prompt or owner**: Covered by `docs/specs/030-discovery-surface-and-docs-alignment/spec.md`.
-
-### 6. Project-local CLI command delivery skill
+### 5. Portfolio refresh after recent workflow and overlay-contract wins
 
 - **type**: process
 - **status**: candidate
-- **value summary**: Speed up safe command work by giving contributors and agents one repo-specific playbook for `tool/commands/**`, including command-boundary rules, ADR `001` alignment, source-vs-compiled path handling, and targeted validation.
-- **urgency**: High
-- **confidence**: High
-- **rough effort/risk**: Medium effort, Low risk
-- **evidence**:
-    - `docs/specs/README.md` currently lists 21 CLI-related specs (`CLI-UX`, `CLI-COMMAND`, `CLI-FLAG`) versus 4 `OVERLAY-NEW` specs, but `.pi/skills/` contains only `overlay-development`.
-    - Recent specs `037-cli-command-modularization` and `038-doctor-and-plan-command-modularization` codify command-specific boundaries and behavior-preserving refactor rules.
-    - `tool/commands/` now contains modular command trees for `adopt`, `doctor`, and `plan`, plus focused command tests, but no project-local Pi skill or prompt helps contributors apply those patterns consistently.
-- **recommended next prompt or owner**: Draft `.pi/skills/cli-command-delivery/SKILL.md` from `AGENTS.md`, `docs/foundation.md`, `docs/definition-of-done.md`, ADR `001`, specs `033`–`038`, and `tool/commands/{adopt,doctor,plan}/`.
-
-### 7. Canonical docs alignment skill for contributor sweeps
-
-- **type**: documentation
-- **status**: candidate
-- **value summary**: Reduce docs drift by giving contributors and agents a repo-local checklist for project-file-first, flat `overlays:` guidance, preview-first command flows, and legacy-labeling rules.
-- **urgency**: High
-- **confidence**: High
-- **rough effort/risk**: Low effort, Low risk
-- **evidence**:
-    - Draft spec `030-discovery-surface-and-docs-alignment` already bundles repo evidence about stale docs/help/examples and inconsistent discovery guidance.
-    - `README.md` still teaches category-centric project config fields, `CONTRIBUTING.md` still teaches deprecated overlay/template registration patterns, and `.pi/README.md` mentions a `/delivery-loop` prompt that does not exist.
-    - `docs/foundation.md` explicitly notes that some older docs still reflect earlier product phases and need follow-up alignment with ADR `001`.
-- **recommended next prompt or owner**: Draft `.pi/skills/canonical-docs-alignment/SKILL.md` for README/docs/help/example cleanup against ADR `001`, spec `030`, and current CLI behavior.
-
-### 8. Workflow artifact and Pi asset sync skill
-
-- **type**: process
-- **status**: candidate
-- **value summary**: Prevent workflow drift by teaching contributors and agents how to keep specs, opportunities, roadmap, changelog, `.pi` assets, and other repo guidance synchronized after architecture or workflow changes.
+- **value summary**: Keep planning artifacts trustworthy after recent shipping progress by reflecting that specs `050`, `052`, and `053` are now final and that BDD is now an explicit Definition-of-Done requirement for user-visible workflow changes.
 - **urgency**: Medium
 - **confidence**: High
 - **rough effort/risk**: Low effort, Low risk
 - **evidence**:
-    - `AGENTS.md` and `docs/definition-of-done.md` require spec-first delivery, changelog updates, generated artifact regeneration, and workflow-doc synchronization.
-    - `.pi/README.md` currently documents `/delivery-loop`, but `.pi/prompts/` contains only `overlay-audit.md` and `overlay-review.md`.
-    - Spec `037-cli-command-modularization` calls out an empty `docs/specs/037-doctor-command-modularization/` directory as workflow hygiene debt.
-- **recommended next prompt or owner**: Draft `.pi/skills/workflow-sync/SKILL.md` for repo artifact hygiene, including `.pi` inventory checks and when to update `docs/opportunities/README.md`, `docs/roadmap.md`, `CHANGELOG.md`, and spec indexes.
-
-### 9. Dogfooding and generated-artifact safety skill
-
-- **type**: reliability
-- **status**: candidate
-- **value summary**: Make risky repo-self-hosting changes safer by codifying when contributors may touch the root devcontainer, how to route changes back to source overlays/project config, and which regen/doctor checks prove the repo still dogfoods correctly.
-- **urgency**: Medium
-- **confidence**: Medium
-- **rough effort/risk**: Medium effort, Medium risk
-- **evidence**:
-    - `CONTRIBUTING.md` states the repo dogfoods its own devcontainer workflow.
-    - `.github/instructions/dogfooding.instructions.md` documents special handling for the root `.devcontainer/`, but there is no equivalent project-local Pi skill.
-    - `AGENTS.md` and `docs/definition-of-done.md` enforce regen/doctor/reproducibility rules that are easy to miss during contributor automation work outside overlay-only tasks.
-- **recommended next prompt or owner**: Draft `.pi/skills/dogfooding-safety/SKILL.md` around root `.devcontainer/`, project-file authority, regen/doctor validation, and generated-artifact boundaries.
+    - `docs/opportunities/README.md` and `docs/roadmap.md` were previously biased toward older discovery/skill opportunities.
+    - Specs `050-compose-overlay-instances`, `052-overlay-requirements-capture`, and `053-behave-bdd-overlay-discovery` are now final.
+    - `AGENTS.md` and `docs/definition-of-done.md` now explicitly require BDD coverage or justification for user-visible workflow changes.
+- **recommended next prompt or owner**: `/roadmap` if a broader planning refresh is desired beyond this backlog update.
 
 ## Horizon buckets
 
 ### Quick wins
 
-1. Discovery surface clarity and docs alignment
-2. Command and doc model simplification sweep
-3. Canonical docs alignment skill for contributor sweeps
-4. Workflow artifact and Pi asset sync skill
-5. Power-user planning workflow visibility
+1. Discovery surface clarity and canonical docs alignment
+2. Portfolio refresh after recent workflow and overlay-contract wins
+3. Preset-led onboarding for common jobs-to-be-done
 
 ### Next big bets
 
-1. Project-local CLI command delivery skill
-2. Versioned private overlay and preset catalogs
-3. Preset-led onboarding for common jobs-to-be-done
+1. Versioned private overlay and preset catalogs
+2. Broaden repeatable compose overlays beyond PostgreSQL
 
 ### Longer-term options
 
-- Dogfooding and generated-artifact safety skill
-- Catalog version upgrade assistant after private catalogs foundation exists
-- Usage analytics or feedback loops to validate preset/discovery effectiveness
+- Catalog upgrade assistant after private catalogs foundation exists
+- Usage analytics or feedback loops to validate onboarding and preset effectiveness
+- Dependency-aware repeated overlay binding after `051` Phase 1 proves the audit/rollout model
 
 ## Notes
 
-- Ranking based on repository evidence only. No telemetry, issue volume, or conversion data reviewed.
-- Quick-win items likely compound together and may be worth bundling into one user-facing discovery/onboarding initiative.
-- Contributor/agent skill opportunities added from a repo-local Pi audit on 2026-06-30; they target maintainer workflow quality rather than end-user product surface.
+- Ranking emphasizes expected value first because the current prioritization request explicitly deprioritized effort as a decision driver.
+- Confidence remains evidence-bound to repository docs/specs only; no telemetry, support volume, or market research was reviewed here.
+- `029` is ranked highest on upside, not on ease or certainty.
+- `051` is the strongest newly strengthened near-term capability opportunity because `050` is now final and `051` already narrows the rollout to audited overlay classes.
+- `030` remains the strongest broad UX/trust opportunity and is still the clearest low-risk shipping candidate.
+- Earlier repo-local Pi skill opportunities are no longer active backlog leaders because the relevant workflow/skill work has already shipped through specs `039` and `052`.

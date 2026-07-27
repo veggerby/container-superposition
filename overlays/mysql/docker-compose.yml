@@ -33,7 +33,7 @@ services:
             start_period: 30s
 
     phpmyadmin:
-        image: phpmyadmin:${PHPMYADMIN_VERSION:-latest}
+        image: phpmyadmin:${PHPMYADMIN_VERSION:-5.2.2-apache}
         restart: unless-stopped
         environment:
             PMA_HOST: mysql
@@ -54,4 +54,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

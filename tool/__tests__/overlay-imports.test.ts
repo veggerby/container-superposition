@@ -492,12 +492,12 @@ describe('Overlay Imports', () => {
     // Shared fragment format validation
     // -------------------------------------------------------------------------
     describe('shared fragment format', () => {
-        it('recommended-extensions.json should be a valid devcontainer patch with extensions array', () => {
+        it('js-ts-settings.json should be a valid devcontainer patch with extensions array', () => {
             const fragPath = path.join(
                 REAL_OVERLAYS_DIR,
                 '.shared',
                 'vscode',
-                'recommended-extensions.json'
+                'js-ts-settings.json'
             );
             expect(fs.existsSync(fragPath)).toBe(true);
 
@@ -508,25 +508,21 @@ describe('Overlay Imports', () => {
             expect(content.customizations.vscode.extensions.length).toBeGreaterThan(0);
         });
 
-        it('an overlay can import recommended-extensions.json and get its extensions merged', () => {
-            // Create a local .shared/vscode pointing to the real recommended-extensions.json
+        it('an overlay can import js-ts-settings.json and get its extensions merged', () => {
             const localSharedVscode = path.join(overlaysDir, '.shared', 'vscode');
             fs.mkdirSync(localSharedVscode, { recursive: true });
             const realExtPath = path.join(
                 REAL_OVERLAYS_DIR,
                 '.shared',
                 'vscode',
-                'recommended-extensions.json'
+                'js-ts-settings.json'
             );
-            fs.copyFileSync(
-                realExtPath,
-                path.join(localSharedVscode, 'recommended-extensions.json')
-            );
+            fs.copyFileSync(realExtPath, path.join(localSharedVscode, 'js-ts-settings.json'));
 
             createTestOverlay(
                 overlaysDir,
                 'ext-overlay',
-                ['.shared/vscode/recommended-extensions.json'],
+                ['.shared/vscode/js-ts-settings.json'],
                 {}
             );
 
@@ -534,7 +530,7 @@ describe('Overlay Imports', () => {
             const extensions = result.customizations?.vscode?.extensions as string[];
             expect(Array.isArray(extensions)).toBe(true);
             expect(extensions.length).toBeGreaterThan(0);
-            expect(extensions).toContain('eamodio.gitlens');
+            expect(extensions).toContain('dbaeumer.vscode-eslint');
         });
     });
 });

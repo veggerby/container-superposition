@@ -5,7 +5,7 @@ import type { OverlaysConfig, Stack } from '../schema/types.js';
 import { findProjectConfig } from '../schema/project-config.js';
 import { getToolVersion } from '../utils/version.js';
 import { describeSource } from '../ux/semantics/source.js';
-import { resolveNextStep } from '../ux/semantics/next-step.js';
+import type { NextStep } from '../ux/semantics/types.js';
 import { renderFrame, renderList, renderNextStep, renderSection } from '../ux/renderers/common.js';
 
 interface HashOptions {
@@ -62,6 +62,30 @@ function findManifest(manifestPath?: string): string | null {
         if (fs.existsSync(resolved)) return resolved;
     }
     return null;
+}
+
+function buildHashNextStep(input: {
+    manifestPath?: string;
+    stack: string;
+    overlays: string[];
+    preset: string | null;
+    base: string;
+}): NextStep {
+    if (input.manifestPath) {
+        return {
+            command: `cs plan --from-manifest ${input.manifestPath}`,
+            reason: 'preview the normalized intent you want to compare against',
+        };
+    }
+
+    if (input.preset || input.base !== 'bookworm') {
+        return { command: null, reason: 'no equivalent concrete preview command for this input' };
+    }
+
+    return {
+        command: `cs plan --stack ${input.stack} --overlays ${input.overlays.join(',')}`,
+        reason: 'preview the normalized intent you want to compare against',
+    };
 }
 
 export function computeHash(
@@ -150,7 +174,13 @@ export async function hashCommand(
         const tool = getToolVersion().split('.').slice(0, 2).join('.');
         const { hash, hashFull } = computeHash(stack, sortedOverlays, preset, base, tool);
         const source = describeSource({ manifestPath, hasCliSelection: !manifestPath });
-        const nextStepModel = resolveNextStep({ command: 'hash' });
+        const nextStepModel = buildHashNextStep({
+            manifestPath,
+            stack,
+            overlays: sortedOverlays,
+            preset,
+            base,
+        });
 
         const writeLocation = options.write
             ? path.join(
@@ -247,7 +277,9 @@ export async function hashCommand(
                 ])
             );
         }
-        sections.push('', renderNextStep(nextStepModel));
+        if (nextStepModel.command) {
+            sections.push('', renderNextStep(nextStepModel));
+        }
         console.log([frame, '', ...sections].join('\n'));
     } catch (error) {
         console.error(error);

@@ -114,13 +114,14 @@ Rust stable with cargo, rustfmt, and clippy
 
 SPARQL 1.1 server and triplestore backed by Apache Jena TDB
 
-| Property     | Value                                                                             |
-| ------------ | --------------------------------------------------------------------------------- |
-| **Category** | database                                                                          |
-| **Supports** | compose                                                                           |
-| **Suggests** | `java`, `python`, `nodejs`                                                        |
-| **Tags**     | `database`, `rdf`, `sparql`, `triplestore`, `semantic-web`, `linked-data`, `jena` |
-| **Ports**    | 3030/http                                                                         |
+| Property       | Value                                                                             |
+| -------------- | --------------------------------------------------------------------------------- |
+| **Category**   | database                                                                          |
+| **Supports**   | compose                                                                           |
+| **Suggests**   | `java`, `python`, `nodejs`                                                        |
+| **Tags**       | `database`, `rdf`, `sparql`, `triplestore`, `semantic-web`, `linked-data`, `jena` |
+| **Repeatable** | yes                                                                               |
+| **Ports**      | 3030/http                                                                         |
 
 ### DuckDB (`duckdb`)
 
@@ -188,14 +189,15 @@ PostgreSQL 16 with the pgvector extension for vector similarity search
 
 PostgreSQL 16 database
 
-| Property      | Value                         |
-| ------------- | ----------------------------- |
-| **Category**  | database                      |
-| **Supports**  | compose                       |
-| **Suggests**  | `prometheus`, `grafana`       |
-| **Conflicts** | `pgvector`                    |
-| **Tags**      | `database`, `sql`, `postgres` |
-| **Ports**     | 5432/tcp                      |
+| Property       | Value                         |
+| -------------- | ----------------------------- |
+| **Category**   | database                      |
+| **Supports**   | compose                       |
+| **Suggests**   | `prometheus`, `grafana`       |
+| **Conflicts**  | `pgvector`                    |
+| **Tags**       | `database`, `sql`, `postgres` |
+| **Repeatable** | yes                           |
+| **Ports**      | 5432/tcp                      |
 
 ### Qdrant (`qdrant`)
 
@@ -213,25 +215,27 @@ High-performance vector database for similarity search and embeddings
 
 Redis 7 cache
 
-| Property     | Value                        |
-| ------------ | ---------------------------- |
-| **Category** | database                     |
-| **Supports** | compose                      |
-| **Suggests** | `prometheus`, `grafana`      |
-| **Tags**     | `database`, `cache`, `redis` |
-| **Ports**    | 6379/tcp                     |
+| Property       | Value                        |
+| -------------- | ---------------------------- |
+| **Category**   | database                     |
+| **Supports**   | compose                      |
+| **Suggests**   | `prometheus`, `grafana`      |
+| **Tags**       | `database`, `cache`, `redis` |
+| **Repeatable** | yes                          |
+| **Ports**      | 6379/tcp                     |
 
 ### SQL Server (`sqlserver`)
 
 SQL Server 2022 for Linux
 
-| Property     | Value                                       |
-| ------------ | ------------------------------------------- |
-| **Category** | database                                    |
-| **Supports** | compose                                     |
-| **Suggests** | `dotnet`, `prometheus`, `grafana`           |
-| **Tags**     | `database`, `sql`, `sqlserver`, `microsoft` |
-| **Ports**    | 1433                                        |
+| Property       | Value                                       |
+| -------------- | ------------------------------------------- |
+| **Category**   | database                                    |
+| **Supports**   | compose                                     |
+| **Suggests**   | `dotnet`, `prometheus`, `grafana`           |
+| **Tags**       | `database`, `sql`, `sqlserver`, `microsoft` |
+| **Repeatable** | yes                                         |
+| **Ports**      | 1433                                        |
 
 ### SQLite (`sqlite`)
 
@@ -636,6 +640,16 @@ Git LFS, GitHub CLI, GPG/SSH support for secure Git operations
 | ------------ | -------------------------------------- |
 | **Category** | dev                                    |
 | **Tags**     | `dev`, `git`, `security`, `ssh`, `gpg` |
+
+### GitHub Copilot CLI (`copilot-cli`)
+
+GitHub Copilot CLI for terminal-first AI coding assistance
+
+| Property     | Value                                   |
+| ------------ | --------------------------------------- |
+| **Category** | dev                                     |
+| **Requires** | `nodejs`                                |
+| **Tags**     | `dev`, `ai`, `github`, `copilot`, `cli` |
 
 ### gRPC Tools (`grpc-tools`)
 

@@ -1,7 +1,7 @@
 version: '3.8'
 services:
     promtail:
-        image: grafana/promtail:${PROMTAIL_VERSION:-latest}
+        image: grafana/promtail:${PROMTAIL_VERSION:-3.4.2}
         restart: unless-stopped
         command: -config.file=/etc/promtail/promtail-config.yaml
         volumes:
@@ -21,4 +21,3 @@ services:
 
 networks:
     devnet:
-        name: devnet

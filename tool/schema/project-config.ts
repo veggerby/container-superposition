@@ -24,6 +24,9 @@ import type {
     ProjectPort,
     ProjectPortAutoForwardAction,
     ProjectConfigSelection,
+    ProjectOverlayEntry,
+    NamedOverlaySelectionEntry,
+    NormalizedOverlaySelection,
     QuestionnaireAnswers,
     Stack,
     SuperpositionManifest,
@@ -32,6 +35,11 @@ import {
     assertComposeNetworkNameSupported,
     validateComposeNetworkName,
 } from '../utils/compose-network.js';
+import {
+    isNamespaceQualifiedId,
+    parseCatalogDeclarations,
+    resolveOverlaysContext,
+} from './catalogs.js';
 
 export const PROJECT_CONFIG_FILENAMES = ['.superposition.yml', 'superposition.yml'] as const;
 export const LOCAL_PROJECT_CONFIG_FILENAME = 'superposition.local.yml' as const;
@@ -68,13 +76,16 @@ export interface LoadedLocalProjectConfig {
 }
 
 export interface GlobalInitDefaultsSelection {
+    stack?: ProjectConfigSelection['stack'];
     baseImage?: ProjectConfigSelection['baseImage'];
+    customImage?: ProjectConfigSelection['customImage'];
     editor?: ProjectConfigSelection['editor'];
     target?: ProjectConfigSelection['target'];
     outputPath?: ProjectConfigSelection['outputPath'];
     minimal?: ProjectConfigSelection['minimal'];
+    composeEnvFiles?: ProjectConfigSelection['composeEnvFiles'];
     devcontainerGitignore?: ProjectConfigSelection['devcontainerGitignore'];
-    overlays?: ProjectConfigSelection['overlays'];
+    overlays?: OverlayId[];
 }
 
 export interface StackAwareLocalProjectConfigTemplateSelection {
@@ -263,47 +274,266 @@ function expectOverlayArray<T extends string>(
     return parsed as T[];
 }
 
-/**
- * Collect overlay IDs from all category arrays and the flat overlays list,
- * returning a deduplicated flat array. Category arrays are treated as backward-
- * compatible sugar — internally everything is a flat list of overlay IDs.
- */
-function aggregateOverlays(
+const NAMED_OVERLAY_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+
+function hasReservedCsKey(key: string): boolean {
+    return key === 'CS_' || key.startsWith('CS_');
+}
+
+function parseNamedOverlaySelectionEntry(
+    entry: unknown,
+    fieldName: string,
+    lookup: ReturnType<typeof buildCategoryLookup>
+): NamedOverlaySelectionEntry {
+    const record = expectPlainObject(entry, fieldName);
+    const supportedKeys = new Set(['overlay', 'name', 'parameters']);
+    const unsupportedKeys = Object.keys(record).filter((key) => !supportedKeys.has(key));
+    if (unsupportedKeys.length > 0) {
+        throw new ProjectConfigError(
+            `${fieldName} contains unsupported keys: ${unsupportedKeys.join(', ')}`
+        );
+    }
+
+    const overlayId = expectString(record.overlay, `${fieldName}.overlay`);
+    if (!isSelectableOverlayId(overlayId, lookup)) {
+        throw new ProjectConfigError(
+            `${fieldName}.overlay contains unsupported entry: ${overlayId}`
+        );
+    }
+
+    const name = expectString(record.name, `${fieldName}.name`);
+    if (!NAMED_OVERLAY_NAME_PATTERN.test(name)) {
+        throw new ProjectConfigError(
+            `${fieldName}.name must match ${NAMED_OVERLAY_NAME_PATTERN.source}`
+        );
+    }
+
+    const parameters =
+        record.parameters === undefined ? undefined : parseParameters(record.parameters);
+    if (parameters) {
+        for (const key of Object.keys(parameters)) {
+            if (hasReservedCsKey(key)) {
+                throw new ProjectConfigError(
+                    `${fieldName}.parameters.${key} is reserved. Keys equal to or prefixed with CS_ are not allowed.`
+                );
+            }
+        }
+    }
+
+    return {
+        overlay: overlayId as OverlayId,
+        name,
+        parameters,
+    };
+}
+
+function isSelectableOverlayId(
+    overlayId: string,
+    lookup: ReturnType<typeof buildCategoryLookup>
+): boolean {
+    return lookup.isKnownOverlay(overlayId) || isNamespaceQualifiedId(overlayId);
+}
+
+function parseProjectOverlayEntries(
+    value: unknown,
+    lookup: ReturnType<typeof buildCategoryLookup>
+): ProjectOverlayEntry[] | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    if (!Array.isArray(value)) {
+        throw new ProjectConfigError('overlays must be an array');
+    }
+
+    const parsed = value.map((entry, index): ProjectOverlayEntry => {
+        if (typeof entry === 'string') {
+            const overlayId = expectString(entry, `overlays[${index}]`);
+            if (!isSelectableOverlayId(overlayId, lookup)) {
+                throw new ProjectConfigError(`overlays contains unsupported entries: ${overlayId}`);
+            }
+            return overlayId as OverlayId;
+        }
+
+        return parseNamedOverlaySelectionEntry(entry, `overlays[${index}]`, lookup);
+    });
+
+    return parsed.length > 0 ? parsed : undefined;
+}
+
+function normalizeProjectOverlaySelections(
+    overlays: ProjectOverlayEntry[] | undefined,
     document: Record<string, any>,
     lookup: ReturnType<typeof buildCategoryLookup>
-): OverlayId[] | undefined {
-    const ids: string[] = [];
+): NormalizedOverlaySelection[] | undefined {
+    const selections: NormalizedOverlaySelection[] = [];
+    const flat = overlays ?? [];
+    const hasNamedEntries = flat.some((entry) => typeof entry !== 'string');
 
-    // Flat overlays field (preferred)
-    const flat = expectOverlayArray<string>(document.overlays, 'overlays', lookup.isKnownOverlay);
-    if (flat) ids.push(...flat);
+    for (const entry of flat) {
+        if (typeof entry === 'string') {
+            selections.push({ kind: 'singleton', overlayId: entry, source: 'overlays' });
+        } else {
+            selections.push({
+                kind: 'named',
+                overlayId: entry.overlay,
+                instanceName: entry.name,
+                parameters: entry.parameters,
+                source: 'overlays',
+            });
+        }
+    }
 
-    // Category arrays (backward-compatible sugar)
-    const language = expectOverlayArray<string>(document.language, 'language', lookup.language);
-    if (language) ids.push(...language);
-    const database = expectOverlayArray<string>(document.database, 'database', lookup.database);
-    if (database) ids.push(...database);
-    const observability = expectOverlayArray<string>(
-        document.observability,
-        'observability',
-        lookup.observability
-    );
-    if (observability) ids.push(...observability);
-    const cloudTools = expectOverlayArray<string>(
-        document.cloudTools,
-        'cloudTools',
-        lookup.cloudTools
-    );
-    if (cloudTools) ids.push(...cloudTools);
-    const devTools = expectOverlayArray<string>(document.devTools, 'devTools', lookup.devTools);
-    if (devTools) ids.push(...devTools);
+    const categoryEntries: Array<{ field: string; values: OverlayId[] | undefined }> = [
+        {
+            field: 'language',
+            values: expectOverlayArray<string>(document.language, 'language', lookup.language) as
+                | OverlayId[]
+                | undefined,
+        },
+        {
+            field: 'database',
+            values: expectOverlayArray<string>(document.database, 'database', lookup.database) as
+                | OverlayId[]
+                | undefined,
+        },
+        {
+            field: 'observability',
+            values: expectOverlayArray<string>(
+                document.observability,
+                'observability',
+                lookup.observability
+            ) as OverlayId[] | undefined,
+        },
+        {
+            field: 'cloudTools',
+            values: expectOverlayArray<string>(
+                document.cloudTools,
+                'cloudTools',
+                lookup.cloudTools
+            ) as OverlayId[] | undefined,
+        },
+        {
+            field: 'devTools',
+            values: expectOverlayArray<string>(document.devTools, 'devTools', lookup.devTools) as
+                | OverlayId[]
+                | undefined,
+        },
+    ];
 
-    // playwright boolean maps to an overlay
     const playwright = expectOptionalBoolean(document.playwright, 'playwright');
-    if (playwright) ids.push('playwright');
+    if (playwright) {
+        categoryEntries.push({ field: 'playwright', values: ['playwright' as OverlayId] });
+    }
 
-    if (ids.length === 0) return undefined;
-    return [...new Set(ids)] as OverlayId[];
+    const hasCategorySelections = categoryEntries.some((entry) => (entry.values?.length ?? 0) > 0);
+    if (hasNamedEntries && hasCategorySelections) {
+        throw new ProjectConfigError(
+            'Named overlay entries require the unified overlays: surface only. Remove category fields such as language, database, cloudTools, devTools, observability, or playwright.'
+        );
+    }
+
+    for (const { values } of categoryEntries) {
+        for (const overlayId of values ?? []) {
+            selections.push({ kind: 'singleton', overlayId, source: 'category' });
+        }
+    }
+
+    if (selections.length === 0) {
+        return undefined;
+    }
+
+    const seenSingletons = new Set<string>();
+    const namedByFamily = new Map<string, Set<string>>();
+    const hasStringFamily = new Set<string>();
+    const hasNamedFamily = new Set<string>();
+
+    for (const selection of selections) {
+        if (selection.kind === 'singleton') {
+            if (selection.source === 'overlays') {
+                if (seenSingletons.has(selection.overlayId)) {
+                    throw new ProjectConfigError(
+                        `Overlay '${selection.overlayId}' is selected more than once via legacy string entries. Use a named object entry on a repeatable overlay instead.`
+                    );
+                }
+                seenSingletons.add(selection.overlayId);
+                hasStringFamily.add(selection.overlayId);
+            }
+            continue;
+        }
+
+        hasNamedFamily.add(selection.overlayId);
+        const names = namedByFamily.get(selection.overlayId) ?? new Set<string>();
+        if (names.has(selection.instanceName)) {
+            throw new ProjectConfigError(
+                `Overlay '${selection.overlayId}' repeats the named instance '${selection.instanceName}'. Instance names must be unique within an overlay family.`
+            );
+        }
+        names.add(selection.instanceName);
+        namedByFamily.set(selection.overlayId, names);
+    }
+
+    const mixedFamilies = [...hasNamedFamily].filter((overlayId) => hasStringFamily.has(overlayId));
+    if (mixedFamilies.length > 0) {
+        throw new ProjectConfigError(
+            `Overlay families cannot mix legacy string and named object selection in the same project: ${mixedFamilies.join(', ')}`
+        );
+    }
+
+    return selections;
+}
+
+function projectOverlayEntriesFromSelections(
+    selections: NormalizedOverlaySelection[] | undefined,
+    options: { includeCategorySelections?: boolean } = {}
+): ProjectOverlayEntry[] | undefined {
+    if (!selections?.length) {
+        return undefined;
+    }
+
+    const entries = selections.flatMap((selection): ProjectOverlayEntry[] => {
+        if (selection.source === 'category' && options.includeCategorySelections !== true) {
+            return [];
+        }
+        if (selection.kind === 'singleton') {
+            return [selection.overlayId];
+        }
+        return [
+            {
+                overlay: selection.overlayId,
+                name: selection.instanceName,
+                parameters: selection.parameters,
+            },
+        ];
+    });
+
+    return entries.length > 0 ? entries : undefined;
+}
+
+function explicitOverlayIdsFromSelections(
+    selections: NormalizedOverlaySelection[] | undefined
+): OverlayId[] | undefined {
+    if (!selections?.length) {
+        return undefined;
+    }
+
+    return [...new Set(selections.map((selection) => selection.overlayId))] as OverlayId[];
+}
+
+export function getOverlayIdsFromProjectSelection(
+    selection: ProjectConfigSelection,
+    overlaysConfig: OverlaysConfig
+): OverlayId[] {
+    const lookup = buildCategoryLookup(overlaysConfig);
+    return (
+        explicitOverlayIdsFromSelections(
+            normalizeProjectOverlaySelections(selection.overlays, {}, lookup)
+        ) ?? []
+    );
+}
+
+export function hasNamedProjectOverlaySelections(selection: ProjectConfigSelection): boolean {
+    return (selection.overlays ?? []).some((entry) => typeof entry !== 'string');
 }
 
 /**
@@ -365,6 +595,61 @@ function distributeOverlaysToAnswers(
         devTools: devTools.length > 0 ? devTools : undefined,
         playwright,
     };
+}
+
+function validateNormalizedOverlaySelections(
+    selections: NormalizedOverlaySelection[] | undefined,
+    selection: Pick<ProjectConfigSelection, 'stack' | 'parameters'>,
+    lookup: ReturnType<typeof buildCategoryLookup>
+): void {
+    if (!selections?.length) {
+        return;
+    }
+
+    for (const key of Object.keys(selection.parameters ?? {})) {
+        if (hasReservedCsKey(key)) {
+            throw new ProjectConfigError(
+                `parameters.${key} is reserved. Keys equal to or prefixed with CS_ are not allowed.`
+            );
+        }
+    }
+
+    for (const overlaySelection of selections) {
+        const overlay = lookup.overlayById.get(overlaySelection.overlayId);
+        if (!overlay) {
+            throw new ProjectConfigError(`Unknown overlay '${overlaySelection.overlayId}'.`);
+        }
+
+        if (overlaySelection.kind !== 'named') {
+            continue;
+        }
+
+        if (selection.stack === 'plain') {
+            throw new ProjectConfigError(
+                `Named overlay entries are supported only on stack 'compose' in this slice. Overlay '${overlaySelection.overlayId}' instance '${overlaySelection.instanceName}' is not allowed on stack 'plain'.`
+            );
+        }
+
+        if (!overlay.supports?.includes('compose')) {
+            throw new ProjectConfigError(
+                `Overlay '${overlaySelection.overlayId}' does not support compose and cannot be selected as a named instance.`
+            );
+        }
+        if (overlay.repeatable !== true) {
+            throw new ProjectConfigError(
+                `Overlay '${overlaySelection.overlayId}' is not repeatable. Use the legacy string form unless the overlay is explicitly marked repeatable.`
+            );
+        }
+
+        const declaredParameters = new Set(Object.keys(overlay.parameters ?? {}));
+        for (const key of Object.keys(overlaySelection.parameters ?? {})) {
+            if (!declaredParameters.has(key)) {
+                throw new ProjectConfigError(
+                    `overlays[] named entry '${overlaySelection.overlayId}:${overlaySelection.instanceName}' uses undeclared parameter '${key}'. Instance-local parameters must be declared by that overlay.`
+                );
+            }
+        }
+    }
 }
 
 function parsePresetChoices(value: unknown): Record<string, string> | undefined {
@@ -945,11 +1230,14 @@ export function loadGlobalDefaults(
                 ? undefined
                 : expectPlainObject(document.initDefaults, 'initDefaults');
         const initDefaultsSupportedKeys = new Set([
+            'stack',
             'baseImage',
+            'customImage',
             'editor',
             'target',
             'outputPath',
             'minimal',
+            'composeEnvFiles',
             'devcontainerGitignore',
             'overlays',
         ]);
@@ -966,10 +1254,19 @@ export function loadGlobalDefaults(
             $schema: expectOptionalString(document.$schema, '$schema'),
             initDefaults: initDefaultsDocument
                 ? {
+                      stack: expectOptionalEnum(
+                          initDefaultsDocument.stack,
+                          'initDefaults.stack',
+                          STACK_VALUES
+                      ),
                       baseImage: expectOptionalEnum(
                           initDefaultsDocument.baseImage,
                           'initDefaults.baseImage',
                           BASE_IMAGE_VALUES
+                      ),
+                      customImage: expectOptionalString(
+                          initDefaultsDocument.customImage,
+                          'initDefaults.customImage'
                       ),
                       editor: expectOptionalEnum(
                           initDefaultsDocument.editor,
@@ -988,6 +1285,10 @@ export function loadGlobalDefaults(
                       minimal: expectOptionalBoolean(
                           initDefaultsDocument.minimal,
                           'initDefaults.minimal'
+                      ),
+                      composeEnvFiles: expectOptionalBoolean(
+                          initDefaultsDocument.composeEnvFiles,
+                          'initDefaults.composeEnvFiles'
                       ),
                       devcontainerGitignore: expectOptionalBoolean(
                           initDefaultsDocument.devcontainerGitignore,
@@ -1058,6 +1359,7 @@ export function loadProjectConfig(
         'customImage',
         'containerName',
         'composeNetworkName',
+        'catalogs',
         'preset',
         'presetChoices',
         'overlays',
@@ -1089,10 +1391,18 @@ export function loadProjectConfig(
         );
     }
 
-    const lookup = buildCategoryLookup(overlaysConfig);
+    const catalogs = parseCatalogDeclarations(document.catalogs, repoRoot);
+    const effectiveOverlaysConfig = catalogs?.length
+        ? resolveOverlaysContext(repoRoot, undefined, catalogs).overlaysConfig
+        : overlaysConfig;
+    const lookup = buildCategoryLookup(effectiveOverlaysConfig);
 
-    // Aggregate flat overlays + category arrays into a single canonical list
-    const overlays = aggregateOverlays(document, lookup);
+    const overlays = parseProjectOverlayEntries(document.overlays, lookup);
+    const normalizedOverlaySelections = normalizeProjectOverlaySelections(
+        overlays,
+        document,
+        lookup
+    );
 
     const selection: ProjectConfigSelection = {
         $schema: expectOptionalString(document.$schema, '$schema'),
@@ -1114,9 +1424,12 @@ export function loadProjectConfig(
                       }
                   })()
                 : undefined,
+        catalogs,
         preset: expectOptionalString(document.preset, 'preset'),
         presetChoices: parsePresetChoices(document.presetChoices),
-        overlays,
+        overlays: projectOverlayEntriesFromSelections(normalizedOverlaySelections, {
+            includeCategorySelections: true,
+        }),
         outputPath: expectOptionalString(document.outputPath, 'outputPath'),
         portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
         composeEnvFiles: expectOptionalBoolean(document.composeEnvFiles, 'composeEnvFiles'),
@@ -1145,12 +1458,17 @@ export function loadProjectConfig(
         );
     }
 
+    if (selection.preset && !lookup.overlayById.has(selection.preset)) {
+        throw new ProjectConfigError(`preset contains unsupported entry: ${selection.preset}`);
+    }
+
     if (selection.presetChoices && !selection.preset) {
         throw new ProjectConfigError('presetChoices requires preset to be set');
     }
 
     try {
         assertComposeNetworkNameSupported(selection.stack, selection.composeNetworkName);
+        validateNormalizedOverlaySelections(normalizedOverlaySelections, selection, lookup);
     } catch (error) {
         throw new ProjectConfigError(error instanceof Error ? error.message : String(error));
     }
@@ -1257,7 +1575,12 @@ export function buildAnswersFromGlobalInitDefaults(
     const distributed = distributeOverlaysToAnswers(defaults.overlays, overlaysConfig);
     const answers: Partial<QuestionnaireAnswers> = {};
 
+    if (defaults.stack !== undefined) {
+        answers.stack = defaults.stack;
+        answers.needsDocker = defaults.stack === 'compose';
+    }
     if (defaults.baseImage !== undefined) answers.baseImage = defaults.baseImage;
+    if (defaults.customImage !== undefined) answers.customImage = defaults.customImage;
     if (distributed.language !== undefined) answers.language = distributed.language;
     if (distributed.database !== undefined) answers.database = distributed.database;
     if (distributed.observability !== undefined) answers.observability = distributed.observability;
@@ -1267,6 +1590,7 @@ export function buildAnswersFromGlobalInitDefaults(
     if (defaults.outputPath !== undefined) answers.outputPath = defaults.outputPath;
     if (defaults.target !== undefined) answers.target = defaults.target;
     if (defaults.minimal !== undefined) answers.minimal = defaults.minimal;
+    if (defaults.composeEnvFiles !== undefined) answers.composeEnvFiles = defaults.composeEnvFiles;
     if (defaults.editor !== undefined) answers.editor = defaults.editor;
     if (defaults.devcontainerGitignore !== undefined) {
         answers.devcontainerGitignore = defaults.devcontainerGitignore;
@@ -1304,15 +1628,21 @@ export function buildAnswersFromProjectConfig(
     selection: ProjectConfigSelection,
     overlaysConfig: OverlaysConfig
 ): Partial<QuestionnaireAnswers> {
+    const lookup = buildCategoryLookup(overlaysConfig);
+    const overlaySelections = normalizeProjectOverlaySelections(selection.overlays, {}, lookup);
     return {
         stack: selection.stack,
         baseImage: selection.baseImage,
         customImage: selection.customImage,
         containerName: selection.containerName,
         composeNetworkName: selection.composeNetworkName,
+        catalogs: selection.catalogs,
         preset: selection.preset,
         presetChoices: selection.presetChoices,
-        ...distributeOverlaysToAnswers(selection.overlays, overlaysConfig),
+        ...distributeOverlaysToAnswers(
+            explicitOverlayIdsFromSelections(overlaySelections),
+            overlaysConfig
+        ),
         outputPath: selection.outputPath,
         portOffset: selection.portOffset,
         composeEnvFiles: selection.composeEnvFiles,
@@ -1328,6 +1658,7 @@ export function buildAnswersFromProjectConfig(
             ? materializeCustomizationConfig(selection.customizations)
             : undefined,
         overlayParameters: selection.parameters,
+        overlaySelections,
     };
 }
 
@@ -1368,6 +1699,16 @@ function buildProjectConfigCustomizationsFromAnswers(
     return hasValues ? input : undefined;
 }
 
+function normalizeProjectConfigSelectionForPersistence(
+    selection: ProjectConfigSelection
+): ProjectConfigSelection {
+    return {
+        ...selection,
+        customImage: selection.baseImage === 'custom' ? selection.customImage : undefined,
+        composeEnvFiles: selection.stack === 'compose' ? selection.composeEnvFiles : undefined,
+    };
+}
+
 export function buildProjectConfigSelectionFromAnswers(
     answers: QuestionnaireAnswers
 ): ProjectConfigSelection {
@@ -1383,15 +1724,18 @@ export function buildProjectConfigSelectionFromAnswers(
         overlays.push('playwright');
     }
 
-    return {
+    return normalizeProjectConfigSelectionForPersistence({
         stack: answers.stack,
         baseImage: answers.baseImage,
         customImage: answers.customImage,
         containerName: answers.containerName,
         composeNetworkName: answers.composeNetworkName,
+        catalogs: answers.catalogs,
         preset: answers.preset,
         presetChoices: answers.presetChoices,
-        overlays: overlays.length > 0 ? [...new Set(overlays)] : undefined,
+        overlays:
+            projectOverlayEntriesFromSelections(answers.overlaySelections) ??
+            (overlays.length > 0 ? [...new Set(overlays)] : undefined),
         outputPath: answers.outputPath,
         portOffset: answers.portOffset,
         composeEnvFiles: answers.composeEnvFiles,
@@ -1408,7 +1752,7 @@ export function buildProjectConfigSelectionFromAnswers(
             answers.overlayParameters && Object.keys(answers.overlayParameters).length > 0
                 ? answers.overlayParameters
                 : undefined,
-    };
+    });
 }
 
 function materializeCustomizationConfig(
@@ -1572,9 +1916,50 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.customImage) document.customImage = selection.customImage;
     if (selection.containerName) document.containerName = selection.containerName;
     if (selection.composeNetworkName) document.composeNetworkName = selection.composeNetworkName;
+    if (selection.catalogs?.length) {
+        document.catalogs = selection.catalogs.map((catalog) => ({
+            id: catalog.id,
+            namespace: catalog.namespace,
+            source:
+                catalog.source.type === 'path'
+                    ? {
+                          type: 'path',
+                          path: catalog.source.path,
+                          ...(catalog.source.subpath ? { subpath: catalog.source.subpath } : {}),
+                      }
+                    : catalog.source.type === 'git'
+                      ? {
+                            type: 'git',
+                            url: catalog.source.url,
+                            commit: catalog.source.commit,
+                            ...(catalog.source.ref ? { ref: catalog.source.ref } : {}),
+                            ...(catalog.source.subpath ? { subpath: catalog.source.subpath } : {}),
+                        }
+                      : {
+                            type: 'archive',
+                            url: catalog.source.url,
+                            checksum: catalog.source.checksum,
+                            ...(catalog.source.subpath ? { subpath: catalog.source.subpath } : {}),
+                        },
+        }));
+    }
     if (selection.preset) document.preset = selection.preset;
     if (hasKeys(selection.presetChoices)) document.presetChoices = selection.presetChoices;
-    if (selection.overlays?.length) document.overlays = selection.overlays;
+    if (selection.overlays?.length) {
+        document.overlays = selection.overlays.map((entry) => {
+            if (typeof entry === 'string') {
+                return entry;
+            }
+
+            return {
+                overlay: entry.overlay,
+                name: entry.name,
+                ...(entry.parameters && Object.keys(entry.parameters).length > 0
+                    ? { parameters: entry.parameters }
+                    : {}),
+            };
+        });
+    }
     if (selection.outputPath) document.outputPath = selection.outputPath;
     if (selection.portOffset !== undefined) document.portOffset = selection.portOffset;
     if (selection.composeEnvFiles === true) document.composeEnvFiles = true;
@@ -1842,6 +2227,34 @@ export function findDefaultRegenManifest(outputPath: string = './.devcontainer')
     return null;
 }
 
+function normalizeManifestOverlaySelections(
+    manifest: SuperpositionManifest
+): NormalizedOverlaySelection[] | undefined {
+    if (manifest.overlaySelections && manifest.overlaySelections.length > 0) {
+        return manifest.overlaySelections.map((entry) =>
+            typeof entry === 'string'
+                ? { kind: 'singleton', overlayId: entry as OverlayId, source: 'manifest' }
+                : {
+                      kind: 'named',
+                      overlayId: entry.overlay,
+                      instanceName: entry.name,
+                      parameters: entry.parameters,
+                      source: 'manifest',
+                  }
+        );
+    }
+
+    if (manifest.overlays.length === 0) {
+        return undefined;
+    }
+
+    return manifest.overlays.map((overlayId) => ({
+        kind: 'singleton',
+        overlayId: overlayId as OverlayId,
+        source: 'manifest',
+    }));
+}
+
 /**
  * Build partial answers from a superposition.json manifest.
  * Note: Categories are only used for UI/questionnaire grouping.
@@ -1859,7 +2272,8 @@ export function buildAnswersFromManifest(
     // Output path is always the directory containing the manifest
     const outputPath = manifestDir || './.devcontainer';
 
-    const overlayIds = manifest.overlays as OverlayId[];
+    const overlaySelections = normalizeManifestOverlaySelections(manifest);
+    const overlayIds = explicitOverlayIdsFromSelections(overlaySelections) ?? [];
     const distributed = distributeOverlaysToAnswers(overlayIds, overlaysConfig);
 
     return {
@@ -1874,6 +2288,7 @@ export function buildAnswersFromManifest(
         playwright: distributed.devTools?.includes('playwright' as DevTool) ?? false,
         outputPath,
         portOffset: manifest.portOffset,
+        overlaySelections,
     };
 }
 

@@ -22,9 +22,10 @@ import { migrateManifest, needsMigration } from '../../schema/manifest-migration
 import { composeDevContainer } from '../../questionnaire/composer.js';
 import { mergeAnswers } from '../../questionnaire/answers.js';
 import { applyPresetSelections } from '../../questionnaire/presets.js';
-import { PRESETS_DIR } from '../../questionnaire/questionnaire.js';
+import { loadOverlaysContextWrapper } from '../../questionnaire/questionnaire.js';
 import {
     buildAnswersFromProjectConfig,
+    getOverlayIdsFromProjectSelection,
     loadProjectConfig,
     writeProjectConfig,
 } from '../../schema/project-config.js';
@@ -306,11 +307,17 @@ function buildAnswersFromManifest(
 function buildRegenAnswers(
     outputPath: string,
     overlaysConfig: OverlaysConfig,
-    selection: Parameters<typeof buildAnswersFromProjectConfig>[0]
+    selection: Parameters<typeof buildAnswersFromProjectConfig>[0],
+    workingDir: string
 ) {
     const baseAnswers = buildAnswersFromProjectConfig(selection, overlaysConfig);
-    return applyPresetSelections(baseAnswers, overlaysConfig, PRESETS_DIR).then((withPreset) =>
-        mergeAnswers(withPreset, { outputPath })
+    const overlaysContext = loadOverlaysContextWrapper(workingDir);
+    return applyPresetSelections(baseAnswers, overlaysConfig, overlaysContext.presetsDir).then(
+        (withPreset) =>
+            mergeAnswers(withPreset, {
+                outputPath,
+                resolvedCatalogs: overlaysContext.catalogs,
+            })
     );
 }
 
@@ -640,7 +647,10 @@ async function executeParametersRegen(
         };
     }
 
-    const selectedOverlays = projectConfig.selection.overlays ?? [];
+    const selectedOverlays = getOverlayIdsFromProjectSelection(
+        projectConfig.selection,
+        overlaysConfig
+    );
     const declared = collectOverlayParameters(selectedOverlays, overlaysConfig.overlays);
     const supplied = { ...(projectConfig.selection.parameters ?? {}) };
     const { missingRequired } = resolveParameters(declared, supplied);
@@ -688,7 +698,8 @@ async function executeParametersRegen(
         const answers = await buildRegenAnswers(
             outputPath,
             overlaysConfig,
-            reloadedConfig.selection
+            reloadedConfig.selection,
+            workingDir
         );
         await normalizeLogs(silent, () =>
             composeDevContainer(answers, overlaysDir, { isRegen: true })
@@ -765,12 +776,15 @@ async function executeDependencyFix(
         };
     }
 
-    const selectedOverlays = [...(projectConfig.selection.overlays ?? [])];
+    const selectedOverlays = getOverlayIdsFromProjectSelection(
+        projectConfig.selection,
+        overlaysConfig
+    );
     const overlayMap = new Map(overlaysConfig.overlays.map((overlay) => [overlay.id, overlay]));
-    const toAdd: string[] = [];
-    const toProcess = [...(selectedOverlays as string[])];
+    const toAdd: OverlayId[] = [];
+    const toProcess = [...selectedOverlays];
     const processed = new Set<string>();
-    const current = new Set<string>(selectedOverlays as string[]);
+    const current = new Set<string>(selectedOverlays);
 
     while (toProcess.length > 0) {
         const id = toProcess.shift()!;
@@ -781,8 +795,8 @@ async function executeDependencyFix(
         for (const requiredId of definition.requires as string[]) {
             if (!current.has(requiredId)) {
                 current.add(requiredId);
-                toAdd.push(requiredId);
-                toProcess.push(requiredId);
+                toAdd.push(requiredId as OverlayId);
+                toProcess.push(requiredId as OverlayId);
             }
         }
     }
@@ -800,7 +814,7 @@ async function executeDependencyFix(
 
     const updatedSelection = {
         ...projectConfig.selection,
-        overlays: [...(selectedOverlays as string[]), ...toAdd] as OverlayId[],
+        overlays: [...(projectConfig.selection.overlays ?? []), ...toAdd],
     };
     try {
         writeProjectConfig(projectConfig.file.path, updatedSelection);
@@ -809,7 +823,8 @@ async function executeDependencyFix(
         const answers = await buildRegenAnswers(
             outputPath,
             overlaysConfig,
-            reloadedConfig.selection
+            reloadedConfig.selection,
+            workingDir
         );
         await normalizeLogs(silent, () =>
             composeDevContainer(answers, overlaysDir, { isRegen: true })
@@ -871,7 +886,8 @@ async function executeEnvExampleRegen(
         const answers = await buildRegenAnswers(
             outputPath,
             overlaysConfig,
-            projectConfig.selection
+            projectConfig.selection,
+            workingDir
         );
         await normalizeLogs(silent, () =>
             composeDevContainer(answers, overlaysDir, { isRegen: true })
@@ -933,7 +949,8 @@ async function executeReproducibilityRegen(
         const answers = await buildRegenAnswers(
             outputPath,
             overlaysConfig,
-            projectConfig.selection
+            projectConfig.selection,
+            workingDir
         );
         await normalizeLogs(silent, () =>
             composeDevContainer(answers, overlaysDir, { isRegen: true })

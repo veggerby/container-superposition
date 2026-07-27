@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
     localstack:
-        image: localstack/localstack:${LOCALSTACK_VERSION:-latest}
+        image: localstack/localstack:${LOCALSTACK_VERSION:-{{cs.LOCALSTACK_VERSION}}}
         restart: unless-stopped
         volumes:
             - localstack-data:/var/lib/localstack
@@ -23,4 +23,3 @@ volumes:
 
 networks:
     devnet:
-        name: devnet

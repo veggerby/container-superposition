@@ -55,7 +55,7 @@ cp .env.example .env
 
 ```bash
 # Promtail version
-PROMTAIL_VERSION=latest
+PROMTAIL_VERSION=3.4.2
 ```
 
 ### Label Extraction

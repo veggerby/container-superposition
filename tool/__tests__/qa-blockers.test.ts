@@ -171,7 +171,8 @@ describe('QA blocker regressions', () => {
             expect(output).toContain('Verdict: Healthy');
             expect(output).toContain('Healthy checks');
             expect(output).toContain('No files changed');
-            expect(output).toContain('Next step');
+            expect(output).not.toContain('Next step');
+            expect(output).not.toContain('Recommended next action');
             expect(output).not.toContain('Overlay: postgres');
         } finally {
             fs.rmSync(tmpDir, { recursive: true, force: true });

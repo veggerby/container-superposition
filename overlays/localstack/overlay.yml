@@ -13,7 +13,7 @@ serviceOrder: 0
 parameters:
     LOCALSTACK_VERSION:
         description: LocalStack image version tag
-        default: latest
+        default: '4.0'
     LOCALSTACK_EDGE_PORT:
         description: Host port mapped to LocalStack edge (4566 inside container)
         default: '4566'

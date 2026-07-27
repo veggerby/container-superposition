@@ -4,6 +4,8 @@ The `hash` command produces a stable, deterministic fingerprint for a devcontain
 It lets you verify that two environments are equivalent, detect drift in CI, and commit a reproducible
 stamp alongside your `superposition.json` manifest.
 
+Human-readable output is comparison-first: it explains what equal values mean before closing with a `Next step` footer. That footer appears only when the command can derive a concrete preview command for the current invocation; otherwise it is omitted.
+
 ## Overview
 
 ```bash
@@ -39,24 +41,14 @@ so the result is identical regardless of the order overlays are provided.
 
 ### Text Output (default)
 
-```
-╭ Environment Fingerprint ──────────────────────────╮
-│                                                   │
-│   stack        compose                            │
-│   overlays     dotnet, postgres, redis            │
-│   preset       (none)                             │
-│   base         bookworm                           │
-│   tool         0.1.3                              │
-│                                                   │
-│   hash         53ed972d                           │
-│                                                   │
-╰───────────────────────────────────────────────────╯
-```
+Text output starts with `Comparison summary`, then shows the short/full fingerprint, normalized dependencies, equality meaning, and comparison guidance.
 
-Auto-resolved dependencies are shown with an `(auto)` label:
+When the current invocation maps cleanly to a preview command, the output ends with one concrete `Next step`, for example:
 
-```
-overlays     grafana, prometheus (auto)
+```text
+Next step
+cs plan --stack compose --overlays grafana,prometheus
+preview the normalized intent you want to compare against
 ```
 
 ### JSON Output (`--json`)

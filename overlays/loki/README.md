@@ -50,7 +50,7 @@ cp .env.example .env
 
 ```bash
 # Loki version
-LOKI_VERSION=latest
+LOKI_VERSION=3.4.2
 
 # Loki port (default 3100)
 LOKI_PORT=3100
@@ -207,7 +207,7 @@ Promtail tails log files and ships them to Loki:
 version: '3.8'
 services:
     promtail:
-        image: grafana/promtail:latest
+        image: grafana/promtail:3.4.2
         volumes:
             - /var/log:/var/log:ro
             - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
@@ -219,7 +219,6 @@ services:
 
 networks:
     devnet:
-        name: devnet
 ```
 
 **promtail-config.yaml:**

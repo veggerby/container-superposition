@@ -39,7 +39,7 @@ cp .env.example .env
 
 ```bash
 # MinIO Configuration
-MINIO_VERSION=latest
+MINIO_VERSION=RELEASE.2025-07-23T15-54-02Z
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin
 MINIO_API_PORT=9000
