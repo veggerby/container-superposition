@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-07-27
+
 ### Added
 
 - **Versioned private overlay and preset catalogs** — `superposition.yml` now supports project-declared external catalogs with immutable git/archive pinning or repo-relative path sources, namespace-qualified external IDs such as `acme/web-api`, strict no-override collision behavior in v1, shared catalog resolution across `init`/`regen`/`doctor`/`list`/`explain`/`plan`, and generated manifest receipts that record the resolved catalog identities used for replay
@@ -781,7 +783,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.12...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.13...HEAD
+[0.1.13]: https://github.com/veggerby/container-superposition/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/veggerby/container-superposition/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/veggerby/container-superposition/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/veggerby/container-superposition/compare/v0.1.9...v0.1.10
