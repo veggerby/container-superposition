@@ -5,9 +5,10 @@
 ## Spec-First Requirement
 
 All feature work in this repository follows spec-first development.
-Create the feature spec in `docs/specs/<feature-branch>/spec.md`, commit it, and
-get it reviewed before writing implementation code. Plans, tasks, tests,
-documentation, and changelog updates must trace back to that approved spec.
+Create the feature spec under `docs/specs/<id>-<slug>/spec.md` using the
+spec templates in `docs/specs/`, commit it, and get it reviewed before writing
+implementation code. Plans, tasks, tests, documentation, and changelog updates
+must trace back to that approved spec.
 
 ### Development Environment
 
