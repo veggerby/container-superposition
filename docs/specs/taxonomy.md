@@ -1,6 +1,6 @@
 # Feature Taxonomy
 
-This index maps all specs to their feature categories. Maintained by the `tool-pm` agent — update whenever a new spec is added.
+This index maps all specs to their feature categories. Update it whenever a new spec is added.
 
 ## Taxonomy categories
 
@@ -230,17 +230,17 @@ _No specs yet._
 
 ## PROJECT — Project-level configuration
 
-| Spec                                                                           | Title                                                        | Status                        |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------- |
-| [002-superposition-config-file](002-superposition-config-file/spec.md)         | Project Configuration File                                   | Final                         |
-| [008-project-file-canonical](008-project-file-canonical/spec.md)               | Make superposition.yml Canonical Input                       | Final                         |
-| [009-project-env](009-project-env/spec.md)                                     | Unified Project-Level Environment Variables                  | Final                         |
-| [018-init-project-file](018-init-project-file/spec.md)                         | `init --project-file`                                        | Final                         |
-| [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                   | Final                         |
-| [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                   | Final                         |
-| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs                | Implemented (QA: Needs Fixes) |
-| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml`   | Final                         |
-| [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Final                         |
-| [043-compose-network-name](043-compose-network-name/spec.md)                   | Project-Specific Compose Network Names                       | Final                         |
-| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final                         |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final                         |
+| Spec                                                                           | Title                                                        | Status |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
+| [002-superposition-config-file](002-superposition-config-file/spec.md)         | Project Configuration File                                   | Final  |
+| [008-project-file-canonical](008-project-file-canonical/spec.md)               | Make superposition.yml Canonical Input                       | Final  |
+| [009-project-env](009-project-env/spec.md)                                     | Unified Project-Level Environment Variables                  | Final  |
+| [018-init-project-file](018-init-project-file/spec.md)                         | `init --project-file`                                        | Final  |
+| [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                   | Final  |
+| [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                   | Final  |
+| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs                | Final  |
+| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml`   | Final  |
+| [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Final  |
+| [043-compose-network-name](043-compose-network-name/spec.md)                   | Project-Specific Compose Network Names                       | Final  |
+| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final  |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final  |

@@ -12,12 +12,13 @@ This roadmap is derived from the current opportunity backlog in `docs/opportunit
 - **Improve onboarding for common jobs-to-be-done** with stronger preset-led setup paths and less choice overload for first-time users.
 - **Make preview-first workflows more visible** so `plan`, `--verbose`, and `--diff` become an obvious safety step before generation and regeneration.
 
-## Later
+## Recently shipped
 
-- **Support versioned private overlay and preset catalogs** so platform teams can publish, pin, and evolve internal catalogs without forking the tool.
+- **Versioned private overlay and preset catalogs** now let platform teams publish, pin, and evolve internal catalogs without forking the tool.
+- **Repeatable compose-overlay rollout** now extends named-instance support beyond PostgreSQL to the audited `redis`, `fuseki`, `sqlserver`, and `nats` overlays.
 
 ## Assumptions and Dependencies
 
 - ADR `001` remains the authority for project-file-first generation, replay, and remediation.
 - Discovery and onboarding improvements depend on keeping user docs, CLI help, and generated reference docs aligned.
-- Private-catalog work is higher-risk architecture work and should continue to be driven through explicit specs and ADR review.
+- Future private-catalog extensions should continue to be driven through explicit specs and ADR review.

@@ -50,11 +50,11 @@ npx container-superposition regen
 # Or select the project file explicitly
 npx container-superposition regen --from-project
 
-# Non-interactive CLI example
-npx container-superposition init --stack compose --language nodejs --database postgres
+# Reuse persisted project-file values without the questionnaire
+npx container-superposition init --from-project --no-interactive
 
 # Write only superposition.yml without generating .devcontainer/
-npx container-superposition init --stack compose --language nodejs --no-scaffold
+npx container-superposition init --stack compose --preset web-api --no-scaffold
 
 # Migrate a manifest-only repo to the project-file model
 npx container-superposition migrate
@@ -64,6 +64,7 @@ npx container-superposition migrate
 
 - Base templates: `plain` (single image) and `compose` (multi-service).
 - Overlays: add languages, databases, observability, cloud tools, dev tools.
+- Catalogs: mix the built-in catalog with project-pinned private catalogs declared in `superposition.yml`.
 - Composition: merges overlays into a standard `.devcontainer/` you can edit freely.
 - Compose defaults: tool-owned compose port bindings are hard-rendered to final numeric host ports; `.devcontainer/.env` and `.devcontainer/.env.example` are opt-in artifacts only via `--compose-env-files` / `composeEnvFiles: true`.
 - Project config: `superposition.yml` (or `.superposition.yml`) is the **canonical input** for all
