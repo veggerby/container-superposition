@@ -1,7 +1,5 @@
 # Contributing to Container Superposition
 
-## Getting Started
-
 ## Spec-First Requirement
 
 All feature work in this repository follows spec-first development.

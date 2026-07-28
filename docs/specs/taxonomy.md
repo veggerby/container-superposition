@@ -1,6 +1,6 @@
 # Feature Taxonomy
 
-This index maps all specs to their feature categories. Maintained by the `tool-pm` agent — update whenever a new spec is added.
+This index maps all specs to their feature categories. Update it whenever a new spec is added.
 
 ## Taxonomy categories
 
