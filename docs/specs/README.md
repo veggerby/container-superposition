@@ -1,5 +1,11 @@
 # Specs Index
 
+## Working conventions
+
+- New work should use `docs/specs/_spec_template.md` for the outcome-focused spec and `docs/specs/_plan_template.md` for execution detail.
+- Keep implementation sequencing, affected files, validation strategy, and rollback thinking in `plan.md`, not in `spec.md`.
+- Existing historical specs without `plan.md` were preserved as-is during pi-kit setup; add `plan.md` only when those specs are actively revised or extended.
+
 | Spec                                                                                                                                       | Title                                                                                      | Status | Taxonomy                                  |
 | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------ | ----------------------------------------- |
 | [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                                                                   | Verbose Plan Graph                                                                         | Final  | CLI-UX                                    |
