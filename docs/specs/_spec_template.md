@@ -1,14 +1,14 @@
 ---
-spec: "NNN-slug"
-title: "[Short descriptive title]"
-status: "Draft"
-review_gate: ""
-owner: "delivery-interrogator"
-created: "YYYY-MM-DD"
-updated: "YYYY-MM-DD"
+spec: 'NNN-slug'
+title: '[Short descriptive title]'
+status: 'Draft'
+review_gate: ''
+owner: 'delivery-interrogator'
+created: 'YYYY-MM-DD'
+updated: 'YYYY-MM-DD'
 related_adrs: []
 related_foundation:
-  - "docs/foundation.md"
+    - 'docs/foundation.md'
 ---
 
 # [Title]
