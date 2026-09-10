@@ -179,6 +179,16 @@
                 }
             }
         },
+        "vscodeExtensions": {
+            "type": "array",
+            "description": "Additional VS Code extension IDs appended to devcontainer.json customizations.vscode.extensions.",
+            "items": {
+                "type": "string",
+                "minLength": 1
+            },
+            "uniqueItems": true,
+            "examples": [["GitHub.copilot", "EditorConfig.EditorConfig"]]
+        },
         "customizations": {
             "type": "object",
             "description": "Inline patches applied during generation (equivalent to .devcontainer/custom/ patches).",

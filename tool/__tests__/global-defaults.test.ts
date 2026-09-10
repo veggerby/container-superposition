@@ -92,6 +92,7 @@ describe('Global init defaults', () => {
                     customImage: 'ghcr.io/example/custom:latest',
                     composeEnvFiles: true,
                     devcontainerGitignore: true,
+                    vscodeExtensions: ['GitHub.copilot'],
                     overlays: ['git-helpers'],
                     outputPath: './global-output',
                 },
@@ -104,6 +105,7 @@ describe('Global init defaults', () => {
                             target: 'devcontainerMount',
                         },
                     ],
+                    vscodeExtensions: ['streetsidesoftware.code-spell-checker'],
                 },
             })
         );
@@ -120,7 +122,11 @@ describe('Global init defaults', () => {
         expect(loaded?.selection.initDefaults?.customImage).toBe('ghcr.io/example/custom:latest');
         expect(loaded?.selection.initDefaults?.composeEnvFiles).toBe(true);
         expect(loaded?.selection.initDefaults?.devcontainerGitignore).toBe(true);
+        expect(loaded?.selection.initDefaults?.vscodeExtensions).toEqual(['GitHub.copilot']);
         expect((loaded?.selection.localConfigTemplate as any)?.mounts).toHaveLength(1);
+        expect((loaded?.selection.localConfigTemplate as any)?.vscodeExtensions).toEqual([
+            'streetsidesoftware.code-spell-checker',
+        ]);
 
         const seeded = buildAnswersFromGlobalInitDefaults(
             loaded?.selection.initDefaults,
@@ -135,6 +141,7 @@ describe('Global init defaults', () => {
         expect(merged.baseImage).toBe('custom');
         expect(merged.customImage).toBe('ghcr.io/example/custom:latest');
         expect(merged.composeEnvFiles).toBe(true);
+        expect(merged.vscodeExtensions).toEqual(['GitHub.copilot']);
         expect(merged.devTools).toContain('git-helpers');
         expect(merged.language).toContain('nodejs');
         expect(merged.outputPath).toBe('./cli-output');
@@ -225,6 +232,17 @@ describe('Global init defaults', () => {
         );
     });
 
+    it('rejects invalid global vscodeExtensions values', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({ initDefaults: { vscodeExtensions: 'GitHub.copilot' } })
+        );
+
+        expect(() => loadGlobalDefaults(overlaysConfig, homeDir)).toThrow(
+            'initDefaults.vscodeExtensions must be an array of non-empty strings'
+        );
+    });
+
     it('applies global defaults on eligible clean init and creates a local template once', () => {
         fs.writeFileSync(
             path.join(homeDir, '.container-superposition.yml'),
@@ -232,6 +250,7 @@ describe('Global init defaults', () => {
                 initDefaults: {
                     devcontainerGitignore: true,
                     overlays: ['git-helpers'],
+                    vscodeExtensions: ['EditorConfig.EditorConfig'],
                 },
                 localConfigTemplate: {
                     mounts: [
@@ -253,6 +272,7 @@ describe('Global init defaults', () => {
             fs.readFileSync(path.join(repoDir, '.superposition.yml'), 'utf8')
         ) as any;
         expect(projectConfig.devcontainerGitignore).toBe(true);
+        expect(projectConfig.vscodeExtensions).toContain('EditorConfig.EditorConfig');
         expect(projectConfig.overlays).toContain('git-helpers');
 
         const localConfig = fs.readFileSync(path.join(repoDir, 'superposition.local.yml'), 'utf8');

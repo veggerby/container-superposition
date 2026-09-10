@@ -38,6 +38,8 @@ mounts:
   - "./local-tools:/workspace/tools"
 ports:
   - ${API_PORT:-8080}:8080
+vscodeExtensions:
+  - GitHub.copilot
 customizations:
   envTemplate:
     POSTGRES_PASSWORD: postgres

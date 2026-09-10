@@ -381,6 +381,14 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                 description:
                     'When true, writes outputPath/.gitignore with wildcard rules so generated devcontainer artifacts are not committed.',
             },
+            vscodeExtensions: {
+                type: 'array',
+                description:
+                    'Additional VS Code extension IDs appended to devcontainer.json customizations.vscode.extensions.',
+                items: { type: 'string', minLength: 1 },
+                uniqueItems: true,
+                examples: [['GitHub.copilot', 'EditorConfig.EditorConfig']],
+            },
             env: {
                 type: 'object',
                 description:
@@ -610,6 +618,7 @@ const localSchemaProperties = {
     env: schema.properties.env,
     mounts: schema.properties.mounts,
     shell: schema.properties.shell,
+    vscodeExtensions: schema.properties.vscodeExtensions,
     customizations: schema.properties.customizations,
     portOffset: schema.properties.portOffset,
     ports: schema.properties.ports,
@@ -650,6 +659,7 @@ const globalSchema = {
                 minimal: schema.properties.minimal,
                 composeEnvFiles: schema.properties.composeEnvFiles,
                 devcontainerGitignore: schema.properties.devcontainerGitignore,
+                vscodeExtensions: schema.properties.vscodeExtensions,
                 overlays: {
                     type: 'array',
                     description:
@@ -672,6 +682,7 @@ const globalSchema = {
                         mounts: localSchemaProperties.mounts,
                         shell: localSchemaProperties.shell,
                         customizations: localSchemaProperties.customizations,
+                        vscodeExtensions: localSchemaProperties.vscodeExtensions,
                         portOffset: localSchemaProperties.portOffset,
                         ports: localSchemaProperties.ports,
                     },
@@ -688,6 +699,7 @@ const globalSchema = {
                                 mounts: localSchemaProperties.mounts,
                                 shell: localSchemaProperties.shell,
                                 customizations: localSchemaProperties.customizations,
+                                vscodeExtensions: localSchemaProperties.vscodeExtensions,
                                 portOffset: localSchemaProperties.portOffset,
                                 ports: localSchemaProperties.ports,
                             },
@@ -700,6 +712,7 @@ const globalSchema = {
                                 mounts: localSchemaProperties.mounts,
                                 shell: localSchemaProperties.shell,
                                 customizations: localSchemaProperties.customizations,
+                                vscodeExtensions: localSchemaProperties.vscodeExtensions,
                                 portOffset: localSchemaProperties.portOffset,
                                 ports: localSchemaProperties.ports,
                             },
@@ -712,6 +725,7 @@ const globalSchema = {
                                 mounts: localSchemaProperties.mounts,
                                 shell: localSchemaProperties.shell,
                                 customizations: localSchemaProperties.customizations,
+                                vscodeExtensions: localSchemaProperties.vscodeExtensions,
                                 portOffset: localSchemaProperties.portOffset,
                                 ports: localSchemaProperties.ports,
                             },

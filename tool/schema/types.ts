@@ -256,6 +256,7 @@ export interface QuestionnaireAnswers {
     projectPorts?: ProjectPort[]; // First-class project ports with generation-time expansion
     projectMounts?: ProjectMount[]; // First-class project mounts routed by stack/target
     projectShell?: ProjectShellConfig; // First-class shell profile customizations
+    vscodeExtensions?: string[]; // Additional VS Code extension IDs
     customizations?: CustomizationConfig; // Project-config or manifest-driven customizations
     overlayParameters?: Record<string, string>; // Shared overlay parameter values ({{cs.KEY}} substitution)
     overlaySelections?: NormalizedOverlaySelection[]; // Canonical overlay selections including named instances
@@ -724,6 +725,7 @@ export interface ProjectConfigSelection {
     ports?: ProjectPort[];
     mounts?: ProjectMount[];
     shell?: ProjectShellConfig;
+    vscodeExtensions?: string[];
     customizations?: ProjectConfigCustomizationsInput;
     parameters?: Record<string, string>; // Shared overlay parameter values for {{cs.KEY}} substitution
 }

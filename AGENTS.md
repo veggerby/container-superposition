@@ -13,6 +13,18 @@ Use these documents together, with each one owning a different concern:
 - `docs/adr/` — standing architectural decisions and exceptions
 - `docs/specs/` — feature-specific product, design, implementation, and QA authority
 
+## Documentation locations
+
+Pi-kit delivery skills assume these durable artefact paths unless this section declares an override.
+
+| Artefact               | Default path                 | Override |
+| ---------------------- | ---------------------------- | -------- |
+| ADR directory          | `docs/adr/`                  | _none_   |
+| ADR template           | `docs/adr/_adr_template.md`  | _none_   |
+| Spec directory         | `docs/specs/`                | _none_   |
+| Foundation doc         | `docs/foundation.md`         | _none_   |
+| Definition of Done doc | `docs/definition-of-done.md` | _none_   |
+
 ## Commands
 
 `Taskfile.yml` is the repo-root contributor entrypoint for routine local runs; the underlying npm scripts remain the source of truth for CI and automation.

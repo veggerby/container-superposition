@@ -2812,6 +2812,24 @@ function applyCustomDevcontainerPatch(
     return deepMerge(config, customConfig.devcontainerPatch);
 }
 
+function applyVscodeExtensions(
+    config: DevContainer,
+    extensions: string[] | undefined
+): DevContainer {
+    if (!extensions?.length) {
+        return config;
+    }
+
+    console.log(chalk.dim(`   🧩 Applying project VS Code extensions`));
+    return deepMerge(config, {
+        customizations: {
+            vscode: {
+                extensions,
+            },
+        },
+    });
+}
+
 /**
  * Apply custom docker-compose patch to merged docker-compose
  */
@@ -3478,6 +3496,8 @@ export async function composeDevContainer(
         config = applyCustomScripts(config, answers.customizations, outputPath);
         copyCustomFiles(answers.customizations, outputPath, fileRegistry);
     }
+
+    config = applyVscodeExtensions(config, answers.vscodeExtensions);
 
     // Remove internal fields (those starting with _)
     Object.keys(config).forEach((key) => {

@@ -60,6 +60,43 @@ Feature: Core generation workflow
       source=${localWorkspaceFolder}/.cache,target=/workspace/.cache,type=bind
       """
 
+  Scenario: Regen materializes project and local VS Code extension IDs
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: plain
+            overlays:
+              - nodejs
+            vscodeExtensions:
+              - GitHub.copilot
+            outputPath: ./.devcontainer
+        superposition.local.yml:
+          yaml:
+            vscodeExtensions:
+              - streetsidesoftware.code-spell-checker
+      """
+    When I run the CLI command
+      """
+      regen
+      """
+    Then the command exits successfully
+    And the JSON file ".devcontainer/devcontainer.json" should contain array item at "customizations.vscode.extensions" equal:
+      """
+      GitHub.copilot
+      """
+    And the JSON file ".devcontainer/devcontainer.json" should contain array item at "customizations.vscode.extensions" equal:
+      """
+      streetsidesoftware.code-spell-checker
+      """
+    And the JSON file ".devcontainer/devcontainer.json" should contain array item at "customizations.vscode.extensions" equal:
+      """
+      dbaeumer.vscode-eslint
+      """
+    And the file "superposition.yml" should contain "GitHub.copilot"
+    And the file "superposition.local.yml" should contain "streetsidesoftware.code-spell-checker"
+
   Scenario: Regen materializes semantic compose output for postgres
     Given a workspace fixture "compose-postgres"
     When I run the CLI command

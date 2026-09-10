@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **First-class VS Code extension IDs** — `superposition.yml`, `superposition.local.yml`, and eligible global defaults now support `vscodeExtensions` lists that append additional VS Code extension IDs to generated `devcontainer.json` without requiring raw `customizations.devcontainerPatch` snippets.
+
 ## [0.1.13] - 2026-07-27
 
 ### Added
