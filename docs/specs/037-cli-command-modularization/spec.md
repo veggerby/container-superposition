@@ -187,8 +187,7 @@ Validation should explicitly cover:
 
 ### Known repo gaps
 
-- `docs/foundation.md` is absent, so ADR `001` remains the architecture authority for this area.
-- Repo contains an empty `docs/specs/037-doctor-command-modularization/` directory, which is a numbering / workflow hygiene concern but does not block this draft.
+- `docs/foundation.md` and ADR `001` are the relevant architecture authorities for this area.
 
 ## Technical Design
 
@@ -411,7 +410,7 @@ Minimum implementation validation:
 
 aligned with current ADR authority
 
-This design stays within ADR `001` by preserving project-file-first authority, compatibility manifest writing, and generated-output-unchanged conversion semantics. No ADR amendment is required. The repo still lacks `docs/foundation.md`, so ADR `001` remains the controlling architecture reference for this work.
+This design stays within `docs/foundation.md` and ADR `001` by preserving project-file-first authority, compatibility manifest writing, and generated-output-unchanged conversion semantics. No ADR amendment is required.
 
 ## Open Questions
 

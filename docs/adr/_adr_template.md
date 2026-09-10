@@ -32,7 +32,7 @@ relationships: {}
 
 <!--
 ## Create an ADR
-1. Copy `docs/adr/_template.md` to `docs/adr/adrXXX-my-decision.md` (assign ADR number when ready)
+1. Copy `docs/adr/_adr_template.md` to `docs/adr/adrXXX-my-decision.md` (assign ADR number when ready)
 1. Fill in the front matter YAML
 1. Keep the ADR focused on one architectural decision or one tightly-coupled decision set
 1. Read `docs/foundation.md` first and ensure the ADR aligns with or explicitly updates those baseline rules

@@ -504,8 +504,7 @@ Validation should explicitly cover:
 
 ### Known repo gaps
 
-- `docs/foundation.md` is absent, so ADR `001` remains the relevant architecture authority.
-- Repo contains an empty `docs/specs/037-doctor-command-modularization/` directory, which is workflow hygiene noise but does not block this draft.
+- `docs/foundation.md` and ADR `001` are the relevant architecture authorities.
 
 ## Architecture Decision Impact
 

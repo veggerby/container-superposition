@@ -1,40 +1,10 @@
 # Opportunity Backlog
 
-Last updated: 2026-07-23
+Last updated: 2026-07-28
 
 ## Prioritized
 
-### 1. Versioned private overlay and preset catalogs
-
-- **type**: feature
-- **status**: prioritized
-- **value summary**: Unlock the biggest strategic expansion path by letting platform teams publish, pin, and evolve private catalogs without forking the tool, while preserving deterministic project-file-driven replay.
-- **urgency**: Medium
-- **confidence**: Medium
-- **rough effort/risk**: High effort, High architecture/security risk
-- **evidence**:
-    - Draft spec exists: `docs/specs/029-versioned-private-catalogs/spec.md`.
-    - The spec identifies blocked platform-team outcomes today: central platform ownership, independent catalog release cadence, reproducible pinning, and explicit trust/upgrade workflows.
-    - The spec also identifies cross-command impact across `init`, `regen`, `doctor`, `list`, `explain`, and schema-aware authoring.
-    - The spec explicitly calls for a new ADR because the feature changes trust boundaries, registry resolution order, validation, and cache/materialization responsibilities.
-- **recommended next prompt or owner**: `/adr` for the catalog trust/resolution decision, then implementation planning against `docs/specs/029-versioned-private-catalogs/spec.md`.
-
-### 2. Broaden repeatable compose overlays beyond PostgreSQL
-
-- **type**: feature
-- **status**: prioritized
-- **value summary**: Expand real stack-building capability by making more infrastructure overlays repeatable through the now-final named-instance contract, increasing overlay availability and customization power for compose users.
-- **urgency**: High
-- **confidence**: Medium-High
-- **rough effort/risk**: Medium effort, Medium risk
-- **evidence**:
-    - `docs/specs/050-compose-overlay-instances/spec.md` is now `Final`, so the core object-form multi-instance contract is complete.
-    - `docs/specs/051-repeatable-compose-overlay-rollout/spec.md` already defines a phased rollout and approves Phase 1A candidates: `redis`, `fuseki`, `sqlserver`, and `nats`.
-    - The `051` audit explicitly separates low-risk Class A overlays from deferred dependency-bound or multi-service families.
-    - Recent BDD and plan-output hardening reduced regression risk for follow-on user-visible overlay work.
-- **recommended next prompt or owner**: `/spec` or implementation handoff for `docs/specs/051-repeatable-compose-overlay-rollout/spec.md`.
-
-### 3. Discovery surface clarity and canonical docs alignment
+### 1. Discovery surface clarity and canonical docs alignment
 
 - **type**: UX
 - **status**: prioritized
@@ -48,7 +18,7 @@ Last updated: 2026-07-23
     - `docs/roadmap.md` currently places this theme in `Now`.
 - **recommended next prompt or owner**: `/spec` or implementation handoff for `docs/specs/030-discovery-surface-and-docs-alignment/spec.md`.
 
-### 4. Preset-led onboarding for common jobs-to-be-done
+### 2. Preset-led onboarding for common jobs-to-be-done
 
 - **type**: feature
 - **status**: candidate
@@ -62,7 +32,7 @@ Last updated: 2026-07-23
     - `docs/roadmap.md` currently places this theme in `Next`.
 - **recommended next prompt or owner**: `/spec` or implementation handoff for `docs/specs/031-preset-led-onboarding-for-common-jobs/spec.md`.
 
-### 5. Portfolio refresh after recent workflow and overlay-contract wins
+### 3. Portfolio refresh after recent workflow and overlay-contract wins
 
 - **type**: process
 - **status**: candidate
@@ -84,10 +54,10 @@ Last updated: 2026-07-23
 2. Portfolio refresh after recent workflow and overlay-contract wins
 3. Preset-led onboarding for common jobs-to-be-done
 
-### Next big bets
+### Recently shipped / no longer active opportunities
 
-1. Versioned private overlay and preset catalogs
-2. Broaden repeatable compose overlays beyond PostgreSQL
+- Versioned private overlay and preset catalogs shipped through spec `029-versioned-private-catalogs`.
+- Repeatable compose-overlay rollout shipped through specs `050-compose-overlay-instances` and `051-repeatable-compose-overlay-rollout`.
 
 ### Longer-term options
 
@@ -99,7 +69,6 @@ Last updated: 2026-07-23
 
 - Ranking emphasizes expected value first because the current prioritization request explicitly deprioritized effort as a decision driver.
 - Confidence remains evidence-bound to repository docs/specs only; no telemetry, support volume, or market research was reviewed here.
-- `029` is ranked highest on upside, not on ease or certainty.
-- `051` is the strongest newly strengthened near-term capability opportunity because `050` is now final and `051` already narrows the rollout to audited overlay classes.
 - `030` remains the strongest broad UX/trust opportunity and is still the clearest low-risk shipping candidate.
+- Private catalogs and repeatable compose-overlay rollout moved out of the active backlog because shipped specs `029`, `050`, and `051` now cover that work.
 - Earlier repo-local Pi skill opportunities are no longer active backlog leaders because the relevant workflow/skill work has already shipped through specs `039` and `052`.
