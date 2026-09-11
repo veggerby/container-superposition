@@ -161,6 +161,7 @@ describe('Global init defaults', () => {
                                 ll: 'ls -alF',
                             },
                         },
+                        vscodeExtensions: ['GitHub.copilot'],
                     },
                     compose: {
                         mounts: [
@@ -523,6 +524,7 @@ describe('Global init defaults', () => {
                                 ll: 'ls -alF',
                             },
                         },
+                        vscodeExtensions: ['GitHub.copilot'],
                     },
                     plain: {
                         mounts: [
@@ -581,6 +583,7 @@ describe('Global init defaults', () => {
                                 ll: 'ls -alF',
                             },
                         },
+                        vscodeExtensions: ['GitHub.copilot'],
                     },
                     compose: {
                         mounts: [
@@ -597,6 +600,7 @@ describe('Global init defaults', () => {
                                 '[ -n "$BASH_VERSION" ] && export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND; }history -a"',
                             ],
                         },
+                        vscodeExtensions: ['EditorConfig.EditorConfig'],
                     },
                 },
             })
@@ -620,6 +624,11 @@ describe('Global init defaults', () => {
             'export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND; }history -a"'
         );
         expect(localConfigText).toContain('ll: ls -alF');
+        const localConfig = yaml.load(localConfigText) as any;
+        expect(localConfig.vscodeExtensions).toEqual([
+            'GitHub.copilot',
+            'EditorConfig.EditorConfig',
+        ]);
     });
 
     it('fails selected plain-stack local templates with compose-only mounts before repo writes', () => {

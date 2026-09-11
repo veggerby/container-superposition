@@ -2821,10 +2821,11 @@ function applyVscodeExtensions(
     }
 
     console.log(chalk.dim(`   🧩 Applying project VS Code extensions`));
+    const normalizedExtensions = [...new Set(extensions)];
     return deepMerge(config, {
         customizations: {
             vscode: {
-                extensions,
+                extensions: normalizedExtensions,
             },
         },
     });

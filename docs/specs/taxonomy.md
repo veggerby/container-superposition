@@ -167,7 +167,7 @@ _No specs yet._
 | [047-cli-output-relevance-and-noise-reduction](047-cli-output-relevance-and-noise-reduction/spec.md) | CLI Output Relevance and Noise Reduction                                | Final  |
 | [048-cross-command-cli-guidance-relevance](048-cross-command-cli-guidance-relevance/spec.md)         | Cross-Command CLI Guidance Relevance and Redundancy Reduction           | Final  |
 | [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)                         | Expand User-Scoped Global Init Defaults Surface                         | Final  |
-| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md) | Natural-Language Project Config Authoring Workflow                      | Draft  |
+| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md) | Natural-Language Project Config Authoring Workflow                      | Final  |
 
 ---
 
@@ -202,7 +202,7 @@ _No specs yet._
 | [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                                              | Final  |
 | [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final  |
 | [054-overlay-audit-remediation](054-overlay-audit-remediation/spec.md)                                                   | Full Overlay Audit Remediation                                                             | Draft  |
-| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md)                     | Natural-Language Project Config Authoring Workflow                                         | Draft  |
+| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md)                     | Natural-Language Project Config Authoring Workflow                                         | Final  |
 
 ### DOCS-API
 
