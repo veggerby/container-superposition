@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Natural-language project-config Pi workflow and defaults inspection** — the repo now includes `/project-config` and `/skill:project-config-authoring` so contributors and agents can translate project setup requests into canonical `superposition.yml` plus optional `superposition.local.yml` changes with live `npx container-superposition` discovery, plain-stack-first guidance, bootstrap-only global-default handling, and post-write preview validation. A new read-only `defaults [--json]` command reports the selected effective home defaults file (`~/.container-superposition.yml` wins over `~/.superposition.yml`), any ignored lower-precedence source, and the normalized document without writing files or making home defaults replay/remediation authority.
+
+- **First-class VS Code extension IDs** — `superposition.yml`, `superposition.local.yml`, and eligible global defaults now support `vscodeExtensions` lists that append additional VS Code extension IDs to generated `devcontainer.json` without requiring raw `customizations.devcontainerPatch` snippets.
+
 ## [0.1.13] - 2026-07-27
 
 ### Added

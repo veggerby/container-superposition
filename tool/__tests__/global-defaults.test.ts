@@ -21,13 +21,13 @@ const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 const INDEX_YML_PATH = path.join(OVERLAYS_DIR, 'index.yml');
 const TSX_CLI = path.join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 
-function runCli(args: string[], cwd: string, homeDir: string) {
+function runCli(args: string[], cwd: string, homeDir: string, extraEnv: NodeJS.ProcessEnv = {}) {
     const result = spawnSync(
         process.execPath,
         [TSX_CLI, path.join(REPO_ROOT, 'scripts', 'init.ts'), ...args],
         {
             cwd,
-            env: { ...process.env, FORCE_COLOR: '0', HOME: homeDir },
+            env: { ...process.env, FORCE_COLOR: '0', HOME: homeDir, ...extraEnv },
             encoding: 'utf8',
         }
     );
@@ -92,6 +92,7 @@ describe('Global init defaults', () => {
                     customImage: 'ghcr.io/example/custom:latest',
                     composeEnvFiles: true,
                     devcontainerGitignore: true,
+                    vscodeExtensions: ['GitHub.copilot'],
                     overlays: ['git-helpers'],
                     outputPath: './global-output',
                 },
@@ -104,6 +105,7 @@ describe('Global init defaults', () => {
                             target: 'devcontainerMount',
                         },
                     ],
+                    vscodeExtensions: ['streetsidesoftware.code-spell-checker'],
                 },
             })
         );
@@ -120,7 +122,11 @@ describe('Global init defaults', () => {
         expect(loaded?.selection.initDefaults?.customImage).toBe('ghcr.io/example/custom:latest');
         expect(loaded?.selection.initDefaults?.composeEnvFiles).toBe(true);
         expect(loaded?.selection.initDefaults?.devcontainerGitignore).toBe(true);
+        expect(loaded?.selection.initDefaults?.vscodeExtensions).toEqual(['GitHub.copilot']);
         expect((loaded?.selection.localConfigTemplate as any)?.mounts).toHaveLength(1);
+        expect((loaded?.selection.localConfigTemplate as any)?.vscodeExtensions).toEqual([
+            'streetsidesoftware.code-spell-checker',
+        ]);
 
         const seeded = buildAnswersFromGlobalInitDefaults(
             loaded?.selection.initDefaults,
@@ -135,6 +141,7 @@ describe('Global init defaults', () => {
         expect(merged.baseImage).toBe('custom');
         expect(merged.customImage).toBe('ghcr.io/example/custom:latest');
         expect(merged.composeEnvFiles).toBe(true);
+        expect(merged.vscodeExtensions).toEqual(['GitHub.copilot']);
         expect(merged.devTools).toContain('git-helpers');
         expect(merged.language).toContain('nodejs');
         expect(merged.outputPath).toBe('./cli-output');
@@ -154,6 +161,7 @@ describe('Global init defaults', () => {
                                 ll: 'ls -alF',
                             },
                         },
+                        vscodeExtensions: ['GitHub.copilot'],
                     },
                     compose: {
                         mounts: [
@@ -225,6 +233,175 @@ describe('Global init defaults', () => {
         );
     });
 
+    it('rejects invalid global vscodeExtensions values', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({ initDefaults: { vscodeExtensions: 'GitHub.copilot' } })
+        );
+
+        expect(() => loadGlobalDefaults(overlaysConfig, homeDir)).toThrow(
+            'initDefaults.vscodeExtensions must be an array of non-empty strings'
+        );
+    });
+
+    it('reports an explicit empty defaults result without writing when no global file exists', () => {
+        const beforeRepoEntries = fs.readdirSync(repoDir);
+        const beforeHomeEntries = fs.readdirSync(homeDir);
+
+        const result = runCli(['defaults', '--json'], repoDir, homeDir);
+        expect(result.status).toBe(0);
+        expect(result.stderr).toBe('');
+        const parsed = JSON.parse(result.stdout) as any;
+        expect(parsed.source.selected).toBeNull();
+        expect(parsed.source.ignored).toBeNull();
+        expect(parsed.effective).toEqual({});
+        expect(fs.readdirSync(repoDir)).toEqual(beforeRepoEntries);
+        expect(fs.readdirSync(homeDir)).toEqual(beforeHomeEntries);
+    });
+
+    it('reports selected and ignored defaults sources with normalized JSON without parsing ignored files', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    stack: 'plain',
+                    overlays: ['nodejs'],
+                },
+                localConfigTemplate: {
+                    shell: {
+                        snippets: ['export TOKEN=${TOKEN:-literal}'],
+                    },
+                },
+            })
+        );
+        fs.writeFileSync(path.join(homeDir, '.superposition.yml'), 'unexpected: true\n');
+        const beforeRepoEntries = fs.readdirSync(repoDir);
+        const beforeHomeFiles = new Map(
+            fs
+                .readdirSync(homeDir)
+                .map((entry) => [entry, fs.readFileSync(path.join(homeDir, entry), 'utf8')])
+        );
+
+        const result = runCli(['defaults', '--json'], repoDir, homeDir);
+        expect(result.status).toBe(0);
+        expect(result.stderr).toBe('');
+        const parsed = JSON.parse(result.stdout) as any;
+        expect(parsed.source.selected).toBe(path.join(homeDir, '.container-superposition.yml'));
+        expect(parsed.source.ignored).toBe(path.join(homeDir, '.superposition.yml'));
+        expect(parsed.effective.initDefaults.stack).toBe('plain');
+        expect(parsed.effective.initDefaults.overlays).toEqual(['nodejs']);
+        expect(parsed.effective.localConfigTemplate.shell.snippets[0]).toBe(
+            'export TOKEN=${TOKEN:-literal}'
+        );
+        expect(fs.readdirSync(repoDir)).toEqual(beforeRepoEntries);
+        expect(
+            new Map(
+                fs
+                    .readdirSync(homeDir)
+                    .map((entry) => [entry, fs.readFileSync(path.join(homeDir, entry), 'utf8')])
+            )
+        ).toEqual(beforeHomeFiles);
+    });
+
+    it('reports ~/.superposition.yml as selected source when the preferred file is absent', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.superposition.yml'),
+            yaml.dump({
+                initDefaults: {
+                    overlays: ['git-helpers'],
+                },
+            })
+        );
+
+        const result = runCli(['defaults', '--json'], repoDir, homeDir);
+        expect(result.status).toBe(0);
+        const parsed = JSON.parse(result.stdout) as any;
+        expect(parsed.source.selected).toBe(path.join(homeDir, '.superposition.yml'));
+        expect(parsed.source.ignored).toBeNull();
+        expect(parsed.effective.initDefaults.overlays).toEqual(['git-helpers']);
+    });
+
+    it('does not inspect invalid repository project or catalog state for defaults', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({ initDefaults: { overlays: ['nodejs'] } })
+        );
+        fs.writeFileSync(
+            path.join(repoDir, '.superposition.yml'),
+            yaml.dump({ catalogs: { invalid: 'shape' } })
+        );
+
+        const result = runCli(['defaults', '--json'], repoDir, homeDir);
+        expect(result.status).toBe(0);
+        expect(result.stderr).toBe('');
+        const parsed = JSON.parse(result.stdout) as any;
+        expect(parsed.source.selected).toBe(path.join(homeDir, '.container-superposition.yml'));
+        expect(parsed.effective.initDefaults.overlays).toEqual(['nodejs']);
+    });
+
+    it('does not materialize repository catalogs or write catalog caches for defaults', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({ initDefaults: { overlays: ['nodejs'] } })
+        );
+        fs.mkdirSync(path.join(repoDir, 'catalog'), { recursive: true });
+        fs.writeFileSync(
+            path.join(repoDir, '.superposition.yml'),
+            yaml.dump({
+                catalogs: [
+                    {
+                        id: 'local-catalog',
+                        namespace: 'local',
+                        source: {
+                            type: 'path',
+                            path: 'catalog',
+                        },
+                    },
+                ],
+            })
+        );
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'defaults-cache-tmp-'));
+        const cacheRoot = path.join(tmpDir, 'container-superposition-catalogs');
+
+        try {
+            const result = runCli(['defaults', '--json'], repoDir, homeDir, { TMPDIR: tmpDir });
+            expect(result.status).toBe(0);
+            expect(result.stderr).toBe('');
+            const parsed = JSON.parse(result.stdout) as any;
+            expect(parsed.effective.initDefaults.overlays).toEqual(['nodejs']);
+            expect(fs.existsSync(cacheRoot)).toBe(false);
+        } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('fails defaults with the selected invalid path and does not write repo state', () => {
+        fs.writeFileSync(path.join(homeDir, '.container-superposition.yml'), 'unexpected: true\n');
+        const beforeRepoEntries = fs.readdirSync(repoDir);
+
+        const result = runCli(['defaults', '--json'], repoDir, homeDir);
+        expect(result.status).not.toBe(0);
+        expect(result.stdout).toBe('');
+        expect(result.stderr).toContain('Failed to inspect global defaults');
+        expect(result.stderr).toContain(path.join(homeDir, '.container-superposition.yml'));
+        expect(result.stderr).toContain('Unsupported global defaults keys');
+        expect(fs.readdirSync(repoDir)).toEqual(beforeRepoEntries);
+    });
+
+    it('renders human-readable defaults output as inspection-only', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({ initDefaults: { overlays: ['nodejs'] } })
+        );
+
+        const result = runCli(['defaults'], repoDir, homeDir);
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain('Mode: Global defaults inspection');
+        expect(result.stdout).toContain('read-only bootstrap inspection only');
+        expect(result.stdout).toContain('No writes');
+        expect(result.stdout).toContain('overlays:');
+    });
+
     it('applies global defaults on eligible clean init and creates a local template once', () => {
         fs.writeFileSync(
             path.join(homeDir, '.container-superposition.yml'),
@@ -232,6 +409,7 @@ describe('Global init defaults', () => {
                 initDefaults: {
                     devcontainerGitignore: true,
                     overlays: ['git-helpers'],
+                    vscodeExtensions: ['EditorConfig.EditorConfig'],
                 },
                 localConfigTemplate: {
                     mounts: [
@@ -253,6 +431,7 @@ describe('Global init defaults', () => {
             fs.readFileSync(path.join(repoDir, '.superposition.yml'), 'utf8')
         ) as any;
         expect(projectConfig.devcontainerGitignore).toBe(true);
+        expect(projectConfig.vscodeExtensions).toContain('EditorConfig.EditorConfig');
         expect(projectConfig.overlays).toContain('git-helpers');
 
         const localConfig = fs.readFileSync(path.join(repoDir, 'superposition.local.yml'), 'utf8');
@@ -345,6 +524,7 @@ describe('Global init defaults', () => {
                                 ll: 'ls -alF',
                             },
                         },
+                        vscodeExtensions: ['GitHub.copilot'],
                     },
                     plain: {
                         mounts: [
@@ -403,6 +583,7 @@ describe('Global init defaults', () => {
                                 ll: 'ls -alF',
                             },
                         },
+                        vscodeExtensions: ['GitHub.copilot'],
                     },
                     compose: {
                         mounts: [
@@ -419,6 +600,7 @@ describe('Global init defaults', () => {
                                 '[ -n "$BASH_VERSION" ] && export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND; }history -a"',
                             ],
                         },
+                        vscodeExtensions: ['EditorConfig.EditorConfig'],
                     },
                 },
             })
@@ -442,6 +624,11 @@ describe('Global init defaults', () => {
             'export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND; }history -a"'
         );
         expect(localConfigText).toContain('ll: ls -alF');
+        const localConfig = yaml.load(localConfigText) as any;
+        expect(localConfig.vscodeExtensions).toEqual([
+            'GitHub.copilot',
+            'EditorConfig.EditorConfig',
+        ]);
     });
 
     it('fails selected plain-stack local templates with compose-only mounts before repo writes', () => {

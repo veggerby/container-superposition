@@ -10,7 +10,7 @@ guarantee reproducible devcontainer builds across your team and CI.
 - `regen` reads only the project file — `superposition.json` is an output-only receipt.
 - `doctor` validates the project file against the last-generated manifest and reports drift.
 - Repos without a project file should run `cs migrate` once to create one from their manifest.
-- Optional `~/.superposition.yml` defaults can prefill only eligible fresh `init` runs.
+- Optional `~/.superposition.yml` defaults can prefill only eligible fresh `init` runs; inspect the selected effective home defaults with read-only `cs defaults --json`.
 
 ## File discovery
 
@@ -23,6 +23,7 @@ Use `~/.superposition.yml` for **personal bootstrap defaults** that should apply
 fresh `init` runs.
 
 - It is read only for clean `init` authoring runs
+- `cs defaults --json` can inspect the selected effective document without writing files
 - It is ignored by `regen`, `doctor`, `plan`, `--from-project`, and `--from-manifest`
 - CLI inputs and interactive choices for the current run win over these defaults
 - `init --ignore-global-defaults` disables both supported home-directory files for one run
@@ -40,6 +41,8 @@ initDefaults:
     customImage: ghcr.io/example/devcontainer-base:latest
     composeEnvFiles: true
     devcontainerGitignore: true
+    vscodeExtensions:
+        - GitHub.copilot
     overlays:
         - git-helpers
         - modern-cli-tools
@@ -49,6 +52,8 @@ localConfigTemplate:
         shell:
             aliases:
                 ll: ls -alF
+        vscodeExtensions:
+            - streetsidesoftware.code-spell-checker
 
     plain:
         mounts:
@@ -69,13 +74,14 @@ localConfigTemplate:
 ```
 
 `initDefaults` supports only `stack`, `baseImage`, `customImage`, `editor`, `target`,
-`outputPath`, `minimal`, `composeEnvFiles`, `devcontainerGitignore`, and `overlays`.
+`outputPath`, `minimal`, `composeEnvFiles`, `devcontainerGitignore`, `vscodeExtensions`, and
+`overlays`.
 `customImage` is persisted only when the final effective `baseImage` is `custom`. `composeEnvFiles`
 is persisted only when the final effective `stack` is `compose`.
 
 `localConfigTemplate` is init-only scaffold input and supports either:
 
-- the legacy direct local-config shape (`env`, `mounts`, `shell`, `customizations`, `portOffset`, `ports`), or
+- the legacy direct local-config shape (`env`, `mounts`, `shell`, `vscodeExtensions`, `customizations`, `portOffset`, `ports`), or
 - a stack-aware object containing only `common`, `plain`, and/or `compose`
 
 It does not accept shared project-file fields such as `devcontainerGitignore`, `stack`,
@@ -91,14 +97,25 @@ If you still keep `~/.container-superposition.yml`, it works unchanged. When bot
 exist, the tool loads `~/.container-superposition.yml`, ignores `~/.superposition.yml` for that
 run, and prints one informational precedence notice.
 
+To inspect the effective defaults document without starting `init` or writing anything, run:
+
+```bash
+cs defaults --json
+```
+
+The command reports the selected source path, any ignored lower-precedence path, and the normalized
+document. It does not expand authored values, merge defaults into project files, or make home state
+an input to `plan`, `regen`, `doctor`, replay, or remediation.
+
 ## Local config: `superposition.local.yml`
 
-Use `superposition.local.yml` for machine-specific mounts, env, shell aliases, editor
-customizations, or port conflict overrides that should not be committed to shared config.
+Use `superposition.local.yml` for machine-specific mounts, env, shell aliases, VS Code
+extensions, editor customizations, or port conflict overrides that should not be committed to
+shared config.
 
 Place `superposition.local.yml` in the repository root, beside `superposition.yml` or
 `.superposition.yml`. Supported top-level fields are `$schema`, `env`, `mounts`, `shell`,
-`customizations`, `portOffset`, and `ports`.
+`vscodeExtensions`, `customizations`, `portOffset`, and `ports`.
 
 ```yaml
 $schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.local.schema.json
@@ -108,6 +125,9 @@ mounts:
       destination: /home/vscode/.codex
       type: bind
       target: devcontainerMount
+
+vscodeExtensions:
+    - streetsidesoftware.code-spell-checker
 ```
 
 Local config applies after shared project config for generated output only. Local map/scalar values
@@ -644,6 +664,29 @@ Generation behavior:
 
 ---
 
+### `vscodeExtensions`
+
+Additional VS Code extension IDs appended to generated `devcontainer.json` under
+`customizations.vscode.extensions`.
+
+```yaml
+vscodeExtensions:
+    - GitHub.copilot
+    - EditorConfig.EditorConfig
+```
+
+Behavior:
+
+- Overlay-provided extension IDs remain in place.
+- Project, local, and raw customization-patch extension arrays are merged and deduplicated.
+- `superposition.local.yml` can add machine-local extensions without modifying shared project config.
+- `editor: none` and `editor: jetbrains` still remove VS Code customizations from generated output.
+
+Use `customizations.devcontainerPatch` only when setting other raw VS Code customization values,
+such as settings that do not have a first-class field.
+
+---
+
 ### `customizations`
 
 Inline patches applied during generation. These are the same patches that can be placed in
@@ -694,9 +737,10 @@ customizations:
 5. Project `env` applied
 6. Project `mounts` applied
 7. `customizations.devcontainerPatch` merged (deepMerge, arrays deduplicated)
-8. `customizations.dockerComposePatch` merged
-9. Target-specific patches applied
-10. Files written
+8. Top-level `vscodeExtensions` merged into `customizations.vscode.extensions`
+9. `customizations.dockerComposePatch` merged
+10. Target-specific patches applied
+11. Files written
 
 ---
 

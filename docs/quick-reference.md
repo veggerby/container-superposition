@@ -127,6 +127,16 @@ Services start in this order (controlled by `serviceOrder` in `overlay.yml`):
 
 ## Common Commands
 
+### Inspect personal defaults (read-only)
+
+```bash
+npx container-superposition defaults --json
+```
+
+`defaults` reports the selected home defaults file (`~/.container-superposition.yml` wins over
+`~/.superposition.yml`) and the normalized effective document. It never writes project files,
+generated output, home files, or Git state, and it does not make home defaults replay authority.
+
 ### Interactive
 
 ```bash
@@ -140,7 +150,7 @@ npm run init
 npm run init -- --stack plain --language python
 
 # Compose with database
-npm run init -- --stack compose --language nodejs --postgres
+npm run init -- --stack compose --language nodejs --database postgres
 ```
 
 ### Production-Ready
@@ -150,7 +160,7 @@ npm run init -- --stack compose --language nodejs --postgres
 npm run init -- \
   --stack compose \
   --language dotnet \
-  --database postgres+redis \
+  --database postgres,redis \
   --observability otel-collector,jaeger,prometheus,grafana,loki \
   --cloud-tools kubectl-helm
 
@@ -158,7 +168,7 @@ npm run init -- \
 npm run init -- \
   --stack compose \
   --language python \
-  --postgres \
+  --database postgres \
   --cloud-tools aws-cli,azure-cli,kubectl-helm
 ```
 

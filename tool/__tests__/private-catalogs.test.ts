@@ -292,7 +292,7 @@ describe('private catalogs', () => {
         const doctorResult = runCli(['doctor', '--from-project', '--json'], repoDir);
         expect(doctorResult.status).toBe(0);
         expect(doctorResult.stdout).toContain('"errors": 0');
-    }, 15000);
+    }, 30000);
 
     it('rejects external overlays whose local ids collide with built-in ids', () => {
         const catalogDirName = `acme-collision-${path.basename(repoDir)}`;

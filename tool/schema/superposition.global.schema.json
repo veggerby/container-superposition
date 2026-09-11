@@ -55,6 +55,16 @@
                     "type": "boolean",
                     "description": "When true, writes outputPath/.gitignore with wildcard rules so generated devcontainer artifacts are not committed."
                 },
+                "vscodeExtensions": {
+                    "type": "array",
+                    "description": "Additional VS Code extension IDs appended to devcontainer.json customizations.vscode.extensions.",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "uniqueItems": true,
+                    "examples": [["GitHub.copilot", "EditorConfig.EditorConfig"]]
+                },
                 "overlays": {
                     "type": "array",
                     "description": "Init-default singleton overlays only. Named object entries are not supported in initDefaults.",
@@ -409,6 +419,16 @@
                                 }
                             }
                         },
+                        "vscodeExtensions": {
+                            "type": "array",
+                            "description": "Additional VS Code extension IDs appended to devcontainer.json customizations.vscode.extensions.",
+                            "items": {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "uniqueItems": true,
+                            "examples": [["GitHub.copilot", "EditorConfig.EditorConfig"]]
+                        },
                         "portOffset": {
                             "type": "integer",
                             "minimum": 0,
@@ -721,6 +741,16 @@
                                         }
                                     }
                                 },
+                                "vscodeExtensions": {
+                                    "type": "array",
+                                    "description": "Additional VS Code extension IDs appended to devcontainer.json customizations.vscode.extensions.",
+                                    "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "uniqueItems": true,
+                                    "examples": [["GitHub.copilot", "EditorConfig.EditorConfig"]]
+                                },
                                 "portOffset": {
                                     "type": "integer",
                                     "minimum": 0,
@@ -1029,6 +1059,16 @@
                                         }
                                     }
                                 },
+                                "vscodeExtensions": {
+                                    "type": "array",
+                                    "description": "Additional VS Code extension IDs appended to devcontainer.json customizations.vscode.extensions.",
+                                    "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "uniqueItems": true,
+                                    "examples": [["GitHub.copilot", "EditorConfig.EditorConfig"]]
+                                },
                                 "portOffset": {
                                     "type": "integer",
                                     "minimum": 0,
@@ -1336,6 +1376,16 @@
                                             }
                                         }
                                     }
+                                },
+                                "vscodeExtensions": {
+                                    "type": "array",
+                                    "description": "Additional VS Code extension IDs appended to devcontainer.json customizations.vscode.extensions.",
+                                    "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "uniqueItems": true,
+                                    "examples": [["GitHub.copilot", "EditorConfig.EditorConfig"]]
                                 },
                                 "portOffset": {
                                     "type": "integer",

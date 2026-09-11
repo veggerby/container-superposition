@@ -91,6 +91,7 @@ _No specs yet._
 | [043-compose-network-name](043-compose-network-name/spec.md)                             | Project-Specific Compose Network Names                  | Final  |
 | [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides | Final  |
 | [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL   | Final  |
+| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                       | First-Class VS Code Extensions Field                    | Final  |
 
 ### COMPOSER-FIX
 
@@ -112,6 +113,7 @@ _No specs yet._
 | [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md) | Variable Expansion and Substitution Consolidation       | Final  |
 | [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                 | Ad-hoc Project Parameters                               | Final  |
 | [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)               | Multi-Instance Compose Overlays with Instance Overrides | Final  |
+| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                   | First-Class VS Code Extensions Field                    | Final  |
 
 ### SCHEMA-VALID
 
@@ -165,6 +167,7 @@ _No specs yet._
 | [047-cli-output-relevance-and-noise-reduction](047-cli-output-relevance-and-noise-reduction/spec.md) | CLI Output Relevance and Noise Reduction                                | Final  |
 | [048-cross-command-cli-guidance-relevance](048-cross-command-cli-guidance-relevance/spec.md)         | Cross-Command CLI Guidance Relevance and Redundancy Reduction           | Final  |
 | [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)                         | Expand User-Scoped Global Init Defaults Surface                         | Final  |
+| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md) | Natural-Language Project Config Authoring Workflow                      | Final  |
 
 ---
 
@@ -199,6 +202,7 @@ _No specs yet._
 | [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                                              | Final  |
 | [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final  |
 | [054-overlay-audit-remediation](054-overlay-audit-remediation/spec.md)                                                   | Full Overlay Audit Remediation                                                             | Draft  |
+| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md)                     | Natural-Language Project Config Authoring Workflow                                         | Final  |
 
 ### DOCS-API
 
@@ -244,3 +248,4 @@ _No specs yet._
 | [043-compose-network-name](043-compose-network-name/spec.md)                   | Project-Specific Compose Network Names                       | Final  |
 | [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final  |
 | [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final  |
+| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)             | First-Class VS Code Extensions Field                         | Final  |

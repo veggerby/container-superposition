@@ -65,6 +65,7 @@ export interface LocalProjectConfigSelection {
     env?: ProjectConfigSelection['env'];
     mounts?: ProjectConfigSelection['mounts'];
     shell?: ProjectConfigSelection['shell'];
+    vscodeExtensions?: ProjectConfigSelection['vscodeExtensions'];
     customizations?: ProjectConfigSelection['customizations'];
     portOffset?: number;
     ports?: ProjectConfigSelection['ports'];
@@ -85,6 +86,7 @@ export interface GlobalInitDefaultsSelection {
     minimal?: ProjectConfigSelection['minimal'];
     composeEnvFiles?: ProjectConfigSelection['composeEnvFiles'];
     devcontainerGitignore?: ProjectConfigSelection['devcontainerGitignore'];
+    vscodeExtensions?: ProjectConfigSelection['vscodeExtensions'];
     overlays?: OverlayId[];
 }
 
@@ -756,6 +758,19 @@ function parseParameters(value: unknown): Record<string, string> | undefined {
     return Object.keys(parsed).length > 0 ? parsed : undefined;
 }
 
+function parseStringList(value: unknown, fieldName: string): string[] | undefined {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    if (!Array.isArray(value)) {
+        throw new ProjectConfigError(`${fieldName} must be an array of non-empty strings`);
+    }
+
+    const parsed = value.map((entry, index) => expectString(entry, `${fieldName}[${index}]`));
+    return parsed.length > 0 ? parsed : undefined;
+}
+
 function parseProjectEnv(value: unknown): ProjectConfigSelection['env'] | undefined {
     if (value === undefined || value === null) {
         return undefined;
@@ -1026,6 +1041,7 @@ function parseLocalProjectConfigDocument(
         'env',
         'mounts',
         'shell',
+        'vscodeExtensions',
         'customizations',
         'portOffset',
         'ports',
@@ -1045,6 +1061,7 @@ function parseLocalProjectConfigDocument(
         env: parseProjectEnv(document.env),
         mounts: parseMounts(document.mounts),
         shell: parseProjectShell(document.shell),
+        vscodeExtensions: parseStringList(document.vscodeExtensions, 'vscodeExtensions'),
         customizations: parseCustomizations(document.customizations),
         portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
         ports: parseProjectPorts(document.ports, { preserveEmptyArray: true }),
@@ -1239,6 +1256,7 @@ export function loadGlobalDefaults(
             'minimal',
             'composeEnvFiles',
             'devcontainerGitignore',
+            'vscodeExtensions',
             'overlays',
         ]);
         const unsupportedInitDefaultKeys = Object.keys(initDefaultsDocument ?? {}).filter(
@@ -1293,6 +1311,10 @@ export function loadGlobalDefaults(
                       devcontainerGitignore: expectOptionalBoolean(
                           initDefaultsDocument.devcontainerGitignore,
                           'initDefaults.devcontainerGitignore'
+                      ),
+                      vscodeExtensions: parseStringList(
+                          initDefaultsDocument.vscodeExtensions,
+                          'initDefaults.vscodeExtensions'
                       ),
                       overlays: expectOverlayArray<OverlayId>(
                           initDefaultsDocument.overlays,
@@ -1376,6 +1398,7 @@ export function loadProjectConfig(
         'minimal',
         'editor',
         'devcontainerGitignore',
+        'vscodeExtensions',
         'env',
         'ports',
         'mounts',
@@ -1440,6 +1463,7 @@ export function loadProjectConfig(
             document.devcontainerGitignore,
             'devcontainerGitignore'
         ),
+        vscodeExtensions: parseStringList(document.vscodeExtensions, 'vscodeExtensions'),
         env: parseProjectEnv(document.env),
         ports: parseProjectPorts(document.ports),
         mounts: parseMounts(document.mounts),
@@ -1560,6 +1584,7 @@ export function applyLocalConfigToAnswers<T extends QuestionnaireAnswers>(
                       ],
                   }
                 : undefined,
+        vscodeExtensions: [...(answers.vscodeExtensions ?? []), ...(local.vscodeExtensions ?? [])],
         customizations: mergeCustomizationConfig(answers.customizations, localCustomizations),
     } as T;
 }
@@ -1594,6 +1619,9 @@ export function buildAnswersFromGlobalInitDefaults(
     if (defaults.editor !== undefined) answers.editor = defaults.editor;
     if (defaults.devcontainerGitignore !== undefined) {
         answers.devcontainerGitignore = defaults.devcontainerGitignore;
+    }
+    if (defaults.vscodeExtensions !== undefined) {
+        answers.vscodeExtensions = defaults.vscodeExtensions;
     }
 
     return Object.keys(answers).length > 0 ? answers : undefined;
@@ -1650,6 +1678,7 @@ export function buildAnswersFromProjectConfig(
         minimal: selection.minimal,
         editor: selection.editor,
         devcontainerGitignore: selection.devcontainerGitignore,
+        vscodeExtensions: selection.vscodeExtensions,
         projectEnv: selection.env,
         projectPorts: selection.ports,
         projectMounts: selection.mounts,
@@ -1743,6 +1772,7 @@ export function buildProjectConfigSelectionFromAnswers(
         minimal: answers.minimal,
         editor: answers.editor,
         devcontainerGitignore: answers.devcontainerGitignore,
+        vscodeExtensions: answers.vscodeExtensions?.length ? answers.vscodeExtensions : undefined,
         env: answers.projectEnv,
         ports: answers.projectPorts?.length ? answers.projectPorts : undefined,
         mounts: answers.projectMounts?.length ? answers.projectMounts : undefined,
@@ -1886,6 +1916,7 @@ function buildLocalProjectConfigDocument(
     }
 
     if (selection.portOffset !== undefined) document.portOffset = selection.portOffset;
+    if (selection.vscodeExtensions?.length) document.vscodeExtensions = selection.vscodeExtensions;
 
     if (selection.ports !== undefined) {
         document.ports = selection.ports.map((entry) => {
@@ -1969,6 +2000,7 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.devcontainerGitignore !== undefined) {
         document.devcontainerGitignore = selection.devcontainerGitignore;
     }
+    if (selection.vscodeExtensions?.length) document.vscodeExtensions = selection.vscodeExtensions;
     if (selection.env && Object.keys(selection.env).length > 0) {
         document.env = Object.fromEntries(
             Object.entries(selection.env).map(([key, entry]) => [

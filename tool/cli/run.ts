@@ -103,6 +103,7 @@ function compactLocalConfigSelection(
         env,
         mounts,
         shell,
+        vscodeExtensions: selection.vscodeExtensions,
         customizations,
         portOffset: selection.portOffset,
         ports: selection.ports,
@@ -133,6 +134,10 @@ function mergeLocalConfigSelections(
             common?.customizations || branch?.customizations
                 ? deepMerge(common?.customizations ?? {}, branch?.customizations ?? {})
                 : undefined,
+        vscodeExtensions: [
+            ...(common?.vscodeExtensions ?? []),
+            ...(branch?.vscodeExtensions ?? []),
+        ],
         portOffset: branch?.portOffset ?? common?.portOffset,
         ports: branch?.ports !== undefined ? [...branch.ports] : common?.ports,
     });

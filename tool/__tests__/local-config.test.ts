@@ -69,6 +69,7 @@ describe('Local superposition config', () => {
                 env: { DEBUG: { value: 'true', target: 'remoteEnv' } },
                 mounts: [{ source: '${HOME}/.codex', destination: '/home/vscode/.codex' }],
                 shell: { aliases: { cx: 'codex' } },
+                vscodeExtensions: ['streetsidesoftware.code-spell-checker'],
                 customizations: {
                     devcontainerPatch: { customizations: { vscode: { settings: { foo: 'bar' } } } },
                 },
@@ -81,6 +82,9 @@ describe('Local superposition config', () => {
         expect(loaded?.selection.env?.DEBUG.value).toBe('true');
         expect(loaded?.selection.mounts).toHaveLength(1);
         expect(loaded?.selection.shell?.aliases?.cx).toBe('codex');
+        expect(loaded?.selection.vscodeExtensions).toEqual([
+            'streetsidesoftware.code-spell-checker',
+        ]);
         expect(loaded?.selection.portOffset).toBe(300);
         expect(loaded?.selection.ports).toEqual([]);
     });
@@ -95,7 +99,18 @@ describe('Local superposition config', () => {
             'Unsupported local config keys in superposition.local.yml: stack, overlays'
         );
         expect(() => loadLocalProjectConfig(repoDir)).toThrow(
-            'Allowed top-level keys: $schema, env, mounts, shell, customizations, portOffset, ports.'
+            'Allowed top-level keys: $schema, env, mounts, shell, vscodeExtensions, customizations, portOffset, ports.'
+        );
+    });
+
+    it('rejects invalid local vscodeExtensions values', () => {
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.local.yml'),
+            yaml.dump({ vscodeExtensions: ['valid.extension', ''] })
+        );
+
+        expect(() => loadLocalProjectConfig(repoDir)).toThrow(
+            'vscodeExtensions[1] must be a non-empty string'
         );
     });
 
@@ -122,6 +137,7 @@ describe('Local superposition config', () => {
             projectPorts: [{ value: '8080' }],
             projectMounts: [{ source: './shared', destination: '/shared' }],
             projectShell: { aliases: { cx: 'old' }, snippets: ['echo shared'] },
+            vscodeExtensions: ['GitHub.copilot'],
             customizations: {
                 devcontainerPatch: { customizations: { vscode: { settings: { a: 1 } } } },
             },
@@ -133,6 +149,7 @@ describe('Local superposition config', () => {
             ports: [{ value: '9000' }],
             mounts: [{ source: '${HOME}/.codex', destination: '/home/vscode/.codex' }],
             shell: { aliases: { cx: 'codex' }, snippets: ['echo local'] },
+            vscodeExtensions: ['EditorConfig.EditorConfig'],
             customizations: {
                 devcontainerPatch: { customizations: { vscode: { settings: { b: 2 } } } },
             },
@@ -144,6 +161,7 @@ describe('Local superposition config', () => {
         expect(merged.projectMounts).toHaveLength(2);
         expect(merged.projectShell?.aliases?.cx).toBe('codex');
         expect(merged.projectShell?.snippets).toEqual(['echo shared', 'echo local']);
+        expect(merged.vscodeExtensions).toEqual(['GitHub.copilot', 'EditorConfig.EditorConfig']);
         expect(merged.customizations?.devcontainerPatch?.customizations?.vscode?.settings).toEqual({
             a: 1,
             b: 2,
@@ -154,7 +172,7 @@ describe('Local superposition config', () => {
         expect(cleared.portOffset).toBe(100);
     });
 
-    it('local mount affects generated output without changing shared project config', async () => {
+    it('local mount and VS Code extensions affect generated output without changing shared project config', async () => {
         const outputPath = path.join(repoDir, '.devcontainer');
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
@@ -168,6 +186,7 @@ describe('Local superposition config', () => {
             path.join(repoDir, 'superposition.local.yml'),
             yaml.dump({
                 mounts: [{ source: '${HOME}/.codex', destination: '/home/vscode/.codex' }],
+                vscodeExtensions: ['streetsidesoftware.code-spell-checker'],
             })
         );
         const loadedLocal = loadLocalProjectConfig(repoDir)!;
@@ -194,6 +213,9 @@ describe('Local superposition config', () => {
         );
         expect(devcontainer.mounts).toContain(
             'source=${HOME}/.codex,target=/home/vscode/.codex,type=bind'
+        );
+        expect(devcontainer.customizations?.vscode?.extensions).toContain(
+            'streetsidesoftware.code-spell-checker'
         );
         expect(fs.readFileSync(path.join(repoDir, 'superposition.yml'), 'utf8')).toBe(before);
     });
