@@ -15,6 +15,9 @@ written.
 ## Quickstart
 
 ```bash
+# Inspect personal init defaults (read-only; no project/replay authority)
+npx container-superposition defaults --json
+
 # Discover available overlays and presets
 npx container-superposition list
 npx container-superposition explain postgres
@@ -74,7 +77,7 @@ npx container-superposition migrate
     - `init` always writes `superposition.yml` as its primary output
     - `regen` reads only the project file — `superposition.json` is an output-only receipt
     - Repos without a project file should run `cs migrate` once to create one from their manifest
-    - Optional `~/.superposition.yml` defaults can prefill only eligible fresh `init` runs (`~/.container-superposition.yml` still works and wins when both exist)
+    - Optional `~/.superposition.yml` defaults can prefill only eligible fresh `init` runs (`~/.container-superposition.yml` still works and wins when both exist); inspect the effective document with read-only `cs defaults --json`
     - `doctor` compares the project file against the last-generated manifest and reports drift
 
 ## Core Commands
@@ -84,6 +87,7 @@ npx container-superposition migrate
     - Add `--no-scaffold` to write only the project file without generating `.devcontainer/`
     - Add `--ignore-global-defaults` to bypass `~/.container-superposition.yml` and `~/.superposition.yml` for one run
     - Add `--project-root <path>` to resolve persisted input from a different repository root
+- `defaults` — inspect the selected home-directory global defaults file read-only; reports `~/.container-superposition.yml` over `~/.superposition.yml` precedence and never feeds replay/remediation
 - `regen` — deterministically replay the repository project file (`superposition.yml` required)
     - Add `--compose-env-files` to update shared intent to `composeEnvFiles: true` before regeneration
     - Add `--project-root <path>` to resolve persisted input from a different repository root

@@ -14,6 +14,7 @@ def before_scenario(context, scenario):
     context.command_result = None
     context.workspace_dir = None
     context.workspace_parent = None
+    context.home_dir = None
     context.feature_support_root = _feature_support_root(context, scenario)
 
 

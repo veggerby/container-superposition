@@ -18,6 +18,7 @@ import { doctorCommand } from '../commands/doctor.js';
 import { adoptCommand } from '../commands/adopt.js';
 import { hashCommand } from '../commands/hash.js';
 import { migrateCommand } from '../commands/migrate.js';
+import { defaultsCommand } from '../commands/defaults.js';
 import { loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
 
 export interface CliArgs {
@@ -200,6 +201,17 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .action(async (options) => {
             const overlaysContext = loadOverlaysContextWrapper();
             await listCommand(overlaysContext.overlaysConfig, options);
+        });
+
+    // Defaults command
+    program
+        .command('defaults')
+        .description(
+            'Inspect effective home-directory init defaults read-only; ~/.container-superposition.yml wins over ~/.superposition.yml'
+        )
+        .option('--json', 'Output selected source, ignored source, and normalized document as JSON')
+        .action(async (options) => {
+            await defaultsCommand(options);
         });
 
     // Explain command

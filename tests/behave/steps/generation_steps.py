@@ -39,6 +39,28 @@ def step_given_inline_workspace_fixture(context):
         raise AssertionError(bridge_result.get('message') or 'Inline workspace fixture failed.')
 
 
+@given('an inline home defaults fixture')
+def step_given_inline_home_defaults_fixture(context):
+    manifest_text = _require_step_text(context)
+    if context.workspace_dir is None:
+        _create_workspace_dir(context)
+    context.home_dir = context.workspace_parent / 'home'
+    context.home_dir.mkdir(parents=True, exist_ok=True)
+
+    bridge_result = _invoke_bridge(
+        context,
+        _BDD_INLINE_FIXTURE_SCRIPT,
+        {
+            'workspaceRoot': str(context.home_dir),
+            'manifestText': manifest_text,
+        },
+        'Inline home defaults fixture bridge produced no result.',
+    )
+
+    if not bridge_result.get('ok'):
+        raise AssertionError(bridge_result.get('message') or 'Inline home defaults fixture failed.')
+
+
 @when('I run the CLI command')
 def step_when_i_run_the_cli_command(context):
     if context.workspace_dir is None:
@@ -59,7 +81,11 @@ def step_when_i_run_the_cli_command(context):
         cwd=context.workspace_dir,
         capture_output=True,
         text=True,
-        env={**os.environ, 'FORCE_COLOR': '0'},
+        env={
+            **os.environ,
+            'FORCE_COLOR': '0',
+            **({'HOME': str(context.home_dir)} if context.home_dir is not None else {}),
+        },
     )
 
 
@@ -134,6 +160,13 @@ def step_then_file_should_exist(context, relative_path):
     file_path = _workspace_path(context, relative_path)
     if not file_path.exists():
         raise AssertionError(f'Expected file to exist: {relative_path}')
+
+
+@then('the file "{relative_path}" should not exist')
+def step_then_file_should_not_exist(context, relative_path):
+    file_path = _workspace_path(context, relative_path)
+    if file_path.exists():
+        raise AssertionError(f'Expected file not to exist: {relative_path}')
 
 
 @then('the file "{relative_path}" should contain "{expected_text}"')

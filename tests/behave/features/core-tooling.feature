@@ -282,6 +282,51 @@ Feature: Core CLI tooling workflows
     Then the command exits with status 1
     And the command stderr should contain "Unknown overlay 'acme/web-api'"
 
+  Scenario: Defaults inspects selected home defaults without writing project files
+    Given an inline workspace fixture:
+      """
+      files:
+        README.md:
+          text: |
+            defaults workspace
+      """
+    And an inline home defaults fixture:
+      """
+      files:
+        .container-superposition.yml:
+          yaml:
+            initDefaults:
+              stack: plain
+              overlays:
+                - nodejs
+            localConfigTemplate:
+              shell:
+                snippets:
+                  - export TOKEN=${TOKEN:-literal}
+        .superposition.yml:
+          text: |
+            unexpected: true
+      """
+    When I run the CLI command
+      """
+      defaults --json
+      """
+    Then the command exits successfully
+    And the command JSON output should have value at "effective.initDefaults.stack" equal:
+      """
+      plain
+      """
+    And the command JSON output should contain array item at "effective.initDefaults.overlays" equal:
+      """
+      nodejs
+      """
+    And the command stdout should contain ".container-superposition.yml"
+    And the command stdout should contain ".superposition.yml"
+    And the file "superposition.yml" should not exist
+    And the file ".superposition.yml" should not exist
+    And the file "superposition.local.yml" should not exist
+    And the file ".devcontainer" should not exist
+
   Scenario: Explain inspects a compose overlay with files and services
     Given an inline workspace fixture:
       """
