@@ -27,7 +27,7 @@ Use this skill when a user asks in natural language to create or update a Contai
 2. `docs/foundation.md`
 3. `docs/adr/adr001-project-file-first-replay-and-regeneration.md`
 4. `docs/superposition-yml.md`
-5. `npm run --silent init -- defaults --json` for read-only effective global-default inspection
+5. `npx container-superposition defaults --json` for read-only effective global-default inspection
 6. repository-root config candidates: `superposition.yml`, `.superposition.yml`, `superposition.local.yml`, `.superposition.local.yml`, `superposition.json`, and `.devcontainer/` only to understand current state
 7. live CLI discovery/help for the requested capability
 
@@ -57,18 +57,18 @@ Ask one focused question at a time only when the answer changes shared intent, l
 Use live, read-only CLI surfaces before finalizing YAML. Start every workflow with:
 
 ```bash
-npm run --silent init -- defaults --json
+npx container-superposition defaults --json
 ```
 
 Then prefer commands such as:
 
 ```bash
-npm run init -- list --json
-npm run init -- list --supports plain --json
-npm run init -- list --supports compose --json
-npm run init -- explain <overlay-or-preset> --json
-npm run init -- plan --stack <plain|compose> --overlays <comma-separated-ids> --json
-npm run init -- plan --stack <plain|compose> --overlays <comma-separated-ids> --verbose
+npx container-superposition list --json
+npx container-superposition list --supports plain --json
+npx container-superposition list --supports compose --json
+npx container-superposition explain <overlay-or-preset> --json
+npx container-superposition plan --stack <plain|compose> --overlays <comma-separated-ids> --json
+npx container-superposition plan --stack <plain|compose> --overlays <comma-separated-ids> --verbose
 ```
 
 If a command is unavailable or fails, do not invent catalog facts. Record the failure, use checked documentation only where sufficient, or stop when the selection cannot be validated.
@@ -92,7 +92,7 @@ Include the stack rationale in the handoff.
 Inspect supported home files through the CLI first:
 
 ```bash
-npm run --silent init -- defaults --json
+npx container-superposition defaults --json
 ```
 
 The command reports the selected source, ignored lower-precedence source, and normalized effective document without writing files. If the command is unavailable, fall back to direct read-only inspection of:
@@ -120,13 +120,13 @@ Current precedence: `~/.container-superposition.yml` wins when both exist. Suppo
 Run a read-only preview after writing using the stack and overlay selection from the edited project file, for example:
 
 ```bash
-npm run init -- plan --stack <plain|compose> --overlays <comma-separated-ids> --json
+npx container-superposition plan --stack <plain|compose> --overlays <comma-separated-ids> --json
 ```
 
 Use `--verbose` or `--diff` when it adds useful evidence. If no overlays are selected, use CLI help/schema checks plus `doctor --from-project` when applicable rather than inventing a no-overlay `plan` invocation. Use:
 
 ```bash
-npm run init -- doctor --from-project
+npx container-superposition doctor --from-project
 ```
 
 only when generated output already exists and health/reproducibility evidence is relevant. Do not generate `.devcontainer/` merely to validate this authoring workflow.

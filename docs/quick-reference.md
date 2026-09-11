@@ -130,7 +130,7 @@ Services start in this order (controlled by `serviceOrder` in `overlay.yml`):
 ### Inspect personal defaults (read-only)
 
 ```bash
-npm run init -- defaults --json
+npx container-superposition defaults --json
 ```
 
 `defaults` reports the selected home defaults file (`~/.container-superposition.yml` wins over

@@ -15,7 +15,7 @@ author or update the repository-root Container Superposition project config.
 
 Requirements:
 
-1. Start by running `npm run --silent init -- defaults --json` to inspect effective user-scoped global defaults read-only; fall back to direct home-file inspection only if the command is unavailable.
+1. Start by running `npx container-superposition defaults --json` to inspect effective user-scoped global defaults read-only; fall back to direct home-file inspection only if the command is unavailable.
 2. Inspect existing `superposition.yml`, `.superposition.yml`, and `superposition.local.yml` state before writing.
 3. Discover available stacks, overlays, presets, and compatibility through read-only CLI output before finalizing YAML.
 4. Prefer `stack: plain`; choose Compose only when the requested capability, selected overlays, or accepted local/default behavior materially requires it.
