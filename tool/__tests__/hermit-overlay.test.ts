@@ -16,8 +16,10 @@ const TEST_OUTPUT_DIR = path.join(REPO_ROOT, 'tmp', 'test-output');
 
 function createFakeHermitToolchain(tempDir: string) {
     const binDir = path.join(tempDir, 'bin');
+    const homeBinDir = path.join(tempDir, '.local', 'bin');
     const installRoot = path.join(tempDir, '.local', 'share', 'hermit');
     fs.mkdirSync(binDir);
+    fs.mkdirSync(homeBinDir, { recursive: true });
 
     const javaPath = path.join(binDir, 'java');
     fs.writeFileSync(
@@ -68,13 +70,13 @@ exit 0
     return {
         binDir,
         installRoot,
-        launcher: path.join(binDir, 'hermit'),
+        launcher: path.join(homeBinDir, 'hermit'),
         env: {
             ...process.env,
             HOME: tempDir,
-            PATH: `${binDir}:${process.env.PATH ?? ''}`,
+            PATH: `${binDir}:${homeBinDir}:${process.env.PATH ?? ''}`,
             HERMIT_INSTALL_ROOT: installRoot,
-            HERMIT_LAUNCHER: path.join(binDir, 'hermit'),
+            HERMIT_LAUNCHER: path.join(homeBinDir, 'hermit'),
         },
     };
 }
@@ -183,6 +185,43 @@ describe('HermIT overlay', () => {
 
             expect(result.status).not.toBe(0);
             expect(result.stderr).toContain('Unsafe HERMIT_INSTALL_ROOT or HERMIT_INSTALL_DIR');
+            expect(result.stdout).not.toContain('Resolving Maven artifact');
+            expect(fs.existsSync(sudoMarker)).toBe(false);
+        } finally {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        }
+    });
+
+    it('rejects unsafe HERMIT_LAUNCHER before privileged setup operations', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-launcher-validation-'));
+        try {
+            const binDir = path.join(tempDir, 'bin');
+            const sudoMarker = path.join(tempDir, 'sudo-called');
+            fs.mkdirSync(binDir);
+            for (const command of ['java', 'mvn']) {
+                const commandPath = path.join(binDir, command);
+                fs.writeFileSync(commandPath, '#!/bin/sh\nexit 0\n');
+                fs.chmodSync(commandPath, 0o755);
+            }
+            const sudoPath = path.join(binDir, 'sudo');
+            fs.writeFileSync(
+                sudoPath,
+                `#!/bin/sh\ntouch "${sudoMarker}"\necho "sudo must not be called" >&2\nexit 99\n`
+            );
+            fs.chmodSync(sudoPath, 0o755);
+
+            const result = spawnSync('bash', [path.join(HERMIT_DIR, 'setup.sh')], {
+                encoding: 'utf8',
+                env: {
+                    ...process.env,
+                    HERMIT_VERSION: '1.4.5.519',
+                    HERMIT_LAUNCHER: '/usr/bin/hermit',
+                    PATH: `${binDir}:${process.env.PATH ?? ''}`,
+                },
+            });
+
+            expect(result.status).not.toBe(0);
+            expect(result.stderr).toContain('Unsafe HERMIT_LAUNCHER path');
             expect(result.stdout).not.toContain('Resolving Maven artifact');
             expect(fs.existsSync(sudoMarker)).toBe(false);
         } finally {

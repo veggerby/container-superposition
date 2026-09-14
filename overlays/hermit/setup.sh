@@ -8,8 +8,10 @@ if [ -z "${HERMIT_VERSION+x}" ]; then
 fi
 HERMIT_DEFAULT_INSTALL_ROOT="/usr/local/share/hermit"
 HERMIT_HOME_INSTALL_ROOT="${HOME}/.local/share/hermit"
+HERMIT_DEFAULT_LAUNCHER="/usr/local/bin/hermit"
+HERMIT_HOME_LAUNCHER="${HOME}/.local/bin/hermit"
 HERMIT_INSTALL_ROOT="${HERMIT_INSTALL_ROOT:-${HERMIT_DEFAULT_INSTALL_ROOT}}"
-HERMIT_LAUNCHER="${HERMIT_LAUNCHER:-/usr/local/bin/hermit}"
+HERMIT_LAUNCHER="${HERMIT_LAUNCHER:-${HERMIT_DEFAULT_LAUNCHER}}"
 
 validate_hermit_version() {
     case "$1" in
@@ -48,6 +50,16 @@ launcher_targets_hermit_lib_dir() {
         && grep -F -- 'org.semanticweb.HermiT.cli.CommandLine' "$1" >/dev/null 2>&1
 }
 
+validate_launcher_path() {
+    case "$1" in
+        "${HERMIT_DEFAULT_LAUNCHER}" | "${HERMIT_HOME_LAUNCHER}")
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 if ! validate_hermit_version "${HERMIT_VERSION}"; then
     echo "❌ Invalid HERMIT_VERSION: ${HERMIT_VERSION}" >&2
     echo "   Use a Maven version containing only letters, numbers, dots, underscores, or hyphens; path separators and '..' are not allowed." >&2
@@ -60,6 +72,11 @@ HERMIT_LIB_DIR="${HERMIT_INSTALL_DIR}/lib"
 
 if ! validate_install_paths "${HERMIT_INSTALL_ROOT}" "${HERMIT_INSTALL_DIR}"; then
     echo "❌ Unsafe HERMIT_INSTALL_ROOT or HERMIT_INSTALL_DIR: ${HERMIT_INSTALL_ROOT} -> ${HERMIT_INSTALL_DIR}" >&2
+    exit 1
+fi
+
+if ! validate_launcher_path "${HERMIT_LAUNCHER}"; then
+    echo "❌ Unsafe HERMIT_LAUNCHER path: ${HERMIT_LAUNCHER}" >&2
     exit 1
 fi
 
@@ -130,6 +147,7 @@ fi
 sudo install -d -m 0755 "${HERMIT_INSTALL_ROOT}"
 sudo rm -rf "${HERMIT_INSTALL_DIR}"
 sudo install -d -m 0755 "${HERMIT_LIB_DIR}"
+sudo install -d -m 0755 "$(dirname "${HERMIT_LAUNCHER}")"
 sudo cp "${HERMIT_TMP_DIR}/lib"/*.jar "${HERMIT_LIB_DIR}/"
 sudo chmod 0644 "${HERMIT_LIB_DIR}"/*.jar
 
