@@ -310,6 +310,41 @@ describe('HermIT overlay', () => {
         }
     });
 
+    it('verify fails when the library directory contains a different HermIT version', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-verify-mixed-lib-'));
+        try {
+            const toolchain = createFakeHermitToolchain(tempDir);
+            const requestedVersion = '1.4.5.519';
+            const requestedLibDir = path.join(toolchain.installRoot, requestedVersion, 'lib');
+            fs.mkdirSync(requestedLibDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(requestedLibDir, `org.semanticweb.hermit-${requestedVersion}.jar`),
+                ''
+            );
+            fs.writeFileSync(path.join(requestedLibDir, 'org.semanticweb.hermit-2.0.0.jar'), '');
+            fs.writeFileSync(
+                toolchain.launcher,
+                `#!/bin/sh\nexec java -cp '${requestedLibDir}/*' org.semanticweb.HermiT.cli.CommandLine "$@"\n`
+            );
+            fs.chmodSync(toolchain.launcher, 0o755);
+
+            const result = spawnSync('bash', [path.join(HERMIT_DIR, 'verify.sh')], {
+                encoding: 'utf8',
+                env: {
+                    ...toolchain.env,
+                    HERMIT_VERSION: requestedVersion,
+                },
+            });
+
+            expect(result.status).not.toBe(0);
+            expect(result.stderr).toContain(
+                `Unexpected HermIT JAR present in ${requestedLibDir}: ${path.join(requestedLibDir, 'org.semanticweb.hermit-2.0.0.jar')}`
+            );
+        } finally {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        }
+    });
+
     it('materializes Java plus HermIT lifecycle hooks without compose output or HermIT-owned ports', async () => {
         const projectRoot = path.join(TEST_OUTPUT_DIR, 'test-hermit-overlay');
         const outputPath = path.join(projectRoot, '.devcontainer');

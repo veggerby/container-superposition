@@ -48,6 +48,20 @@ if ! ls "${HERMIT_LIB_DIR}"/org.semanticweb.hermit-"${HERMIT_VERSION}"*.jar >/de
     exit 1
 fi
 
+for hermit_jar in "${HERMIT_LIB_DIR}"/org.semanticweb.hermit-*.jar; do
+    if [ "${hermit_jar}" = "${HERMIT_LIB_DIR}/org.semanticweb.hermit-*.jar" ]; then
+        continue
+    fi
+    case "${hermit_jar}" in
+        "${HERMIT_LIB_DIR}/org.semanticweb.hermit-${HERMIT_VERSION}"*.jar)
+            ;;
+        *)
+            echo "❌ Unexpected HermIT JAR present in ${HERMIT_LIB_DIR}: ${hermit_jar}" >&2
+            exit 1
+            ;;
+    esac
+done
+
 echo "🔍 HermIT version: ${HERMIT_VERSION}"
 hermit --help >/dev/null
 
