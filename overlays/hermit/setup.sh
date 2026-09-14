@@ -19,6 +19,27 @@ validate_hermit_version() {
     [ ${#1} -le 128 ] && printf '%s' "$1" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$'
 }
 
+validate_install_paths() {
+    case "$1" in
+        '' | /)
+            return 1
+            ;;
+        /*)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    case "${2}/" in
+        "${1%/}/"*)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 launcher_targets_hermit_lib_dir() {
     [ -f "$1" ] \
         && grep -F -- "${HERMIT_LIB_DIR}/*" "$1" >/dev/null 2>&1 \
@@ -34,6 +55,11 @@ fi
 HERMIT_COORDINATE="net.sourceforge.owlapi:org.semanticweb.hermit:${HERMIT_VERSION}"
 HERMIT_INSTALL_DIR="${HERMIT_INSTALL_ROOT}/${HERMIT_VERSION}"
 HERMIT_LIB_DIR="${HERMIT_INSTALL_DIR}/lib"
+
+if ! validate_install_paths "${HERMIT_INSTALL_ROOT}" "${HERMIT_INSTALL_DIR}"; then
+    echo "❌ Unsafe HERMIT_INSTALL_ROOT or HERMIT_INSTALL_DIR: ${HERMIT_INSTALL_ROOT} -> ${HERMIT_INSTALL_DIR}" >&2
+    exit 1
+fi
 
 export MAVEN_OPTS="${MAVEN_OPTS:-}"
 

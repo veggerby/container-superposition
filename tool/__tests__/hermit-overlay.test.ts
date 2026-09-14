@@ -151,6 +151,43 @@ describe('HermIT overlay', () => {
         }
     );
 
+    it('rejects unsafe HERMIT_INSTALL_ROOT before privileged setup operations', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-install-root-validation-'));
+        try {
+            const binDir = path.join(tempDir, 'bin');
+            const sudoMarker = path.join(tempDir, 'sudo-called');
+            fs.mkdirSync(binDir);
+            for (const command of ['java', 'mvn']) {
+                const commandPath = path.join(binDir, command);
+                fs.writeFileSync(commandPath, '#!/bin/sh\nexit 0\n');
+                fs.chmodSync(commandPath, 0o755);
+            }
+            const sudoPath = path.join(binDir, 'sudo');
+            fs.writeFileSync(
+                sudoPath,
+                `#!/bin/sh\ntouch "${sudoMarker}"\necho "sudo must not be called" >&2\nexit 99\n`
+            );
+            fs.chmodSync(sudoPath, 0o755);
+
+            const result = spawnSync('bash', [path.join(HERMIT_DIR, 'setup.sh')], {
+                encoding: 'utf8',
+                env: {
+                    ...process.env,
+                    HERMIT_VERSION: '1.4.5.519',
+                    HERMIT_INSTALL_ROOT: '/',
+                    PATH: `${binDir}:${process.env.PATH ?? ''}`,
+                },
+            });
+
+            expect(result.status).not.toBe(0);
+            expect(result.stderr).toContain('Unsafe HERMIT_INSTALL_ROOT or HERMIT_INSTALL_DIR');
+            expect(result.stdout).not.toContain('Resolving Maven artifact');
+            expect(fs.existsSync(sudoMarker)).toBe(false);
+        } finally {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        }
+    });
+
     it('reinstalls a stale launcher that targets a different HermIT version', () => {
         const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-stale-launcher-'));
         try {
