@@ -660,6 +660,17 @@ Protocol Buffers compiler, Buf, and grpcurl for gRPC development
 | **Category** | dev                              |
 | **Tags**     | `dev`, `grpc`, `protobuf`, `api` |
 
+### HermIT Ontology Reasoner (`hermit`)
+
+OWL 2 DL ontology reasoning CLI powered by HermIT
+
+| Property     | Value                                                          |
+| ------------ | -------------------------------------------------------------- |
+| **Category** | dev                                                            |
+| **Requires** | `java`                                                         |
+| **Suggests** | `fuseki`                                                       |
+| **Tags**     | `dev`, `ontology`, `owl`, `reasoner`, `semantic-web`, `hermit` |
+
 ### Just Task Runner (`just`)
 
 Fast, simple command runner (Rust-based alternative to Make)
