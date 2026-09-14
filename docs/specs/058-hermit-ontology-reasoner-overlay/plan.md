@@ -53,7 +53,7 @@
 - `docs/overlays.md` — generated catalog documentation; regenerate, never hand-edit.
 - `tool/schema/superposition.schema.json`, `tool/schema/superposition.local.schema.json`, `tool/schema/superposition.global.schema.json` — generated outputs from `npm run schema:generate`; commit only files that actually change.
 - `CHANGELOG.md` — consolidated Unreleased/Added entry.
-- Explicitly unchanged: `overlays/java/**`, `overlays/fuseki/**`, `overlays/index.yml`, `tool/schema/types.ts`, `tool/questionnaire/composer.ts`, Compose/network code, and `dist/`.
+- Explicitly unchanged: `overlays/java/**`, `overlays/fuseki/**`, `overlays/index.yml`, `tool/questionnaire/composer.ts`, Compose/network code, and `dist/`.
 
 ## Validation Surface Discovered (DISCOVER)
 
