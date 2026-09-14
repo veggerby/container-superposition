@@ -19,7 +19,24 @@ function createFakeHermitToolchain(tempDir: string) {
     fs.mkdirSync(binDir);
 
     const javaPath = path.join(binDir, 'java');
-    fs.writeFileSync(javaPath, '#!/bin/sh\nexit 0\n');
+    fs.writeFileSync(
+        javaPath,
+        `#!/bin/sh
+if [ "$#" -lt 4 ] || [ "$1" != "-cp" ] || [ "$3" != "org.semanticweb.HermiT.cli.CommandLine" ]; then
+    echo "unexpected java invocation: $*" >&2
+    exit 64
+fi
+if [ "$4" = "--version" ]; then
+    echo "unsupported HermIT CLI option: --version" >&2
+    exit 64
+fi
+if [ "$4" != "--help" ]; then
+    echo "unexpected HermIT CLI option: $4" >&2
+    exit 64
+fi
+exit 0
+`
+    );
     fs.chmodSync(javaPath, 0o755);
 
     const mvnPath = path.join(binDir, 'mvn');
@@ -91,7 +108,8 @@ describe('HermIT overlay', () => {
         expect(setup).toContain('/usr/local/bin/hermit');
         expect(setup).toContain('launcher_targets_hermit_lib_dir');
         expect(verify).toContain('launcher_targets_hermit_lib_dir');
-        expect(verify).toContain('hermit --version');
+        expect(setup).toContain('"${HERMIT_LAUNCHER}" --help >/dev/null');
+        expect(verify).toContain('hermit --help >/dev/null');
     });
 
     it.each(['../1.4.5.519', '1.4.5.519/evil', '1.4.5.519<bad>'])(
@@ -230,7 +248,7 @@ describe('HermIT overlay', () => {
             database: [],
             playwright: false,
             cloudTools: [],
-            devTools: ['hermit' as any],
+            devTools: ['hermit'],
             observability: [],
             outputPath,
         };

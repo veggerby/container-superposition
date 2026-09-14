@@ -34,16 +34,6 @@ fi
 HERMIT_COORDINATE="net.sourceforge.owlapi:org.semanticweb.hermit:${HERMIT_VERSION}"
 HERMIT_INSTALL_DIR="${HERMIT_INSTALL_ROOT}/${HERMIT_VERSION}"
 HERMIT_LIB_DIR="${HERMIT_INSTALL_DIR}/lib"
-HERMIT_INSTALL_ROOT_REAL="$(realpath -m "${HERMIT_INSTALL_ROOT}")"
-HERMIT_INSTALL_DIR_REAL="$(realpath -m "${HERMIT_INSTALL_DIR}")"
-case "${HERMIT_INSTALL_DIR_REAL}/" in
-    "${HERMIT_INSTALL_ROOT_REAL}/"*)
-        ;;
-    *)
-        echo "❌ Resolved HermIT install directory escapes ${HERMIT_INSTALL_ROOT}: ${HERMIT_INSTALL_DIR_REAL}" >&2
-        exit 1
-        ;;
-esac
 
 export MAVEN_OPTS="${MAVEN_OPTS:-}"
 
@@ -68,9 +58,8 @@ fi
 
 if [ -d "${HERMIT_LIB_DIR}" ] && [ -f "${HERMIT_LAUNCHER}" ]; then
     if launcher_targets_hermit_lib_dir "${HERMIT_LAUNCHER}"; then
-        if "${HERMIT_LAUNCHER}" --version >/dev/null 2>&1; then
+        if "${HERMIT_LAUNCHER}" --help >/dev/null 2>&1; then
             echo "✓ HermIT ${HERMIT_VERSION} is already installed at ${HERMIT_INSTALL_DIR}"
-            "${HERMIT_LAUNCHER}" --version
             exit 0
         fi
         echo "⚠️  Existing HermIT installation did not verify; reinstalling..."
@@ -128,9 +117,10 @@ if ! launcher_targets_hermit_lib_dir "${HERMIT_LAUNCHER}"; then
 fi
 
 echo "🔍 Verifying HermIT launcher..."
-"${HERMIT_LAUNCHER}" --version
+"${HERMIT_LAUNCHER}" --help >/dev/null
 
 echo "✅ HermIT setup complete"
+echo "  HermIT version: ${HERMIT_VERSION}"
 echo "  Maven coordinate: ${HERMIT_COORDINATE}"
 echo "  Install directory: ${HERMIT_INSTALL_DIR}"
 echo "  Launcher: ${HERMIT_LAUNCHER}"

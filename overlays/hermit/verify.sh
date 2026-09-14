@@ -48,7 +48,7 @@ if ! ls "${HERMIT_LIB_DIR}"/org.semanticweb.hermit-"${HERMIT_VERSION}"*.jar >/de
     exit 1
 fi
 
-echo "🔍 HermIT version:"
-hermit --version
+echo "🔍 HermIT version: ${HERMIT_VERSION}"
+hermit --help >/dev/null
 
 echo "✅ HermIT ontology reasoner is available"
