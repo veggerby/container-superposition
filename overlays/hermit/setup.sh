@@ -6,7 +6,9 @@ set -euo pipefail
 if [ -z "${HERMIT_VERSION+x}" ]; then
     HERMIT_VERSION="{{cs.HERMIT_VERSION}}"
 fi
-HERMIT_INSTALL_ROOT="${HERMIT_INSTALL_ROOT:-/usr/local/share/hermit}"
+HERMIT_DEFAULT_INSTALL_ROOT="/usr/local/share/hermit"
+HERMIT_HOME_INSTALL_ROOT="${HOME}/.local/share/hermit"
+HERMIT_INSTALL_ROOT="${HERMIT_INSTALL_ROOT:-${HERMIT_DEFAULT_INSTALL_ROOT}}"
 HERMIT_LAUNCHER="${HERMIT_LAUNCHER:-/usr/local/bin/hermit}"
 
 validate_hermit_version() {
@@ -21,10 +23,10 @@ validate_hermit_version() {
 
 validate_install_paths() {
     case "$1" in
+        "${HERMIT_DEFAULT_INSTALL_ROOT}" | "${HERMIT_DEFAULT_INSTALL_ROOT}"/* | "${HERMIT_HOME_INSTALL_ROOT}" | "${HERMIT_HOME_INSTALL_ROOT}"/*)
+            ;;
         '' | /)
             return 1
-            ;;
-        /*)
             ;;
         *)
             return 1

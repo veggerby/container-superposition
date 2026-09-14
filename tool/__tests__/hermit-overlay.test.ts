@@ -16,6 +16,7 @@ const TEST_OUTPUT_DIR = path.join(REPO_ROOT, 'tmp', 'test-output');
 
 function createFakeHermitToolchain(tempDir: string) {
     const binDir = path.join(tempDir, 'bin');
+    const installRoot = path.join(tempDir, '.local', 'share', 'hermit');
     fs.mkdirSync(binDir);
 
     const javaPath = path.join(binDir, 'java');
@@ -66,12 +67,13 @@ exit 0
 
     return {
         binDir,
-        installRoot: path.join(tempDir, 'share', 'hermit'),
+        installRoot,
         launcher: path.join(binDir, 'hermit'),
         env: {
             ...process.env,
+            HOME: tempDir,
             PATH: `${binDir}:${process.env.PATH ?? ''}`,
-            HERMIT_INSTALL_ROOT: path.join(tempDir, 'share', 'hermit'),
+            HERMIT_INSTALL_ROOT: installRoot,
             HERMIT_LAUNCHER: path.join(binDir, 'hermit'),
         },
     };
