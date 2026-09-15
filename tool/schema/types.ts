@@ -51,6 +51,7 @@ export type DevTool =
     | 'playwright'
     | 'git-helpers'
     | 'grpc-tools'
+    | 'hermit'
     | 'keycloak'
     | 'mailpit'
     | 'pre-commit'

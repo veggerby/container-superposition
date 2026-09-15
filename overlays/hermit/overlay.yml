@@ -1,0 +1,22 @@
+id: hermit
+name: HermIT Ontology Reasoner
+description: OWL 2 DL ontology reasoning CLI powered by HermIT
+category: dev
+supports: []
+requires:
+    - java
+suggests:
+    - fuseki
+conflicts: []
+tags:
+    - dev
+    - ontology
+    - owl
+    - reasoner
+    - semantic-web
+    - hermit
+ports: []
+parameters:
+    HERMIT_VERSION:
+        description: HermIT Maven Central version to install
+        default: 1.4.5.519
