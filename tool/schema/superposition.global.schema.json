@@ -99,6 +99,7 @@
                             "go",
                             "grafana",
                             "grpc-tools",
+                            "hermit",
                             "jaeger",
                             "java",
                             "jupyter",
