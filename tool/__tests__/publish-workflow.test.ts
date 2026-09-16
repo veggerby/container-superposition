@@ -201,9 +201,9 @@ describe('publish workflow release channels', () => {
             ref: '${{ github.sha }}',
             'fetch-depth': 0,
         });
-        expect(findStep(classifierJob, 'Checkout pushed main commit with complete history').uses).toBe(
-            'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
-        );
+        expect(
+            findStep(classifierJob, 'Checkout pushed main commit with complete history').uses
+        ).toBe('actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683');
         const classify = findStep(classifierJob, 'Classify complete main diff');
         expect(classify.env).toEqual({
             BEFORE_SHA: '${{ github.event.before }}',
