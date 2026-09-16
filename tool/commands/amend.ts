@@ -1006,8 +1006,23 @@ function inspect(model: Model, options: AmendOptions): void {
     console.log(
         'Ownership: existing devcontainer = team-owned base; local amendment = personal uncommitted layer; adopt = team migration path.'
     );
+    if (!model.git.inGit && model.git.warning) {
+        console.log(chalk.yellow(`Git protection warning: ${model.git.warning}`));
+    }
     if (model.git.tracked.length > 0)
         console.log(chalk.red(`Tracked local paths: ${model.git.tracked.join(', ')}`));
+    if (model.git.inGit) {
+        const missingOrWrong = model.git.ignoreProvenance.filter((entry) => !entry.expected);
+        if (missingOrWrong.length > 0) {
+            console.log(
+                chalk.yellow(
+                    `Git protection warning: expected worktree-local excludes for ${missingOrWrong
+                        .map((entry) => `${entry.path} (${entry.source ?? 'no ignore rule'})`)
+                        .join(', ')}`
+                )
+            );
+        }
+    }
 }
 
 function remove(model: Model, purge: boolean): void {

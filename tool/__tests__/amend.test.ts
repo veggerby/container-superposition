@@ -576,6 +576,11 @@ describe('amend command', () => {
             expect(
                 result.git.ignoreProvenance.some((entry: { expected: boolean }) => !entry.expected)
             ).toBe(true);
+            const inspectHuman = runCli(root, ['amend', 'inspect']);
+            expect(inspectHuman.status).toBe(0);
+            expect(inspectHuman.stdout).toContain(
+                'Git protection warning: expected worktree-local excludes'
+            );
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
         }
