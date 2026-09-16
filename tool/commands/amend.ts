@@ -116,6 +116,7 @@ function contained(root: string, candidate: string): boolean {
 function ensureNoSymlinkComponents(root: string, candidate: string): void {
     const rootReal = fs.realpathSync(root);
     const absolute = path.resolve(candidate);
+    if (!contained(rootReal, absolute)) throw new Error(`Path escapes repository: ${candidate}`);
     const resolved = fs.existsSync(absolute) ? fs.realpathSync(absolute) : absolute;
     if (!contained(rootReal, resolved)) throw new Error(`Path escapes repository: ${candidate}`);
     const relativeParts = path.relative(rootReal, absolute).split(path.sep).filter(Boolean);
