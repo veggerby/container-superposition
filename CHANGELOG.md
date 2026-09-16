@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Cross-command `--silent` CLI mode** — all executable commands now accept `--silent` to suppress routine human-readable output while preserving operational behavior and failure diagnostics; it is explicitly incompatible with `--json` and rejects that combination before command work begins.
+- **Cross-command `--silent` CLI mode** — all executable commands now accept `--silent` to suppress routine human-readable output, including ordinary non-fatal warnings, while preserving operational behavior and failure diagnostics; it is explicitly incompatible with `--json` and rejects that combination before command work begins.
 
 - **HermIT ontology reasoner overlay** — the built-in overlay catalog now includes `hermit`, a plain-stack OWL reasoning CLI capability that requires the existing Java overlay, installs the pinned Maven Central coordinate `net.sourceforge.owlapi:org.semanticweb.hermit:1.4.5.519`, documents ontology consistency/classification workflows, and links Apache Jena Fuseki as a complementary SPARQL/triplestore overlay.
 

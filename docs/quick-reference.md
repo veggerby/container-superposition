@@ -129,7 +129,7 @@ Services start in this order (controlled by `serviceOrder` in `overlay.yml`):
 
 ### Silent automation
 
-Every command accepts `--silent` to suppress routine human-readable output while retaining failure diagnostics. Do not combine it with `--json`: JSON remains the machine-output mode, and the CLI rejects `--silent --json` before it performs command work.
+Every command accepts `--silent` to suppress routine human-readable output, including ordinary non-fatal warnings, while retaining failure diagnostics. Do not combine it with `--json`: JSON remains the machine-output mode, and the CLI rejects `--silent --json` before it performs command work.
 
 ### Inspect personal defaults (read-only)
 

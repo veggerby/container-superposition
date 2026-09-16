@@ -8,7 +8,7 @@ review_mode: 'INDEPENDENT'
 review_gate: 'PASS'
 owner: 'delivery-lead'
 created: '2026-09-14'
-updated: '2026-09-14'
+updated: '2026-09-16'
 related_adrs: []
 related_foundation:
     - 'docs/foundation.md'
@@ -79,8 +79,8 @@ The option suppresses routine human-readable CLI and tool output for the invocat
 
 ## Evidence / References
 
-- Source revision `654c3fa`; the delegated-task working tree was clean when shaped.
-- `tool/cli/args.ts` — current Commander registration shows command-specific options, JSON options on read/diagnostic commands, and no shared silent option.
+- Source revision `6fc3cb938a0a1b70aee0da4ecc8b43427885cf7b`; follow-up warning-suppression evidence is recorded in `docs/specs/059-cli-silent-mode/evidence.md`.
+- `tool/cli/args.ts` and `tool/cli/output.ts` — Commander registers `--silent` across the command surface and the CLI boundary suppresses routine `console.log` and `console.warn` output while preserving `console.error` diagnostics.
 - `tool/cli/run.ts` and `tool/commands/*.ts` — write and command workflows emit human-readable output directly, while several commands branch to JSON output.
 - `tool/__tests__/cli-write-output.test.ts` and `behave/features/core-tooling.feature` — existing command-level and Behave coverage already exercise JSON parseability and representative public workflows.
 - `docs/specs/047-cli-output-relevance-and-noise-reduction/spec.md` and `docs/specs/048-cross-command-cli-guidance-relevance/spec.md` — existing authority for relevance-gated human-readable output and JSON/text semantic alignment.
