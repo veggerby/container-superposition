@@ -558,6 +558,42 @@ describe('publish workflow release channels', () => {
         ).toThrow();
     });
 
+    it('accepts validated PR versions with a semver prerelease base', () => {
+        const { workflow } = loadWorkflow();
+        const producer = findStep(
+            workflow.jobs['prepare-pr-prerelease'],
+            'Create checksum manifest'
+        );
+        const validateArtifact = findStep(
+            workflow.jobs['publish-pr-prerelease'],
+            'Validate inert artifact transport and archive'
+        );
+        const validatePackage = findStep(
+            workflow.jobs['publish-pr-prerelease'],
+            'Validate package identity and version'
+        );
+        const fixture = createPackageArtifactFixture({
+            version: '0.1.3-rc.1-pr.741.123456',
+        });
+        runWorkflowShell(producer.run!, fixture);
+        const consumerDirectory = path.join(fixture, 'semver-prerelease-base');
+        fs.mkdirSync(consumerDirectory);
+        fs.cpSync(
+            path.join(fixture, '.prepared'),
+            path.join(consumerDirectory, 'prepared-artifact'),
+            {
+                recursive: true,
+            }
+        );
+
+        runWorkflowShell(validateArtifact.run!, consumerDirectory);
+        runWorkflowShell(validatePackage.run!, consumerDirectory, {
+            PACKAGE_JSON: path.join(consumerDirectory, 'package.json'),
+            PR_NUMBER: '741',
+            RUN_ID: '123456',
+        });
+    });
+
     it('prevents automatic PR publishing and unsafe publication fallbacks', () => {
         const { source, workflow } = loadWorkflow();
 

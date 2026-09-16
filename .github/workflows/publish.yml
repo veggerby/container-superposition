@@ -515,8 +515,9 @@ jobs:
                   PR_NUMBER: ${{ inputs.pr_number }}
                   RUN_ID: ${{ github.run_id }}
               run: |
+                  semver_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
                   VERSION=$(node --input-type=module -e 'const p=JSON.parse(await (await import("node:fs/promises")).readFile(process.env.PACKAGE_JSON,"utf8")); if (p.name !== "container-superposition") { console.error("Prepared package has an unexpected name."); process.exit(1); } if (Object.prototype.hasOwnProperty.call(p, "publishConfig")) { console.error("Prepared package must not define publishConfig."); process.exit(1); } process.stdout.write(p.version)')
-                  if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-pr\.${PR_NUMBER}\.${RUN_ID}$ ]]; then
+                  if ! [[ "$VERSION" =~ $semver_pattern ]] || ! [[ "$VERSION" == *"-pr.${PR_NUMBER}.${RUN_ID}" ]]; then
                     echo 'Prepared package has an unexpected name or version.' >&2
                     exit 1
                   fi
