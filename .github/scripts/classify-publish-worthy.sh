@@ -26,8 +26,9 @@ is_publish_worthy_path() {
         scripts/* | templates/* | features/* | overlays/*)
             return 0
             ;;
-        docs/*.md | docs/**/*.md)
-            return 0
+        docs/*)
+            [[ $changed_path == *.md ]]
+            return
             ;;
         tool/*)
             [[ $changed_path != */__tests__/* && $changed_path != *.test.ts && $changed_path != *.test.js && $changed_path != *.spec.ts && $changed_path != *.spec.js ]]

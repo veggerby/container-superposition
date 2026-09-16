@@ -279,7 +279,7 @@ describe('publish workflow release channels', () => {
             'pull-requests': 'read',
         });
         expect(prJob.concurrency).toEqual({
-            group: 'pr-prerelease-dispatch',
+            group: 'pr-prerelease-${{ inputs.pr_number }}',
             'cancel-in-progress': true,
         });
 
@@ -502,6 +502,7 @@ describe('publish workflow release channels', () => {
             'features/feature/file.txt',
             'overlays/example/overlay.yml',
             'docs/nested/guide.md',
+            'docs/deep/nested/guide.md',
             'tool/commands/publish.ts',
             'tool/odd\nname.ts',
         ];

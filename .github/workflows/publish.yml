@@ -316,7 +316,7 @@ jobs:
         runs-on: ubuntu-latest
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         concurrency:
-            group: pr-prerelease-dispatch
+            group: pr-prerelease-${{ inputs.pr_number }}
             cancel-in-progress: true
         permissions:
             contents: read
@@ -453,7 +453,7 @@ jobs:
         needs: prepare-pr-prerelease
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         concurrency:
-            group: pr-prerelease-dispatch
+            group: pr-prerelease-${{ inputs.pr_number }}
             cancel-in-progress: true
         permissions:
             contents: read
