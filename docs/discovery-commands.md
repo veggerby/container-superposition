@@ -8,7 +8,7 @@ Container Superposition provides powerful commands to explore available overlays
 - **`explain`** - Deep dive into a specific overlay
 - **`plan`** - Preview the generation plan before creating
 
-All commands support `--silent` to suppress routine human-readable output while preserving failure diagnostics and command behavior. `--silent` cannot be combined with `--json`; the CLI rejects that conflict before command work begins. Commands that support `--json` retain it as the separate machine-output mode for scripting and automation.
+All commands support `--silent` to suppress routine human-readable output, including ordinary non-fatal warnings, while preserving failure diagnostics and command behavior. `--silent` cannot be combined with `--json`; the CLI rejects that conflict before command work begins. Commands that support `--json` retain it as the separate machine-output mode for scripting and automation.
 
 ## List Command
 

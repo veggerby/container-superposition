@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -33,7 +33,10 @@ function writeHandwrittenDevcontainer(workspace: string): void {
     );
 }
 
-afterEach(() => restoreOutput());
+afterEach(() => {
+    restoreOutput();
+    vi.restoreAllMocks();
+});
 
 describe('CLI silent mode', () => {
     it('advertises --silent for every executable command', () => {
@@ -210,6 +213,18 @@ describe('CLI silent mode', () => {
             fs.rmSync(workspace, { recursive: true, force: true });
         }
     }, 60_000);
+
+    it('suppresses ordinary warnings while preserving console.error', () => {
+        const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        enableSilentOutput();
+        console.warn('ordinary non-fatal warning');
+        console.error('failure diagnostic');
+
+        expect(warning).not.toHaveBeenCalled();
+        expect(error).toHaveBeenCalledWith('failure diagnostic');
+    });
 
     it('restores console hooks after both asynchronous success and failure paths', async () => {
         const originalLog = console.log;

@@ -162,7 +162,7 @@ Add only narrow reusable steps such as `the command stdout should be empty` and 
 - `F-059-001` **RESOLVED**: `doctor` receives `silent` and emits a concise `console.error` diagnostic only when its result is nonzero; its normal and JSON report models remain unchanged. Vitest and BDD assert status 1, empty routine stdout, and visible stderr.
 - `F-059-002` **RESOLVED**: `tool/__tests__/cli-silent-mode.test.ts` covers command help for all ten commands, JSON conflict/no-write for all seven JSON commands, silent read/write/regen parity, diagnostic failure, `adopt`/`migrate` conversion family behavior, JSON parseability, and output-hook restoration after async success and failure. BDD adds the public matrix plus read, write, diagnostic, conversion, and conflict flows.
 - `F-059-003` **RESOLVED**: `docs/adopt.md`, `docs/discovery-commands.md`, and `docs/hash.md` document `--silent`, its preservation of failures/behavior, and the pre-work `--silent`/`--json` rejection contract.
-- plan deviations: none. No warning suppression, new JSON support, generated artefact changes, or scope expansion were introduced.
+- plan deviations: none. Ordinary-warning suppression is part of the specified and implemented `--silent` contract; no separate warning flag, new JSON support, generated artefact changes, or scope expansion were introduced.
 
 ## Validation execution (EXECUTE)
 
@@ -207,3 +207,11 @@ Add only narrow reusable steps such as `the command stdout should be empty` and 
 - validation status: **PASS** for implementation evidence; execution status **ACTIVE**; review mode **INDEPENDENT**, review status **NOT_STARTED** (re-review pending).
 - residual risk: routine-output interception is process-global by design; direct restoration coverage passes, but independent review should specifically recheck hook lifecycle and future direct stream emitters. No risk acceptance is requested.
 - handoff: ready for the required independent re-review; not represented as merge-complete until that gate passes.
+
+### Convergence cycle 3 — warning-contract follow-up
+
+- source revision: `6fc3cb938a0a1b70aee0da4ecc8b43427885cf7b`.
+- diagnosis: `tool/cli/output.ts` suppresses both `console.log` and `console.warn`, while retaining `console.error`; `spec.md` and `README.md` already require/describe suppression of ordinary non-fatal warnings. The absolute `docs/ux.md` “No silent operations” claim and cycle-2 statement that no warning suppression was introduced were stale and contradictory.
+- decision: by normal CLI convention and the established contract, `--silent` suppresses ordinary non-fatal warnings. A separate `--no-warn`-style option is neither warranted nor authorized because it would introduce an overlapping output mode/verbosity control outside the spec.
+- changes: add direct warning/error-boundary coverage; clarify public references and the consolidated changelog entry; add `evidence.md`. No runtime behavior changed and no BDD feature edit was needed: existing core-tooling silent-mode scenarios already exercise the unchanged command behavior.
+- plan deviation: none; this corrects stale contract documentation and evidence only. Final validation and the subsequent independent review remain required.

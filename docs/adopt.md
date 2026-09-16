@@ -97,17 +97,17 @@ automatically added to `.gitignore`.
 
 ## Options
 
-| Option                | Description                                                                   |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `-d, --dir <path>`    | Path to the existing `.devcontainer/` directory (default: `./.devcontainer`)  |
-| `--dry-run`           | Print the analysis without writing any files                                  |
-| `--force`             | Overwrite existing `superposition.json` / `custom/` files                     |
-| `--backup`            | Force a backup even when inside a git repo                                    |
-| `--no-backup`         | Disable backup creation even when it would normally be performed              |
-| `--backup-dir <path>` | Custom backup directory location                                              |
-| `--project-file`      | Also write a repository-root project config (`.superposition.yml` by default) |
-| `--silent`            | Suppress routine human-readable output while preserving errors and writes     |
-| `--json`              | Output analysis as JSON (useful for scripting; incompatible with `--silent`)  |
+| Option                | Description                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `-d, --dir <path>`    | Path to the existing `.devcontainer/` directory (default: `./.devcontainer`)             |
+| `--dry-run`           | Print the analysis without writing any files                                             |
+| `--force`             | Overwrite existing `superposition.json` / `custom/` files                                |
+| `--backup`            | Force a backup even when inside a git repo                                               |
+| `--no-backup`         | Disable backup creation even when it would normally be performed                         |
+| `--backup-dir <path>` | Custom backup directory location                                                         |
+| `--project-file`      | Also write a repository-root project config (`.superposition.yml` by default)            |
+| `--silent`            | Suppress routine output, including ordinary warnings, while preserving errors and writes |
+| `--json`              | Output analysis as JSON (useful for scripting; incompatible with `--silent`)             |
 
 `--silent` and `--json` cannot be combined. The CLI rejects the combination before it analyzes or writes adopt artifacts.
 
