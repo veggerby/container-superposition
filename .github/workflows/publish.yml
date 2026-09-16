@@ -461,6 +461,7 @@ jobs:
 
         steps:
             - name: Revalidate trusted dispatch inputs
+              id: dispatch-inputs
               env:
                   PR_NUMBER: ${{ inputs.pr_number }}
                   EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
@@ -470,6 +471,8 @@ jobs:
                     echo 'Trusted dispatch context is malformed.' >&2
                     exit 1
                   fi
+                  echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+                  echo "expected_sha=${EXPECTED_HEAD_SHA,,}" >> "$GITHUB_OUTPUT"
 
             - name: Download prepared PR package
               id: download-package
@@ -481,7 +484,7 @@ jobs:
             - name: Validate inert artifact transport and archive
               id: validate-artifact
               env:
-                  PR_NUMBER: ${{ inputs.pr_number }}
+                  PR_NUMBER: ${{ steps.dispatch-inputs.outputs.number }}
                   RUN_ID: ${{ github.run_id }}
               run: |
                   shopt -s nullglob
@@ -495,7 +498,7 @@ jobs:
                   [[ -f "$TARBALL" && -f "$CHECKSUM" ]] || { echo 'Artifact filenames are invalid.' >&2; exit 1; }
                   [[ $(awk 'NR == 1 && $1 ~ /^[0-9a-f]{64}$/ && $2 == "package.tgz" { ok=1 } END { print ok && NR == 1 }' "$CHECKSUM") == 1 ]] || { echo 'Checksum manifest is invalid.' >&2; exit 1; }
                   (cd prepared-artifact && sha256sum --check package.sha256)
-                  tar -tvzf "$TARBALL" | awk '$1 !~ /^[d-]/ || $NF !~ /^package(\/|$)/ || $NF ~ /(^|\/)\.\.?($|\/)/ || $NF ~ /\/\// { exit 1 }'
+                  tar -tvzf "$TARBALL" | awk '$1 !~ /^[d-]/ || $NF ~ /^\// || $NF !~ /^package(\/|$)/ || $NF ~ /(^|\/)\.\.?($|\/)/ || $NF ~ /\/\// { exit 1 }'
                   tar -tzf "$TARBALL" | grep -qx 'package/package.json' || { echo 'Package manifest is absent.' >&2; exit 1; }
                   tar -xOf "$TARBALL" package/package.json > package.json
                   echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
@@ -512,7 +515,7 @@ jobs:
               id: package
               env:
                   PACKAGE_JSON: ${{ steps.validate-artifact.outputs.package_json }}
-                  PR_NUMBER: ${{ inputs.pr_number }}
+                  PR_NUMBER: ${{ steps.dispatch-inputs.outputs.number }}
                   RUN_ID: ${{ github.run_id }}
               run: |
                   semver_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
@@ -526,7 +529,7 @@ jobs:
             - name: Publish validated PR tarball
               env:
                   TARBALL: ${{ steps.validate-artifact.outputs.tarball }}
-                  PR_NUMBER: ${{ inputs.pr_number }}
+                  PR_NUMBER: ${{ steps.dispatch-inputs.outputs.number }}
               run: npm publish "$TARBALL" --provenance --access public --ignore-scripts --tag "pr-$PR_NUMBER"
 
             - name: Verify published PR package
@@ -539,7 +542,7 @@ jobs:
 
             - name: Record PR publication evidence
               env:
-                  PR_NUMBER: ${{ inputs.pr_number }}
+                  PR_NUMBER: ${{ steps.dispatch-inputs.outputs.number }}
                   VERSION: ${{ steps.package.outputs.version }}
                   TARBALL_SHA256: ${{ steps.validate-artifact.outputs.tarball_sha256 }}
               run: |

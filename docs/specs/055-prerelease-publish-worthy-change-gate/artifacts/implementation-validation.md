@@ -39,7 +39,7 @@ The deterministic fallback record is `tool/__tests__/fixtures/download-artifact-
 - Workflow and contract: focused `tool/__tests__/publish-workflow.test.ts`, including executable producer/consumer archive and pinned download-action metadata contract.
 - Package: `npm pack --dry-run` for release packaging behavior.
 - Integrity: `git diff --check`.
-- BDD: not applicable to this GitHub/npm release-orchestration correction; parsed workflow and executable artifact-contract tests are the appropriate boundary.
+- BDD: intentionally waived for this GitHub Actions/npm release-orchestration correction. This change does not alter a local CLI or generated-output workflow that Behave can safely execute; the authoritative boundary is the checked-in `publish.yml` contract plus executable artifact-validation tests that avoid live OIDC/npm side effects.
 - CI-only/unsafe: dispatch, Artifact transport, npm OIDC/provenance, registry tag mutation, and eligible main push are not run locally because they can publish or mutate external state.
 
 ## Checks run
@@ -55,12 +55,12 @@ The deterministic fallback record is `tool/__tests__/fixtures/download-artifact-
 
 ## Checks not run
 
-| Check                                                       | Reason                                                     | Residual risk                                                                                            |
-| ----------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Authorized manual PR dispatch and npm registry verification | It publishes an immutable version and moves `pr-{number}`. | Live Artifact/OIDC/provenance/registry behavior awaits maintainer authorization.                         |
-| Eligible and maintenance-only main pushes                   | An eligible push updates shared `prerelease`.              | Static classifier/workflow evidence only until an authorized operation.                                  |
-| BDD                                                         | Not applicable to this release-orchestration boundary.     | None beyond static and executable workflow-contract coverage.                                            |
-| Independent review                                          | Reviewer-owned mandatory gate.                             | Integration remains blocked pending independent resolution of VAL-055-007 and SEC/REL regression review. |
+| Check                                                       | Reason                                                                                                                                                                                                                                                                                                               | Residual risk                                                                                            |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Authorized manual PR dispatch and npm registry verification | It publishes an immutable version and moves `pr-{number}`.                                                                                                                                                                                                                                                           | Live Artifact/OIDC/provenance/registry behavior awaits maintainer authorization.                         |
+| Eligible and maintenance-only main pushes                   | An eligible push updates shared `prerelease`.                                                                                                                                                                                                                                                                        | Static classifier/workflow evidence only until an authorized operation.                                  |
+| BDD                                                         | Intentionally waived: this publish workflow boundary depends on GitHub Actions event context, Artifact transport, and npm/OIDC side effects that local Behave scenarios cannot safely reproduce. Static workflow assertions and executable artifact-contract tests are the authoritative substitute for this change. | None beyond static and executable workflow-contract coverage.                                            |
+| Independent review                                          | Reviewer-owned mandatory gate.                                                                                                                                                                                                                                                                                       | Integration remains blocked pending independent resolution of VAL-055-007 and SEC/REL regression review. |
 
 ## Acceptance criteria evidence
 

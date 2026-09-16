@@ -434,30 +434,43 @@ describe('publish workflow release channels', () => {
             'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093'
         );
         expect(download.with).toEqual({ name: 'pr-prerelease-package', path: 'prepared-artifact' });
-        expect(findStep(publisher, 'Revalidate trusted dispatch inputs').run).toContain(
-            '^[1-9][0-9]*$'
-        );
+        const trustedInputs = findStep(publisher, 'Revalidate trusted dispatch inputs');
+        expect(trustedInputs.run).toContain('^[1-9][0-9]*$');
+        expect(trustedInputs.run).toContain('echo "number=$PR_NUMBER"');
         const validate = findStep(publisher, 'Validate inert artifact transport and archive');
         for (const contract of [
             'Artifact must contain exactly two files',
             '! -L',
             'sha256sum --check',
             'tar -tvzf',
+            '~ /^\\//',
             '(^|\\/)\\.\\.?($|\\/)',
             '\\/\\/',
             'package/package.json',
         ]) {
             expect(validate.run).toContain(contract);
         }
+        expect(findStep(publisher, 'Validate inert artifact transport and archive').env).toEqual({
+            PR_NUMBER: '${{ steps.dispatch-inputs.outputs.number }}',
+            RUN_ID: '${{ github.run_id }}',
+        });
         expect(findStep(publisher, 'Setup Node.js for trusted npm publication').uses).toBe(
             'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020'
         );
-        expect(findStep(publisher, 'Validate package identity and version').run).toContain(
-            'container-superposition'
-        );
+        const validatePackage = findStep(publisher, 'Validate package identity and version');
+        expect(validatePackage.env).toEqual({
+            PACKAGE_JSON: '${{ steps.validate-artifact.outputs.package_json }}',
+            PR_NUMBER: '${{ steps.dispatch-inputs.outputs.number }}',
+            RUN_ID: '${{ github.run_id }}',
+        });
+        expect(validatePackage.run).toContain('container-superposition');
         expect(findStep(publisher, 'Publish validated PR tarball').run).toBe(
             'npm publish "$TARBALL" --provenance --access public --ignore-scripts --tag "pr-$PR_NUMBER"'
         );
+        expect(findStep(publisher, 'Publish validated PR tarball').env).toEqual({
+            TARBALL: '${{ steps.validate-artifact.outputs.tarball }}',
+            PR_NUMBER: '${{ steps.dispatch-inputs.outputs.number }}',
+        });
         for (const stepName of [
             'Verify published main prerelease',
             'Verify published PR package',
