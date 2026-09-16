@@ -1,428 +1,79 @@
 # Publishing to npm
 
-This guide explains how to publish `container-superposition` to npm, making it available via `npx container-superposition`.
+`container-superposition` is published by the repository's GitHub Actions workflow using npm trusted publishing and OIDC. Do not add an npm token, registry secret, or manual token-based fallback.
 
-## Package Overview
+## Final releases
 
-**Package Name:** `container-superposition`  
-**Current Version:** See `package.json`  
-**Size:** Varies by release (use `npm pack --dry-run`)  
-**Files:** Varies by release  
-**Entry Point:** `dist/scripts/init.js`
+Final releases are the only path that updates npm's `latest` tag.
 
-**Available Commands:**
+1. Update `CHANGELOG.md`.
+2. Create and publish a GitHub Release with a semver tag such as `v0.1.13`.
+3. The release workflow validates the tag, installs dependencies, lints, builds, generates the schema, tests, previews the package, and publishes with provenance.
 
-- `container-superposition init` - Interactive devcontainer setup
-- `container-superposition regen` - Regenerate from the project file
-- `container-superposition list` - List available overlays
-- `container-superposition doctor` - Environment validation
-
-## Publishing Process
-
-Publishing is **automated via GitHub Actions** when a new release is created.
-
-### Automated Publishing (Recommended)
-
-1. **Update CHANGELOG.md** with release notes
-
-2. **Commit and push changes:**
-
-    ```bash
-    git add CHANGELOG.md
-    git commit -m "docs: update changelog for X.Y.Z"
-    git push
-    ```
-
-3. **Create GitHub Release:**
-    - Go to https://github.com/veggerby/container-superposition/releases/new
-    - Tag: `vX.Y.Z` (e.g., `v0.1.1`)
-    - Title: `Version X.Y.Z` (e.g., `Version 0.1.1`)
-    - Description: Copy the full release section from `CHANGELOG.md`, including the header line
-        - Example (include all subsections like `### Added`, `### Changed`, `### Fixed`):
-
-            ```markdown
-            ## [0.1.5] - 2026-03-01
-
-            ### Added
-
-            - **Foo overlay** — Adds Foo service for local dev
-            - **Bar CLI helpers** — Convenience scripts for common tasks
-
-            ### Changed
-
-            - **Template defaults** — Compose stack now includes a healthcheck by default
-
-            ### Fixed
-
-            - **Port offsets** — Resolved collisions for default web ports
-            ```
-
-    - Click "Publish release"
-
-4. **GitHub Actions will automatically:**
-    - ✅ Validate semantic version format
-    - ✅ Set `package.json` version from the tag
-    - ✅ Install dependencies
-    - ✅ Run tests
-    - ✅ Build TypeScript
-    - ✅ Verify package contents
-    - ✅ Publish to npm with provenance
-    - ✅ Verify publication
-    - ✅ Render exact `npm install` and `npx container-superposition@<version> regen` commands in the workflow run summary
-    - ✅ Comment on associated PR with final release commands when the release commit is linked to a PR
-
-### PR prereleases
-
-Ready for Review PRs publish npm prereleases automatically.
-
-Draft PRs skip prerelease publishing unless labeled `publish-prerelease`. Add `publish-prerelease` to a Draft PR when reviewers need an npm prerelease before the PR is ready. Remove `publish-prerelease` to stop future Draft PR prereleases, or convert a PR to Draft without that label to skip future Draft prerelease publishes.
-
-Successful prerelease runs publish the exact prerelease version with `npm publish --tag prerelease`. After that publish succeeds, the workflow renders the summary and updates the PR comment.
-
-Those prerelease summaries/comments distinguish the two supported install paths:
-
-- exact version for that run: `container-superposition@<version>`
-- moving shared tag: `container-superposition@prerelease`
-
-Use the exact version when you need a stable reference for one PR run. The shared `prerelease` tag is cross-PR and always points to the newest successful prerelease build, which is what makes `npx container-superposition@prerelease regen` target the newest current prerelease build.
-
-The label does not affect final releases, mergeability, or npm `latest`. Maintainers may create the repository label with this description: `Publish npm prereleases for this PR, including while draft`.
-
-Skipped Draft PR runs are expected: GitHub Actions should show the `publish-prerelease` job as skipped, not failed, and no new prerelease PR comment is created for that skipped run.
-
-Version format and prerelease tag behavior are:
-
-- Version: `{base}-pr.{number}.{run_id}`
-- Shared moving tag: `prerelease`
-- PR-specific dist-tags such as `pr-{number}` are no longer part of the supported prerelease workflow
-
-### Manual Publishing (Exception Path)
-
-Use this only for testing or emergency recovery when the GitHub Actions publish workflow cannot be used. Automated trusted publishing is the canonical path; manual publishing should not reintroduce legacy beta promotion or PR-specific dist-tag workflows.
+After a successful publish, the workflow summary includes exact-version install commands and the workflow updates an associated PR comment when it finds one. Verify the final release with:
 
 ```bash
-# 1. Ensure you're logged in to npm
-npm whoami
+npm view container-superposition@<version> version
+npm view container-superposition@latest version
+```
 
-# If not logged in:
-npm login
+## Staged prereleases from `main`
 
-# 2. Run pre-publish checks
-npm run clean
-npm install
+The shared npm `prerelease` tag is only updated by a publish-worthy push already merged to `main`. It is a staging channel for the newest merged main build, never a PR build.
+
+A main push is publish-worthy when it changes one or more of:
+
+- `package.json`, `package-lock.json`, `.npmignore`, or `tsconfig.json`
+- `scripts/**` or non-test `tool/**`
+- `templates/**`, `features/**`, `overlays/**`, or `docs/**/*.md`
+- `README.md` or `LICENSE`
+
+Test-only `tool` changes, `CHANGELOG.md`-only changes, workflow-only changes, and other maintenance-only pushes run the classifier but skip the staged-prerelease publication successfully. A push that contains both excluded and listed paths is publish-worthy.
+
+Each eligible push publishes a unique `{base}-main.{run_id}` version directly with the shared `prerelease` tag. After success, use either the immutable version from the workflow summary or the moving shared channel:
+
+```bash
+npm install container-superposition@<exact-version>
+npx container-superposition@<exact-version> regen
+
+npm install container-superposition@prerelease
+npx container-superposition@prerelease regen
+```
+
+## Manual PR-scoped packages
+
+Pull request events never publish npm packages, update `@prerelease`, update `@latest`, or create prerelease PR comments. When a maintainer needs to test a PR package before merge, they must explicitly run **Publish to npm** with **Run workflow**, select the trusted `main` workflow ref, and provide both the numeric `pr_number` and the intended 40-hex `expected_head_sha`.
+
+An unprivileged preparation job validates both inputs, resolves the selected PR's current immutable head SHA, and stops before checkout if it differs from `expected_head_sha`. It checks out that verified SHA, builds and packs it, then transfers only the tarball and checksum as a same-run artifact. A separate OIDC publisher does not check out or run PR code: it validates the archive, checksum, package name, and version, then publishes the explicit tarball with lifecycle scripts disabled. It publishes `{base}-pr.{number}.{run_id}` directly under the mutable `pr-{number}` tag. The exact version and tag are both PR-scoped:
+
+```bash
+npm install container-superposition@<exact-version>
+npx container-superposition@<exact-version> regen
+
+npm install container-superposition@pr-<number>
+npx container-superposition@pr-<number> regen
+```
+
+`pr-<number>` is not the shared `@prerelease` channel and does not update `@latest`. Manual dispatch is an external publishing action; use it only when the PR package itself needs validation.
+
+## Maintainer checks
+
+Before a final release or when investigating package contents, run:
+
+```bash
+npm test
 npm run build
-npm test
-
-# 3. Verify package contents
 npm pack --dry-run
-
-# 4. Test locally with npx
-npm pack
-cd /tmp && npm install /path/to/container-superposition-X.Y.Z.tgz
-npx container-superposition --help
-npx container-superposition list
-
-# 5. Publish to npm
-npm publish --access public
-
-# If a manual prerelease is unavoidable
-npm publish --tag prerelease --access public
 ```
 
-## Pre-Publish Checklist
-
-Before creating a release, verify:
-
-- [ ] All tests pass (`npm test`)
-- [ ] TypeScript builds without errors (`npm run build`)
-- [ ] Package size is reasonable (`npm pack --dry-run`)
-- [ ] CHANGELOG.md is updated with release notes
-- [ ] Version number follows semantic versioning
-- [ ] README.md reflects current functionality
-- [ ] No secrets or sensitive data in package
-- [ ] All CLI commands work (`init`, `regen`, `list`, `doctor`)
-
-## Post-Publication
-
-After publishing, verify:
-
-1. **Package is live on npm:**
-
-    ```bash
-    npm view container-superposition
-    ```
-
-2. **npx works:**
-
-    ```bash
-    npx container-superposition@latest --help
-    npx container-superposition@latest list
-    npx container-superposition@latest doctor
-    ```
-
-3. **For prerelease runs, verify the exact version and shared tag:**
-
-    ```bash
-    npm view container-superposition@<exact-version> version
-    npm view container-superposition@prerelease version
-    ```
-
-4. **Installation works:**
-
-    ```bash
-    npm install -g container-superposition
-    container-superposition init --help
-    ```
-
-5. **Update documentation:**
-    - Ensure README.md shows latest version
-    - Update any version-specific examples
-    - Announce on relevant channels
-
-## Pre-Publish Checklist
-
-### 1. Check Package Name Availability
-
-```bash
-# Check if name is available
-npm view container-superposition
-
-# If you see "npm error code E404", the name is available ✓
-# If you see package info, the name is taken ✗
-```
-
-### 2. Run Tests
-
-```bash
-# Unit tests
-npm test
-
-# Smoke tests
-npm run test:smoke
-```
-
-### 3. Verify Package Contents
-
-```bash
-# Dry run to see what will be published
-npm pack --dry-run
-
-# Note: You may see a warning about .npmignore not being found.
-# This is safe to ignore - we use the "files" field in package.json
-# as the primary inclusion mechanism (explicit allowlist approach).
-```
-
-**Expected contents:**
-
-- ✅ 138 files
-- ✅ All overlays (dotnet, nodejs, python, postgres, redis, jaeger, prometheus, grafana, loki, etc.)
-- ✅ All templates (plain, compose)
-- ✅ All features (local-secrets-manager, project-scaffolder, team-conventions)
-- ✅ Compiled dist/ folder
-- ✅ Tool configuration (overlays.yml, schema)
-- ✅ README and LICENSE
-
-**Package size:**
-
-- Compressed: ~122 KB
-- Unpacked: ~462 KB
-
-### 4. Version Source (Automated)
-
-For GitHub Releases, the publish workflow sets `package.json` version from the tag (`vX.Y.Z`). You should not run `npm version` locally for automated releases.
-
-If you are doing a manual publish (outside GitHub Releases), you can use:
-
-```bash
-# Patch release (bug fixes): 0.1.0 → 0.1.1
-npm version patch
-
-# Minor release (new features): 0.1.0 → 0.2.0
-npm version minor
-
-# Major release (breaking changes): 0.1.0 → 1.0.0
-npm version major
-```
-
-### 5. Update CHANGELOG.md
-
-Document changes in [CHANGELOG.md](../CHANGELOG.md):
-
-```markdown
-## [0.1.0] - 2026-02-05
-
-### Added
-
-- Initial release
-- Interactive questionnaire with dependency resolution
-- 24+ overlays across languages, databases, observability, cloud tools, dev tools
-- Plain and compose base templates
-- ...
-```
-
-## Current release workflow notes
-
-The legacy beta-promotion flow is no longer supported in this repository.
-
-- Do not publish prereleases to a temporary `beta` or `pr-{number}` dist-tag and then promote them later with `npm dist-tag add`.
-- Do not treat automated publishing as a future enhancement; the live workflow already exists in `.github/workflows/publish.yml`.
-- Do not add a long-lived `NPM_TOKEN` secret just to support prerelease publication; the canonical workflow uses trusted publishing.
-
-If a manual prerelease is ever unavoidable, publish the exact prerelease version directly with the shared tag:
-
-```bash
-npm publish --tag prerelease --access public
-```
-
-That preserves the same supported install paths documented earlier:
-
-- exact version: `container-superposition@<version>`
-- shared moving tag: `container-superposition@prerelease`
+For locally produced package output, inspect the dry-run list rather than publishing manually. The release workflow is the canonical OIDC-backed publication path.
 
 ## Troubleshooting
 
-### ".npmignore not found" Warning
-
-If you see:
-
-```
-npm warn gitignore-fallback No .npmignore file found, using .gitignore for file exclusion.
-```
-
-**This warning can be safely ignored.** The package uses the `"files"` field in `package.json` as the primary inclusion mechanism (allowlist approach), which is more explicit and maintainable than `.npmignore` (denylist approach).
-
-The `"files"` field specifies exactly what to include:
-
-```json
-{
-    "files": [
-        "dist/",
-        "templates/",
-        "features/",
-        "overlays/",
-        "tool/**/*.json",
-        "tool/**/*.yml",
-        "docs/**/*.md"
-    ]
-}
-```
-
-This approach is recommended by npm for packages.
-
-### Build Fails
+If a published version is not immediately visible, npm registry propagation may be delayed. Check the exact version first:
 
 ```bash
-# Clean everything and rebuild
-npm run clean
-rm -rf node_modules package-lock.json
-npm install
-npm run build
+npm view container-superposition@<exact-version> version
 ```
 
-### Package Size Too Large
-
-Check what's being included:
-
-```bash
-npm pack --dry-run | grep "npm notice"
-```
-
-To exclude unnecessary files, modify the `"files"` array in `package.json`:
-
-```json
-{
-    "files": [
-        "dist/", // Keep compiled code
-        "templates/", // Keep base templates
-        "features/", // Keep custom features
-        "overlays/", // Keep all overlays
-        // Exclude specific patterns with "!" prefix if needed
-        "!overlays/**/node_modules"
-    ]
-}
-```
-
-The `"files"` field is an allowlist - only listed items are included. This is more explicit and maintainable than using `.npmignore`.
-
-### Permission Errors
-
-```bash
-# Verify npm login
-npm whoami
-
-# If not logged in:
-npm login
-```
-
-### Name Already Taken
-
-Options:
-
-1. Use scoped package: `@veggerby/container-superposition`
-2. Choose different name: `devcontainer-superposition`, `superposition-dev`, etc.
-3. Contact current owner if package is abandoned
-
-### Version Already Published
-
-```bash
-# Cannot republish same version
-# Bump version and republish:
-npm version patch
-npm publish
-```
-
-## Best Practices
-
-### Versioning Strategy
-
-Follow [Semantic Versioning](https://semver.org/):
-
-- **MAJOR**: Breaking changes (e.g., removing overlays, changing CLI args)
-- **MINOR**: New features (e.g., adding overlays, new CLI options)
-- **PATCH**: Bug fixes (e.g., fixing composition logic, updating deps)
-
-### Pre-Release Versions
-
-For experimental features, keep prereleases aligned with the automated workflow:
-
-```bash
-# Create pre-release
-npm version 0.2.0-alpha.1
-
-# Publish the exact version with the shared prerelease tag
-npm publish --tag prerelease
-
-# Users can install either:
-# npx container-superposition@0.2.0-alpha.1 init
-# npx container-superposition@prerelease init
-```
-
-### Deprecation
-
-If publishing a new major version:
-
-```bash
-# Deprecate old version
-npm deprecate container-superposition@0.1.0 "Use v1.0.0 instead"
-```
-
-## Unpublishing (Emergency Only)
-
-**⚠️ Only use within 72 hours of publishing:**
-
-```bash
-# Unpublish specific version
-npm unpublish container-superposition@0.1.0
-
-# Unpublish entire package (use with caution!)
-npm unpublish container-superposition --force
-```
-
-**Note:** npm discourages unpublishing as it breaks dependents. Prefer deprecation instead.
-
-## References
-
-- [npm Publishing Packages](https://docs.npmjs.com/cli/v10/commands/npm-publish)
-- [npm Version Management](https://docs.npmjs.com/cli/v10/commands/npm-version)
-- [Semantic Versioning](https://semver.org/)
-- [npm Package Lifecycle Scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts#life-cycle-scripts)
+Use `@prerelease` only to inspect the newest eligible merged-main staging build. Use `@pr-<number>` only to inspect the selected manually dispatched PR package.

@@ -1,0 +1,7 @@
+{
+    "repository": "actions/download-artifact",
+    "pin": "d3f86a106a0bac45b974a628896c90dbdf5c8093",
+    "sourceUrl": "https://raw.githubusercontent.com/actions/download-artifact/d3f86a106a0bac45b974a628896c90dbdf5c8093/action.yml",
+    "actionYmlSha256": "f81d687a5bb7c2c9428a2cfc32fc099c823d56faf533e7d0e1f3cdc0e10f9cc7",
+    "declaredOutputs": ["download-path"]
+}
