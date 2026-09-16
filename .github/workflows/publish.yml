@@ -229,21 +229,21 @@ jobs:
 
         steps:
             - name: Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
               with:
                   fetch-depth: 0
 
             - name: Setup GitVersion
-              uses: gittools/actions/gitversion/setup@v3
+              uses: gittools/actions/gitversion/setup@51d325634925d7d9ce0a7efc2c586c0bc2b9eee6
               with:
                   versionSpec: '6.0.x'
 
             - name: Determine version with GitVersion
               id: gitversion
-              uses: gittools/actions/gitversion/execute@v3
+              uses: gittools/actions/gitversion/execute@51d325634925d7d9ce0a7efc2c586c0bc2b9eee6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
               with:
                   node-version: '24'
                   registry-url: 'https://registry.npmjs.org'
@@ -326,7 +326,7 @@ jobs:
                   PR_NUMBER: ${{ inputs.pr_number }}
                   EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
               run: |
-                  if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || ! [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+                  if ! [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || ! [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
                     echo 'Invalid PR number or expected head SHA.' >&2
                     exit 1
                   fi
@@ -340,9 +340,15 @@ jobs:
                   PR_NUMBER: ${{ steps.dispatch-inputs.outputs.number }}
                   EXPECTED_HEAD_SHA: ${{ steps.dispatch-inputs.outputs.expected_sha }}
               run: |
-                  PR_HEAD_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head.sha')
+                  IFS=$'\t' read -r PR_HEAD_SHA PR_HEAD_REPOSITORY < <(
+                    gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head | [.sha, .repo.full_name] | @tsv'
+                  )
                   if ! [[ "$PR_HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
                     echo 'Could not resolve a valid immutable PR head SHA.' >&2
+                    exit 1
+                  fi
+                  if ! [[ "$PR_HEAD_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+                    echo 'Could not resolve a valid PR head repository.' >&2
                     exit 1
                   fi
                   PR_HEAD_SHA=${PR_HEAD_SHA,,}
@@ -351,21 +357,24 @@ jobs:
                     exit 1
                   fi
                   echo "sha=$PR_HEAD_SHA" >> "$GITHUB_OUTPUT"
+                  echo "repository=$PR_HEAD_REPOSITORY" >> "$GITHUB_OUTPUT"
 
             - name: Checkout immutable verified PR head
               uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
               with:
+                  repository: ${{ steps.pr-head.outputs.repository }}
                   ref: ${{ steps.pr-head.outputs.sha }}
                   fetch-depth: 0
+                  persist-credentials: false
 
             - name: Setup GitVersion
-              uses: gittools/actions/gitversion/setup@v3
+              uses: gittools/actions/gitversion/setup@51d325634925d7d9ce0a7efc2c586c0bc2b9eee6
               with:
                   versionSpec: '6.0.x'
 
             - name: Determine version with GitVersion
               id: gitversion
-              uses: gittools/actions/gitversion/execute@v3
+              uses: gittools/actions/gitversion/execute@51d325634925d7d9ce0a7efc2c586c0bc2b9eee6
 
             - name: Setup Node.js
               uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -440,6 +449,9 @@ jobs:
         runs-on: ubuntu-latest
         needs: prepare-pr-prerelease
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        concurrency:
+            group: pr-prerelease-dispatch
+            cancel-in-progress: true
         permissions:
             contents: read
             id-token: write
@@ -451,7 +463,7 @@ jobs:
                   EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
                   RUN_ID: ${{ github.run_id }}
               run: |
-                  if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || ! [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || ! [[ "$RUN_ID" =~ ^[0-9]+$ ]]; then
+                  if ! [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || ! [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || ! [[ "$RUN_ID" =~ ^[0-9]+$ ]]; then
                     echo 'Trusted dispatch context is malformed.' >&2
                     exit 1
                   fi

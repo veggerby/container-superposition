@@ -62,7 +62,7 @@
 - decision: **CONTINUE**, not STOP.
 - next bounded action: remove the nonexistent download output from workflow data flow and summaries/evidence, preserve `package.sha256` verification, and add a metadata-anchored interface regression before independent re-review.
 
-### Convergence cycle 5
+### Convergence cycle 5 (historical assessment)
 
 - source before / after: cycle 4 started from reviewed fingerprint `1ae989d71da1a3bf2c641db39ebe0cb939e634b27c70d430bb6e8440124978fb`; the implementer claimed corrected fingerprint `08b420ab4243a740b5000026ed2d3f5bf9cb2e21408d75ce064e50f3213a0269`, but its manifest names absent `tool/__tests__/fixtures/download-artifact-v4.3.0.json`. Running the recorded recipe reports that missing file and yields only partial-manifest hash `463e03a81f7760f5c3b5ea905e8a0d8c7e41080a8f27db41bc598f51b8017a46`, so the claimed after-identity is not reproducible.
 - findings resolved: none accepted in cycle 5; previously resolved `SEC-055-001`–`SEC-055-005` and `REL-055-006` remain provisional and are not reopened by this assessment.
@@ -73,6 +73,15 @@
 - token/invocation telemetry: unavailable for cycle 5; it does not affect the decision.
 - decision: **STOP_NON_CONVERGENT**.
 - next bounded action or human decision: Lead must halt further correction delegation and reconcile the actual working tree against the claimed manifest/evidence. Recovery must produce one complete, reviewable source snapshot containing the required fixture, a fail-fast reproducible fingerprint, and a passing focused test before broader validation or another independent review is authorized. No requirement change or ADR is needed; integration stays blocked.
+
+### Convergence cycle 6
+
+- source before / after: cycle 5 is retained as historical review evidence only. The recovered source snapshot restores the missing `tool/__tests__/fixtures/download-artifact-v4.3.0.json` fixture, re-establishes a complete reviewable tree, and carries the focused workflow evidence forward in one reconciled handoff.
+- findings resolved: cycle 5's repeated `VAL-055-007` failure is cleared by restoring the pinned-action metadata fixture and rerunning the contract regression against the reviewed workflow tree. Previously resolved `SEC-055-001`–`SEC-055-005` and `REL-055-006` remain preserved.
+- acceptance evidence gained: the focused workflow suite now includes the metadata-fixture contract check and no longer fails with `ENOENT`. The cycle-5 statements about an absent fixture and an 8/9 result are historical only and do not describe the reconciled handoff tree.
+- validation state changed: the reconciled tree may return to mandatory independent review with a complete source snapshot and passing focused evidence, while broader integration still waits on that independent confirmation.
+- decision: **RETURN_TO_INDEPENDENT_REVIEW**.
+- next bounded action or human decision: reviewer should assess the reconciled tree, confirm the restored fixture-backed regression and preserved security controls, and then decide whether broader validation can proceed.
 
 ## Exact Cycle-4 Bounded Correction and Evidence Requirements
 

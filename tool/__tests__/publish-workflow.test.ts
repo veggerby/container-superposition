@@ -18,6 +18,7 @@ const DOWNLOAD_ARTIFACT_METADATA_PATH = path.join(
 );
 const temporaryRepositories: string[] = [];
 const temporaryDirectories: string[] = [];
+const PINNED_GITVERSION_SHA = '51d325634925d7d9ce0a7efc2c586c0bc2b9eee6';
 
 interface ActionMetadataFixture {
     repository: string;
@@ -215,6 +216,18 @@ describe('publish workflow release channels', () => {
             "needs.classify-main-changes.outputs.publish_worthy == 'true'"
         );
         expect(mainJob.permissions).toEqual({ contents: 'read', 'id-token': 'write' });
+        expect(findStep(mainJob, 'Checkout code').uses).toBe(
+            'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
+        );
+        expect(findStep(mainJob, 'Setup GitVersion').uses).toBe(
+            `gittools/actions/gitversion/setup@${PINNED_GITVERSION_SHA}`
+        );
+        expect(findStep(mainJob, 'Determine version with GitVersion').uses).toBe(
+            `gittools/actions/gitversion/execute@${PINNED_GITVERSION_SHA}`
+        );
+        expect(findStep(mainJob, 'Setup Node.js').uses).toBe(
+            'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020'
+        );
         expect(findStep(mainJob, 'Publish main prerelease to npm').run).toBe(
             'npm publish --provenance --access public --tag prerelease'
         );
@@ -248,7 +261,7 @@ describe('publish workflow release channels', () => {
             PR_NUMBER: '${{ inputs.pr_number }}',
             EXPECTED_HEAD_SHA: '${{ inputs.expected_head_sha }}',
         });
-        expect(inputs.run).toContain('^[0-9]+$');
+        expect(inputs.run).toContain('^[1-9][0-9]*$');
         expect(inputs.run).toContain('^[0-9a-fA-F]{40}$');
         expect(inputs.run).toContain('expected_sha=${EXPECTED_HEAD_SHA,,}');
 
@@ -259,13 +272,22 @@ describe('publish workflow release channels', () => {
             EXPECTED_HEAD_SHA: '${{ steps.dispatch-inputs.outputs.expected_sha }}',
         });
         expect(resolveHead.run).toContain('repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}');
-        expect(resolveHead.run).toContain("--jq '.head.sha'");
+        expect(resolveHead.run).toContain("--jq '.head | [.sha, .repo.full_name] | @tsv'");
         expect(resolveHead.run).toContain('PR_HEAD_SHA=${PR_HEAD_SHA,,}');
+        expect(resolveHead.run).toContain('echo "repository=$PR_HEAD_REPOSITORY"');
         expect(resolveHead.run).toContain('"$PR_HEAD_SHA" != "$EXPECTED_HEAD_SHA"');
         expect(findStep(prJob, 'Checkout immutable verified PR head').with).toEqual({
+            repository: '${{ steps.pr-head.outputs.repository }}',
             ref: '${{ steps.pr-head.outputs.sha }}',
             'fetch-depth': 0,
+            'persist-credentials': false,
         });
+        expect(findStep(prJob, 'Setup GitVersion').uses).toBe(
+            `gittools/actions/gitversion/setup@${PINNED_GITVERSION_SHA}`
+        );
+        expect(findStep(prJob, 'Determine version with GitVersion').uses).toBe(
+            `gittools/actions/gitversion/execute@${PINNED_GITVERSION_SHA}`
+        );
 
         for (const step of prJob.steps ?? []) {
             if (step.run !== undefined) {
@@ -368,6 +390,7 @@ describe('publish workflow release channels', () => {
 
         expect(prepare.permissions?.['id-token']).toBeUndefined();
         expect(publisher.needs).toBe('prepare-pr-prerelease');
+        expect(publisher.concurrency).toEqual(prepare.concurrency);
         expect(publisher.permissions).toEqual({ contents: 'read', 'id-token': 'write' });
         expect(publisher.steps?.some((step) => step.uses?.startsWith('actions/checkout'))).toBe(
             false
@@ -384,6 +407,9 @@ describe('publish workflow release channels', () => {
             'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093'
         );
         expect(download.with).toEqual({ name: 'pr-prerelease-package', path: 'prepared-artifact' });
+        expect(findStep(publisher, 'Revalidate trusted dispatch inputs').run).toContain(
+            '^[1-9][0-9]*$'
+        );
         const validate = findStep(publisher, 'Validate inert artifact transport and archive');
         for (const contract of [
             'Artifact must contain exactly two files',
