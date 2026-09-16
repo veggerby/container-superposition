@@ -85,7 +85,7 @@ Feature: Core CLI tooling workflows
       """
     Then the command exits with status 1
     And the command stdout should be empty
-    And the command stderr should contain "Doctor found blocking issues"
+    And the command stderr should contain "Doctor found issues requiring attention"
 
   Scenario: Silent migrate writes canonical intent without changing routine output
     Given an inline workspace fixture:
