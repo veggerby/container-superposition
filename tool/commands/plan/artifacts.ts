@@ -20,7 +20,8 @@ const TEMPLATES_DIR =
 export function computePlannedDevcontainerJson(
     stack: Stack,
     overlayIds: string[],
-    overlaysDir: string
+    overlaysDir: string,
+    silent = false
 ): string | null {
     try {
         const basePath = path.join(TEMPLATES_DIR, stack, '.devcontainer', 'devcontainer.json');
@@ -31,7 +32,7 @@ export function computePlannedDevcontainerJson(
         let config: DevContainer = JSON.parse(fs.readFileSync(basePath, 'utf8'));
 
         for (const id of overlayIds) {
-            config = applyOverlay(config, id, overlaysDir);
+            config = applyOverlay(config, id, overlaysDir, { silent });
         }
 
         return JSON.stringify(config, null, 2);

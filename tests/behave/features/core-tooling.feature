@@ -1,4 +1,130 @@
 Feature: Core CLI tooling workflows
+  Scenario Outline: Every executable command advertises silent mode
+    Given an inline workspace fixture:
+      """
+      files:
+        README.md:
+          text: silent mode workspace
+      """
+    When I run the CLI command
+      """
+      <command> --help
+      """
+    Then the command exits successfully
+    And the command stdout should contain "--silent"
+
+    Examples:
+      | command  |
+      | init     |
+      | regen    |
+      | list     |
+      | defaults |
+      | explain  |
+      | plan     |
+      | doctor   |
+      | adopt    |
+      | hash     |
+      | migrate  |
+
+  Scenario: Silent mode preserves read-only list behavior without routine output
+    Given an inline workspace fixture:
+      """
+      files:
+        README.md:
+          text: silent mode workspace
+      """
+    When I run the CLI command
+      """
+      list --silent
+      """
+    Then the command exits successfully
+    And the command stdout should be empty
+    And the command stderr should be empty
+
+  Scenario: Silent mode suppresses routine output while preserving init writes
+    Given an inline workspace fixture:
+      """
+      files:
+        README.md:
+          text: silent mode workspace
+      """
+    When I run the CLI command
+      """
+      init --stack plain --language nodejs --no-interactive --silent
+      """
+    Then the command exits successfully
+    And the command stdout should be empty
+    And the command stderr should be empty
+    And the file ".superposition.yml" should exist
+    And the file ".devcontainer/devcontainer.json" should exist
+    When I run the CLI command
+      """
+      regen --silent
+      """
+    Then the command exits successfully
+    And the command stdout should be empty
+    And the command stderr should be empty
+    And the file ".devcontainer/devcontainer.json" should exist
+
+  Scenario: Silent doctor failures retain a concise diagnostic
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: plain
+            overlays:
+              - nodejs
+            outputPath: .devcontainer
+        .devcontainer/devcontainer.json:
+          json: {}
+      """
+    When I run the CLI command
+      """
+      doctor --silent
+      """
+    Then the command exits with status 1
+    And the command stdout should be empty
+    And the command stderr should contain "Doctor found issues requiring attention"
+
+  Scenario: Silent migrate writes canonical intent without changing routine output
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/superposition.json:
+          json:
+            manifestVersion: "1"
+            generatedBy: test
+            generated: "2026-01-01T00:00:00.000Z"
+            baseTemplate: plain
+            baseImage: bookworm
+            overlays:
+              - nodejs
+      """
+    When I run the CLI command
+      """
+      migrate --silent
+      """
+    Then the command exits successfully
+    And the command stdout should be empty
+    And the command stderr should be empty
+    And the file ".superposition.yml" should exist
+
+  Scenario: Silent JSON conflicts fail before hash writes
+    Given an inline workspace fixture:
+      """
+      files:
+        README.md:
+          text: silent mode workspace
+      """
+    When I run the CLI command
+      """
+      hash --stack plain --overlays nodejs --write --output .devcontainer --silent --json
+      """
+    Then the command exits with status 1
+    And the command stderr should contain "--silent cannot be used with --json"
+    And the file ".devcontainer/superposition.hash" should not exist
+
   Scenario: Init writes canonical shared intent and generated output from flags
     Given an inline workspace fixture:
       """

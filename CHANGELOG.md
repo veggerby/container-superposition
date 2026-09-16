@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cross-command `--silent` CLI mode** — all executable commands now accept `--silent` to suppress routine human-readable output, including ordinary non-fatal warnings, while preserving operational behavior and failure diagnostics; it is explicitly incompatible with `--json` and rejects that combination before command work begins.
+
 - **HermIT ontology reasoner overlay** — the built-in overlay catalog now includes `hermit`, a plain-stack OWL reasoning CLI capability that requires the existing Java overlay, installs the pinned Maven Central coordinate `net.sourceforge.owlapi:org.semanticweb.hermit:1.4.5.519`, documents ontology consistency/classification workflows, and links Apache Jena Fuseki as a complementary SPARQL/triplestore overlay.
 
 - **Natural-language project-config Pi workflow and defaults inspection** — the repo now includes `/project-config` and `/skill:project-config-authoring` so contributors and agents can translate project setup requests into canonical `superposition.yml` plus optional `superposition.local.yml` changes with live `npx container-superposition` discovery, plain-stack-first guidance, bootstrap-only global-default handling, and post-write preview validation. A new read-only `defaults [--json]` command reports the selected effective home defaults file (`~/.container-superposition.yml` wins over `~/.superposition.yml`), any ignored lower-precedence source, and the normalized document without writing files or making home defaults replay/remediation authority.
