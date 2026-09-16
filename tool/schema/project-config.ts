@@ -1031,7 +1031,7 @@ function parseProjectShell(value: unknown): ProjectShellConfig | undefined {
     return { aliases, snippets };
 }
 
-function parseLocalProjectConfigDocument(
+export function parseLocalProjectConfigDocument(
     document: Record<string, any>,
     sourceLabel: string,
     options: { allowSchema?: boolean } = {}
@@ -1106,6 +1106,29 @@ export function findIgnoredLocalProjectConfig(
     return fs.existsSync(file.path) ? file : null;
 }
 
+export function parseLocalProjectConfigFile(
+    filePath: string,
+    sourceLabel: string = filePath
+): LoadedLocalProjectConfig {
+    let parsed: unknown;
+    try {
+        parsed = yaml.load(fs.readFileSync(filePath, 'utf8')) ?? {};
+    } catch (error) {
+        throw new ProjectConfigError(
+            `Failed to parse ${sourceLabel}: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+
+    const document = expectPlainObject(parsed, sourceLabel);
+    return {
+        file: {
+            fileName: path.basename(filePath) as ProjectConfigFileName,
+            path: filePath,
+        },
+        selection: parseLocalProjectConfigDocument(document, sourceLabel),
+    };
+}
+
 export function loadLocalProjectConfig(
     repoRoot: string = process.cwd()
 ): LoadedLocalProjectConfig | null {
@@ -1114,21 +1137,7 @@ export function loadLocalProjectConfig(
         return null;
     }
 
-    let parsed: unknown;
-    try {
-        parsed = yaml.load(fs.readFileSync(file.path, 'utf8')) ?? {};
-    } catch (error) {
-        throw new ProjectConfigError(
-            `Failed to parse ${LOCAL_PROJECT_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`
-        );
-    }
-
-    const document = expectPlainObject(parsed, LOCAL_PROJECT_CONFIG_FILENAME);
-
-    return {
-        file,
-        selection: parseLocalProjectConfigDocument(document, LOCAL_PROJECT_CONFIG_FILENAME),
-    };
+    return parseLocalProjectConfigFile(file.path, LOCAL_PROJECT_CONFIG_FILENAME);
 }
 
 export function resolveGlobalDefaultsPath(homeDir?: string): ResolvedGlobalDefaultsPath | null {

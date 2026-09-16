@@ -21,7 +21,8 @@ your-project/
 │       ├── devcontainer.patch.json
 │       └── docker-compose.patch.yml
 ├── superposition.json           # Manifest file (enables regeneration)
-├── superposition.local.yml      # Optional local config (gitignored, not shared)
+├── superposition.local.yml      # Optional local config for managed repos (gitignored, not shared)
+├── .container-superposition/    # Local amendment input/state for non-adopting repos (amend only)
 ├── .gitpod.yml                  # Gitpod workspace config (--target gitpod only)
 ├── devpod.yaml                  # DevPod workspace descriptor (--target devpod only)
 └── .devcontainer.backup-*/      # Automatic backups (gitignored)
@@ -31,7 +32,8 @@ your-project/
 
 - `.devcontainer/.env` when `composeEnvFiles: true`, or repository-root `.env` when your project uses one
 - `.devcontainer/custom/` (shared project patches and scripts)
-- `superposition.local.yml` (local config for machine-specific generated-output enrichment; keep gitignored)
+- `superposition.local.yml` (local config for machine-specific generated-output enrichment in repositories already using shared Container Superposition config; keep gitignored)
+- `.container-superposition/amendment.yml` (personal local amendment input for a non-adopting repository with an existing team devcontainer; keep local-only)
 
 ## Files Safe to Edit Directly
 
@@ -54,8 +56,8 @@ your-project/
 - `.devcontainer/custom/` (project-specific patches)
 - `.devcontainer/.env.example` when `composeEnvFiles: true`
 
-Do not commit `superposition.local.yml` or generated output containing local-only settings. Prefer
-`devcontainerGitignore: true`; if generated output was already tracked, untrack generated output:
+Do not commit `superposition.local.yml`, `.container-superposition/`, `devcontainer.superposition-local.json`, `.devcontainer.superposition-local.json`, or generated output containing local-only settings. Prefer
+`devcontainerGitignore: true` for managed generated output; `amend` uses worktree-local `info/exclude` for its local-only paths when Git is available. If generated output was already tracked, untrack generated output manually:
 
 ```bash
 git rm -r --cached -- .devcontainer
@@ -73,4 +75,9 @@ git rm -r --cached -- .devcontainer
 
 # Local config (personal generated-output enrichment)
 superposition.local.yml
+
+# Local devcontainer amendment (usually written to .git/info/exclude by amend)
+.container-superposition/
+.devcontainer/devcontainer.superposition-local.json
+.devcontainer.superposition-local.json
 ```

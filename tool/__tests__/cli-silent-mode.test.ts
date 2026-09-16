@@ -51,8 +51,12 @@ describe('CLI silent mode', () => {
             'adopt',
             'hash',
             'migrate',
+            'amend init',
+            'amend refresh',
+            'amend inspect',
+            'amend remove',
         ]) {
-            const result = runCli([command, '--help'], repoRoot);
+            const result = runCli([...command.split(' '), '--help'], repoRoot);
             expect(result.status).toBe(0);
             expect(result.stdout).toContain('--silent');
         }

@@ -63,6 +63,11 @@ npx container-superposition init --stack compose --preset web-api --no-scaffold
 
 # Migrate a manifest-only repo to the project-file model
 npx container-superposition migrate
+
+# Personal local layer for a non-adopting repo that already has a devcontainer
+npx container-superposition amend init
+$EDITOR .container-superposition/amendment.yml
+npx container-superposition amend refresh
 ```
 
 ## What It Does
@@ -72,6 +77,7 @@ npx container-superposition migrate
 - Catalogs: mix the built-in catalog with project-pinned private catalogs declared in `superposition.yml`.
 - Composition: merges overlays into a standard `.devcontainer/` you can edit freely.
 - Compose defaults: tool-owned compose port bindings are hard-rendered to final numeric host ports; `.devcontainer/.env` and `.devcontainer/.env.example` are opt-in artifacts only via `--compose-env-files` / `composeEnvFiles: true`.
+- Local amendment: `amend init|refresh|inspect|remove` layers personal local additions onto a non-adopting repository's existing team-owned devcontainer without creating shared Container Superposition intent; launch it with the printed `devcontainer --config` command.
 - Project config: `superposition.yml` (or `.superposition.yml`) is the **canonical input** for all
   generation and regeneration flows. Commit it to your repo for reproducible team and CI builds.
     - `init` always writes `superposition.yml` as its primary output
@@ -96,6 +102,7 @@ All commands accept `--silent` to suppress routine human-readable status, progre
 - `migrate` — one-time migration: creates `superposition.yml` from an existing `superposition.json`
     - Required for repos that ran `init` before this project-file-first model was introduced
 - `adopt` — migrate an existing `.devcontainer/` to the overlay-based workflow
+- `amend` — create, refresh, inspect, or remove a personal local amendment layer for an existing team-owned devcontainer without adoption
 - `list` — browse overlays and presets
 - `explain` — inspect overlay or preset details
 - `plan` — preview output before writing
@@ -113,6 +120,7 @@ Start here:
 - [Versioned private catalogs](https://github.com/veggerby/container-superposition/blob/main/docs/private-catalogs.md)
 - [Quick reference](https://github.com/veggerby/container-superposition/blob/main/docs/quick-reference.md)
 - [Adopt command](https://github.com/veggerby/container-superposition/blob/main/docs/adopt.md)
+- [Local devcontainer amendment](https://github.com/veggerby/container-superposition/blob/main/docs/local-devcontainer-amendment.md)
 - [Hash command](https://github.com/veggerby/container-superposition/blob/main/docs/hash.md)
 - [Examples](https://github.com/veggerby/container-superposition/blob/main/docs/examples.md)
 - [Presets](https://github.com/veggerby/container-superposition/blob/main/docs/presets.md)

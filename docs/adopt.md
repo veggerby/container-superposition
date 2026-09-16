@@ -2,7 +2,9 @@
 
 The `adopt` command helps you **migrate an existing `.devcontainer/` configuration** to Container Superposition's overlay-based workflow.
 
-It scans your current `devcontainer.json` and any linked `docker-compose.yml` files, matches their contents against all available overlays, and produces:
+If you do **not** want team migration and only need a personal local layer on top of an existing team-owned devcontainer, use [`amend`](local-devcontainer-amendment.md) instead. `amend` keeps shared project intent out of the repository, writes local-only artifacts under `.container-superposition/`, and launches through a generated alternate config.
+
+`adopt` scans your current `devcontainer.json` and any linked `docker-compose.yml` files, matches their contents against all available overlays, and produces:
 
 1. **`superposition.json`** — the manifest written to the **project root** (next to your `src/`, `package.json`, etc.), ready to commit and share with your team
 2. **`.superposition.yml`** — an optional repository-root project file when you pass `--project-file`, using the same inferred stack, overlays, output path, and supported customizations
@@ -14,7 +16,10 @@ The custom patches in `custom/` are automatically merged on every `regen`, so yo
 ## Quick Start
 
 ```bash
-# Analyse your existing .devcontainer/ (prints a report, writes nothing)
+# Personal-only local layer without team migration: use amend, not adopt
+npx container-superposition amend init
+
+# Analyse your existing .devcontainer/ for team migration (prints a report, writes nothing)
 npx container-superposition adopt --dry-run
 
 # Run the analysis and write the generated files

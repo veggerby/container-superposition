@@ -23,8 +23,12 @@ Feature: Core CLI tooling workflows
       | plan     |
       | doctor   |
       | adopt    |
-      | hash     |
-      | migrate  |
+      | hash         |
+      | migrate      |
+      | amend init   |
+      | amend refresh |
+      | amend inspect |
+      | amend remove |
 
   Scenario: Silent mode preserves read-only list behavior without routine output
     Given an inline workspace fixture:

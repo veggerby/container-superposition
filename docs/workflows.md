@@ -88,6 +88,20 @@ npx container-superposition migrate
 npx container-superposition regen
 ```
 
+## Local amendment without adoption
+
+Use `amend` when a repository already has a team-owned devcontainer and you only need a personal local layer. It does not create `superposition.yml`, `.superposition.yml`, `superposition.json`, or `superposition.local.yml`, and it does not mutate the Git index.
+
+```bash
+npx container-superposition amend init
+$EDITOR .container-superposition/amendment.yml
+npx container-superposition amend refresh
+npx container-superposition amend inspect
+npx container-superposition amend remove
+```
+
+Launch the amended configuration with the printed `devcontainer up --workspace-folder . --config <generated-alternate-config>` command. Ordinary editor auto-discovery continues to use the team-owned base. See [Local Devcontainer Amendment](local-devcontainer-amendment.md).
+
 ## Adopt and migrate conversion flows
 
 Use these when moving into the current model:
