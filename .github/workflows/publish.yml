@@ -492,7 +492,7 @@ jobs:
                   [[ -f "$TARBALL" && -f "$CHECKSUM" ]] || { echo 'Artifact filenames are invalid.' >&2; exit 1; }
                   [[ $(awk 'NR == 1 && $1 ~ /^[0-9a-f]{64}$/ && $2 == "package.tgz" { ok=1 } END { print ok && NR == 1 }' "$CHECKSUM") == 1 ]] || { echo 'Checksum manifest is invalid.' >&2; exit 1; }
                   (cd prepared-artifact && sha256sum --check package.sha256)
-                  tar -tvzf "$TARBALL" | awk '$1 !~ /^[d-]/ || $NF !~ /^package(\/|$)/ || $NF ~ /(^|\/)\.\.\// { exit 1 }'
+                  tar -tvzf "$TARBALL" | awk '$1 !~ /^[d-]/ || $NF !~ /^package(\/|$)/ || $NF ~ /(^|\/)\.\.?($|\/)/ || $NF ~ /\/\// { exit 1 }'
                   tar -tzf "$TARBALL" | grep -qx 'package/package.json' || { echo 'Package manifest is absent.' >&2; exit 1; }
                   tar -xOf "$TARBALL" package/package.json > package.json
                   echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"

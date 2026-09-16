@@ -419,6 +419,8 @@ describe('publish workflow release channels', () => {
             '! -L',
             'sha256sum --check',
             'tar -tvzf',
+            '(^|\\/)\\.\\.?($|\\/)',
+            '\\/\\/',
             'package/package.json',
         ]) {
             expect(validate.run).toContain(contract);
