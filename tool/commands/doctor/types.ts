@@ -8,7 +8,6 @@ export interface DoctorOptions {
     fix?: boolean;
     dryRun?: boolean;
     json?: boolean;
-    silent?: boolean;
     allOverlays?: boolean;
 }
 

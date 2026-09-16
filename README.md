@@ -82,8 +82,6 @@ npx container-superposition migrate
 
 ## Core Commands
 
-All commands accept `--silent` to suppress routine human-readable status, progress, warnings, summaries, and guidance while retaining error diagnostics. `--silent` cannot be combined with `--json`; the CLI rejects that combination before command work begins.
-
 - `init` — run the interactive questionnaire; always writes `superposition.yml` and (by default) scaffolds `.devcontainer/`
     - Add `--compose-env-files` to persist `composeEnvFiles: true` and generate `.devcontainer/.env` plus `.devcontainer/.env.example`
     - Add `--no-scaffold` to write only the project file without generating `.devcontainer/`

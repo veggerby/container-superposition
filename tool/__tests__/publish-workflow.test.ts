@@ -16,6 +16,7 @@ const DOWNLOAD_ARTIFACT_METADATA_PATH = path.join(
     'fixtures',
     'download-artifact-v4.3.0.json'
 );
+const ZERO_SHA = '0'.repeat(40);
 const temporaryRepositories: string[] = [];
 const temporaryDirectories: string[] = [];
 const PINNED_GITVERSION_SHA = '51d325634925d7d9ce0a7efc2c586c0bc2b9eee6';
@@ -113,7 +114,7 @@ function classifyChangedPath(changedPath: string, deletePath = false): string {
     }).trim();
 }
 
-function createPackageArtifactFixture(): string {
+function createPackageArtifactFixture(packageJson: Record<string, unknown> = {}): string {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-artifact-'));
     temporaryDirectories.push(directory);
     const packageDirectory = path.join(directory, 'source', 'package');
@@ -124,6 +125,7 @@ function createPackageArtifactFixture(): string {
             name: 'container-superposition',
             version: '0.1.3-pr.741.123456',
             scripts: { preinstall: 'touch canary-ran' },
+            ...packageJson,
         })
     );
     fs.writeFileSync(path.join(packageDirectory, 'index.js'), 'export {};\n');
@@ -138,15 +140,37 @@ function createPackageArtifactFixture(): string {
     return directory;
 }
 
-function runWorkflowShell(script: string, cwd: string): void {
+function runWorkflowShell(script: string, cwd: string, env: Record<string, string> = {}): void {
     execFileSync('bash', ['-euo', 'pipefail', '-c', script], {
         cwd,
         stdio: 'pipe',
         env: {
             ...process.env,
+            ...env,
             GITHUB_OUTPUT: path.join(cwd, 'github-output'),
         },
     });
+}
+
+function classifyInitialTree(paths: string[]): string {
+    const repository = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-classifier-initial-'));
+    temporaryRepositories.push(repository);
+    git(repository, 'init', '--quiet');
+    git(repository, 'config', 'user.email', 'test@example.invalid');
+    git(repository, 'config', 'user.name', 'Classifier test');
+    for (const changedPath of paths) {
+        const target = path.join(repository, changedPath);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, 'initial\n');
+    }
+    git(repository, 'add', '.');
+    git(repository, 'commit', '--quiet', '-m', 'initial');
+    const after = git(repository, 'rev-parse', 'HEAD');
+
+    return execFileSync(CLASSIFIER_PATH, [ZERO_SHA, after], {
+        cwd: repository,
+        encoding: 'utf8',
+    }).trim();
 }
 
 afterEach(() => {
@@ -434,6 +458,22 @@ describe('publish workflow release channels', () => {
         expect(findStep(publisher, 'Publish validated PR tarball').run).toBe(
             'npm publish "$TARBALL" --provenance --access public --ignore-scripts --tag "pr-$PR_NUMBER"'
         );
+        for (const stepName of [
+            'Verify published main prerelease',
+            'Verify published PR package',
+        ]) {
+            const verifyStep = findStep(
+                stepName === 'Verify published main prerelease'
+                    ? workflow.jobs['publish-main-prerelease']
+                    : publisher,
+                stepName
+            );
+            expect(verifyStep.run).toContain('Waiting for npm registry to update...');
+            expect(verifyStep.run).toContain('sleep 10');
+            expect(verifyStep.run).toContain(
+                'Package published successfully but not yet visible in registry'
+            );
+        }
     });
 
     it('classifies every publish-worthy path class with NUL-delimited Git paths', () => {
@@ -467,6 +507,8 @@ describe('publish workflow release channels', () => {
             expect(classifyChangedPath(changedPath), changedPath).toBe('false');
         }
         expect(classifyChangedPath('templates/deleted.txt', true)).toBe('true');
+        expect(classifyInitialTree(['docs/guide.md'])).toBe('true');
+        expect(classifyInitialTree(['CHANGELOG.md'])).toBe('false');
     });
 
     it('fails closed for malformed or unavailable classifier commits', () => {
@@ -474,6 +516,44 @@ describe('publish workflow release channels', () => {
             execFileSync(CLASSIFIER_PATH, ['not-a-sha', 'still-not-a-sha'], {
                 encoding: 'utf8',
                 stdio: 'pipe',
+            })
+        ).toThrow();
+    });
+
+    it('rejects prepared tarballs that define publishConfig', () => {
+        const { workflow } = loadWorkflow();
+        const producer = findStep(
+            workflow.jobs['prepare-pr-prerelease'],
+            'Create checksum manifest'
+        );
+        const validateArtifact = findStep(
+            workflow.jobs['publish-pr-prerelease'],
+            'Validate inert artifact transport and archive'
+        );
+        const validatePackage = findStep(
+            workflow.jobs['publish-pr-prerelease'],
+            'Validate package identity and version'
+        );
+        const fixture = createPackageArtifactFixture({
+            publishConfig: { registry: 'https://example.invalid' },
+        });
+        runWorkflowShell(producer.run!, fixture);
+        const consumerDirectory = path.join(fixture, 'publish-config-rejection');
+        fs.mkdirSync(consumerDirectory);
+        fs.cpSync(
+            path.join(fixture, '.prepared'),
+            path.join(consumerDirectory, 'prepared-artifact'),
+            {
+                recursive: true,
+            }
+        );
+
+        runWorkflowShell(validateArtifact.run!, consumerDirectory);
+        expect(() =>
+            runWorkflowShell(validatePackage.run!, consumerDirectory, {
+                PACKAGE_JSON: path.join(consumerDirectory, 'package.json'),
+                PR_NUMBER: '741',
+                RUN_ID: '123456',
             })
         ).toThrow();
     });

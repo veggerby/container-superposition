@@ -113,7 +113,7 @@ Show one question at a time, confirm each selection, summarize before execution.
 - Checkmarks confirm selections
 - Spinners show progress
 - Clear success/error states
-- Normal interactive flows provide immediate feedback; the explicit CLI `--silent` mode is the documented automation exception and suppresses routine status and non-fatal warnings while preserving errors
+- No silent operations
 
 ### Scannability
 

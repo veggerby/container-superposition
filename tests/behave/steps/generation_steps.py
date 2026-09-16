@@ -129,20 +129,6 @@ def step_then_command_stderr_should_contain(context, expected_text):
         )
 
 
-@then('the command stdout should be empty')
-def step_then_command_stdout_should_be_empty(context):
-    result = _require_command_result(context)
-    if result.stdout:
-        raise AssertionError(_command_failure_message(result, 'Expected command stdout to be empty.'))
-
-
-@then('the command stderr should be empty')
-def step_then_command_stderr_should_be_empty(context):
-    result = _require_command_result(context)
-    if result.stderr:
-        raise AssertionError(_command_failure_message(result, 'Expected command stderr to be empty.'))
-
-
 @then('the command JSON output should have value at "{selector}" equal')
 def step_then_command_json_value_equals(context, selector):
     _assert_with_bridge(
