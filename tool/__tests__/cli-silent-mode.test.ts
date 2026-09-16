@@ -87,6 +87,23 @@ describe('CLI silent mode', () => {
             expect(fs.existsSync(path.join(workspace, '.devcontainer', 'superposition.hash'))).toBe(
                 false
             );
+
+            const planDiffResult = runCli(
+                [
+                    'plan',
+                    '--stack',
+                    'plain',
+                    '--overlays',
+                    'nodejs',
+                    '--diff',
+                    '--diff-format',
+                    'json',
+                    '--silent',
+                ],
+                workspace
+            );
+            expect(planDiffResult.status).not.toBe(0);
+            expect(planDiffResult.stderr).toContain('--silent cannot be used with --json');
         } finally {
             fs.rmSync(workspace, { recursive: true, force: true });
         }
@@ -141,7 +158,7 @@ describe('CLI silent mode', () => {
             const result = runCli(['doctor', '--silent'], workspace);
             expect(result.status).toBe(1);
             expect(result.stdout).toBe('');
-            expect(result.stderr).toContain('Doctor found blocking issues');
+            expect(result.stderr).toContain('Doctor found issues requiring attention');
         } finally {
             fs.rmSync(workspace, { recursive: true, force: true });
         }

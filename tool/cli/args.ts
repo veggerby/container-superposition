@@ -56,8 +56,14 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .version(getToolVersion());
 
     program.hook('preAction', (_command, actionCommand) => {
-        const options = actionCommand.opts<{ silent?: boolean; json?: boolean }>();
-        if (options.silent && options.json) {
+        const options = actionCommand.opts<{
+            silent?: boolean;
+            json?: boolean;
+            diffFormat?: string;
+        }>();
+        const isJsonPlanDiff =
+            actionCommand.name() === 'plan' && options.diffFormat?.toLowerCase() === 'json';
+        if (options.silent && (options.json || isJsonPlanDiff)) {
             console.error('✗ Error: --silent cannot be used with --json');
             process.exit(1);
         }

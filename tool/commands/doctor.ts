@@ -35,13 +35,13 @@ import type { DoctorOptions } from './doctor/types.js';
 
 export { renderDoctorReportModel } from './doctor/presentation.js';
 
-function exitDoctor(options: DoctorOptions, hasBlockingIssues: boolean): never {
-    if (options.silent && hasBlockingIssues) {
+function exitDoctor(options: DoctorOptions, hasIssuesRequiringAttention: boolean): never {
+    if (options.silent && hasIssuesRequiringAttention) {
         console.error(
-            '✗ Doctor found blocking issues. Run without --silent for the full diagnostic report.'
+            '✗ Doctor found issues requiring attention. Run without --silent for the full diagnostic report.'
         );
     }
-    process.exit(hasBlockingIssues ? 1 : 0);
+    process.exit(hasIssuesRequiringAttention ? 1 : 0);
 }
 
 export async function doctorCommand(
