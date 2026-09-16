@@ -175,7 +175,8 @@ export async function planCommand(
             overlaysConfig,
             overlaysDir,
             outputPath,
-            options.diffContext ?? 3
+            options.diffContext ?? 3,
+            options.json === true
         );
         const presentation = buildPlanPresentation(plan, diffResult);
 

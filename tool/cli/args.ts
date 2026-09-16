@@ -20,6 +20,7 @@ import { hashCommand } from '../commands/hash.js';
 import { migrateCommand } from '../commands/migrate.js';
 import { defaultsCommand } from '../commands/defaults.js';
 import { loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
+import { enableSilentOutput } from './output.js';
 
 export interface CliArgs {
     commandName?: 'init' | 'regen';
@@ -34,7 +35,11 @@ export interface CliArgs {
     writeManifestOnly?: boolean;
     noScaffold?: boolean;
     ignoreGlobalDefaults?: boolean;
+    silent?: boolean;
 }
+
+const SILENT_OPTION_DESCRIPTION =
+    'Suppress routine human-readable output; cannot be used with --json';
 
 /**
  * Parse CLI arguments and dispatch sub-commands that exit immediately.
@@ -49,6 +54,15 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .name('container-superposition')
         .description('Shared project file first devcontainer generation and replay')
         .version(getToolVersion());
+
+    program.hook('preAction', (_command, actionCommand) => {
+        const options = actionCommand.opts<{ silent?: boolean; json?: boolean }>();
+        if (options.silent && options.json) {
+            console.error('✗ Error: --silent cannot be used with --json');
+            process.exit(1);
+        }
+        if (options.silent) enableSilentOutput();
+    });
 
     // Init command (default)
     program
@@ -120,6 +134,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             '--ignore-global-defaults',
             'Ignore ~/.container-superposition.yml and ~/.superposition.yml for this init run'
         )
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option('--preset <id>', 'Start from a preset (e.g., web-api, microservice)')
         .option(
             '--preset-param <value>',
@@ -173,6 +188,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--backup-dir <path>', 'Custom backup directory location')
         .option('--minimal', 'Minimal mode - exclude optional/nice-to-have features and extensions')
         .option('--editor <profile>', 'Editor profile: vscode (default), jetbrains, none', 'vscode')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option(
             '--param <value>',
             'Override an overlay parameter value (format: KEY=value, can be repeated)',
@@ -197,6 +213,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         )
         .option('--tags <list>', 'Filter by tags (comma-separated)')
         .option('--supports <stack>', 'Filter by stack support: plain, compose')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysContext = loadOverlaysContextWrapper();
@@ -209,6 +226,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .description(
             'Inspect effective home-directory init defaults read-only; ~/.container-superposition.yml wins over ~/.superposition.yml'
         )
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option('--json', 'Output selected source, ignored source, and normalized document as JSON')
         .action(async (options) => {
             await defaultsCommand(options);
@@ -218,6 +236,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     program
         .command('explain <overlay>')
         .description('Inspect fit, tradeoffs, and preview notes for one overlay or preset')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option('--json', 'Output as JSON for scripting')
         .action(async (overlayId, options) => {
             const overlaysContext = loadOverlaysContextWrapper();
@@ -258,6 +277,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             3
         )
         .option('--verbose', 'Explain why each overlay was included in the resolved plan')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysContext = loadOverlaysContextWrapper();
@@ -285,6 +305,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             '--all-overlays',
             'Include repo-wide overlay catalog validation, not only selected overlays'
         )
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysContext = loadOverlaysContextWrapper();
@@ -320,6 +341,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             '--project-file',
             '(deprecated) Write a repository-root project config. Project file output is now standard; this flag is a no-op.'
         )
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             if (options.projectFile) {
@@ -348,6 +370,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--manifest <path>', 'Path to superposition.json manifest')
         .option('-o, --output <path>', 'Directory to write hash file (used with --write)')
         .option('--write', 'Write hash to .devcontainer/superposition.hash')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .option('--json', 'Output as JSON for scripting')
         .action(async (options) => {
             const overlaysContext = loadOverlaysContextWrapper();
@@ -369,6 +392,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
             'Output path for project file (default: .superposition.yml or existing file path)'
         )
         .option('--force', 'Overwrite existing project file if present')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
         .action(async (options) => {
             await migrateCommand(options);
         });
@@ -559,5 +583,6 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         writeManifestOnly: initOptions.writeManifestOnly === true,
         noScaffold: initOptions.scaffold === false,
         ignoreGlobalDefaults: initOptions.ignoreGlobalDefaults === true,
+        silent: initOptions.silent === true,
     };
 }

@@ -61,6 +61,7 @@ import { buildAnswersFromCliArgs, mergeAnswers } from '../questionnaire/answers.
 import { applyPresetSelections } from '../questionnaire/presets.js';
 import { runQuestionnaire, loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
 import { parseCliArgs } from './args.js';
+import { isSilentOutput, restoreOutput } from './output.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
 import { deepMerge } from '../utils/merge.js';
@@ -1345,6 +1346,7 @@ export async function main(): Promise<void> {
                 ? chalk.cyan('Generating manifest file...')
                 : chalk.cyan('Generating devcontainer configuration...'),
             color: 'cyan',
+            isSilent: isSilentOutput(),
         }).start();
 
         try {
@@ -1438,5 +1440,7 @@ export async function main(): Promise<void> {
                 )
         );
         process.exit(1);
+    } finally {
+        restoreOutput();
     }
 }

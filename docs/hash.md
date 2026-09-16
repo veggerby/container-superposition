@@ -70,16 +70,19 @@ preview the normalized intent you want to compare against
 
 ## Options
 
-| Option                | Description                                        |
-| --------------------- | -------------------------------------------------- |
-| `--stack <type>`      | Base template: `plain` or `compose`                |
-| `--overlays <list>`   | Comma-separated overlay IDs                        |
-| `--preset <id>`       | Preset ID (optional, reflected in hash)            |
-| `--base <image>`      | Base image/distro (e.g. `bookworm`, `alpine`)      |
-| `--manifest <path>`   | Path to a specific `superposition.json`            |
-| `-o, --output <path>` | Directory to write hash file (used with `--write`) |
-| `--write`             | Write hash to `.devcontainer/superposition.hash`   |
-| `--json`              | Output as JSON for scripting                       |
+| Option                | Description                                                               |
+| --------------------- | ------------------------------------------------------------------------- |
+| `--stack <type>`      | Base template: `plain` or `compose`                                       |
+| `--overlays <list>`   | Comma-separated overlay IDs                                               |
+| `--preset <id>`       | Preset ID (optional, reflected in hash)                                   |
+| `--base <image>`      | Base image/distro (e.g. `bookworm`, `alpine`)                             |
+| `--manifest <path>`   | Path to a specific `superposition.json`                                   |
+| `-o, --output <path>` | Directory to write hash file (used with `--write`)                        |
+| `--write`             | Write hash to `.devcontainer/superposition.hash`                          |
+| `--silent`            | Suppress routine human-readable output while preserving errors and writes |
+| `--json`              | Output as JSON for scripting; incompatible with `--silent`                |
+
+`--silent` and `--json` cannot be combined. The CLI rejects the combination before it computes or writes a hash.
 
 When `--stack`/`--overlays` are omitted the command searches for `superposition.json` in:
 
