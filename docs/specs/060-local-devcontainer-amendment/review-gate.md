@@ -318,7 +318,6 @@
 - Required acceptance authority: none for integration. Any future decision to accept rather than address a material Docker/runtime failure would require delivery Lead/product-owner authority; no such failure is known here.
 - Follow-up route: APPROVE integration. Optionally DOCUMENT/plan the RG-060-008 module decomposition as separate maintenance work; do not couple it to this feature integration.
 
-
 ## Lead integration record
 
 - route: Standard delivery lifecycle with spec-first planning, implementation correction cycles, and independent review gate.
@@ -329,3 +328,14 @@
 - integration status: APPROVED_FOR_HANDOFF.
 - risk status: NONE known; RG-060-008 remains documented non-blocking maintainability follow-up only.
 - integration action: spec metadata updated from review-ready to `phase: INTEGRATION_APPROVED` and `review_gate: approved`; no production-code changes were made during lead integration.
+
+## Docs-only VS Code launch follow-up
+
+- route/profile: Fast docs-only follow-up selected by Lead; no behavior or help changes made.
+- source revision baseline: `913fc6cadd1e4ece9ec14ccf7e28de197665ac90`; implementation source at follow-up: `9a09c78` plus docs-only working-tree diff.
+- review mode: SELF_CHECK.
+- scope: clarified durable user docs for using the local amended devcontainer with VS Code while preserving local-only behavior and the repository's team-owned devcontainer setup.
+- evidence: current `amend` help was inspected with `npm run init -- amend --help`, `npm run init -- amend init --help`, and `npm run init -- amend inspect --help`; help already describes local-only amendment ownership and did not require command behavior changes.
+- validation: targeted Prettier run on changed Markdown passed; initial `npm run lint` exposed pre-existing review-gate Markdown formatting drift, fixed with Prettier; rerun `npm run lint` passed; final `task validate` passed.
+- acceptance mapping: AC-060-10 and AC-060-13 strengthened by documenting that VS Code Reopen/auto-discovery continues to use the team base, the amendment launches via the printed `devcontainer up --workspace-folder ... --config ...` command, and users should attach/open with normal VS Code Dev Containers flows rather than committing or replacing shared settings. AC-060-01, AC-060-02, AC-060-04, AC-060-06, and AC-060-08 are preserved because the docs keep the workflow local-only, keep team devcontainer files as the base, and do not describe shared project intent or default VS Code takeover.
+- residual risk: no known behavior risk; VS Code attach/open menu wording can vary by extension version, so docs phrase examples as supported flows.

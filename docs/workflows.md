@@ -100,7 +100,7 @@ npx container-superposition amend inspect
 npx container-superposition amend remove
 ```
 
-Launch the amended configuration with the printed `devcontainer up --workspace-folder . --config <generated-alternate-config>` command. Ordinary editor auto-discovery continues to use the team-owned base. See [Local Devcontainer Amendment](local-devcontainer-amendment.md).
+Launch the amended configuration with the printed `devcontainer up --workspace-folder ... --config ...` command. Ordinary VS Code **Reopen in Container** and Dev Containers auto-discovery continue to use the team-owned base; after the amended container is running, attach/open it through normal VS Code Dev Containers flows instead of replacing shared workspace or devcontainer settings. See [Local Devcontainer Amendment](local-devcontainer-amendment.md).
 
 ## Adopt and migrate conversion flows
 

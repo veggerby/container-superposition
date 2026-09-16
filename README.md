@@ -77,7 +77,7 @@ npx container-superposition amend refresh
 - Catalogs: mix the built-in catalog with project-pinned private catalogs declared in `superposition.yml`.
 - Composition: merges overlays into a standard `.devcontainer/` you can edit freely.
 - Compose defaults: tool-owned compose port bindings are hard-rendered to final numeric host ports; `.devcontainer/.env` and `.devcontainer/.env.example` are opt-in artifacts only via `--compose-env-files` / `composeEnvFiles: true`.
-- Local amendment: `amend init|refresh|inspect|remove` layers personal local additions onto a non-adopting repository's existing team-owned devcontainer without creating shared Container Superposition intent; launch it with the printed `devcontainer --config` command.
+- Local amendment: `amend init|refresh|inspect|remove` layers personal local additions onto a non-adopting repository's existing team-owned devcontainer without creating shared Container Superposition intent; VS Code's ordinary reopen flow keeps using the team base, so launch the personal layer with the printed `devcontainer up --workspace-folder ... --config ...` command and then attach/open with Dev Containers.
 - Project config: `superposition.yml` (or `.superposition.yml`) is the **canonical input** for all
   generation and regeneration flows. Commit it to your repo for reproducible team and CI builds.
     - `init` always writes `superposition.yml` as its primary output

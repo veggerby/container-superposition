@@ -36,13 +36,17 @@ npx container-superposition amend remove
 npx container-superposition amend remove --purge
 ```
 
-Launch the amended configuration with the standard Dev Container CLI alternate-config option:
+Launch the amended configuration with the standard Dev Container CLI alternate-config option printed by `amend init`, `amend refresh`, and `amend inspect`:
 
 ```bash
 devcontainer up --workspace-folder . --config .devcontainer/devcontainer.superposition-local.json
 ```
 
-Ordinary editor auto-discovery still selects the team-owned base devcontainer. Use the printed `devcontainer --config` command, then attach/open through your normal tooling.
+Ordinary VS Code **Reopen in Container** and Dev Containers auto-discovery still select the team-owned base devcontainer. That is intentional: this workflow does not replace `.devcontainer/devcontainer.json`, write `.vscode/settings.json`, or make your personal alternate config the repository default.
+
+After the printed `devcontainer up --workspace-folder ... --config ...` command has started the amended container, use normal VS Code Dev Containers flows to enter it, such as **Attach to Running Container** or **Open Folder in Container** when supported by your VS Code/Dev Containers version. Do not commit the generated alternate config, replace the team's devcontainer, or change shared workspace settings just to make VS Code's default reopen action select your local amendment.
+
+If you want the repository's ordinary VS Code reopen flow to use the amended setup by default, that is a team migration decision rather than an `amend` workflow. Use `adopt` when the team wants Container Superposition-managed shared intent; otherwise keep the amendment local-only and launch it with the printed Dev Container CLI command.
 
 ## Local input fields
 
