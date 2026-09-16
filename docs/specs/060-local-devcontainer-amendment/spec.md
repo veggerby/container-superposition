@@ -61,20 +61,20 @@ The workflow must preserve the repository's existing devcontainer behavior as th
 
 ## Acceptance Criteria
 
-- [ ] AC-060-01: Given a repository with an existing functional `.devcontainer/` and no `superposition.yml`, `.superposition.yml`, or `superposition.json`, a user can run a documented Container Superposition workflow that creates a local-only amendment layer without running `adopt` or creating shared Container Superposition project intent.
-- [ ] AC-060-02: The workflow retains the repository's existing devcontainer setup as the base configuration; after applying an amendment, team-owned devcontainer behavior remains available and local additions are layered on top rather than replacing the base setup.
-- [ ] AC-060-03: Local amendments support the same kinds of personal enrichment needed for local tooling setup, including bind mounts, environment values, shell customization, and editor/devcontainer patch-style settings where those concepts are already supported by Container Superposition local configuration.
-- [ ] AC-060-04: The workflow protects local-only amendment inputs and amended generated artifacts from accidental Git commits by default, with clear guidance when ignore rules or tracked files make that protection incomplete.
-- [ ] AC-060-05: The tool does not mutate the Git index, stage files, untrack files, or commit files as part of applying, refreshing, inspecting, or removing a local amendment. Any required Git cleanup is reported as explicit manual guidance.
-- [ ] AC-060-06: The workflow does not create or modify shared `superposition.yml`, `.superposition.yml`, or team-intended `superposition.json` files in a non-adopting repository. Any compatibility metadata needed for the local amendment must be local-only and clearly labeled as such.
-- [ ] AC-060-07: Re-running the workflow is deterministic for the same repository devcontainer, local amendment input, and filesystem/Git state; it updates the local amendment result without duplicating entries or accumulating stale local-only artifacts.
-- [ ] AC-060-08: Removing or disabling the local amendment restores the repository to using its original devcontainer setup, without requiring changes to team-owned devcontainer files and without deleting unrelated repository content.
-- [ ] AC-060-09: If the repository lacks a supported existing devcontainer, contains ambiguous devcontainer entrypoints, or cannot be safely amended, the workflow stops before writes and explains whether the user should fix the existing devcontainer, use `adopt`, or start a normal Container Superposition project workflow instead.
-- [ ] AC-060-10: Human-readable command output and documentation make the ownership model explicit: existing devcontainer equals team-owned base, local amendment equals personal uncommitted layer, and `adopt` equals team migration path.
-- [ ] AC-060-11: Automated regression coverage proves the non-adopting local amendment path, Git-safety behavior, repeat refresh behavior, removal behavior, and at least one Pi-style bind-mount use case.
-- [ ] AC-060-12: Behave coverage is added or updated because this introduces user-visible CLI/workflow behavior around devcontainer generation or amendment.
-- [ ] AC-060-13: User-facing documentation and CLI help describe when to use this workflow instead of `adopt`, how to keep artifacts local-only, and how to remove the amendment.
-- [ ] AC-060-14: `CHANGELOG.md` records the new user-visible workflow under `[Unreleased]` according to repository changelog rules.
+- [x] AC-060-01: Given a repository with an existing functional `.devcontainer/` and no `superposition.yml`, `.superposition.yml`, or `superposition.json`, a user can run a documented Container Superposition workflow that creates a local-only amendment layer without running `adopt` or creating shared Container Superposition project intent.
+- [x] AC-060-02: The workflow retains the repository's existing devcontainer setup as the base configuration; after applying an amendment, team-owned devcontainer behavior remains available and local additions are layered on top rather than replacing the base setup.
+- [x] AC-060-03: Local amendments support the same kinds of personal enrichment needed for local tooling setup, including bind mounts, environment values, shell customization, and editor/devcontainer patch-style settings where those concepts are already supported by Container Superposition local configuration.
+- [x] AC-060-04: The workflow protects local-only amendment inputs and amended generated artifacts from accidental Git commits by default, with clear guidance when ignore rules or tracked files make that protection incomplete.
+- [x] AC-060-05: The tool does not mutate the Git index, stage files, untrack files, or commit files as part of applying, refreshing, inspecting, or removing a local amendment. Any required Git cleanup is reported as explicit manual guidance.
+- [x] AC-060-06: The workflow does not create or modify shared `superposition.yml`, `.superposition.yml`, or team-intended `superposition.json` files in a non-adopting repository. Any compatibility metadata needed for the local amendment must be local-only and clearly labeled as such.
+- [x] AC-060-07: Re-running the workflow is deterministic for the same repository devcontainer, local amendment input, and filesystem/Git state; it updates the local amendment result without duplicating entries or accumulating stale local-only artifacts.
+- [x] AC-060-08: Removing or disabling the local amendment restores the repository to using its original devcontainer setup, without requiring changes to team-owned devcontainer files and without deleting unrelated repository content.
+- [x] AC-060-09: If the repository lacks a supported existing devcontainer, contains ambiguous devcontainer entrypoints, or cannot be safely amended, the workflow stops before writes and explains whether the user should fix the existing devcontainer, use `adopt`, or start a normal Container Superposition project workflow instead.
+- [x] AC-060-10: Human-readable command output and documentation make the ownership model explicit: existing devcontainer equals team-owned base, local amendment equals personal uncommitted layer, and `adopt` equals team migration path.
+- [x] AC-060-11: Automated regression coverage proves the non-adopting local amendment path, Git-safety behavior, repeat refresh behavior, removal behavior, and at least one Pi-style bind-mount use case.
+- [x] AC-060-12: Behave coverage is added or updated because this introduces user-visible CLI/workflow behavior around devcontainer generation or amendment.
+- [x] AC-060-13: User-facing documentation and CLI help describe when to use this workflow instead of `adopt`, how to keep artifacts local-only, and how to remove the amendment.
+- [x] AC-060-14: `CHANGELOG.md` records the new user-visible workflow under `[Unreleased]` according to repository changelog rules.
 
 ## Non-goals
 

@@ -218,7 +218,7 @@ describe('amend command', () => {
             expect(runCli(root, ['amend', 'init']).status).toBe(0);
             fs.writeFileSync(
                 path.join(root, '.container-superposition', 'amendment.yml'),
-                'env:\n  PI_CACHE:\n    value: /cache\n    target: composeEnv\nmounts:\n  - value: pi-cache:/pi-cache\n    target: composeVolume\n'
+                'env:\n  PI_CACHE: /cache\nmounts:\n  - value: pi-cache:/pi-cache\n    target: composeVolume\n'
             );
             const refresh = runCli(root, ['amend', 'refresh']);
             expect(refresh.status).toBe(0);
@@ -228,6 +228,7 @@ describe('amend command', () => {
                     'utf8'
                 )
             );
+            expect(alternate.remoteEnv?.PI_CACHE).toBeUndefined();
             expect(alternate.dockerComposeFile).toEqual([
                 '../docker-compose.yml',
                 '../docker-compose.extra.yml',
@@ -264,7 +265,11 @@ describe('amend command', () => {
             expect(fs.existsSync(path.join(ambiguous, '.container-superposition'))).toBe(false);
 
             writeBase(shared);
-            fs.writeFileSync(path.join(shared, 'superposition.yml'), 'stack: plain\n');
+            fs.mkdirSync(path.join(shared, '.devcontainer'), { recursive: true });
+            fs.writeFileSync(
+                path.join(shared, '.devcontainer', 'superposition.json'),
+                '{"stack":"plain"}\n'
+            );
             const sharedResult = runCli(shared, ['amend', 'init']);
             expect(sharedResult.status).not.toBe(0);
             expect(sharedResult.stderr).toContain('non-adopting repositories');
@@ -359,6 +364,25 @@ describe('amend command', () => {
         } finally {
             for (const dir of [collision, symlinked])
                 fs.rmSync(dir, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rejects symlinked local amendment receipt paths during inspect', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            fs.mkdirSync(path.join(root, 'outside'), { recursive: true });
+            fs.writeFileSync(
+                path.join(root, 'outside', 'amendment-state.json'),
+                JSON.stringify({ basePath: '.devcontainer/devcontainer.json' }, null, 4)
+            );
+            fs.symlinkSync(path.join(root, 'outside'), path.join(root, '.container-superposition'));
+            const inspect = runCli(root, ['amend', 'inspect']);
+            expect(inspect.status).not.toBe(0);
+            expect(inspect.stderr).toContain('symlink component');
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
         }
     }, 30_000);
 
@@ -596,6 +620,92 @@ describe('amend command', () => {
                 'Unsupported local amendment customizations keys'
             );
             expect(customizationRefresh.stderr).toContain('customizations.envTemplate');
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rejects compose-only amendment fields for plain base devcontainers', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                [
+                    'env:',
+                    '  SHOULD_FAIL:',
+                    '    value: nope',
+                    '    target: composeEnv',
+                    'mounts:',
+                    '  - value: cache:/cache',
+                    '    target: composeVolume',
+                    '',
+                ].join('\n')
+            );
+            const refresh = runCli(root, ['amend', 'refresh']);
+            expect(refresh.status).not.toBe(0);
+            expect(refresh.stderr).toContain('Compose-only amendment fields');
+            expect(refresh.stderr).toContain('require a compose-backed base devcontainer.');
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('detects missing amendment input as drift during inspect', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.rmSync(path.join(root, '.container-superposition', 'amendment.yml'), {
+                force: true,
+            });
+            const inspect = runCli(root, ['amend', 'inspect', '--json']);
+            expect(inspect.status).toBe(0);
+            const result = JSON.parse(inspect.stdout);
+            expect(result.status).toBe('input changed — refresh required');
+            expect(result.input.exists).toBe(false);
+            expect(result.input.sha256).toBeNull();
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('refuses amend remove when protected local paths are tracked', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            git(root, ['add', '-f', '.container-superposition/amendment.yml']);
+            const remove = runCli(root, ['amend', 'remove']);
+            expect(remove.status).not.toBe(0);
+            expect(remove.stderr).toContain(
+                'Refusing to remove while local amendment paths are tracked by Git'
+            );
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('retains local git exclude block on purge when local amendment directory remains', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'keep.txt'),
+                'user-managed content\n'
+            );
+            const remove = runCli(root, ['amend', 'remove', '--purge']);
+            expect(remove.status).toBe(0);
+            expect(remove.stdout).toContain('Retaining local Git exclude block');
+            const excludeRel = git(root, ['rev-parse', '--git-path', 'info/exclude']).stdout.trim();
+            const excludeContent = fs.readFileSync(path.join(root, excludeRel), 'utf8');
+            expect(excludeContent).toContain('/.container-superposition/');
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
         }

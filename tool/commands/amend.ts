@@ -24,6 +24,13 @@ const STATE_REL = `${LOCAL_DIR}/amendment-state.json`;
 const SUPPORT_DIR_REL = `${LOCAL_DIR}/amendment`;
 const STATE_VERSION = 1;
 const EXCLUDE_SECTION = 'container-superposition local amendment';
+const MANAGED_AUTHORITY_PATHS = [
+    ...PROJECT_CONFIG_FILENAMES,
+    'superposition.json',
+    '.devcontainer/superposition.json',
+    'superposition.local.yml',
+    '.superposition.local.yml',
+];
 
 export interface AmendOptions {
     projectRoot?: string;
@@ -177,12 +184,9 @@ function discoverProjectRoot(input?: string): string {
 }
 
 function ensureNoSharedAuthority(projectRoot: string): void {
-    const conflicts = [
-        ...PROJECT_CONFIG_FILENAMES,
-        'superposition.json',
-        'superposition.local.yml',
-        '.superposition.local.yml',
-    ].filter((name) => fs.existsSync(path.join(projectRoot, name)));
+    const conflicts = MANAGED_AUTHORITY_PATHS.filter((name) =>
+        fs.existsSync(path.join(projectRoot, name))
+    );
     if (conflicts.length > 0) {
         throw new Error(
             `Local amendment is only for non-adopting repositories. Found shared Container Superposition authority: ${conflicts.join(', ')}. Use regen for managed projects or adopt for team migration.`
@@ -296,6 +300,7 @@ function normalizeComposeFiles(projectRoot: string, baseDir: string, config: Jso
 }
 
 function loadState(model: Omit<Model, 'state'>): AmendState | null {
+    ensureLocalStatePathSafe(model);
     if (!fs.existsSync(model.stateAbsPath)) return null;
     const parsed = JSON.parse(fs.readFileSync(model.stateAbsPath, 'utf8')) as unknown;
     const state = validateStateSchema(parsed, model);
@@ -360,7 +365,10 @@ function validateStateSchema(parsed: unknown, model: Omit<Model, 'state'>): Amen
 }
 
 function readReceiptBasePath(projectRoot: string): string | undefined {
+    const localDirPath = path.join(projectRoot, LOCAL_DIR);
     const statePath = path.join(projectRoot, STATE_REL);
+    ensureNoSymlinkComponents(projectRoot, localDirPath);
+    ensureNoSymlinkComponents(projectRoot, statePath);
     if (!fs.existsSync(statePath)) return undefined;
     try {
         const state = JSON.parse(fs.readFileSync(statePath, 'utf8')) as Partial<AmendState>;
@@ -393,6 +401,7 @@ function resolveModel(options: AmendOptions): Model {
             ignoreProvenance: [],
         } as GitProtection,
     };
+    ensureLocalStatePathSafe(partial);
     const git = inspectGit(projectRoot, [
         INPUT_REL,
         STATE_REL,
@@ -464,7 +473,9 @@ function inspectGit(projectRoot: string, candidates: string[]): GitProtection {
     };
 }
 
-function ensureLocalStatePathSafe(model: Model): void {
+function ensureLocalStatePathSafe(
+    model: Pick<Model, 'projectRoot' | 'inputAbsPath' | 'stateAbsPath' | 'supportDirAbsPath'>
+): void {
     ensureNoSymlinkComponents(model.projectRoot, model.inputAbsPath);
     ensureNoSymlinkComponents(model.projectRoot, model.stateAbsPath);
     ensureNoSymlinkComponents(model.projectRoot, model.supportDirAbsPath);
@@ -547,14 +558,15 @@ function composeVolumeString(mount: ProjectMount): string {
 
 function localEnvByTarget(
     local: LocalProjectConfigSelection,
-    target: 'remoteEnv' | 'composeEnv'
+    target: 'remoteEnv' | 'composeEnv',
+    mode: 'plain' | 'compose'
 ): Record<string, string> {
     const output: Record<string, string> = {};
     for (const [key, entry] of Object.entries(local.env ?? {})) {
         const envTarget = entry.target ?? 'auto';
-        if (target === 'remoteEnv' && (envTarget === 'auto' || envTarget === 'remoteEnv'))
-            output[key] = entry.value;
-        if (target === 'composeEnv' && envTarget === 'composeEnv') output[key] = entry.value;
+        const resolvedTarget =
+            envTarget === 'auto' ? (mode === 'compose' ? 'composeEnv' : 'remoteEnv') : envTarget;
+        if (target === resolvedTarget) output[key] = entry.value;
     }
     return output;
 }
@@ -627,14 +639,15 @@ function composeOutputs(
     model: Model,
     local: LocalProjectConfigSelection
 ): { files: Map<string, string>; state: AmendState } {
+    const mode: AmendState['mode'] = model.base.composeFiles.length > 0 ? 'compose' : 'plain';
     let alternate = structuredClone(model.base.config) as JsonObject;
     const files = new Map<string, string>();
     const generatedArtifacts = [model.base.alternateRelPath];
 
-    alternate.remoteEnv = {
-        ...(alternate.remoteEnv ?? {}),
-        ...localEnvByTarget(local, 'remoteEnv'),
-    };
+    alternate.remoteEnv = deepMerge(
+        alternate.remoteEnv ?? {},
+        localEnvByTarget(local, 'remoteEnv', mode)
+    );
     if (Object.keys(alternate.remoteEnv).length === 0) delete alternate.remoteEnv;
 
     const devMounts = (local.mounts ?? [])
@@ -662,12 +675,21 @@ function composeOutputs(
         alternate = appendPostCreate(alternate, `bash ${shellRel}`);
     }
 
-    const composeEnv = localEnvByTarget(local, 'composeEnv');
+    const composeEnv = localEnvByTarget(local, 'composeEnv', mode);
     const composeMounts = (local.mounts ?? [])
         .filter((mount) => mount.target === 'composeVolume')
         .map(composeVolumeString);
+    const composeOnlyRequested =
+        Object.values(local.env ?? {}).some((entry) => entry.target === 'composeEnv') ||
+        (local.mounts ?? []).some((mount) => mount.target === 'composeVolume') ||
+        !!local.customizations?.dockerComposePatch;
+    if (mode === 'plain' && composeOnlyRequested) {
+        throw new Error(
+            'Compose-only amendment fields (composeEnv, composeVolume, dockerComposePatch) require a compose-backed base devcontainer.'
+        );
+    }
     const needsComposeOverride =
-        model.base.composeFiles.length > 0 &&
+        mode === 'compose' &&
         (Object.keys(composeEnv).length > 0 ||
             composeMounts.length > 0 ||
             local.customizations?.dockerComposePatch);
@@ -716,7 +738,7 @@ function composeOutputs(
         inputSha256: sha256(inputContent),
         generatedArtifacts: sortedArtifacts,
         generatedArtifactSha256,
-        mode: model.base.composeFiles.length > 0 ? 'compose' : 'plain',
+        mode,
     };
     return { files, state };
 }
@@ -937,7 +959,7 @@ function inspect(model: Model, options: AmendOptions): void {
             ? 'missing artifact'
             : artifactStatuses.some((entry) => entry.status === 'modified')
               ? 'modified artifact'
-              : inputHash && model.state.inputSha256 !== inputHash
+              : model.state.inputSha256 !== inputHash
                 ? 'input changed — refresh required'
                 : model.git.tracked.length > 0
                   ? 'unsafe/tracked'
@@ -990,6 +1012,11 @@ function inspect(model: Model, options: AmendOptions): void {
 
 function remove(model: Model, purge: boolean): void {
     if (!model.state) throw new Error(`No local amendment receipt found at ${model.stateRelPath}.`);
+    if (model.git.tracked.length > 0) {
+        throw new Error(
+            `Refusing to remove while local amendment paths are tracked by Git: ${model.git.tracked.join(', ')}. Untrack them first: git rm --cached -- ${model.git.tracked.join(' ')}`
+        );
+    }
     validateRemovalOwnership(model);
     for (const artifact of model.state.generatedArtifacts) {
         fs.rmSync(validateArtifactPath(model, artifact), { force: true });
@@ -1009,12 +1036,19 @@ function remove(model: Model, purge: boolean): void {
                 // Keep non-empty local directories; they may contain user files.
             }
         }
+        const localDirStillExists = fs.existsSync(path.join(model.projectRoot, LOCAL_DIR));
         if (model.git.excludePath) {
             const block = getExactGitignoreBlock(EXCLUDE_SECTION, [
                 `/${LOCAL_DIR}/`,
                 `/${model.base.alternateRelPath}`,
             ]);
-            removeExactGitignoreBlock(model.git.excludePath, block);
+            if (localDirStillExists) {
+                console.log(
+                    `Retaining local Git exclude block because ${LOCAL_DIR}/ still exists with user-managed content.`
+                );
+            } else {
+                removeExactGitignoreBlock(model.git.excludePath, block);
+            }
         }
     }
     console.log(chalk.green('✓ Local devcontainer amendment removed'));
