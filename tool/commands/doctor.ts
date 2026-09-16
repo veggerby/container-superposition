@@ -35,6 +35,15 @@ import type { DoctorOptions } from './doctor/types.js';
 
 export { renderDoctorReportModel } from './doctor/presentation.js';
 
+function exitDoctor(options: DoctorOptions, hasBlockingIssues: boolean): never {
+    if (options.silent && hasBlockingIssues) {
+        console.error(
+            '✗ Doctor found blocking issues. Run without --silent for the full diagnostic report.'
+        );
+    }
+    process.exit(hasBlockingIssues ? 1 : 0);
+}
+
 export async function doctorCommand(
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
@@ -137,11 +146,10 @@ export async function doctorCommand(
                 console.log('Project fix preview — No files changed');
             }
 
-            process.exit(
+            exitDoctor(
+                options,
                 actionBuckets.safeAutoFixesAvailable.length > 0 ||
                     actionBuckets.manualFollowUp.length > 0
-                    ? 1
-                    : 0
             );
         }
 
@@ -178,7 +186,7 @@ export async function doctorCommand(
                 console.log('Nothing safe to apply');
             }
 
-            process.exit(actionBuckets.manualFollowUp.length > 0 ? 1 : 0);
+            exitDoctor(options, actionBuckets.manualFollowUp.length > 0);
         }
 
         if (!options.json && process.stdin.isTTY && process.stdout.isTTY) {
@@ -226,7 +234,7 @@ export async function doctorCommand(
             console.log('');
         }
 
-        process.exit(fixRun.exitDisposition === 'unresolved-failures' ? 1 : 0);
+        exitDoctor(options, fixRun.exitDisposition === 'unresolved-failures');
     }
 
     if (options.json) {
@@ -255,5 +263,5 @@ export async function doctorCommand(
         console.log('');
     }
 
-    process.exit(buildDoctorCounts(findings).blockingIssues > 0 ? 1 : 0);
+    exitDoctor(options, buildDoctorCounts(findings).blockingIssues > 0);
 }

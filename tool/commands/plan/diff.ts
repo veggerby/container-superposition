@@ -169,7 +169,8 @@ export function generatePlanDiff(
     overlaysConfig: OverlaysConfig,
     overlaysDir: string,
     existingPath: string,
-    contextLines = 3
+    contextLines = 3,
+    silent = false
 ): PlanDiffResult {
     const overlayMap = new Map(overlaysConfig.overlays.map((overlay) => [overlay.id, overlay]));
     const allPlannedOverlays = [
@@ -273,7 +274,8 @@ export function generatePlanDiff(
             const plannedContent = computePlannedDevcontainerJson(
                 plan.stack,
                 allPlannedOverlays,
-                overlaysDir
+                overlaysDir,
+                silent
             );
 
             if (plannedContent === null) {

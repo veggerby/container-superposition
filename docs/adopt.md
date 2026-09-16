@@ -106,7 +106,10 @@ automatically added to `.gitignore`.
 | `--no-backup`         | Disable backup creation even when it would normally be performed              |
 | `--backup-dir <path>` | Custom backup directory location                                              |
 | `--project-file`      | Also write a repository-root project config (`.superposition.yml` by default) |
-| `--json`              | Output analysis as JSON (useful for scripting)                                |
+| `--silent`            | Suppress routine human-readable output while preserving errors and writes     |
+| `--json`              | Output analysis as JSON (useful for scripting; incompatible with `--silent`)  |
+
+`--silent` and `--json` cannot be combined. The CLI rejects the combination before it analyzes or writes adopt artifacts.
 
 ## Example Output
 
