@@ -1439,7 +1439,7 @@ describe('Command Tests', () => {
         });
     });
 
-    describe.skip('project config', () => {
+    describe('project config', () => {
         it('should load a valid repository-root project config', () => {
             const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-config-'));
 
@@ -1644,12 +1644,14 @@ describe('Command Tests', () => {
                 const projectConfig = yaml.load(
                     fs.readFileSync(path.join(repoDir, 'superposition.yml'), 'utf8')
                 ) as any;
-                // CLI-specified fields must be reflected in the project file
+                // CLI-specified fields must be reflected in the existing project file path.
                 expect(projectConfig.stack).toBe('plain');
                 expect(projectConfig.baseImage).toBe('bookworm');
                 expect(projectConfig.outputPath).toBe('./generated');
-                // nodejs must be present (explicitly requested via CLI)
-                expect(projectConfig.overlays).toContain('nodejs');
+                // CLI-specified category selections and existing flat overlay selections are persisted.
+                expect(projectConfig.overlays).toEqual(
+                    expect.arrayContaining(['nodejs', 'postgres'])
+                );
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }
@@ -1738,7 +1740,7 @@ describe('Command Tests', () => {
 
                 expect(backupEntries.length).toBe(1);
                 expect(output).toContain('Backup created:');
-                expect(output).toContain('Rebuild container:');
+                expect(output).toContain('generated output written');
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });
             }
@@ -1992,7 +1994,7 @@ describe('Command Tests', () => {
                 );
 
                 expect(() => runInitCli(['migrate'], repoDir)).toThrow(
-                    /Project file already exists/
+                    /project file already exists/i
                 );
             } finally {
                 fs.rmSync(repoDir, { recursive: true, force: true });

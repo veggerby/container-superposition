@@ -4,7 +4,9 @@
  * Scans every overlays/<id>/devcontainer.patch.json for ghcr.io feature keys and
  * performs a live registry lookup to confirm each one is resolvable.
  *
- * Skipped by default in unit-test runs.  Run explicitly with:
+ * Skipped by default in unit-test runs because this performs live ghcr.io
+ * network lookups and is owned by overlay maintainers as an integration check.
+ * Run explicitly with:
  *   npm run test:integration
  */
 

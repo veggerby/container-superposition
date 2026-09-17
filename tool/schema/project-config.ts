@@ -1762,6 +1762,23 @@ export function buildProjectConfigSelectionFromAnswers(
         overlays.push('playwright');
     }
 
+    const overlayEntries = projectOverlayEntriesFromSelections(answers.overlaySelections, {
+        includeCategorySelections: true,
+    });
+    const representedOverlayIds = new Set(
+        overlayEntries?.map((entry) => (typeof entry === 'string' ? entry : entry.overlay)) ?? []
+    );
+    const mergedOverlayEntries = overlayEntries
+        ? [
+              ...overlayEntries,
+              ...[...new Set(overlays)].filter(
+                  (overlayId) => !representedOverlayIds.has(overlayId)
+              ),
+          ]
+        : overlays.length > 0
+          ? [...new Set(overlays)]
+          : undefined;
+
     return normalizeProjectConfigSelectionForPersistence({
         stack: answers.stack,
         baseImage: answers.baseImage,
@@ -1771,9 +1788,7 @@ export function buildProjectConfigSelectionFromAnswers(
         catalogs: answers.catalogs,
         preset: answers.preset,
         presetChoices: answers.presetChoices,
-        overlays:
-            projectOverlayEntriesFromSelections(answers.overlaySelections) ??
-            (overlays.length > 0 ? [...new Set(overlays)] : undefined),
+        overlays: mergedOverlayEntries,
         outputPath: answers.outputPath,
         portOffset: answers.portOffset,
         composeEnvFiles: answers.composeEnvFiles,
