@@ -141,6 +141,21 @@ npx container-superposition defaults --json
 `~/.superposition.yml`) and the normalized effective document. It never writes project files,
 generated output, home files, or Git state, and it does not make home defaults replay authority.
 
+### Local amendment for an existing team devcontainer
+
+Use this when the repository already has a team-owned devcontainer and should not adopt Container Superposition shared intent:
+
+```bash
+npx container-superposition amend init
+$EDITOR .container-superposition/amendment.yml
+npx container-superposition amend refresh
+npx container-superposition amend inspect
+# Launch with the printed devcontainer up --workspace-folder ... --config ... command.
+npx container-superposition amend remove
+```
+
+The amendment layer is local-only, protected through worktree-local Git exclude rules when available, and never stages or untracks files automatically. VS Code's ordinary **Reopen in Container** flow keeps using the team base; after the printed Dev Container CLI command starts the amended container, attach/open it through normal VS Code Dev Containers flows. See [Local Devcontainer Amendment](local-devcontainer-amendment.md).
+
 ### Interactive
 
 ```bash

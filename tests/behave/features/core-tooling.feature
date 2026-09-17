@@ -23,8 +23,12 @@ Feature: Core CLI tooling workflows
       | plan     |
       | doctor   |
       | adopt    |
-      | hash     |
-      | migrate  |
+      | hash         |
+      | migrate      |
+      | amend init   |
+      | amend refresh |
+      | amend inspect |
+      | amend remove |
 
   Scenario: Silent mode preserves read-only list behavior without routine output
     Given an inline workspace fixture:
@@ -144,6 +148,41 @@ Feature: Core CLI tooling workflows
       """
       christian-kohler.npm-intellisense
       """
+
+  Scenario: Init preserves existing project overlays while adding CLI selections
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: compose
+            overlays:
+              - postgres
+            outputPath: ./old-output
+      """
+    When I run the CLI command
+      """
+      init --stack compose --language nodejs --output ./generated --no-interactive
+      """
+    Then the command exits successfully
+    And the file ".superposition.yml" should not exist
+    And the YAML file "superposition.yml" should have value at "stack" equal:
+      """
+      compose
+      """
+    And the YAML file "superposition.yml" should have value at "outputPath" equal:
+      """
+      ./generated
+      """
+    And the YAML file "superposition.yml" should contain array item at "overlays" equal:
+      """
+      postgres
+      """
+    And the YAML file "superposition.yml" should contain array item at "overlays" equal:
+      """
+      nodejs
+      """
+    And the file "generated/devcontainer.json" should exist
 
   Scenario: List exposes discovery categories and recommended starts
     Given an inline workspace fixture:

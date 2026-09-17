@@ -19,6 +19,7 @@ import { adoptCommand } from '../commands/adopt.js';
 import { hashCommand } from '../commands/hash.js';
 import { migrateCommand } from '../commands/migrate.js';
 import { defaultsCommand } from '../commands/defaults.js';
+import { amendCommand } from '../commands/amend.js';
 import { loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
 import { enableSilentOutput } from './output.js';
 
@@ -363,6 +364,55 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
                 overlaysContext.overlaysDir,
                 options
             );
+        });
+
+    const amend = program
+        .command('amend')
+        .description(
+            'Create, refresh, inspect, and remove a personal local devcontainer amendment without adoption'
+        );
+
+    amend
+        .command('init')
+        .description('Create local-only amendment state for an existing team-owned devcontainer')
+        .option('--base <path>', 'Repository-contained devcontainer.json to amend')
+        .option('--project-root <path>', 'Repository root to amend')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
+        .action(async (options) => {
+            await amendCommand('init', options);
+        });
+
+    amend
+        .command('refresh')
+        .description(
+            'Rebuild the local-only amended devcontainer from the team base and personal input'
+        )
+        .option('--project-root <path>', 'Repository root to amend')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
+        .action(async (options) => {
+            await amendCommand('refresh', options);
+        });
+
+    amend
+        .command('inspect')
+        .description('Inspect local amendment ownership, drift, Git protection, and launch command')
+        .option('--project-root <path>', 'Repository root to inspect')
+        .option('--json', 'Output the normalized amendment model as JSON')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
+        .action(async (options) => {
+            await amendCommand('inspect', options);
+        });
+
+    amend
+        .command('remove')
+        .description(
+            'Remove generated local amendment artifacts while leaving the team base untouched'
+        )
+        .option('--project-root <path>', 'Repository root to amend')
+        .option('--purge', 'Also remove personal input and the command-owned local exclude block')
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
+        .action(async (options) => {
+            await amendCommand('remove', options);
         });
 
     // Hash command

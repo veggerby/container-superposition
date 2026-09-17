@@ -17,7 +17,8 @@ Feature work is governed by specs committed under `docs/specs/`. Implementation 
 4. [Workflows and Regeneration](workflows.md) — preview, init, regen, migrate, and adopt flows
 5. [Examples](examples.md) — worked examples and patterns
 6. [Adopt Command](adopt.md) — convert an existing handwritten `.devcontainer/`
-7. [Presets Guide](presets.md) — optional shortcuts for common setups
+7. [Local Devcontainer Amendment](local-devcontainer-amendment.md) — personal local layer for a non-adopting repo with an existing team devcontainer
+8. [Presets Guide](presets.md) — optional shortcuts for common setups
 
 ### Architecture and repository authority
 
@@ -30,6 +31,7 @@ Feature work is governed by specs committed under `docs/specs/`. Implementation 
 ### Additional guides
 
 - [Filesystem Contract](filesystem-contract.md) — what the tool writes and what to edit
+- [Local Devcontainer Amendment](local-devcontainer-amendment.md) — local-only amendment lifecycle and Git-safety model
 - [Hash Command](hash.md) — semantic fingerprinting
 - [Versioned Private Catalogs](private-catalogs.md) — task guide for private overlay and preset catalogs
 - [Messaging Comparison](messaging-comparison.md) — choosing a messaging overlay

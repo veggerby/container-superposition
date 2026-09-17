@@ -1031,7 +1031,7 @@ function parseProjectShell(value: unknown): ProjectShellConfig | undefined {
     return { aliases, snippets };
 }
 
-function parseLocalProjectConfigDocument(
+export function parseLocalProjectConfigDocument(
     document: Record<string, any>,
     sourceLabel: string,
     options: { allowSchema?: boolean } = {}
@@ -1106,6 +1106,29 @@ export function findIgnoredLocalProjectConfig(
     return fs.existsSync(file.path) ? file : null;
 }
 
+export function parseLocalProjectConfigFile(
+    filePath: string,
+    sourceLabel: string = filePath
+): LoadedLocalProjectConfig {
+    let parsed: unknown;
+    try {
+        parsed = yaml.load(fs.readFileSync(filePath, 'utf8')) ?? {};
+    } catch (error) {
+        throw new ProjectConfigError(
+            `Failed to parse ${sourceLabel}: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+
+    const document = expectPlainObject(parsed, sourceLabel);
+    return {
+        file: {
+            fileName: path.basename(filePath) as ProjectConfigFileName,
+            path: filePath,
+        },
+        selection: parseLocalProjectConfigDocument(document, sourceLabel),
+    };
+}
+
 export function loadLocalProjectConfig(
     repoRoot: string = process.cwd()
 ): LoadedLocalProjectConfig | null {
@@ -1114,21 +1137,7 @@ export function loadLocalProjectConfig(
         return null;
     }
 
-    let parsed: unknown;
-    try {
-        parsed = yaml.load(fs.readFileSync(file.path, 'utf8')) ?? {};
-    } catch (error) {
-        throw new ProjectConfigError(
-            `Failed to parse ${LOCAL_PROJECT_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`
-        );
-    }
-
-    const document = expectPlainObject(parsed, LOCAL_PROJECT_CONFIG_FILENAME);
-
-    return {
-        file,
-        selection: parseLocalProjectConfigDocument(document, LOCAL_PROJECT_CONFIG_FILENAME),
-    };
+    return parseLocalProjectConfigFile(file.path, LOCAL_PROJECT_CONFIG_FILENAME);
 }
 
 export function resolveGlobalDefaultsPath(homeDir?: string): ResolvedGlobalDefaultsPath | null {
@@ -1753,6 +1762,23 @@ export function buildProjectConfigSelectionFromAnswers(
         overlays.push('playwright');
     }
 
+    const overlayEntries = projectOverlayEntriesFromSelections(answers.overlaySelections, {
+        includeCategorySelections: true,
+    });
+    const representedOverlayIds = new Set(
+        overlayEntries?.map((entry) => (typeof entry === 'string' ? entry : entry.overlay)) ?? []
+    );
+    const mergedOverlayEntries = overlayEntries
+        ? [
+              ...overlayEntries,
+              ...[...new Set(overlays)].filter(
+                  (overlayId) => !representedOverlayIds.has(overlayId)
+              ),
+          ]
+        : overlays.length > 0
+          ? [...new Set(overlays)]
+          : undefined;
+
     return normalizeProjectConfigSelectionForPersistence({
         stack: answers.stack,
         baseImage: answers.baseImage,
@@ -1762,9 +1788,7 @@ export function buildProjectConfigSelectionFromAnswers(
         catalogs: answers.catalogs,
         preset: answers.preset,
         presetChoices: answers.presetChoices,
-        overlays:
-            projectOverlayEntriesFromSelections(answers.overlaySelections) ??
-            (overlays.length > 0 ? [...new Set(overlays)] : undefined),
+        overlays: mergedOverlayEntries,
         outputPath: answers.outputPath,
         portOffset: answers.portOffset,
         composeEnvFiles: answers.composeEnvFiles,

@@ -61,6 +61,27 @@ def step_given_inline_home_defaults_fixture(context):
         raise AssertionError(bridge_result.get('message') or 'Inline home defaults fixture failed.')
 
 
+@given('the workspace is a Git repository')
+def step_given_workspace_is_git_repository(context):
+    if context.workspace_dir is None:
+        raise AssertionError('A workspace fixture must be prepared before initializing Git.')
+    result = subprocess.run(
+        ['git', 'init'],
+        cwd=context.workspace_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise AssertionError(_command_failure_message(result, 'Expected git init to succeed.'))
+
+
+@when('I write file "{relative_path}"')
+def step_when_i_write_file(context, relative_path):
+    file_path = _workspace_path(context, relative_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(_require_step_text(context), encoding='utf-8')
+
+
 @when('I run the CLI command')
 def step_when_i_run_the_cli_command(context):
     if context.workspace_dir is None:
@@ -181,6 +202,36 @@ def step_then_file_should_not_exist(context, relative_path):
     file_path = _workspace_path(context, relative_path)
     if file_path.exists():
         raise AssertionError(f'Expected file not to exist: {relative_path}')
+
+
+@then('the Git index should be unchanged')
+def step_then_git_index_should_be_unchanged(context):
+    if context.workspace_dir is None:
+        raise AssertionError('A workspace fixture must be prepared before checking Git.')
+    result = subprocess.run(
+        ['git', 'diff', '--cached', '--name-only'],
+        cwd=context.workspace_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise AssertionError(_command_failure_message(result, 'Expected git diff --cached to succeed.'))
+    if result.stdout.strip():
+        raise AssertionError(f'Expected Git index to be unchanged, staged paths were:\n{result.stdout}')
+
+
+@then('Git should ignore "{relative_path}"')
+def step_then_git_should_ignore(context, relative_path):
+    if context.workspace_dir is None:
+        raise AssertionError('A workspace fixture must be prepared before checking Git.')
+    result = subprocess.run(
+        ['git', 'check-ignore', '-v', '--', relative_path],
+        cwd=context.workspace_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise AssertionError(_command_failure_message(result, f'Expected Git to ignore {relative_path}.'))
 
 
 @then('the file "{relative_path}" should contain "{expected_text}"')
