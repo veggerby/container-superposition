@@ -23,7 +23,7 @@ Feature: Local devcontainer amendment without adoption
       amend init
       """
     Then the command exits successfully
-    And the JSON file ".devcontainer/devcontainer.superposition-local.json" should have value at "remoteEnv.TEAM_ENV" equal
+    And the JSON file ".devcontainer/superposition-local/devcontainer.json" should have value at "remoteEnv.TEAM_ENV" equal
       """
       "1"
       """
@@ -70,15 +70,15 @@ Feature: Local devcontainer amendment without adoption
       amend refresh
       """
     Then the command exits successfully
-    And the JSON file ".devcontainer/devcontainer.superposition-local.json" should have value at "remoteEnv.PI_HOME" equal
+    And the JSON file ".devcontainer/superposition-local/devcontainer.json" should have value at "remoteEnv.PI_HOME" equal
       """
       "${localEnv:HOME}/.pi"
       """
-    And the JSON file ".devcontainer/devcontainer.superposition-local.json" should contain array item at "mounts" equal
+    And the JSON file ".devcontainer/superposition-local/devcontainer.json" should contain array item at "mounts" equal
       """
       "source=${localEnv:HOME}/.pi,target=/home/vscode/.pi,type=bind"
       """
-    And the file ".devcontainer/devcontainer.superposition-local.json" should contain "pi.enabled"
+    And the file ".devcontainer/superposition-local/devcontainer.json" should contain "pi.enabled"
     And the file "superposition.yml" should not exist
     And the file "superposition.json" should not exist
     And the Git index should be unchanged
@@ -116,13 +116,13 @@ Feature: Local devcontainer amendment without adoption
       amend refresh
       """
     Then the command exits successfully
-    And the file ".devcontainer/devcontainer.superposition-local.json" should exist
+    And the file ".devcontainer/superposition-local/devcontainer.json" should exist
     When I run the CLI command
       """
       amend remove
       """
     Then the command exits successfully
-    And the file ".devcontainer/devcontainer.superposition-local.json" should not exist
+    And the file ".devcontainer/superposition-local/devcontainer.json" should not exist
     And the file ".container-superposition/amendment.yml" should exist
     And the file ".devcontainer/devcontainer.json" should exist
     And the Git index should be unchanged
@@ -145,4 +145,4 @@ Feature: Local devcontainer amendment without adoption
     Then the command exits with status 1
     And the command stderr should contain "Select one with amend init --base"
     And the file ".container-superposition/amendment.yml" should not exist
-    And the file ".devcontainer/devcontainer.superposition-local.json" should not exist
+    And the file ".devcontainer/superposition-local/devcontainer.json" should not exist

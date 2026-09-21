@@ -56,7 +56,7 @@ your-project/
 - `.devcontainer/custom/` (project-specific patches)
 - `.devcontainer/.env.example` when `composeEnvFiles: true`
 
-Do not commit `superposition.local.yml`, `.container-superposition/`, `devcontainer.superposition-local.json`, `.devcontainer.superposition-local.json`, or generated output containing local-only settings. Do not replace the team's `.devcontainer/devcontainer.json` or shared VS Code workspace settings to make an `amend` artifact the default; launch it with the printed Dev Container CLI `--config` command instead. Prefer
+Do not commit `superposition.local.yml`, `.container-superposition/`, generated `superposition-local/devcontainer.json` amendment configs, or generated output containing local-only settings. Do not replace the team's `.devcontainer/devcontainer.json` or shared VS Code workspace settings to make an `amend` artifact the default; launch it with the printed Dev Container CLI `--config` command instead. Prefer
 `devcontainerGitignore: true` for managed generated output; `amend` uses worktree-local `info/exclude` for its local-only paths when Git is available. If generated output was already tracked, untrack generated output manually:
 
 ```bash
@@ -78,6 +78,5 @@ superposition.local.yml
 
 # Local devcontainer amendment (usually written to .git/info/exclude by amend)
 .container-superposition/
-.devcontainer/devcontainer.superposition-local.json
-.devcontainer.superposition-local.json
+.devcontainer/superposition-local/devcontainer.json
 ```
