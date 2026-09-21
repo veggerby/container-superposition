@@ -96,7 +96,7 @@ customizations:
 Initial support covers:
 
 - exactly one default `.devcontainer/devcontainer.json` or `.devcontainer.json`, or a repository-contained `--base <path>`;
-- strict JSON object devcontainer files (not JSONC/comments);
+- JSON object devcontainer files, including VS Code-style JSONC comments and trailing commas;
 - image, Dockerfile/build, and compose-backed devcontainers;
 - compose `dockerComposeFile` as a string or string array with repository-contained files.
 

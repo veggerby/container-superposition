@@ -109,6 +109,10 @@ The workflow must preserve the repository's existing devcontainer behavior as th
 - The feature must not weaken the project-file-first model for adopting repositories; it is a separate local amendment path for non-adopting repositories.
 - Public CLI/workflow behavior and devcontainer output behavior make independent review appropriate.
 
+## Implementation Notes
+
+- Compatibility amendment: `amend` accepts VS Code-style JSONC comments and trailing commas only when reading the team-owned base devcontainer input. Local amendment YAML and local receipt/state parsing remain governed by their existing strict contracts.
+
 ## Implementation-Ready Handoff
 
 The product contract is ready for planning. A delivery plan should define the public workflow shape, supported devcontainer forms, local artifact and ignore strategy, evidence mapping for each acceptance criterion, and rollback/removal behavior. Keep file-level sequencing and implementation design in `plan.md`, not in this spec.

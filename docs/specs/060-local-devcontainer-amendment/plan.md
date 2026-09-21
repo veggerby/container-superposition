@@ -44,7 +44,7 @@ The team base and every referenced team compose file are read-only inputs. The t
     - `<project-root>/.devcontainer/devcontainer.json`; or
     - `<project-root>/.devcontainer.json`.
 2. `amend init --base <path>` supports a repository-contained `devcontainer.json` or `.devcontainer.json` at another location. The alternate generated config remains its sibling. Paths outside `projectRoot`, symlink escapes outside the repository, and non-file inputs are rejected before writes.
-3. Strict JSON object input is supported initially. JSONC/comments or malformed JSON stop before writes with an actionable parse diagnostic; do not introduce an ad-hoc JSONC parser or a new parsing dependency in this change.
+3. JSON object input is supported for the base devcontainer, including VS Code-style JSONC comments and trailing commas. Malformed JSON/JSONC stops before writes with an actionable parse diagnostic.
 4. Image-based and Dockerfile/build-based devcontainers are supported because the sibling artifact preserves their relative fields unchanged.
 5. Compose-backed devcontainers are supported when `dockerComposeFile` is a string or non-empty string array and every referenced file resolves and exists. Multiple compose files and repository-contained relative paths outside the devcontainer directory are supported. Local compose changes are emitted as one final local override file and appended to the alternate config's `dockerComposeFile` array; original compose files remain unchanged.
 6. Compose-targeted `env`, `composeVolume` mounts, or `dockerComposePatch` require a valid `service` in the base config. If that service cannot be safely targeted, preflight stops before writes.
@@ -100,7 +100,7 @@ devcontainer up --workspace-folder <project-root> --config <generated-alternate-
 4. **Atomic local writes:** write generated files to sibling temporary files and rename them into place only after all content is ready. Write the receipt last. On refresh failure, retain the last complete amendment and report that it remains active; do not leave partial replacement files.
 5. **Receipt-bounded ownership:** init refuses any target collision it cannot prove it owns. Refresh and remove act only on paths in a valid receipt and reject path traversal, repository escape, symlink escape, receipt/base mismatch, or unexpected ownership changes.
 6. **Determinism and drift:** content is a pure function of base bytes, local input, and supported filesystem/Git state. Refresh rewrites complete outputs, removes stale receipt-owned generated files, and records stable hashes. Inspect reports `current`, `base changed — refresh required`, `input changed — refresh required`, `missing artifact`, or `unsafe/tracked`; it does not write.
-7. **No new dependency:** use Node `crypto`, filesystem/path APIs, `js-yaml`, existing merge utilities, and non-mutating Git subprocess patterns. Strict JSON is a deliberate initial boundary; do not hand-roll JSONC support.
+7. **No new dependency:** use Node `crypto`, filesystem/path APIs, `js-yaml`, existing merge utilities, and non-mutating Git subprocess patterns. JSONC support is bounded to base devcontainer comment/trailing-comma compatibility and must not loosen local receipt/state contracts.
 8. **No schema expansion by default:** the input reuses the existing local schema shapes. If implementation proves a new field or generated schema is required, stop and replan rather than silently broadening project-config authority.
 
 ### Architecture and design-quality assessment
@@ -113,12 +113,12 @@ devcontainer up --workspace-folder <project-root> --config <generated-alternate-
 - **Security/privacy/data safety — ALIGNED with required gates:** local paths and values are not printed or placed in shared files; path containment, symlink checks, tracked-file preflight, receipt allowlisting, and atomic writes are mandatory.
 - **Reliability/operability — ALIGNED:** hashes and inspect status make stale-base behavior visible; refresh is deterministic; remove is receipt-bounded.
 - **Compatibility/user impact — CONCERN, documented:** alternate-config launch is supported through `devcontainer --config`, not ordinary editor auto-discovery. Docs and command output must not imply otherwise.
-- **Dependency/build-vs-buy judgment:** use the installed user's Dev Container CLI as the commodity launcher; do not wrap or vendor it. No parsing/merge dependency is justified for the strict-JSON initial boundary.
+- **Dependency/build-vs-buy judgment:** use the installed user's Dev Container CLI as the commodity launcher; do not wrap or vendor it. No parsing/merge dependency is justified for bounded JSONC comment/trailing-comma compatibility in base devcontainer parsing.
 - **ADR impact:** no ADR is required before implementation. The spec explicitly authorizes a separate local-only exception, while foundation/ADR 001 continue to govern adopting repositories and forbid Git-index mutation. Stop for ADR/Lead review if implementation requires shared project authority, mutation of team devcontainer files, editor settings takeover, a proprietary launcher, or automatic Git-index cleanup.
 
 ## Ordered Steps
 
-1. Add focused failing unit tests for base discovery/preflight, state-path containment, sibling artifact naming, strict JSON handling, authority conflicts, compose string/array resolution, hash status, and no-write failures.
+1. Add focused failing unit tests for base discovery/preflight, state-path containment, sibling artifact naming, JSONC base parsing, authority conflicts, compose string/array resolution, hash status, and no-write failures.
 2. Refactor the existing local-config parser behind a source-path/source-label API while preserving `loadLocalProjectConfig()` and all spec-022 behavior. Add amendment-input tests for the approved field set and local-specific diagnostics.
 3. Extend `tool/utils/git.ts` with non-mutating worktree-aware helpers for resolving `info/exclude`, listing tracked candidate paths, and checking ignore provenance. Add a surgical labeled-block writer/remover beside the existing append utility; do not change existing root `.gitignore` behavior.
 4. Implement pure command-local resolution and composition modules under `tool/commands/amend/`: types/model, discovery/preflight, devcontainer merge, compose override, shell/support artifacts, receipt/hash handling, Git protection plan, and presentation.
@@ -151,7 +151,7 @@ devcontainer up --workspace-folder <project-root> --config <generated-alternate-
 - Do not create/modify shared project config, compatibility manifests, `superposition.local.yml`, team devcontainer/compose files, VS Code settings, Git index, staging area, commits, or remotes.
 - Do not invoke overlay discovery/inference or write `custom/` adoption patches.
 - Do not claim ordinary VS Code auto-discovery uses the alternate artifact.
-- Do not add JSONC, remote/external base paths, arbitrary container systems, or automatic Dev Container CLI installation in this release.
+- Do not add remote/external base paths, arbitrary container systems, or automatic Dev Container CLI installation in this release.
 
 ## Explicit BDD Plan
 
@@ -230,7 +230,7 @@ devcontainer up --workspace-folder <project-root> --config <generated-alternate-
 ## Open Questions and Stop Conditions
 
 - No blocking product questions remain. Exact internal filenames inside `tool/commands/amend/` may follow repository convention without changing the public/file contract.
-- Route back to Lead/Interrogator if implementation requires changing an acceptance criterion, supporting JSONC or external bases to make the workflow viable, modifying team-owned files, creating project-file authority, or weakening the default Git-protection requirement.
+- Route back to Lead/Interrogator if implementation requires changing an acceptance criterion, supporting external bases to make the workflow viable, modifying team-owned files, creating project-file authority, or weakening the default Git-protection requirement.
 - Stop for ADR/human decision if the only viable editor path requires writing `.vscode/settings.json`, replacing the canonical `.devcontainer/devcontainer.json`, introducing a proprietary launcher/runtime, or automatically mutating the Git index.
 - Stop and replan if a supported base field cannot retain its path/behavior from a sibling alternate config, compose overrides cannot preserve multi-file ordering, or shell enrichment cannot be added without discarding an existing command form.
 - If the repository's Dev Container CLI contract no longer exposes `--config`, mark execution blocked and request a public launch-path decision rather than shipping undocumented behavior.

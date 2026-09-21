@@ -1,4 +1,36 @@
 Feature: Local devcontainer amendment without adoption
+  Scenario: JSONC base devcontainer from VS Code can be amended
+    Given an inline workspace fixture:
+      """
+      files:
+        README.md:
+          text: |
+            JSONC base fixture
+      """
+    And the workspace is a Git repository
+    When I write file ".devcontainer/devcontainer.json"
+      """
+      {
+        // VS Code-created devcontainer files may include comments.
+        "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+        "remoteEnv": {
+          "TEAM_ENV": "1",
+        },
+      }
+      """
+    And I run the CLI command
+      """
+      amend init
+      """
+    Then the command exits successfully
+    And the JSON file ".devcontainer/devcontainer.superposition-local.json" should have value at "remoteEnv.TEAM_ENV" equal
+      """
+      "1"
+      """
+    And the file ".devcontainer/devcontainer.json" should contain "// VS Code-created devcontainer files may include comments."
+    And the file "superposition.yml" should not exist
+    And the file "superposition.json" should not exist
+
   Scenario: Pi-style personal amendment layers on a team-owned plain devcontainer
     Given an inline workspace fixture:
       """

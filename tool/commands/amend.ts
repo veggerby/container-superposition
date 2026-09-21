@@ -162,13 +162,114 @@ function validateArtifactPath(model: Omit<Model, 'state'> | Model, artifact: str
     return abs;
 }
 
+function stripJsoncForBaseDevcontainer(content: string): string {
+    let withoutComments = '';
+    let inString = false;
+    let escaped = false;
+    let inLineComment = false;
+    let inBlockComment = false;
+
+    for (let index = 0; index < content.length; index += 1) {
+        const char = content[index];
+        const next = content[index + 1];
+
+        if (inLineComment) {
+            if (char === '\r' || char === '\n') {
+                inLineComment = false;
+                withoutComments += char;
+            }
+            continue;
+        }
+
+        if (inBlockComment) {
+            if (char === '*' && next === '/') {
+                inBlockComment = false;
+                index += 1;
+                continue;
+            }
+            withoutComments += char === '\r' || char === '\n' ? char : ' ';
+            continue;
+        }
+
+        if (inString) {
+            withoutComments += char;
+            if (escaped) {
+                escaped = false;
+            } else if (char === '\\') {
+                escaped = true;
+            } else if (char === '"') {
+                inString = false;
+            }
+            continue;
+        }
+
+        if (char === '"') {
+            inString = true;
+            withoutComments += char;
+            continue;
+        }
+
+        if (char === '/' && next === '/') {
+            inLineComment = true;
+            index += 1;
+            continue;
+        }
+
+        if (char === '/' && next === '*') {
+            inBlockComment = true;
+            withoutComments += '  ';
+            index += 1;
+            continue;
+        }
+
+        withoutComments += char;
+    }
+
+    if (inBlockComment) {
+        throw new Error('Unterminated JSONC block comment');
+    }
+
+    let output = '';
+    inString = false;
+    escaped = false;
+    for (let index = 0; index < withoutComments.length; index += 1) {
+        const char = withoutComments[index];
+        if (inString) {
+            output += char;
+            if (escaped) {
+                escaped = false;
+            } else if (char === '\\') {
+                escaped = true;
+            } else if (char === '"') {
+                inString = false;
+            }
+            continue;
+        }
+        if (char === '"') {
+            inString = true;
+            output += char;
+            continue;
+        }
+        if (char === ',') {
+            let lookahead = index + 1;
+            while (/\s/.test(withoutComments[lookahead] ?? '')) lookahead += 1;
+            if (withoutComments[lookahead] === '}' || withoutComments[lookahead] === ']') {
+                continue;
+            }
+        }
+        output += char;
+    }
+
+    return output;
+}
+
 function readJsonObject(filePath: string): JsonObject {
     let parsed: unknown;
     try {
-        parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        parsed = JSON.parse(stripJsoncForBaseDevcontainer(fs.readFileSync(filePath, 'utf8')));
     } catch (error) {
         throw new Error(
-            `Could not parse ${filePath} as strict JSON. Comments/JSONC are not supported by amend: ${error instanceof Error ? error.message : String(error)}`
+            `Could not parse ${filePath} as JSON/JSONC devcontainer configuration: ${error instanceof Error ? error.message : String(error)}`
         );
     }
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
