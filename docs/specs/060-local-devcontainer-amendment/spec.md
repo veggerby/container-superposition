@@ -112,7 +112,7 @@ The workflow must preserve the repository's existing devcontainer behavior as th
 ## Implementation Notes
 
 - Compatibility amendment: `amend` accepts VS Code-style JSONC comments and trailing commas only when reading the team-owned base devcontainer input. Local amendment YAML and local receipt/state parsing remain governed by their existing strict contracts.
-- Dev Container CLI compatibility amendment: generated alternate configs use a `devcontainer.json` basename so `devcontainer --config` accepts them on @devcontainers/cli 0.82.0 while retaining local-only ownership and base-relative behavior.
+- Dev Container CLI compatibility amendment: generated alternate configs use a `devcontainer.json` basename so `devcontainer --config` accepts them on @devcontainers/cli 0.82.0 while retaining local-only ownership and base-relative behavior. Because the alternate config now lives in a sibling `superposition-local/` directory, generation rewrites base-relative `build.dockerfile`, `build.context`, `dockerComposeFile`, and local Dev Container Feature source keys such as `./features/example` and `../shared-feature` so they continue to resolve as they did from the team-owned base. Remote Feature IDs, URL Feature sources, and absolute Feature source paths are preserved unchanged.
 
 ## Implementation-Ready Handoff
 

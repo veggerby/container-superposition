@@ -82,6 +82,11 @@ def step_when_i_write_file(context, relative_path):
     file_path.write_text(_require_step_text(context), encoding='utf-8')
 
 
+@when('I remove file "{relative_path}"')
+def step_when_i_remove_file(context, relative_path):
+    _workspace_path(context, relative_path).unlink()
+
+
 @when('I run the CLI command')
 def step_when_i_run_the_cli_command(context):
     if context.workspace_dir is None:

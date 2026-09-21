@@ -36,6 +36,8 @@ npx container-superposition amend remove
 npx container-superposition amend remove --purge
 ```
 
+`amend refresh` also migrates receipts created by older releases that named the alternate config `devcontainer.superposition-local.json`. The old artifact may already be absent; refresh writes the current `devcontainer.json` location and updates the local receipt.
+
 Launch the amended configuration with the standard Dev Container CLI alternate-config option printed by `amend init`, `amend refresh`, and `amend inspect`:
 
 ```bash
@@ -98,7 +100,8 @@ Initial support covers:
 - exactly one default `.devcontainer/devcontainer.json` or `.devcontainer.json`, or a repository-contained `--base <path>`;
 - JSON object devcontainer files, including VS Code-style JSONC comments and trailing commas;
 - image, Dockerfile/build, and compose-backed devcontainers;
-- compose `dockerComposeFile` as a string or string array with repository-contained files.
+- compose `dockerComposeFile` as a string or string array with repository-contained files;
+- local Dev Container Feature source keys such as `./features/example` or `../shared-feature`, which remain relative to the team-owned base after the alternate config is generated.
 
 The command stops before writes for ambiguous default bases, missing bases, unsupported compose references, bases outside the repository, tracked local paths, or repositories that already have shared Container Superposition authority.
 

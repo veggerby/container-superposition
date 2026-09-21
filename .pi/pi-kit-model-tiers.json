@@ -7,8 +7,8 @@
             "large": "gpt-5.6-sol"
         },
         "codex": {
-            "small": "gpt-5.4-mini",
-            "medium": "gpt-5.5",
+            "small": "gpt-5.4-luna",
+            "medium": "gpt-5.6-terra",
             "large": "gpt-5.6-sol"
         },
         "claude": {

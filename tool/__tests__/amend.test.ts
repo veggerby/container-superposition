@@ -228,6 +228,34 @@ describe('amend command', () => {
         }
     }, 30_000);
 
+    it('migrates a missing legacy alternate config receipt during refresh', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+
+            const statePath = path.join(root, '.container-superposition', 'amendment-state.json');
+            const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+            const legacyPath = '.devcontainer/devcontainer.superposition-local.json';
+            fs.rmSync(defaultAlternatePath(root));
+            state.generatedArtifacts = [legacyPath];
+            state.generatedArtifactSha256 = { [legacyPath]: 'missing-legacy-artifact' };
+            fs.writeFileSync(statePath, `${JSON.stringify(state, null, 4)}\n`);
+
+            const refresh = runCli(root, ['amend', 'refresh']);
+            expect(refresh.status).toBe(0);
+            expect(fs.existsSync(defaultAlternatePath(root))).toBe(true);
+            expect(fs.existsSync(path.join(root, legacyPath))).toBe(false);
+            const migratedState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+            expect(migratedState.generatedArtifacts).toEqual([
+                '.devcontainer/superposition-local/devcontainer.json',
+            ]);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
     it('refreshes and removes a non-default base using the receipt path', () => {
         const root = workspace();
         try {
@@ -302,6 +330,67 @@ describe('amend command', () => {
                 dockerfile: '../Dockerfile',
                 context: '../..',
             });
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rewrites local feature source keys while preserving remote feature IDs and options', () => {
+        const root = workspace();
+        const absoluteFeaturePath = path.join(root, 'absolute-feature');
+        try {
+            fs.mkdirSync(path.join(root, '.devcontainer', 'features', 'pelm-pipx-package'), {
+                recursive: true,
+            });
+            fs.mkdirSync(path.join(root, 'shared-feature'), { recursive: true });
+            fs.mkdirSync(absoluteFeaturePath, { recursive: true });
+            writeBase(root, {
+                image: 'mcr.microsoft.com/devcontainers/base:bookworm',
+                features: {
+                    '.\\features\\pelm-pipx-package': { packages: ['pelm'] },
+                    '..\\shared-feature': {},
+                    'ghcr.io/devcontainers/features/node:1': { version: 'lts' },
+                    'https://example.com/features/tool.tgz': {},
+                    [absoluteFeaturePath]: { absolute: true },
+                },
+            });
+            git(root, ['init']);
+
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+
+            const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
+            expect(alternate.features).toEqual({
+                '../features/pelm-pipx-package': { packages: ['pelm'] },
+                '../../shared-feature': {},
+                'ghcr.io/devcontainers/features/node:1': { version: 'lts' },
+                'https://example.com/features/tool.tgz': {},
+                [absoluteFeaturePath]: { absolute: true },
+            });
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rejects colliding feature source keys after relative path rewriting', () => {
+        const root = workspace();
+        try {
+            writeBase(root, {
+                image: 'mcr.microsoft.com/devcontainers/base:bookworm',
+                features: {
+                    './features/pelm-pipx-package': {},
+                    '.\\features\\..\\features\\pelm-pipx-package': { packages: ['pelm'] },
+                },
+            });
+            git(root, ['init']);
+
+            const init = runCli(root, ['amend', 'init']);
+            expect(init.status).not.toBe(0);
+            expect(init.stderr).toContain(
+                'Feature source path collision after rewriting relative keys'
+            );
+            expect(init.stderr).toContain('./features/pelm-pipx-package');
+            expect(init.stderr).toContain('.\\features\\..\\features\\pelm-pipx-package');
+            expect(init.stderr).toContain('../features/pelm-pipx-package');
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
         }

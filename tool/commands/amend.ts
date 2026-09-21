@@ -134,9 +134,14 @@ function ensureNoSymlinkComponents(root: string, candidate: string): void {
     }
 }
 
+function legacyAlternateRelPath(base: BaseInfo): string {
+    return toPosix(path.join(base.dirRel, 'devcontainer.superposition-local.json'));
+}
+
 function expectedArtifactAllowlist(model: Omit<Model, 'state'> | Model): Set<string> {
     return new Set([
         model.base.alternateRelPath,
+        legacyAlternateRelPath(model.base),
         `${SUPPORT_DIR_REL}/shell.sh`,
         `${SUPPORT_DIR_REL}/shell-init.sh`,
         `${SUPPORT_DIR_REL}/docker-compose.override.yml`,
@@ -512,6 +517,7 @@ function resolveModel(options: AmendOptions): Model {
         STATE_REL,
         SUPPORT_DIR_REL,
         base.alternateRelPath,
+        legacyAlternateRelPath(base),
     ]);
     const model = { ...partial, git };
     return { ...model, state: loadState(model) };
@@ -745,6 +751,34 @@ function rewriteRelativeString(value: string, fromDir: string, toDir: string): s
     return toPosix(path.relative(toDir, path.resolve(fromDir, value))) || '.';
 }
 
+function isLocalRelativeFeatureSource(value: string): boolean {
+    return value === '.' || value === '..' || /^\.{1,2}[\\/]/.test(value);
+}
+
+function normalizeLocalRelativeFeatureSource(value: string): string {
+    return value.replaceAll('\\', '/');
+}
+
+function rewriteFeatureSources(features: unknown, fromDir: string, toDir: string): unknown {
+    if (!features || typeof features !== 'object' || Array.isArray(features)) return features;
+    const rewrittenEntries = new Map<string, unknown>();
+    const rewrittenSources = new Map<string, string>();
+    for (const [source, options] of Object.entries(features)) {
+        const rewrittenSource = isLocalRelativeFeatureSource(source)
+            ? rewriteRelativeString(normalizeLocalRelativeFeatureSource(source), fromDir, toDir)
+            : source;
+        if (rewrittenEntries.has(rewrittenSource)) {
+            const priorSource = rewrittenSources.get(rewrittenSource) ?? rewrittenSource;
+            throw new Error(
+                `Feature source path collision after rewriting relative keys: ${priorSource} and ${source} both resolve to ${rewrittenSource}.`
+            );
+        }
+        rewrittenEntries.set(rewrittenSource, options);
+        rewrittenSources.set(rewrittenSource, source);
+    }
+    return Object.fromEntries(rewrittenEntries);
+}
+
 function rewriteBaseRelativePaths(config: JsonObject, fromDir: string, toDir: string): JsonObject {
     const rewritten = structuredClone(config) as JsonObject;
     if (typeof rewritten.dockerComposeFile === 'string') {
@@ -773,6 +807,9 @@ function rewriteBaseRelativePaths(config: JsonObject, fromDir: string, toDir: st
                 toDir
             );
         }
+    }
+    if ('features' in rewritten) {
+        rewritten.features = rewriteFeatureSources(rewritten.features, fromDir, toDir);
     }
     return rewritten;
 }

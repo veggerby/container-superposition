@@ -428,3 +428,34 @@
 - Residual risk: no known material product, safety, or integration risk remains. As with any bounded JSONC compatibility parser, uncommon syntax outside comments/trailing commas may remain unsupported and will fail closed before writes.
 - Required acceptance authority: none.
 - Follow-up route: APPROVE integration; no re-plan, clarification, or risk acceptance is required.
+
+## Workflow-artifact synchronization for alternate-config relative paths
+
+- route/profile: Fast docs/workflow synchronization selected by Lead after the recent amend corrections were committed; no implementation beyond durable artefact updates was needed because `d58baa8c72be93a1b7b44ffe681485861d7d7482` already contains the code, user docs, unit tests, and BDD coverage for legacy receipt migration and local Dev Container Feature source rewriting.
+- canonical spec target: `docs/specs/060-local-devcontainer-amendment/`; `docs/specs/README.md` and `docs/specs/taxonomy.md` did not require changes because title, status, QA marker, and taxonomy metadata were unchanged.
+- source revision: `d58baa8c72be93a1b7b44ffe681485861d7d7482` on `fix/support-local-team-devcontainer-features-relative-path`.
+- changed workflow artefacts: `spec.md` implementation note now explicitly names base-relative `build.dockerfile`, `build.context`, `dockerComposeFile`, and local Dev Container Feature source key rewriting; `plan.md` now corrects the prior "avoid rewriting relative paths" wording and documents bounded rewrites for `./features/example` / `../shared-feature` while preserving remote Feature IDs, URL Feature sources, and absolute Feature source paths.
+- historical evidence policy: prior review-gate scenario/test counts above remain historical and were not rewritten.
+- review mode: INDEPENDENT, because the parent task requested current independent-review evidence for durable spec synchronization and spec 060 already uses an independent gate.
+- review verdict: PASS; integration status READY_FOR_INTEGRATION; execution status ACTIVE; risk status NONE.
+- independent review digest: docs diff SHA-256 `7123d31c35f2a0fde2fdc8c580cd5b0feb155a699cfe8c45e9cf17b69e4751a9`.
+- independent findings: none. Reviewer confirmed the spec/plan edits accurately cover moved alternate-config base-relative paths including local Feature source keys, preserve requirements/metadata, leave historical review-gate evidence untouched until this append-only entry, and require no implementation beyond the committed changes.
+
+### Validation evidence for this synchronization
+
+- Lead rerun: `npx vitest run tool/__tests__/amend.test.ts --reporter=dot` — passed, 1 file / 26 tests.
+- Lead rerun: `npm run test:bdd -- tests/behave/features/local-amendment.feature` — passed, 6 scenarios / 65 steps.
+- Lead rerun: `npm run lint` — passed.
+- Independent reviewer rerun: `npx vitest run tool/__tests__/amend.test.ts --reporter=dot` — passed, 1 file / 26 tests.
+- Independent reviewer rerun: `npm run test:bdd -- tests/behave/features/local-amendment.feature` — passed, 6 scenarios / 65 steps.
+- Independent reviewer rerun: `npm run lint` — passed.
+- Independent reviewer rerun: `npm test` — passed, 54 files passed / 1 skipped; 791 tests passed / 20 skipped.
+- Independent reviewer rerun: `git diff --check` — passed.
+- Skips: duplicate `task validate` was not invoked for this docs-only synchronization because its non-mutating constituents (`npm run lint`, `npm test`) passed and the remaining changed files are workflow Markdown artefacts; build, generated validation, and Docker-backed Dev Container startup were skipped because no runtime, schema, overlay, generated-output, or compiled path-resolution surface changed in this follow-up.
+
+### Acceptance impact and residual risk
+
+- AC-060-02, AC-060-07, AC-060-11, and AC-060-13 are strengthened by documenting and validating local Feature source key behavior from the moved alternate config location.
+- All other acceptance criteria remain unchanged.
+- Residual risk: none known for this synchronization. Ordinary environment-specific Dev Container runtime uncertainty is unchanged from the approved implementation evidence.
+- Integration disposition: APPROVED_FOR_HANDOFF after this append-only review-gate update.

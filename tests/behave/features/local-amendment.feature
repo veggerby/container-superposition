@@ -31,6 +31,35 @@ Feature: Local devcontainer amendment without adoption
     And the file "superposition.yml" should not exist
     And the file "superposition.json" should not exist
 
+  Scenario: Local feature source paths keep base devcontainer semantics in alternate configs
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/devcontainer.json:
+          json:
+            image: mcr.microsoft.com/devcontainers/base:bookworm
+            features:
+              ./features/pelm-pipx-package:
+                packages:
+                  - pelm
+              ghcr.io/devcontainers/features/node:1:
+                version: lts
+        .devcontainer/features/pelm-pipx-package/devcontainer-feature.json:
+          json:
+            id: pelm-pipx-package
+            version: 1.0.0
+      """
+    And the workspace is a Git repository
+    When I run the CLI command
+      """
+      amend init
+      """
+    Then the command exits successfully
+    And the file ".devcontainer/superposition-local/devcontainer.json" should contain "../features/pelm-pipx-package"
+    And the file ".devcontainer/superposition-local/devcontainer.json" should contain "ghcr.io/devcontainers/features/node:1"
+    And the file ".devcontainer/superposition-local/devcontainer.json" should contain "pelm"
+    And the file ".devcontainer/devcontainer.json" should contain "./features/pelm-pipx-package"
+
   Scenario: Pi-style personal amendment layers on a team-owned plain devcontainer
     Given an inline workspace fixture:
       """
@@ -126,6 +155,43 @@ Feature: Local devcontainer amendment without adoption
     And the file ".container-superposition/amendment.yml" should exist
     And the file ".devcontainer/devcontainer.json" should exist
     And the Git index should be unchanged
+
+  Scenario: Refresh migrates a missing legacy alternate-config receipt
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/devcontainer.json:
+          json:
+            image: mcr.microsoft.com/devcontainers/base:bookworm
+      """
+    And the workspace is a Git repository
+    When I run the CLI command
+      """
+      amend init
+      """
+    Then the command exits successfully
+    When I remove file ".devcontainer/superposition-local/devcontainer.json"
+    And I write file ".container-superposition/amendment-state.json"
+      """
+      {
+        "formatVersion": 1,
+        "basePath": ".devcontainer/devcontainer.json",
+        "baseSha256": "legacy",
+        "inputSha256": "legacy",
+        "generatedArtifacts": [".devcontainer/devcontainer.superposition-local.json"],
+        "generatedArtifactSha256": {
+          ".devcontainer/devcontainer.superposition-local.json": "legacy"
+        },
+        "mode": "plain"
+      }
+      """
+    And I run the CLI command
+      """
+      amend refresh
+      """
+    Then the command exits successfully
+    And the file ".devcontainer/superposition-local/devcontainer.json" should exist
+    And the file ".devcontainer/devcontainer.superposition-local.json" should not exist
 
   Scenario: Unsupported ambiguous devcontainers stop before local amendment writes
     Given an inline workspace fixture:
