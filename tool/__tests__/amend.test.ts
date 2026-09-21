@@ -63,6 +63,10 @@ function nonDefaultAlternatePath(root: string): string {
     return path.join(root, 'infra', 'dev', 'superposition-local', 'devcontainer.json');
 }
 
+function rootBaseAlternatePath(root: string): string {
+    return path.join(root, '.container-superposition', 'amendment', 'devcontainer.json');
+}
+
 describe('amend command', () => {
     it('accepts JSONC comments and trailing commas in the team-owned base devcontainer', () => {
         const root = workspace();
@@ -244,6 +248,34 @@ describe('amend command', () => {
             expect(fs.existsSync(nonDefaultAlternatePath(root))).toBe(true);
             expect(runCli(root, ['amend', 'remove']).status).toBe(0);
             expect(fs.existsSync(nonDefaultAlternatePath(root))).toBe(false);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('refreshes and removes a root .devcontainer.json base using the receipt path', () => {
+        const root = workspace();
+        try {
+            fs.writeFileSync(
+                path.join(root, '.devcontainer.json'),
+                '{"image":"mcr.microsoft.com/devcontainers/base:bookworm"}\n'
+            );
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                'env:\n  PI_HOME: /pi\n'
+            );
+            expect(runCli(root, ['amend', 'refresh']).status).toBe(0);
+            const alternatePath = rootBaseAlternatePath(root);
+            expect(fs.existsSync(alternatePath)).toBe(true);
+            const alternate = JSON.parse(fs.readFileSync(alternatePath, 'utf8'));
+            expect(alternate.remoteEnv?.PI_HOME).toBe('/pi');
+            expect(runCli(root, ['amend', 'remove']).status).toBe(0);
+            expect(fs.existsSync(alternatePath)).toBe(false);
+            expect(
+                fs.existsSync(path.join(root, '.container-superposition', 'amendment.yml'))
+            ).toBe(true);
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
         }
