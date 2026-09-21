@@ -752,19 +752,31 @@ function rewriteRelativeString(value: string, fromDir: string, toDir: string): s
 }
 
 function isLocalRelativeFeatureSource(value: string): boolean {
-    return value.startsWith('./') || value.startsWith('../');
+    return value === '.' || value === '..' || /^\.{1,2}[\\/]/.test(value);
+}
+
+function normalizeLocalRelativeFeatureSource(value: string): string {
+    return value.replaceAll('\\', '/');
 }
 
 function rewriteFeatureSources(features: unknown, fromDir: string, toDir: string): unknown {
     if (!features || typeof features !== 'object' || Array.isArray(features)) return features;
-    return Object.fromEntries(
-        Object.entries(features).map(([source, options]) => [
-            isLocalRelativeFeatureSource(source)
-                ? rewriteRelativeString(source, fromDir, toDir)
-                : source,
-            options,
-        ])
-    );
+    const rewrittenEntries = new Map<string, unknown>();
+    const rewrittenSources = new Map<string, string>();
+    for (const [source, options] of Object.entries(features)) {
+        const rewrittenSource = isLocalRelativeFeatureSource(source)
+            ? rewriteRelativeString(normalizeLocalRelativeFeatureSource(source), fromDir, toDir)
+            : source;
+        if (rewrittenEntries.has(rewrittenSource)) {
+            const priorSource = rewrittenSources.get(rewrittenSource) ?? rewrittenSource;
+            throw new Error(
+                `Feature source path collision after rewriting relative keys: ${priorSource} and ${source} both resolve to ${rewrittenSource}.`
+            );
+        }
+        rewrittenEntries.set(rewrittenSource, options);
+        rewrittenSources.set(rewrittenSource, source);
+    }
+    return Object.fromEntries(rewrittenEntries);
 }
 
 function rewriteBaseRelativePaths(config: JsonObject, fromDir: string, toDir: string): JsonObject {

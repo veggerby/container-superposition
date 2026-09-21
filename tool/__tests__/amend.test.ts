@@ -347,8 +347,8 @@ describe('amend command', () => {
             writeBase(root, {
                 image: 'mcr.microsoft.com/devcontainers/base:bookworm',
                 features: {
-                    './features/pelm-pipx-package': { packages: ['pelm'] },
-                    '../shared-feature': {},
+                    '.\\features\\pelm-pipx-package': { packages: ['pelm'] },
+                    '..\\shared-feature': {},
                     'ghcr.io/devcontainers/features/node:1': { version: 'lts' },
                     'https://example.com/features/tool.tgz': {},
                     [absoluteFeaturePath]: { absolute: true },
@@ -366,6 +366,31 @@ describe('amend command', () => {
                 'https://example.com/features/tool.tgz': {},
                 [absoluteFeaturePath]: { absolute: true },
             });
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rejects colliding feature source keys after relative path rewriting', () => {
+        const root = workspace();
+        try {
+            writeBase(root, {
+                image: 'mcr.microsoft.com/devcontainers/base:bookworm',
+                features: {
+                    './features/pelm-pipx-package': {},
+                    '.\\features\\..\\features\\pelm-pipx-package': { packages: ['pelm'] },
+                },
+            });
+            git(root, ['init']);
+
+            const init = runCli(root, ['amend', 'init']);
+            expect(init.status).not.toBe(0);
+            expect(init.stderr).toContain(
+                'Feature source path collision after rewriting relative keys'
+            );
+            expect(init.stderr).toContain('./features/pelm-pipx-package');
+            expect(init.stderr).toContain('.\\features\\..\\features\\pelm-pipx-package');
+            expect(init.stderr).toContain('../features/pelm-pipx-package');
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
         }
