@@ -113,7 +113,7 @@ devcontainer up --workspace-folder <project-root> --config <generated-alternate-
 - **Security/privacy/data safety — ALIGNED with required gates:** local paths and values are not printed or placed in shared files; path containment, symlink checks, tracked-file preflight, receipt allowlisting, and atomic writes are mandatory.
 - **Reliability/operability — ALIGNED:** hashes and inspect status make stale-base behavior visible; refresh is deterministic; remove is receipt-bounded.
 - **Compatibility/user impact — CONCERN, documented:** alternate-config launch is supported through `devcontainer --config`, not ordinary editor auto-discovery. Docs and command output must not imply otherwise.
-- **Dependency/build-vs-buy judgment:** use the installed user's Dev Container CLI as the commodity launcher; do not wrap or vendor it. No parsing/merge dependency is justified for the strict-JSON initial boundary.
+- **Dependency/build-vs-buy judgment:** use the installed user's Dev Container CLI as the commodity launcher; do not wrap or vendor it. No parsing/merge dependency is justified for bounded JSONC comment/trailing-comma compatibility in base devcontainer parsing.
 - **ADR impact:** no ADR is required before implementation. The spec explicitly authorizes a separate local-only exception, while foundation/ADR 001 continue to govern adopting repositories and forbid Git-index mutation. Stop for ADR/Lead review if implementation requires shared project authority, mutation of team devcontainer files, editor settings takeover, a proprietary launcher, or automatic Git-index cleanup.
 
 ## Ordered Steps

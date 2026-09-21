@@ -65,7 +65,9 @@ describe('amend command', () => {
                 [
                     '{',
                     '  // VS Code-created devcontainer files may contain comments.',
+                    '  /* Keep valid block comments when parsing JSONC input. */',
                     '  "image": "mcr.microsoft.com/devcontainers/base:bookworm",',
+                    '  "notes": "https://example.com/path?x=1 // not a comment and \\"quoted\\" text",',
                     '  "remoteEnv": {',
                     '    "TEAM": "1",',
                     '  },',
@@ -83,6 +85,9 @@ describe('amend command', () => {
                 )
             );
             expect(alternate.remoteEnv.TEAM).toBe('1');
+            expect(alternate.notes).toBe(
+                'https://example.com/path?x=1 // not a comment and "quoted" text'
+            );
             expect(
                 fs.readFileSync(path.join(root, '.devcontainer', 'devcontainer.json'), 'utf8')
             ).toContain('// VS Code-created devcontainer files may contain comments.');
