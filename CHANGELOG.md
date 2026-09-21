@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Local devcontainer amendment workflow** — `cs amend init|refresh|inspect|remove` now lets one developer layer personal local devcontainer additions onto an existing team-owned devcontainer without running `adopt`, creating shared Container Superposition project intent, or mutating the Git index; it accepts VS Code-style JSONC comments and trailing commas in the team-owned base devcontainer, writes local-only amendment state under `.container-superposition/`, generates a sibling alternate devcontainer config for `devcontainer --config`, protects artifacts through worktree-local Git exclude rules when available, and documents removal and purge paths.
+- **Local devcontainer amendment workflow** — `cs amend init|refresh|inspect|remove` now lets one developer layer personal local devcontainer additions onto an existing team-owned devcontainer without running `adopt`, creating shared Container Superposition project intent, or mutating the Git index; it accepts VS Code-style JSONC comments and trailing commas in the team-owned base devcontainer, writes local-only amendment state under `.container-superposition/`, generates an alternate `devcontainer.json` config compatible with `devcontainer --config`, protects artifacts through worktree-local Git exclude rules when available, and documents removal and purge paths.
 
 - **Cross-command `--silent` CLI mode** — all executable commands now accept `--silent` to suppress routine human-readable output, including ordinary non-fatal warnings, while preserving operational behavior and failure diagnostics; it is explicitly incompatible with `--json` and rejects that combination before command work begins.
 

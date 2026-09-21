@@ -112,6 +112,7 @@ The workflow must preserve the repository's existing devcontainer behavior as th
 ## Implementation Notes
 
 - Compatibility amendment: `amend` accepts VS Code-style JSONC comments and trailing commas only when reading the team-owned base devcontainer input. Local amendment YAML and local receipt/state parsing remain governed by their existing strict contracts.
+- Dev Container CLI compatibility amendment: generated alternate configs use a `devcontainer.json` basename so `devcontainer --config` accepts them on @devcontainers/cli 0.82.0 while retaining local-only ownership and base-relative behavior.
 
 ## Implementation-Ready Handoff
 

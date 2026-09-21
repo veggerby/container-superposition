@@ -34,7 +34,7 @@ Use these names unless implementation discovers a platform collision that requir
 - `.container-superposition/amendment.yml` — user-authored local input, using the existing local-config field shapes and schema URL; never shared project intent.
 - `.container-superposition/amendment-state.json` — deterministic local receipt containing format version, repository-relative base path, base SHA-256, input SHA-256, generated artifact paths, and selected devcontainer/compose mode. Do not include timestamps, hostnames, secret values, or absolute machine paths.
 - `.container-superposition/amendment/` — generated local compose override and shell/customization support files, when needed.
-- A sibling alternate config beside the team base: `devcontainer.superposition-local.json` when the base is `devcontainer.json`, or `.devcontainer.superposition-local.json` when the base is root `.devcontainer.json`. Keeping it beside the base preserves relative `build.dockerfile`, `build.context`, `dockerComposeFile`, and other devcontainer path semantics.
+- A generated alternate config whose basename is always `devcontainer.json` for Dev Container CLI compatibility: `superposition-local/devcontainer.json` beside a `devcontainer.json` base, or `.container-superposition/amendment/devcontainer.json` for a root `.devcontainer.json` base. Generation rewrites base-relative `build.dockerfile`, `build.context`, and `dockerComposeFile` entries to preserve the team base semantics from the alternate config location.
 
 The team base and every referenced team compose file are read-only inputs. The tool must never overwrite, rename, copy back into, or mark them as generated. `superposition.yml`, `.superposition.yml`, `superposition.json`, and `superposition.local.yml` are neither created nor modified by this lane.
 
@@ -239,4 +239,5 @@ devcontainer up --workspace-folder <project-root> --config <generated-alternate-
 
 - Implemented the planned `amend` lifecycle with correction hardening for independent review findings RG-060-001 through RG-060-006.
 - Correction cycle added strict receipt schema and artifact hashes, receipt artifact allowlisting, symlink-safe path checks, unowned-collision rejection, rollback-on-refresh-failure behavior, supported `postCreateCommand` form preservation, and `git check-ignore -v` provenance reporting/classification.
-- No acceptance criteria, public command names, local artifact names, or non-goals were broadened during correction.
+- Bounded defect fix for Dev Container CLI 0.82.0 changed the generated alternate config from `devcontainer.superposition-local.json` / `.devcontainer.superposition-local.json` to a local `devcontainer.json` path so `devcontainer --config` accepts it; relative base path semantics are preserved by rewriting base-relative build and compose references in the generated alternate config.
+- No acceptance criteria, public command names, local ownership model, or non-goals were broadened during correction.

@@ -8,7 +8,7 @@ This is not `adopt` and it does not create shared `superposition.yml`, `.superpo
 
 - Existing `.devcontainer/devcontainer.json` or `.devcontainer.json` = **team-owned base**.
 - `.container-superposition/amendment.yml` = **your personal local input**.
-- Generated `devcontainer.superposition-local.json` / `.devcontainer.superposition-local.json` and `.container-superposition/amendment/` = **local uncommitted amendment artifacts**.
+- Generated `superposition-local/devcontainer.json` beside a `devcontainer.json` base, or `.container-superposition/amendment/devcontainer.json` for a root `.devcontainer.json` base, plus `.container-superposition/amendment/` support files = **local uncommitted amendment artifacts**.
 - `adopt` = **team migration path** when the repository should become Container Superposition-managed.
 
 The command never stages files, unstages files, commits files, or runs `git rm`. If a local amendment path is already tracked, it stops and prints manual `git rm --cached -- ...` guidance.
@@ -39,7 +39,7 @@ npx container-superposition amend remove --purge
 Launch the amended configuration with the standard Dev Container CLI alternate-config option printed by `amend init`, `amend refresh`, and `amend inspect`:
 
 ```bash
-devcontainer up --workspace-folder . --config .devcontainer/devcontainer.superposition-local.json
+devcontainer up --workspace-folder . --config .devcontainer/superposition-local/devcontainer.json
 ```
 
 Ordinary VS Code **Reopen in Container** and Dev Containers auto-discovery still select the team-owned base devcontainer. That is intentional: this workflow does not replace `.devcontainer/devcontainer.json`, write `.vscode/settings.json`, or make your personal alternate config the repository default.
@@ -110,4 +110,4 @@ In a Git worktree, `amend init` writes a labeled block to the worktree-local exc
 git rev-parse --git-path info/exclude
 ```
 
-That local exclude block covers `.container-superposition/` and the generated sibling alternate config. It avoids changing the team's root `.gitignore`. In a non-Git directory, the command can proceed but warns that no Git protection is available.
+That local exclude block covers `.container-superposition/` and the generated alternate config path. It avoids changing the team's root `.gitignore`. In a non-Git directory, the command can proceed but warns that no Git protection is available.

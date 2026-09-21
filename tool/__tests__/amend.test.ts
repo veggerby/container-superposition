@@ -55,6 +55,14 @@ function writeBase(
     );
 }
 
+function defaultAlternatePath(root: string): string {
+    return path.join(root, '.devcontainer', 'superposition-local', 'devcontainer.json');
+}
+
+function nonDefaultAlternatePath(root: string): string {
+    return path.join(root, 'infra', 'dev', 'superposition-local', 'devcontainer.json');
+}
+
 describe('amend command', () => {
     it('accepts JSONC comments and trailing commas in the team-owned base devcontainer', () => {
         const root = workspace();
@@ -78,12 +86,7 @@ describe('amend command', () => {
             git(root, ['init']);
             const init = runCli(root, ['amend', 'init']);
             expect(init.status).toBe(0);
-            const alternate = JSON.parse(
-                fs.readFileSync(
-                    path.join(root, '.devcontainer', 'devcontainer.superposition-local.json'),
-                    'utf8'
-                )
-            );
+            const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
             expect(alternate.remoteEnv.TEAM).toBe('1');
             expect(alternate.notes).toBe(
                 'https://example.com/path?x=1 // not a comment and "quoted" text'
@@ -114,11 +117,7 @@ describe('amend command', () => {
             expect(init.status).not.toBe(0);
             expect(init.stderr).toContain('Unterminated JSONC block comment');
             expect(fs.existsSync(path.join(root, '.container-superposition'))).toBe(false);
-            expect(
-                fs.existsSync(
-                    path.join(root, '.devcontainer', 'devcontainer.superposition-local.json')
-                )
-            ).toBe(false);
+            expect(fs.existsSync(defaultAlternatePath(root))).toBe(false);
             expect(fs.readFileSync(excludePath, 'utf8')).toBe(excludeBefore);
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
@@ -168,11 +167,7 @@ describe('amend command', () => {
             );
             const refresh = runCli(root, ['amend', 'refresh']);
             expect(refresh.status).toBe(0);
-            const alternatePath = path.join(
-                root,
-                '.devcontainer',
-                'devcontainer.superposition-local.json'
-            );
+            const alternatePath = defaultAlternatePath(root);
             const alternate = JSON.parse(fs.readFileSync(alternatePath, 'utf8'));
             expect(alternate.image).toContain('devcontainers/base');
             expect(alternate.remoteEnv).toMatchObject({
@@ -210,11 +205,7 @@ describe('amend command', () => {
                 'mounts:\n  - source=pi,target=/pi,type=volume\n'
             );
             expect(runCli(root, ['amend', 'refresh']).status).toBe(0);
-            const alternatePath = path.join(
-                root,
-                '.devcontainer',
-                'devcontainer.superposition-local.json'
-            );
+            const alternatePath = defaultAlternatePath(root);
             const statePath = path.join(root, '.container-superposition', 'amendment-state.json');
             const first =
                 fs.readFileSync(alternatePath, 'utf8') + fs.readFileSync(statePath, 'utf8');
@@ -250,17 +241,35 @@ describe('amend command', () => {
                 'env:\n  PI_HOME: /pi\n'
             );
             expect(runCli(root, ['amend', 'refresh']).status).toBe(0);
-            expect(
-                fs.existsSync(
-                    path.join(root, 'infra', 'dev', 'devcontainer.superposition-local.json')
-                )
-            ).toBe(true);
+            expect(fs.existsSync(nonDefaultAlternatePath(root))).toBe(true);
             expect(runCli(root, ['amend', 'remove']).status).toBe(0);
-            expect(
-                fs.existsSync(
-                    path.join(root, 'infra', 'dev', 'devcontainer.superposition-local.json')
-                )
-            ).toBe(false);
+            expect(fs.existsSync(nonDefaultAlternatePath(root))).toBe(false);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rewrites build paths so moved alternate configs preserve team base relative semantics', () => {
+        const root = workspace();
+        try {
+            fs.mkdirSync(path.join(root, '.devcontainer'), { recursive: true });
+            fs.writeFileSync(path.join(root, '.devcontainer', 'Dockerfile'), 'FROM alpine\n');
+            fs.mkdirSync(path.join(root, 'src'));
+            writeBase(root, {
+                build: {
+                    dockerfile: 'Dockerfile',
+                    context: '..',
+                },
+            });
+            git(root, ['init']);
+
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+
+            const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
+            expect(alternate.build).toMatchObject({
+                dockerfile: '../Dockerfile',
+                context: '../..',
+            });
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
         }
@@ -291,17 +300,12 @@ describe('amend command', () => {
             );
             const refresh = runCli(root, ['amend', 'refresh']);
             expect(refresh.status).toBe(0);
-            const alternate = JSON.parse(
-                fs.readFileSync(
-                    path.join(root, '.devcontainer', 'devcontainer.superposition-local.json'),
-                    'utf8'
-                )
-            );
+            const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
             expect(alternate.remoteEnv?.PI_CACHE).toBeUndefined();
             expect(alternate.dockerComposeFile).toEqual([
-                '../docker-compose.yml',
-                '../docker-compose.extra.yml',
-                '../.container-superposition/amendment/docker-compose.override.yml',
+                '../../docker-compose.yml',
+                '../../docker-compose.extra.yml',
+                '../../.container-superposition/amendment/docker-compose.override.yml',
             ]);
             const override = fs.readFileSync(
                 path.join(
@@ -356,7 +360,7 @@ describe('amend command', () => {
             expect(trackedResult.stderr).toContain('git rm --cached');
             expect(
                 fs.existsSync(
-                    path.join(tracked, '.devcontainer', 'devcontainer.superposition-local.json')
+                    path.join(tracked, '.devcontainer', 'superposition-local', 'devcontainer.json')
                 )
             ).toBe(false);
         } finally {
@@ -395,8 +399,9 @@ describe('amend command', () => {
         try {
             writeBase(collision);
             git(collision, ['init']);
+            fs.mkdirSync(path.join(collision, '.devcontainer', 'superposition-local'));
             fs.writeFileSync(
-                path.join(collision, '.devcontainer', 'devcontainer.superposition-local.json'),
+                path.join(collision, '.devcontainer', 'superposition-local', 'devcontainer.json'),
                 '{"unowned":true}\n'
             );
             const excludeRel = git(collision, [
@@ -466,11 +471,7 @@ describe('amend command', () => {
                 'env:\n  FIRST: one\n'
             );
             expect(runCli(root, ['amend', 'refresh']).status).toBe(0);
-            const alternatePath = path.join(
-                root,
-                '.devcontainer',
-                'devcontainer.superposition-local.json'
-            );
+            const alternatePath = defaultAlternatePath(root);
             const statePath = path.join(root, '.container-superposition', 'amendment-state.json');
             const previousAlternate = fs.readFileSync(alternatePath, 'utf8');
             const previousState = fs.readFileSync(statePath, 'utf8');
@@ -509,12 +510,7 @@ describe('amend command', () => {
                     "shell:\n  aliases:\n    ll: ls -la\n    quote: echo 'hello'\n  snippets:\n    - export PI_READY=1\n"
                 );
                 expect(runCli(root, ['amend', 'refresh']).status, name).toBe(0);
-                const alternate = JSON.parse(
-                    fs.readFileSync(
-                        path.join(root, '.devcontainer', 'devcontainer.superposition-local.json'),
-                        'utf8'
-                    )
-                );
+                const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
                 if (name === 'object') {
                     expect(alternate.postCreateCommand.team, name).toBe('echo team');
                 } else {
@@ -581,11 +577,7 @@ describe('amend command', () => {
         try {
             writeBase(root);
             git(root, ['init']);
-            const configPath = path.join(
-                root,
-                '.devcontainer',
-                'devcontainer.superposition-local.json'
-            );
+            const configPath = defaultAlternatePath(root);
             const expectedCommand = `devcontainer up --workspace-folder ${root} --config ${configPath}`;
             const init = runCli(outside, ['amend', 'init', '--project-root', root]);
             expect(init.status).toBe(0);
@@ -606,11 +598,7 @@ describe('amend command', () => {
         try {
             writeBase(root);
             git(root, ['init']);
-            const configPath = path.join(
-                root,
-                '.devcontainer',
-                'devcontainer.superposition-local.json'
-            );
+            const configPath = defaultAlternatePath(root);
             const expectedCommand = `devcontainer up --workspace-folder ${quotePosixShellArg(root)} --config ${quotePosixShellArg(configPath)}`;
             const init = runCli(outside, ['amend', 'init', '--project-root', root]);
             expect(init.status).toBe(0);
@@ -636,7 +624,7 @@ describe('amend command', () => {
             fs.writeFileSync(path.join(root, exclude), '');
             fs.writeFileSync(
                 path.join(root, '.gitignore'),
-                '.container-superposition/\n.devcontainer/devcontainer.superposition-local.json\n'
+                '.container-superposition/\n.devcontainer/superposition-local/devcontainer.json\n'
             );
             const inspect = runCli(root, ['amend', 'inspect', '--json']);
             expect(inspect.status).toBe(0);
@@ -791,11 +779,7 @@ describe('amend command', () => {
             writeBase(root);
             git(root, ['init']);
             expect(runCli(root, ['amend', 'init']).status).toBe(0);
-            const alternatePath = path.join(
-                root,
-                '.devcontainer',
-                'devcontainer.superposition-local.json'
-            );
+            const alternatePath = defaultAlternatePath(root);
             fs.writeFileSync(alternatePath, '{"tampered":true}\n');
             const inspect = runCli(root, ['amend', 'inspect', '--json']);
             expect(inspect.status).toBe(0);
@@ -803,7 +787,7 @@ describe('amend command', () => {
             expect(result.status).toBe('modified artifact');
             expect(result.artifacts).toContainEqual(
                 expect.objectContaining({
-                    path: '.devcontainer/devcontainer.superposition-local.json',
+                    path: '.devcontainer/superposition-local/devcontainer.json',
                     status: 'modified',
                 })
             );

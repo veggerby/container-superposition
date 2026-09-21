@@ -49,6 +49,7 @@ interface BaseInfo {
     dirRel: string;
     alternateAbsPath: string;
     alternateRelPath: string;
+    alternateDirAbsPath: string;
     hash: string;
     config: JsonObject;
     composeFiles: string[];
@@ -344,11 +345,11 @@ function resolveBase(projectRoot: string, baseOption?: string): BaseInfo {
     const baseRel = rel(projectRoot, baseAbs);
     const config = readJsonObject(baseAbs);
     const dir = path.dirname(baseAbs);
-    const alternateName =
+    const alternateDir =
         path.basename(baseAbs) === '.devcontainer.json'
-            ? '.devcontainer.superposition-local.json'
-            : 'devcontainer.superposition-local.json';
-    const alternateAbs = path.join(dir, alternateName);
+            ? path.join(projectRoot, SUPPORT_DIR_REL)
+            : path.join(dir, 'superposition-local');
+    const alternateAbs = path.join(alternateDir, 'devcontainer.json');
     const composeFiles = normalizeComposeFiles(projectRoot, dir, config);
     const service =
         typeof config.service === 'string' && config.service.trim()
@@ -365,6 +366,7 @@ function resolveBase(projectRoot: string, baseOption?: string): BaseInfo {
         dirRel: rel(projectRoot, dir),
         alternateAbsPath: alternateAbs,
         alternateRelPath: rel(projectRoot, alternateAbs),
+        alternateDirAbsPath: alternateDir,
         hash: sha256(fs.readFileSync(baseAbs)),
         config,
         composeFiles,
@@ -738,12 +740,53 @@ function appendPostCreate(config: JsonObject, command: string): JsonObject {
     );
 }
 
+function rewriteRelativeString(value: string, fromDir: string, toDir: string): string {
+    if (path.isAbsolute(value) || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) return value;
+    return toPosix(path.relative(toDir, path.resolve(fromDir, value))) || '.';
+}
+
+function rewriteBaseRelativePaths(config: JsonObject, fromDir: string, toDir: string): JsonObject {
+    const rewritten = structuredClone(config) as JsonObject;
+    if (typeof rewritten.dockerComposeFile === 'string') {
+        rewritten.dockerComposeFile = rewriteRelativeString(
+            rewritten.dockerComposeFile,
+            fromDir,
+            toDir
+        );
+    } else if (Array.isArray(rewritten.dockerComposeFile)) {
+        rewritten.dockerComposeFile = rewritten.dockerComposeFile.map((entry: unknown) =>
+            typeof entry === 'string' ? rewriteRelativeString(entry, fromDir, toDir) : entry
+        );
+    }
+    if (rewritten.build && typeof rewritten.build === 'object' && !Array.isArray(rewritten.build)) {
+        if (typeof rewritten.build.dockerfile === 'string') {
+            rewritten.build.dockerfile = rewriteRelativeString(
+                rewritten.build.dockerfile,
+                fromDir,
+                toDir
+            );
+        }
+        if (typeof rewritten.build.context === 'string') {
+            rewritten.build.context = rewriteRelativeString(
+                rewritten.build.context,
+                fromDir,
+                toDir
+            );
+        }
+    }
+    return rewritten;
+}
+
 function composeOutputs(
     model: Model,
     local: LocalProjectConfigSelection
 ): { files: Map<string, string>; state: AmendState } {
     const mode: AmendState['mode'] = model.base.composeFiles.length > 0 ? 'compose' : 'plain';
-    let alternate = structuredClone(model.base.config) as JsonObject;
+    let alternate = rewriteBaseRelativePaths(
+        model.base.config,
+        path.dirname(model.base.absPath),
+        model.base.alternateDirAbsPath
+    );
     const files = new Map<string, string>();
     const generatedArtifacts = [model.base.alternateRelPath];
 
@@ -812,17 +855,14 @@ function composeOutputs(
         }
         files.set(overrideRel, yaml.dump(override, { lineWidth: 1000 }));
         generatedArtifacts.push(overrideRel);
-        const relativeFromBase = toPosix(
-            path.relative(
-                path.dirname(model.base.absPath),
-                path.join(model.projectRoot, overrideRel)
-            )
+        const relativeFromAlternate = toPosix(
+            path.relative(model.base.alternateDirAbsPath, path.join(model.projectRoot, overrideRel))
         );
         alternate.dockerComposeFile = [
             ...(Array.isArray(alternate.dockerComposeFile)
                 ? alternate.dockerComposeFile
                 : [alternate.dockerComposeFile]),
-            relativeFromBase,
+            relativeFromAlternate,
         ];
     }
 
@@ -1138,6 +1178,11 @@ function remove(model: Model, purge: boolean): void {
     validateRemovalOwnership(model);
     for (const artifact of model.state.generatedArtifacts) {
         fs.rmSync(validateArtifactPath(model, artifact), { force: true });
+    }
+    try {
+        fs.rmdirSync(model.base.alternateDirAbsPath);
+    } catch {
+        // Keep non-empty or already-removed directories; they may contain user/team files.
     }
     ensureNoSymlinkComponents(model.projectRoot, model.stateAbsPath);
     fs.rmSync(model.stateAbsPath, { force: true });
