@@ -56,6 +56,70 @@ function writeBase(
 }
 
 describe('amend command', () => {
+    it('accepts JSONC comments and trailing commas in the team-owned base devcontainer', () => {
+        const root = workspace();
+        try {
+            fs.mkdirSync(path.join(root, '.devcontainer'), { recursive: true });
+            fs.writeFileSync(
+                path.join(root, '.devcontainer', 'devcontainer.json'),
+                [
+                    '{',
+                    '  // VS Code-created devcontainer files may contain comments.',
+                    '  "image": "mcr.microsoft.com/devcontainers/base:bookworm",',
+                    '  "remoteEnv": {',
+                    '    "TEAM": "1",',
+                    '  },',
+                    '}',
+                    '',
+                ].join('\n')
+            );
+            git(root, ['init']);
+            const init = runCli(root, ['amend', 'init']);
+            expect(init.status).toBe(0);
+            const alternate = JSON.parse(
+                fs.readFileSync(
+                    path.join(root, '.devcontainer', 'devcontainer.superposition-local.json'),
+                    'utf8'
+                )
+            );
+            expect(alternate.remoteEnv.TEAM).toBe('1');
+            expect(
+                fs.readFileSync(path.join(root, '.devcontainer', 'devcontainer.json'), 'utf8')
+            ).toContain('// VS Code-created devcontainer files may contain comments.');
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rejects unterminated JSONC block comments before creating amendment artifacts', () => {
+        const root = workspace();
+        try {
+            fs.mkdirSync(path.join(root, '.devcontainer'), { recursive: true });
+            fs.writeFileSync(
+                path.join(root, '.devcontainer', 'devcontainer.json'),
+                '{\n  "image": "mcr.microsoft.com/devcontainers/base:bookworm"\n  /* missing terminator\n}\n'
+            );
+            git(root, ['init']);
+            const excludeRel = git(root, ['rev-parse', '--git-path', 'info/exclude']).stdout.trim();
+            const excludePath = path.join(root, excludeRel);
+            const excludeBefore = fs.readFileSync(excludePath, 'utf8');
+
+            const init = runCli(root, ['amend', 'init']);
+
+            expect(init.status).not.toBe(0);
+            expect(init.stderr).toContain('Unterminated JSONC block comment');
+            expect(fs.existsSync(path.join(root, '.container-superposition'))).toBe(false);
+            expect(
+                fs.existsSync(
+                    path.join(root, '.devcontainer', 'devcontainer.superposition-local.json')
+                )
+            ).toBe(false);
+            expect(fs.readFileSync(excludePath, 'utf8')).toBe(excludeBefore);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
     it('creates and refreshes a local-only Pi-style amendment without changing team base or Git index', () => {
         const root = workspace();
         try {

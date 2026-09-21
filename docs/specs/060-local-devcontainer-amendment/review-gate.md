@@ -339,3 +339,92 @@
 - validation: targeted Prettier run on changed Markdown passed; initial `npm run lint` exposed pre-existing review-gate Markdown formatting drift, fixed with Prettier; rerun `npm run lint` passed; final `task validate` passed.
 - acceptance mapping: AC-060-10 and AC-060-13 strengthened by documenting that VS Code Reopen/auto-discovery continues to use the team base, the amendment launches via the printed `devcontainer up --workspace-folder ... --config ...` command, and users should attach/open with normal VS Code Dev Containers flows rather than committing or replacing shared settings. AC-060-01, AC-060-02, AC-060-04, AC-060-06, and AC-060-08 are preserved because the docs keep the workflow local-only, keep team devcontainer files as the base, and do not describe shared project intent or default VS Code takeover.
 - residual risk: no known behavior risk; VS Code attach/open menu wording can vary by extension version, so docs phrase examples as supported flows.
+
+## Implementer correction cycle 6
+
+- review mode: SELF_CHECK for bounded correction implementation; INDEPENDENT rereview still required.
+- source revision: `0de534f3046933c8f62f3dcd5f98f955c3457a47`.
+- reviewed working-tree diff identity from prior reviewer: `02b3c936364646f397058aa23c26832b3f60c43b5702952b0b8c0d4e0496d8ef`.
+- execution status: ACTIVE.
+- risk status: NONE identified by implementer self-check.
+- readiness: ready for independent rereview after focused validation.
+
+### Finding dispositions
+
+- RG-AMEND-JSONC-001: Addressed. Base devcontainer JSONC stripping now rejects unterminated block comments before parsing proceeds to amendment planning or writes. Regression coverage proves `amend init` fails with the parse diagnostic and leaves no `.container-superposition/` state, no sibling alternate config, and no Git exclude mutation.
+
+### Convergence cycle 6
+
+- source before / after: before correction current working tree was based on `0de534f3046933c8f62f3dcd5f98f955c3457a47`; after correction implementation digest excluding this review-gate record is `f4b6c9fdb0ce46c4a736a3921a0636db6cab1e1d28c19c1cb94996769ed16ca5`.
+- findings resolved by implementer self-check: RG-AMEND-JSONC-001.
+- findings remaining or new: none identified by implementer self-check; independent rereview required.
+- acceptance evidence gained: AC-060-09 / AC-060-11 strengthened for malformed JSON/JSONC no-write behavior.
+- validation state changed: focused amend Vitest includes an unterminated block-comment no-write regression.
+- repeated work or failures: none; finding was new, bounded, and corrected with a local parser guard.
+- decision: CONTINUE to independent rereview.
+
+### Correction validation evidence
+
+- Focused Vitest: `npx vitest run tool/__tests__/amend.test.ts tool/__tests__/local-config.test.ts tool/__tests__/gitignore.test.ts --reporter=dot` — passed, 45 tests.
+- Focused BDD: `npm run test:bdd -- tests/behave/features/local-amendment.feature` — passed, 4 scenarios / 47 steps.
+- Lint: `npm run lint` — passed.
+- Mandatory validation: `task validate` — passed (runs `lint:fix`, `lint`, and full Vitest: 54 files passed / 1 skipped; 787 tests passed / 20 skipped).
+- Diff hygiene: `git diff --check 0de534f3046933c8f62f3dcd5f98f955c3457a47` — passed.
+
+## Independent rereview cycle 6
+
+- review mode: INDEPENDENT
+- source revision baseline / HEAD: `0de534f3046933c8f62f3dcd5f98f955c3457a47`
+- reviewed working-tree content digest excluding this review-gate record: SHA-256 `f4b6c9fdb0ce46c4a736a3921a0636db6cab1e1d28c19c1cb94996769ed16ca5` over `git diff --binary 0de534f3046933c8f62f3dcd5f98f955c3457a47 -- . ':(exclude)docs/specs/060-local-devcontainer-amendment/review-gate.md'`
+- verdict: PASS
+- review-gate disposition: APPROVED
+- execution status: ACTIVE
+- integration status: READY_FOR_INTEGRATION
+- risk status: NONE
+- required acceptance authority: none; no material residual risk requires a waiver
+
+### Finding status
+
+- **RG-AMEND-JSONC-001: RESOLVED.** Unterminated JSONC block comments now produce an actionable parse failure before amendment planning or writes. The regression test proves init leaves local state, alternate output, and Git exclude unchanged; an independent refresh probe additionally preserved the prior receipt, alternate output, and exclude file byte-for-byte.
+- RG-060-001 through RG-060-011: no regression found in the focused correction. Previously approved ownership, atomicity, shell, input-boundary, artifact-integrity, and launch behavior remains outside the changed implementation path except for base parsing.
+- New findings: none.
+- recurring-finding disposition: AUTOMATE — the malformed-block-comment no-write case is now covered by focused Vitest regression.
+
+### Validation/context manifest gap analysis
+
+- Context consulted: `AGENTS.md`, `docs/foundation.md`, `docs/definition-of-done.md`, ADR 001, spec/plan/review record 060, current diff, command implementation, focused tests, Behave feature, user guide, and changelog.
+- Local delivery skill selection: repository-local `cli-command-delivery` applied to command/test/docs review; no additional environment-specific operational skill was needed.
+- Evidence provenance: implementer cycle-6 focused Vitest, focused BDD, lint, mandatory `task validate`, and diff-hygiene evidence match baseline `0de534f...` and reviewed digest `f4b6c9f...`; broad unchanged-area evidence was reused.
+- Independent rerun: `npx vitest run tool/__tests__/amend.test.ts tool/__tests__/local-config.test.ts tool/__tests__/gitignore.test.ts --reporter=dot` — PASSED, 3 files / 45 tests.
+- Independent rerun: `npm run test:bdd -- tests/behave/features/local-amendment.feature` — PASSED, 1 feature / 4 scenarios / 47 steps.
+- Independent rerun: `git diff --check 0de534f3046933c8f62f3dcd5f98f955c3457a47` — PASSED; `git diff --name-only ... -- dist` returned no paths.
+- Independent finding-specific probe: malformed base JSONC during `amend refresh` exited non-zero with `Unterminated JSONC block comment` and preserved the existing alternate config, receipt, and Git exclude hashes — PASSED.
+- Independent boundary probe: a JSONC-commented amendment receipt was rejected by strict `JSON.parse`; `amend remove` exited non-zero and preserved the generated alternate config — PASSED.
+- Intentionally skipped: duplicate `npm run lint` and full `task validate`. Exact-tree implementer evidence covers those checks; independent focused checks exercise every changed runtime/test surface. Build and generated validation were not required because no compiled path-resolution, overlay, schema, or generated repository artifact changed.
+
+### Acceptance-criteria classification
+
+| Criterion | Status | Evidence                                                                                                                           |
+| --------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| AC-060-01 | MET    | Focused Vitest and BDD prove amendment init without adoption or shared authority, now with JSONC base input.                       |
+| AC-060-02 | MET    | JSONC base content is parsed into additive alternate output while the team-owned source remains unchanged.                         |
+| AC-060-03 | MET    | Existing approved enrichment behavior is unchanged; focused amend/local-config regressions pass.                                   |
+| AC-060-04 | MET    | Malformed-input probes preserve Git exclude state; existing Git-protection tests pass.                                             |
+| AC-060-05 | MET    | No Git-index mutation path changed; focused BDD index-invariance scenario passes.                                                  |
+| AC-060-06 | MET    | JSONC BDD asserts no shared `superposition.yml` or `superposition.json` is created.                                                |
+| AC-060-07 | MET    | Existing deterministic refresh coverage passes; JSONC normalization does not alter the team base.                                  |
+| AC-060-08 | MET    | Existing receipt-bounded remove coverage passes, including strict-state rejection probe.                                           |
+| AC-060-09 | MET    | Malformed JSON/JSONC, including unterminated block comments, stops before writes on init and refresh.                              |
+| AC-060-10 | MET    | Ownership wording remains aligned in the guide and existing command output.                                                        |
+| AC-060-11 | MET    | Focused suite has 45 passing tests, including the malformed JSONC no-write regression and prior lifecycle/Git-safety coverage.     |
+| AC-060-12 | MET    | Focused Behave feature passes 4 scenarios / 47 steps, including JSONC base acceptance.                                             |
+| AC-060-13 | MET    | Canonical guide documents JSONC comments/trailing commas while retaining amend-vs-adopt, protection, launch, and removal guidance. |
+| AC-060-14 | MET    | The existing consolidated `[Unreleased]` → `Added` entry was amended once to mention JSONC compatibility.                          |
+
+### Architecture, implementation ladder, and residual-risk disposition
+
+- Architecture fit: PASS. JSONC tolerance is confined to the team-owned base-devcontainer reader; amendment YAML and receipt/state parsing remain strict, command ownership is unchanged, no dependency or generated artifact was added, and `dist/` is untouched.
+- Implementation ladder: small local implementation was proportionate after checking lower rungs; Node has no JSONC parser and the approved plan prohibits a new parsing dependency. The guard closes the identified data-safety failure without broadening other input contracts.
+- Residual risk: no known material product, safety, or integration risk remains. As with any bounded JSONC compatibility parser, uncommon syntax outside comments/trailing commas may remain unsupported and will fail closed before writes.
+- Required acceptance authority: none.
+- Follow-up route: APPROVE integration; no re-plan, clarification, or risk acceptance is required.
