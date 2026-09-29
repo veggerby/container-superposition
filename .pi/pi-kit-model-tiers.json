@@ -7,7 +7,7 @@
             "large": "github-copilot/gpt-5.6-sol"
         },
         "codex": {
-            "small": "openai-codex/gpt-5.4-luna",
+            "small": "openai-codex/gpt-5.6-luna",
             "medium": "openai-codex/gpt-5.6-terra",
             "large": "openai-codex/gpt-5.6-sol"
         },
