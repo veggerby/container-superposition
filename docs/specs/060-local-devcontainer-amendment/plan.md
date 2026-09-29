@@ -90,7 +90,7 @@ devcontainer up --workspace-folder <project-root> --config <generated-alternate-
 - `.git/info/exclude` is local metadata, is not staged, and avoids modifying the team's root `.gitignore`. This is the default protection strategy.
 - Before any write, query `git ls-files -- <candidate paths>`. If the input, receipt, or generated paths are already tracked, stop and print exact manual `git rm --cached -- ...` guidance. Never invoke index-mutating commands.
 - Verify protection with `git check-ignore -v` after writing the exclude block. If Git metadata cannot be resolved or the path remains unignored, stop before creating amendment artifacts and print exact manual exclude guidance. A non-Git directory may proceed only with a prominent warning that no Git protection can be established; `inspect` must continue reporting that state.
-- `remove` keeps the input's exclude protection. `remove --purge` removes only the exact command-owned block when all command-owned paths are gone; unrelated ignore content is preserved.
+- `remove` keeps the input's exclude protection. `remove --purge` removes only the exact command-owned block when command-owned paths and the Dev Container CLI's unowned sibling lock are gone; unrelated ignore content is preserved.
 
 ## Technical Approach and Boundaries
 
@@ -202,7 +202,7 @@ devcontainer up --workspace-folder <project-root> --config <generated-alternate-
 ## Rollout, Rollback, and Containment
 
 - **Rollout:** ship command registration, all lifecycle actions, input/state contract, Git protection, tests, BDD, docs, and changelog atomically. Do not ship init/refresh without inspect/remove or without local ignore protection.
-- **User rollback:** `cs amend remove` removes generated personal artifacts and returns the repository to ordinary team devcontainer discovery while retaining the editable amendment input. `cs amend remove --purge` removes all receipt-owned local state and its exact ignore block. Neither path touches the team base or Git index.
+- **User rollback:** `cs amend remove` removes generated personal artifacts and returns the repository to ordinary team devcontainer discovery while retaining the editable amendment input. `cs amend remove --purge` removes receipt-owned local state and removes its exact ignore block only when no protected user-managed content or Dev Container CLI lock remains. Neither path touches the team base or Git index.
 - **Code rollback:** revert command wiring/modules, parser/Git helper extensions, tests, docs, and changelog together. Existing init/regen/adopt/local-config flows remain unchanged because no shared project format or generated schema migration is introduced.
 - **Failure containment:** all validation and content generation occur before writes; atomic replacement and receipt-last ordering preserve the prior complete amendment on failed refresh. Never infer ownership from filename alone during remove.
 - **Collision containment:** pre-existing sibling/local-state paths not proven receipt-owned are blockers. Do not overwrite them with `--force`; the user must move/resolve them explicitly.

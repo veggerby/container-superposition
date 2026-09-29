@@ -194,6 +194,35 @@ Feature: Local devcontainer amendment without adoption
     And the file ".devcontainer/superposition-local/devcontainer.json" should exist
     And the file ".devcontainer/devcontainer.superposition-local.json" should not exist
 
+  Scenario: Purging an amendment keeps a remaining Dev Container lock ignored
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/devcontainer.json:
+          json:
+            image: mcr.microsoft.com/devcontainers/base:bookworm
+      """
+    And the workspace is a Git repository
+    When I run the CLI command
+      """
+      amend init
+      """
+    Then the command exits successfully
+    When I write file ".devcontainer/superposition-local/devcontainer-lock.json"
+      """
+      {}
+      """
+    And I run the CLI command
+      """
+      amend remove --purge
+      """
+    Then the command exits successfully
+    And the file ".container-superposition/amendment.yml" should not exist
+    And the file ".devcontainer/superposition-local/devcontainer.json" should not exist
+    And the file ".devcontainer/superposition-local/devcontainer-lock.json" should exist
+    And Git should ignore ".devcontainer/superposition-local/devcontainer-lock.json"
+    And the Git index should be unchanged
+
   Scenario: Unsupported ambiguous devcontainers stop before local amendment writes
     Given an inline workspace fixture:
       """

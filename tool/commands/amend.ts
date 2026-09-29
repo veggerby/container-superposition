@@ -617,7 +617,7 @@ function ensureGitProtection(model: Model, includeAlternate = true): void {
     }
     if (!model.git.excludePath) {
         throw new Error(
-            `Could not resolve worktree-local Git exclude path. Add ignore rules manually for ${LOCAL_DIR}/ and ${model.base.alternateRelPath}.`
+            `Could not resolve worktree-local Git exclude path. Add ignore rules manually for ${LOCAL_DIR}/, ${model.base.alternateRelPath}, and ${alternateLockRelPath(model.base)}.`
         );
     }
     const patterns = includeAlternate ? amendmentExcludePatterns(model) : [`/${LOCAL_DIR}/`];
@@ -1236,7 +1236,7 @@ function remove(model: Model, purge: boolean): void {
     fs.rmSync(model.stateAbsPath, { force: true });
     if (purge) {
         console.log(
-            `Purging personal input and command-owned local exclude block for ${model.inputRelPath}`
+            `Purging personal input and removing command-owned local exclude block when safe for ${model.inputRelPath}`
         );
         ensureNoSymlinkComponents(model.projectRoot, model.inputAbsPath);
         fs.rmSync(model.inputAbsPath, { force: true });
@@ -1248,14 +1248,29 @@ function remove(model: Model, purge: boolean): void {
             }
         }
         const localDirStillExists = fs.existsSync(path.join(model.projectRoot, LOCAL_DIR));
+        const lockPath = path.join(model.projectRoot, alternateLockRelPath(model.base));
+        // The Dev Container CLI owns this file, so purge must not delete or expose it.
+        const lockStillExists =
+            fs.existsSync(lockPath) ||
+            fs.lstatSync(lockPath, { throwIfNoEntry: false }) !== undefined;
         if (model.git.excludePath) {
             const blocks = [
                 amendmentExcludePatterns(model),
                 legacyAmendmentExcludePatterns(model),
             ].map((patterns) => getExactGitignoreBlock(EXCLUDE_SECTION, patterns));
-            if (localDirStillExists) {
+            if (lockStillExists && fs.existsSync(model.git.excludePath)) {
+                const excludeContent = fs.readFileSync(model.git.excludePath, 'utf8');
+                if (excludeContent.includes(blocks[1])) {
+                    upsertExactGitignoreBlock(
+                        model.git.excludePath,
+                        EXCLUDE_SECTION,
+                        amendmentExcludePatterns(model)
+                    );
+                }
+            }
+            if (localDirStillExists || lockStillExists) {
                 console.log(
-                    `Retaining local Git exclude block because ${LOCAL_DIR}/ still exists with user-managed content.`
+                    `Retaining local Git exclude block because ${localDirStillExists ? `${LOCAL_DIR}/ still exists with user-managed content` : `${alternateLockRelPath(model.base)} still exists`}.`
                 );
             } else {
                 for (const block of blocks) {
