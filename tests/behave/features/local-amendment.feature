@@ -108,6 +108,7 @@ Feature: Local devcontainer amendment without adoption
       "source=${localEnv:HOME}/.pi,target=/home/vscode/.pi,type=bind"
       """
     And the file ".devcontainer/superposition-local/devcontainer.json" should contain "pi.enabled"
+    And Git should ignore ".devcontainer/superposition-local/devcontainer-lock.json"
     And the file "superposition.yml" should not exist
     And the file "superposition.json" should not exist
     And the Git index should be unchanged

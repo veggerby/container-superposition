@@ -138,6 +138,18 @@ function legacyAlternateRelPath(base: BaseInfo): string {
     return toPosix(path.join(base.dirRel, 'devcontainer.superposition-local.json'));
 }
 
+function alternateLockRelPath(base: BaseInfo): string {
+    return toPosix(path.join(path.dirname(base.alternateRelPath), 'devcontainer-lock.json'));
+}
+
+function legacyAmendmentExcludePatterns(model: Model): string[] {
+    return [`/${LOCAL_DIR}/`, `/${model.base.alternateRelPath}`];
+}
+
+function amendmentExcludePatterns(model: Model): string[] {
+    return [...legacyAmendmentExcludePatterns(model), `/${alternateLockRelPath(model.base)}`];
+}
+
 function expectedArtifactAllowlist(model: Omit<Model, 'state'> | Model): Set<string> {
     return new Set([
         model.base.alternateRelPath,
@@ -517,6 +529,7 @@ function resolveModel(options: AmendOptions): Model {
         STATE_REL,
         SUPPORT_DIR_REL,
         base.alternateRelPath,
+        alternateLockRelPath(base),
         legacyAlternateRelPath(base),
     ]);
     const model = { ...partial, git };
@@ -607,13 +620,11 @@ function ensureGitProtection(model: Model, includeAlternate = true): void {
             `Could not resolve worktree-local Git exclude path. Add ignore rules manually for ${LOCAL_DIR}/ and ${model.base.alternateRelPath}.`
         );
     }
-    const patterns = includeAlternate
-        ? [`/${LOCAL_DIR}/`, `/${model.base.alternateRelPath}`]
-        : [`/${LOCAL_DIR}/`];
+    const patterns = includeAlternate ? amendmentExcludePatterns(model) : [`/${LOCAL_DIR}/`];
     fs.mkdirSync(path.dirname(model.git.excludePath), { recursive: true });
     upsertExactGitignoreBlock(model.git.excludePath, EXCLUDE_SECTION, patterns);
     for (const checkPath of includeAlternate
-        ? [model.inputRelPath, model.base.alternateRelPath]
+        ? [model.inputRelPath, model.base.alternateRelPath, alternateLockRelPath(model.base)]
         : [model.inputRelPath]) {
         const provenance = inspectIgnoreProvenance(
             model.projectRoot,
@@ -1238,16 +1249,18 @@ function remove(model: Model, purge: boolean): void {
         }
         const localDirStillExists = fs.existsSync(path.join(model.projectRoot, LOCAL_DIR));
         if (model.git.excludePath) {
-            const block = getExactGitignoreBlock(EXCLUDE_SECTION, [
-                `/${LOCAL_DIR}/`,
-                `/${model.base.alternateRelPath}`,
-            ]);
+            const blocks = [
+                amendmentExcludePatterns(model),
+                legacyAmendmentExcludePatterns(model),
+            ].map((patterns) => getExactGitignoreBlock(EXCLUDE_SECTION, patterns));
             if (localDirStillExists) {
                 console.log(
                     `Retaining local Git exclude block because ${LOCAL_DIR}/ still exists with user-managed content.`
                 );
             } else {
-                removeExactGitignoreBlock(model.git.excludePath, block);
+                for (const block of blocks) {
+                    removeExactGitignoreBlock(model.git.excludePath, block);
+                }
             }
         }
     }

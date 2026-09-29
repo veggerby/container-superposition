@@ -459,3 +459,98 @@
 - All other acceptance criteria remain unchanged.
 - Residual risk: none known for this synchronization. Ordinary environment-specific Dev Container runtime uncertainty is unchanged from the approved implementation evidence.
 - Integration disposition: APPROVED_FOR_HANDOFF after this append-only review-gate update.
+
+## Defect follow-up: amended Dev Container lock-file Git protection
+
+- review mode: SELF_CHECK
+- source revision: `a2dc1a580f07ed3ec712ea0374ec378396b96762`
+- verdict: PASS
+- execution status: ACTIVE
+- risk status: NONE
+- readiness: ready for independent review
+
+### Diagnosis and disposition
+
+- Root cause: amend's worktree-local exclude block protected only the alternate `devcontainer.json`; Dev Container CLI's sibling `devcontainer-lock.json` was neither ignored nor checked as a tracked/protection candidate.
+- Fix: include the sibling lock file in the canonical amend exclude patterns, tracked-path preflight, and protection verification. `amend refresh` upgrades existing command-owned exclude blocks; `amend remove --purge` also removes the prior two-pattern block for backwards compatibility.
+- Scope note: `doctor` has no amendment refresh lifecycle for non-adopting repositories and therefore owns no amendment exclude mutation. A disposable non-adopting amendment fixture confirmed `doctor` remains healthy after `amend init`/`refresh`; the refreshed amend BDD scenario is the executable protection evidence.
+- Implementation ladder: reused the existing exact Git-exclude block mechanism (rung 2) with one path helper; no dependency or new abstraction.
+
+### Validation evidence
+
+- `npx vitest run tool/__tests__/amend.test.ts --reporter=dot` — PASS, 27 tests.
+- `npm run test:bdd -- tests/behave/features/local-amendment.feature` — PASS, 6 scenarios / 66 steps.
+- `task validate` — PASS: lint:fix, lint, 54 Vitest files passed / 1 skipped, 792 tests passed / 20 skipped.
+- `task validate:generated` — PASS: task validate, full Behave (7 features / 51 scenarios / 356 steps), docs/schema generation, root `regen`, and root `doctor` healthy; no generated-output diff resulted.
+- Direct disposable fixture probe: `amend init` and `amend refresh` each made `.devcontainer/superposition-local/devcontainer-lock.json` return success from `git check-ignore`; subsequent `doctor` exited 0.
+- No generated project `.devcontainer/` source was edited. Preserved unrelated user modification: `.pi/pi-kit-model-tiers.json`.
+
+### Acceptance evidence
+
+| Criterion | Status | Evidence                                                                                              |
+| --------- | ------ | ----------------------------------------------------------------------------------------------------- |
+| AC-060-04 | MET    | The local exclude now protects the Dev Container CLI lock file and rejects it if already tracked.     |
+| AC-060-05 | MET    | Regression and BDD continue to prove Git-index invariance; the fix uses only ignore/query operations. |
+| AC-060-07 | MET    | Init and refresh checks both prove idempotent lock-file protection.                                   |
+| AC-060-11 | MET    | Focused Vitest and BDD regression coverage cover the Git-safety omission.                             |
+| AC-060-12 | MET    | Updated focused Behave scenario passed.                                                               |
+| AC-060-14 | MET    | Existing consolidated Unreleased Added entry was updated for the user-visible fix.                    |
+
+- All unaffected AC-060 criteria retain their previously approved evidence. No plan deviation or scope drift.
+
+## Independent review: amended Dev Container lock-file Git protection
+
+- review mode: INDEPENDENT
+- source revision baseline / HEAD: `a2dc1a580f07ed3ec712ea0374ec378396b96762`
+- reviewed implementation diff digest: SHA-256 `27be0296ef4ce8d33e67e05e3a7e860fd71dccbf3bbb5772191c28fddcce9b5a` over the binary diff for `CHANGELOG.md`, `tests/behave/features/local-amendment.feature`, `tool/__tests__/amend.test.ts`, and `tool/commands/amend.ts`
+- verdict: PASS / APPROVED
+- execution status: ACTIVE
+- integration status: READY_FOR_INTEGRATION
+- risk status: NONE
+- required acceptance authority: none
+
+### Findings
+
+- No material findings.
+- Prior findings RG-060-001 through RG-060-011 and RG-AMEND-JSONC-001 remain resolved; this bounded change does not reopen their implementation paths.
+
+### Validation/context manifest gap analysis
+
+- Context consulted: `AGENTS.md`, `docs/foundation.md`, `docs/definition-of-done.md`, ADR 001, spec/plan/review record 060, specs 033/034/037/038 required by the repository-local CLI delivery guidance, the complete task diff, amend Git-protection implementation, focused tests, BDD scenario, Git-ignore utility, changelog, and spec index.
+- Scope control: reviewed only task-related changes from baseline `a2dc1a5`; unrelated `.pi/pi-kit-model-tiers.json` remains modified and was excluded from the diff and evidence identity.
+- Validation-surface gaps found: the added automated assertions prove positive ignore behavior after init/refresh, but do not directly exercise upgrading a legacy two-pattern exclude block, rejecting an already tracked lock file, or purging the upgraded/legacy block. These independence-critical cases were covered with focused disposable-fixture probes rather than requiring broader test additions for this bounded fix.
+- Existing evidence reused: exact-source self-check records passing `task validate` and `task validate:generated`, including lint, full Vitest, full Behave, regeneration, and healthy root doctor. Broad gates were not duplicated because the implementation files remained unchanged during independent review.
+- Independent rerun: `git diff --check a2dc1a580f07ed3ec712ea0374ec378396b96762` — PASSED.
+- Independent rerun: `npx vitest run tool/__tests__/amend.test.ts --reporter=dot` — PASSED, 1 file / 27 tests.
+- Independent rerun: `npm run test:bdd -- tests/behave/features/local-amendment.feature` — PASSED, 1 feature / 6 scenarios / 66 steps.
+- Independent focused probe: emulated the pre-fix two-pattern worktree exclude block, ran `amend refresh`, and confirmed the block changed and `git check-ignore` protected `.devcontainer/superposition-local/devcontainer-lock.json` — PASSED.
+- Independent focused probe: force-tracked the lock file, ran `amend refresh`, and confirmed a non-zero exit with the Git index byte-equivalent before/after — PASSED.
+- Independent focused probe: `amend remove --purge` removed the command-owned upgraded exclude block after owned local state was removed — PASSED.
+- Independent doctor probe: after `amend init` and `amend refresh` in a disposable non-adopting repository, `doctor --project-root` exited 0 with `Verdict: Healthy`, while the lock file remained ignored — PASSED. This confirms doctor does not regress or need a separate amendment-refresh mutation path.
+- Intentionally skipped: duplicate `task validate`, `task validate:generated`, build, and compiled CLI smoke. Exact-tree self-check evidence covers the broad gates; no path-resolution or build-only logic changed, and independent source-level command probes covered the finding-specific behavior.
+
+### Acceptance-criteria classification
+
+| Criterion | Status | Evidence                                                                                                                          |
+| --------- | ------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| AC-060-01 | MET    | Previously approved non-adopting amendment workflow is unchanged.                                                                 |
+| AC-060-02 | MET    | Team-owned base handling is unchanged; focused BDD passes.                                                                        |
+| AC-060-03 | MET    | Existing enrichment behavior is unchanged; focused Vitest passes.                                                                 |
+| AC-060-04 | MET    | Init/refresh install an exact worktree-local ignore for the sibling lock file; legacy-block upgrade and tracked-file probes pass. |
+| AC-060-05 | MET    | Tracked-lock refresh fails without changing the Git index; no index-mutating command was added.                                   |
+| AC-060-06 | MET    | Shared-authority behavior is unchanged; focused BDD negative assertions pass.                                                     |
+| AC-060-07 | MET    | Init/refresh ignore checks pass, and legacy exclude state upgrades idempotently through the existing exact-block upsert.          |
+| AC-060-08 | MET    | Existing removal behavior remains covered; independent purge probe removes the upgraded command-owned block.                      |
+| AC-060-09 | MET    | A tracked lock file is rejected before amendment writes with manual untrack guidance.                                             |
+| AC-060-10 | MET    | Ownership model and command output are unchanged.                                                                                 |
+| AC-060-11 | MET    | Focused Vitest, BDD, and independent legacy/tracked/purge probes cover the defect and lifecycle boundaries.                       |
+| AC-060-12 | MET    | Updated Behave feature passes 6 scenarios / 66 steps.                                                                             |
+| AC-060-13 | MET    | Existing amendment documentation remains applicable; no new workflow step is introduced.                                          |
+| AC-060-14 | MET    | The consolidated `[Unreleased]` → `Added` entry now names lock-file protection without duplicate categorization.                  |
+
+### Architecture, execution impact, and residual risk
+
+- Architecture fit: PASS. The change reuses the command-owned exact worktree-exclude mechanism, derives the lock path from the alternate config location, extends tracked-path preflight and provenance verification, preserves manual-only Git-index cleanup, and keeps doctor outside the non-adopting amendment mutation lifecycle.
+- Execution-status impact: ACTIVE; no blocker remains.
+- Residual risk: no known material task risk. The Dev Container CLI may create other version-specific side artifacts in future releases, but none are identified by the current contract or evidence. No authority is required to accept current residual risk.
+- Follow-up route: APPROVE integration. If future Dev Container CLI versions introduce additional local sibling artifacts, re-clarify the protected-artifact contract rather than broadening ignores speculatively.

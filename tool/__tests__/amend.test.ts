@@ -149,6 +149,14 @@ describe('amend command', () => {
             expect(
                 fs.readFileSync(path.join(root, '.devcontainer', 'devcontainer.json'), 'utf8')
             ).toBe(baseBefore);
+            expect(
+                git(root, [
+                    'check-ignore',
+                    '-v',
+                    '--',
+                    '.devcontainer/superposition-local/devcontainer-lock.json',
+                ]).status
+            ).toBe(0);
 
             fs.writeFileSync(
                 path.join(root, '.container-superposition', 'amendment.yml'),
@@ -192,6 +200,14 @@ describe('amend command', () => {
             expect(
                 git(root, ['check-ignore', '-v', '--', '.container-superposition/amendment.yml'])
                     .status
+            ).toBe(0);
+            expect(
+                git(root, [
+                    'check-ignore',
+                    '-v',
+                    '--',
+                    '.devcontainer/superposition-local/devcontainer-lock.json',
+                ]).status
             ).toBe(0);
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
