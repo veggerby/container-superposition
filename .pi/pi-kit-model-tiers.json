@@ -2,19 +2,19 @@
     "activeProfile": "codex",
     "profiles": {
         "copilot": {
-            "small": "gpt-5.4-mini",
-            "medium": "gpt-5.5",
-            "large": "gpt-5.6-sol"
+            "small": "github-copilot/gpt-5.4-mini",
+            "medium": "github-copilot/gpt-5.6-terra",
+            "large": "github-copilot/gpt-5.6-sol"
         },
         "codex": {
-            "small": "gpt-5.4-luna",
-            "medium": "gpt-5.6-terra",
-            "large": "gpt-5.6-sol"
+            "small": "openai-codex/gpt-5.6-luna",
+            "medium": "openai-codex/gpt-5.6-terra",
+            "large": "openai-codex/gpt-5.6-sol"
         },
         "claude": {
-            "small": "claude-haiku-4-5",
-            "medium": "claude-sonnet-4-5",
-            "large": "claude-opus-4-5"
+            "small": "claude/claude-haiku-4-5",
+            "medium": "claude/claude-sonnet-4-5",
+            "large": "claude/claude-opus-4-5"
         }
     }
 }

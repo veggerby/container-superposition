@@ -149,6 +149,14 @@ describe('amend command', () => {
             expect(
                 fs.readFileSync(path.join(root, '.devcontainer', 'devcontainer.json'), 'utf8')
             ).toBe(baseBefore);
+            expect(
+                git(root, [
+                    'check-ignore',
+                    '-v',
+                    '--',
+                    '.devcontainer/superposition-local/devcontainer-lock.json',
+                ]).status
+            ).toBe(0);
 
             fs.writeFileSync(
                 path.join(root, '.container-superposition', 'amendment.yml'),
@@ -192,6 +200,14 @@ describe('amend command', () => {
             expect(
                 git(root, ['check-ignore', '-v', '--', '.container-superposition/amendment.yml'])
                     .status
+            ).toBe(0);
+            expect(
+                git(root, [
+                    'check-ignore',
+                    '-v',
+                    '--',
+                    '.devcontainer/superposition-local/devcontainer-lock.json',
+                ]).status
             ).toBe(0);
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
@@ -487,6 +503,40 @@ describe('amend command', () => {
         } finally {
             for (const dir of [ambiguous, shared, tracked])
                 fs.rmSync(dir, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rejects a tracked Dev Container lock on refresh before amendment or index writes', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            const lockRel = '.devcontainer/superposition-local/devcontainer-lock.json';
+            fs.writeFileSync(path.join(root, lockRel), '{}\n');
+            expect(git(root, ['add', '-f', lockRel]).status).toBe(0);
+            const indexBefore = git(root, ['ls-files', '--stage']).stdout;
+            const excludeRel = git(root, ['rev-parse', '--git-path', 'info/exclude']).stdout.trim();
+            const excludePath = path.join(root, excludeRel);
+            const excludeBefore = fs.readFileSync(excludePath, 'utf8');
+            const alternateBefore = fs.readFileSync(defaultAlternatePath(root), 'utf8');
+            const receiptPath = path.join(root, '.container-superposition', 'amendment-state.json');
+            const receiptBefore = fs.readFileSync(receiptPath, 'utf8');
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                'env:\n  NEW: value\n'
+            );
+
+            const refresh = runCli(root, ['amend', 'refresh']);
+            expect(refresh.status).not.toBe(0);
+            expect(refresh.stderr).toContain(lockRel);
+            expect(refresh.stderr).toContain('git rm --cached');
+            expect(git(root, ['ls-files', '--stage']).stdout).toBe(indexBefore);
+            expect(fs.readFileSync(excludePath, 'utf8')).toBe(excludeBefore);
+            expect(fs.readFileSync(defaultAlternatePath(root), 'utf8')).toBe(alternateBefore);
+            expect(fs.readFileSync(receiptPath, 'utf8')).toBe(receiptBefore);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
         }
     }, 30_000);
 
@@ -889,6 +939,39 @@ describe('amend command', () => {
             const excludeRel = git(root, ['rev-parse', '--git-path', 'info/exclude']).stdout.trim();
             const excludeContent = fs.readFileSync(path.join(root, excludeRel), 'utf8');
             expect(excludeContent).toContain('/.container-superposition/');
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('retains lock protection on purge when the Dev Container CLI lock remains', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            const lockRel = '.devcontainer/superposition-local/devcontainer-lock.json';
+            const lockPath = path.join(root, lockRel);
+            fs.writeFileSync(lockPath, '{"lock":true}\n');
+            const excludeRel = git(root, ['rev-parse', '--git-path', 'info/exclude']).stdout.trim();
+            const excludePath = path.join(root, excludeRel);
+            fs.writeFileSync(
+                excludePath,
+                fs.readFileSync(excludePath, 'utf8').replace(`/${lockRel}\n`, '')
+            );
+            expect(git(root, ['check-ignore', '-v', '--', lockRel]).status).not.toBe(0);
+            const indexBefore = git(root, ['ls-files', '--stage']).stdout;
+
+            const remove = runCli(root, ['amend', 'remove', '--purge']);
+            expect(remove.status).toBe(0);
+            expect(remove.stdout).toContain(
+                `Retaining local Git exclude block because ${lockRel} still exists`
+            );
+            expect(fs.existsSync(path.join(root, '.container-superposition'))).toBe(false);
+            expect(fs.existsSync(defaultAlternatePath(root))).toBe(false);
+            expect(fs.readFileSync(lockPath, 'utf8')).toBe('{"lock":true}\n');
+            expect(git(root, ['check-ignore', '-v', '--', lockRel]).status).toBe(0);
+            expect(git(root, ['ls-files', '--stage']).stdout).toBe(indexBefore);
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
         }

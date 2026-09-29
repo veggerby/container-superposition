@@ -32,9 +32,11 @@ npx container-superposition amend inspect --json
 # Remove generated local artifacts while keeping your input for later
 npx container-superposition amend remove
 
-# Remove generated artifacts, input, and the command-owned local exclude block
+# Remove generated artifacts and input; remove the local exclude block when safe
 npx container-superposition amend remove --purge
 ```
+
+`amend remove --purge` leaves a Dev Container CLI-created sibling `devcontainer-lock.json` untouched. If that lock or user-managed content in `.container-superposition/` remains, the local exclude block stays in place so those files cannot be accidentally committed. Remove the remaining file manually if no longer needed; the exclude block can then be removed manually or by a later amendment purge.
 
 `amend refresh` also migrates receipts created by older releases that named the alternate config `devcontainer.superposition-local.json`. The old artifact may already be absent; refresh writes the current `devcontainer.json` location and updates the local receipt.
 
@@ -113,4 +115,4 @@ In a Git worktree, `amend init` writes a labeled block to the worktree-local exc
 git rev-parse --git-path info/exclude
 ```
 
-That local exclude block covers `.container-superposition/` and the generated alternate config path. It avoids changing the team's root `.gitignore`. In a non-Git directory, the command can proceed but warns that no Git protection is available.
+That local exclude block covers `.container-superposition/`, the generated alternate config path, and its sibling Dev Container CLI lock file. It avoids changing the team's root `.gitignore`. In a non-Git directory, the command can proceed but warns that no Git protection is available.
