@@ -162,3 +162,87 @@ If the Lead proposes accepting any safety-coverage gap rather than implementing 
 ## Review decision
 
 `CHANGES_REQUESTED`, execution `BLOCKED`. Implement GLC-R001 through GLC-R003, address or explicitly disposition GLC-R004, run source-revision-matched targeted safety tests plus mandatory validation/build evidence, and return the corrected commit/tree for another independent review.
+
+---
+
+# Correction Re-review — 2026-09-30
+
+- Review mode: `INDEPENDENT`
+- Corrected candidate: `71f431bf9072acb2130238a2cb1e6d79eb65fe05`
+- Corrected candidate tree: `a24650e9df3f8e76f1096c24f1d950c985840f2c`
+- Parent / prior candidate: `f64a9fbecd0a708f7d99346390b8f725b1f9df29`
+- Branch: `feat/refresh-local-config-from-global-defaults`
+- Working tree before reviewer-record update: clean; `HEAD` and tree exactly matched the corrected candidate
+- Review timestamp: `2026-09-30T10:43:02+00:00`
+- Verdict: `PASS`
+- Execution status: `ACTIVE`
+- Risk decision: `NONE` — no known acceptance-criterion or safety gap requires risk acceptance
+- Follow-up route: integrate the corrected candidate plus this reviewer-owned record; do not alter implementation while integrating
+
+## Re-review scope and provenance
+
+This pass freshly inspected the base-to-candidate and prior-to-correction diffs, the corrected implementation, tests, command grammar/help, docs, changelog, spec, convergence plan, prior independent gate, self-check, foundation, Definition of Done, ADR 001, spec 042, and relevant CLI modularity/UX authority. The corrected source remained commit `71f431b` / tree `a24650e` throughout all executable checks; `task validate`'s formatting phase left the tree clean.
+
+Local delivery guidance selected for this environment was `cli-command-delivery` and `dogfooding-safety`. No overlay skill, browser evidence, schema-generation skill, external operational evidence, or human clarification was applicable. The validation manifest was rediscovered from `AGENTS.md`, `Taskfile.yml`, `package.json`, Definition of Done, the approved plan, and those local skills.
+
+## Findings and correction dispositions
+
+No new material findings were identified.
+
+| Finding  | Prior severity | Re-review disposition | Corrected evidence                                                                                                                                                                                                                                                                                            |
+| -------- | -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GLC-R001 | High           | RESOLVED (`AUTOMATE`) | Direct templates are no longer compatibility-checked against a fabricated `plain` stack. The compose-oriented direct-template subprocess regression and compiled smoke both created the authored `composeVolume` payload without project stack authority.                                                     |
+| GLC-R002 | High           | RESOLVED (`AUTOMATE`) | Automated seams cover interactive approve/cancel, non-TTY refusal, invalid selected stack-aware compatibility, collision-safe backup, backup failure, final-install failure, original bytes, retained recovery backup, staged-file cleanup, and home-file byte preservation. Targeted and full suites passed. |
+| GLC-R003 | Medium         | RESOLVED (`AUTOMATE`) | Direct `defaults refresh-local --help` now states precedence, `--force`, sibling backup behavior, and explicit sync-only/non-replay authority. Source test and compiled help check passed.                                                                                                                    |
+| GLC-R004 | Low            | RESOLVED (`DOCUMENT`) | Superseded private materialization/validation helpers and their dead imports were removed from `tool/cli/run.ts`; init and full regression suites still pass through the shared config-owned implementation.                                                                                                  |
+
+## Acceptance-criteria classification
+
+| Criterion       | Status | Re-review evidence                                                                                                                                                                                                         |
+| --------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GLC-REFRESH-001 | MET    | Loader precedence/fallback tests pass; refresh uses the same selected-file loader and does not parse the ignored lower-precedence file.                                                                                    |
+| GLC-REFRESH-002 | MET    | Missing, parse/validation, and unusable-template failures occur before repository writes; selected-path errors and no-write behavior are covered by the targeted/full suite.                                               |
+| GLC-REFRESH-003 | MET    | Direct creation needs no confirmation; direct compose-oriented data is preserved without fabricated stack authority.                                                                                                       |
+| GLC-REFRESH-004 | MET    | Shared materializer still implements common plus the selected plain or compose branch, selected-branch exclusion, merge rules, empty-port semantics, and literal preservation; existing init and refresh regressions pass. |
+| GLC-REFRESH-005 | MET    | Stack-aware refresh loads only validated canonical repository project configuration and refuses absent/invalid authority before target or backup writes.                                                                   |
+| GLC-REFRESH-006 | MET    | Injected interactive cancellation and approval automate both outcomes; cancellation preserves target/home bytes and creates no backup, while approval backs up then replaces.                                              |
+| GLC-REFRESH-007 | MET    | Non-TTY subprocess refusal without `--force` and forced replacement coverage pass; force bypasses confirmation only.                                                                                                       |
+| GLC-REFRESH-008 | MET    | Exclusive timestamp/collision allocation, backup-before-install ordering, backup failure containment, and final-install failure containment are automated.                                                                 |
+| GLC-REFRESH-009 | MET    | Successful forced/approved replacement asserts refreshed content, reported sibling recovery path, and byte-for-byte original backup.                                                                                       |
+| GLC-REFRESH-010 | MET    | Invalid compatibility, cancellation, non-TTY refusal, backup failure, and install failure preserve required target/home state; no home write path exists.                                                                  |
+| GLC-REFRESH-011 | MET    | Retained regressions prove invalid home defaults are ignored by replay-style init, regen, plan, and doctor; root regen/doctor also passed.                                                                                 |
+| GLC-REFRESH-012 | MET    | Direct source/compiled help, README, quick reference, config guide, and consolidated Unreleased changelog entry align on precedence, force, backup, and authority.                                                         |
+| GLC-REFRESH-013 | MET    | Targeted 42-test command/unit suite, full 53-scenario BDD suite, full unit regression, build/compiled smoke, and failure-injection coverage collectively prove the required branches.                                      |
+
+## Source-revision-matched validation
+
+| Check                                                   | Result | Candidate provenance / evidence                                                                                                                                                             |
+| ------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source/tree/status and diff inspection                  | PASS   | `HEAD=71f431b`, tree `a24650e`; clean before the reviewer-record edit; base and correction diffs inspected; `git diff --check cdaf936..71f431b` passed.                                     |
+| `npx vitest run tool/__tests__/global-defaults.test.ts` | PASS   | 42/42 at corrected candidate; includes all four correction findings and replay isolation.                                                                                                   |
+| `npm run test:bdd`                                      | PASS   | 7 features, 53 scenarios, 374 steps at corrected candidate.                                                                                                                                 |
+| `npm run build`                                         | PASS   | TypeScript compiled successfully at corrected candidate.                                                                                                                                    |
+| Compiled direct help and direct-template smoke          | PASS   | `node dist/scripts/init.js defaults refresh-local --help` exposed precedence text; temporary compiled invocation created a direct compose-oriented local file.                              |
+| `npm run init -- regen`                                 | PASS   | Root project regenerated with no material change; no uncommitted generated output.                                                                                                          |
+| `npm run init -- doctor`                                | PASS   | `Healthy`; 0 blocking, 0 fix-now, 0 manual, 21 healthy; no reproducibility error.                                                                                                           |
+| `task validate`                                         | PASS   | Required final gate passed at corrected candidate: `lint:fix`, lint/type/format, and 804 unit tests passed; 20 opt-in integration tests skipped by the standard suite. Tree remained clean. |
+
+### Validation/context gap analysis
+
+- Prior implementer evidence was not used as the sole basis for `PASS`; all explicitly required final gates were rerun against the corrected commit/tree.
+- `npm run schema:generate`, `npm run docs:generate`, and full `task validate:generated` were intentionally skipped: no overlay, schema shape/type, generated reference, template, or generated-devcontainer behavior changed. The required BDD, regen, and doctor components were run directly.
+- Browser/E2E and migration checks are not applicable to this terminal-local additive command.
+- `INTEGRATION=true` overlay feature tests are outside this command/config change; their standard-suite skips introduce no identified refresh-specific gap.
+
+## Architecture, design, and implementation-ladder reassessment
+
+- Correctness/task fit, architecture, maintainability, testability, data safety, reliability, compatibility, and documentation traceability: `ALIGNED`.
+- Performance/scalability: `NOT_APPLICABLE` for these small local files.
+- The command remains a focused orchestrator under `tool/commands/`; shared template semantics remain config-owned; CLI grammar remains in `tool/cli/`; replay authority remains repository-file-first under ADR 001.
+- Implementation ladder: existing repository loader/materializer/serializer plus Node filesystem primitives and small command-local injected seams is the lowest correct rung. No new dependency, shared subsystem, schema, migration, or ADR is justified.
+
+## Residual risk and integration recommendation
+
+No unresolved defect or acceptance-criterion gap is known. Residual environmental risk is limited to real-terminal and filesystem behavior on platforms not represented by this Linux run; production TTY classification is simple stdin+stdout gating, and filesystem containment is covered through deterministic injected failures plus real-file smoke tests. This reviewer does not accept risk on behalf of the project. If broader cross-platform certification is required, the repository maintainer responsible for CLI filesystem support is the acceptance authority and should require platform CI rather than waive a known defect; no such defect is currently evidenced.
+
+**Integration recommendation:** integrate `71f431bf9072acb2130238a2cb1e6d79eb65fe05` together with this reviewer-owned record. Preserve the reviewed source/tree identity in integration metadata. Any implementation change after this gate invalidates `PASS` and requires source-revision-matched revalidation/re-review.
