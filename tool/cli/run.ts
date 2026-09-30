@@ -60,7 +60,7 @@ import { applyPresetSelections } from '../questionnaire/presets.js';
 import { runQuestionnaire, loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
 import { parseCliArgs } from './args.js';
 import { isSilentOutput, restoreOutput } from './output.js';
-import { appendGitignoreSection } from '../utils/gitignore.js';
+import { ensureLocalConfigIgnored } from '../utils/gitignore.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
 import { assertComposeNetworkNameSupported } from '../utils/compose-network.js';
 
@@ -324,25 +324,6 @@ function printIgnoredLocalConfigWarning(projectRoot: string): void {
             '⚠ Ignoring .superposition.local.yml.\n  Rename it to superposition.local.yml in repository root to use local config.'
         )
     );
-}
-
-function ensureLocalConfigIgnored(projectRoot: string): void {
-    try {
-        const added = appendGitignoreSection(
-            path.join(projectRoot, '.gitignore'),
-            'container-superposition local config',
-            ['superposition.local.yml']
-        );
-        if (added) {
-            console.log('Added superposition.local.yml to root .gitignore.');
-        }
-    } catch {
-        console.warn(
-            chalk.yellow(
-                '⚠ superposition.local.yml is not ignored by Git.\n  Add this line to root .gitignore: superposition.local.yml'
-            )
-        );
-    }
 }
 
 export function buildInitEntryChoices(existingProjectFileDetected: boolean): Array<{

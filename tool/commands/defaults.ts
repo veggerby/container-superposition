@@ -16,6 +16,8 @@ import {
     type GlobalDefaultsSelection,
 } from '../schema/project-config.js';
 import { renderFrame, renderSection } from '../ux/renderers/common.js';
+import { ensureBackupPatternsInGitignore } from '../utils/backup.js';
+import { ensureLocalConfigIgnored } from '../utils/gitignore.js';
 
 interface DefaultsOptions {
     json?: boolean;
@@ -97,11 +99,13 @@ export function atomicWrite(
         path.dirname(targetPath),
         `.${path.basename(targetPath)}.${process.pid}.${Date.now()}.tmp`
     );
+    let stagedCreated = false;
     try {
         ops.writeFileSync(staged, content, { encoding: 'utf8', flag: 'wx' });
+        stagedCreated = true;
         ops.renameSync(staged, targetPath);
     } finally {
-        if (ops.existsSync(staged)) ops.rmSync(staged, { force: true });
+        if (stagedCreated && ops.existsSync(staged)) ops.rmSync(staged, { force: true });
     }
 }
 
@@ -158,6 +162,7 @@ export async function refreshLocalDefaultsCommand(
     const content = serializeLocalProjectConfig(selection!);
     const exists = fs.existsSync(targetPath);
     if (!exists) {
+        ensureLocalConfigIgnored(process.cwd());
         atomicWrite(targetPath, content);
         console.log(`✓ Local config created: ${targetPath}`);
         return;
@@ -179,6 +184,7 @@ export async function refreshLocalDefaultsCommand(
             return;
         }
     }
+    ensureBackupPatternsInGitignore(targetPath);
     const backupPath = deps.createExclusiveBackup(targetPath);
     try {
         deps.atomicWrite(targetPath, content);

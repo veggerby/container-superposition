@@ -1033,6 +1033,9 @@ describe('Global init defaults', () => {
         expect(fs.readFileSync(path.join(repoDir, 'superposition.local.yml'), 'utf8')).toContain(
             'export TOKEN=${TOKEN:-literal}'
         );
+        expect(fs.readFileSync(path.join(repoDir, '.gitignore'), 'utf8')).toContain(
+            'superposition.local.yml'
+        );
     });
 
     it('refreshes compose-oriented direct templates without inventing a plain stack', () => {
@@ -1087,6 +1090,7 @@ describe('Global init defaults', () => {
             .filter((entry) => entry.startsWith('superposition.local.yml.backup-'));
         expect(backups).toHaveLength(1);
         expect(fs.readFileSync(path.join(repoDir, backups[0]), 'utf8')).toBe('env:\n  OLD: old\n');
+        expect(fs.readFileSync(path.join(repoDir, '.gitignore'), 'utf8')).toContain('*.backup-*');
     });
 
     it('allocates a distinct sibling backup when the timestamped base name collides', async () => {
@@ -1198,6 +1202,23 @@ describe('Global init defaults', () => {
         ).toThrow('rename unavailable');
         expect(fs.readFileSync(target, 'utf8')).toBe('original\n');
         expect(fs.readdirSync(repoDir).filter((entry) => entry.endsWith('.tmp'))).toEqual([]);
+    });
+
+    it('does not remove a pre-existing staged file when exclusive creation fails', () => {
+        const target = path.join(repoDir, 'superposition.local.yml');
+        const rmSync = vi.fn();
+        const error = Object.assign(new Error('already exists'), { code: 'EEXIST' });
+
+        expect(() =>
+            atomicWrite(target, 'replacement\n', {
+                writeFileSync: (() => {
+                    throw error;
+                }) as typeof fs.writeFileSync,
+                existsSync: () => true,
+                rmSync,
+            })
+        ).toThrow('already exists');
+        expect(rmSync).not.toHaveBeenCalled();
     });
 
     it('rejects invalid selected-template compatibility without target creation or home mutation', () => {
