@@ -128,11 +128,12 @@ _No specs yet._
 
 ### CLI-COMMAND
 
-| Spec                                                                                             | Title                                    | Status |
-| ------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------ |
-| [004-doctor-fix](004-doctor-fix/spec.md)                                                         | `doctor --fix` — Interactive Auto-Repair | Final  |
-| [037-cli-command-modularization](037-cli-command-modularization/spec.md)                         | Adopt Command Modularization             | Final  |
-| [038-doctor-and-plan-command-modularization](038-doctor-and-plan-command-modularization/spec.md) | Doctor and Plan Command Modularization   | Final  |
+| Spec                                                                                             | Title                                                | Status |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------- | ------ |
+| [004-doctor-fix](004-doctor-fix/spec.md)                                                         | `doctor --fix` — Interactive Auto-Repair             | Final  |
+| [037-cli-command-modularization](037-cli-command-modularization/spec.md)                         | Adopt Command Modularization                         | Final  |
+| [038-doctor-and-plan-command-modularization](038-doctor-and-plan-command-modularization/spec.md) | Doctor and Plan Command Modularization               | Final  |
+| [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)                       | Refresh Repository Local Config from Global Defaults | Draft  |
 
 ### CLI-FLAG
 
@@ -141,6 +142,7 @@ _No specs yet._
 | [007-target-aware-generation](007-target-aware-generation/spec.md)                                                                         | Target-Aware Generation                                             | Final  |
 | [017-doctor-dry-run](017-doctor-dry-run/spec.md)                                                                                           | Doctor `--fix --dry-run` Flag                                       | Final  |
 | [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Final  |
+| [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)                                                                 | Refresh Repository Local Config from Global Defaults                | Draft  |
 
 ### CLI-UX
 
@@ -168,6 +170,7 @@ _No specs yet._
 | [048-cross-command-cli-guidance-relevance](048-cross-command-cli-guidance-relevance/spec.md)         | Cross-Command CLI Guidance Relevance and Redundancy Reduction           | Final  |
 | [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)                         | Expand User-Scoped Global Init Defaults Surface                         | Final  |
 | [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md) | Natural-Language Project Config Authoring Workflow                      | Final  |
+| [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)                           | Refresh Repository Local Config from Global Defaults                    | Draft  |
 
 ---
 
@@ -249,3 +252,4 @@ _No specs yet._
 | [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final  |
 | [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final  |
 | [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)             | First-Class VS Code Extensions Field                         | Final  |
+| [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)     | Refresh Repository Local Config from Global Defaults         | Draft  |
