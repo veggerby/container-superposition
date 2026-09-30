@@ -6,6 +6,7 @@ import * as yaml from 'js-yaml';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
+import { atomicWrite, refreshLocalDefaultsCommand } from '../commands/defaults.js';
 import {
     buildAnswersFromGlobalInitDefaults,
     loadGlobalDefaults,
@@ -20,6 +21,27 @@ const REPO_ROOT = path.join(__dirname, '..', '..');
 const OVERLAYS_DIR = path.join(REPO_ROOT, 'overlays');
 const INDEX_YML_PATH = path.join(OVERLAYS_DIR, 'index.yml');
 const TSX_CLI = path.join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+
+function snapshotFiles(directory: string): Map<string, Buffer> {
+    return new Map(
+        fs
+            .readdirSync(directory)
+            .map((entry) => [entry, fs.readFileSync(path.join(directory, entry))])
+    );
+}
+
+async function inWorkspace<T>(cwd: string, homeDir: string, action: () => Promise<T>): Promise<T> {
+    const originalCwd = process.cwd();
+    const originalHome = process.env.HOME;
+    process.chdir(cwd);
+    process.env.HOME = homeDir;
+    try {
+        return await action();
+    } finally {
+        process.chdir(originalCwd);
+        process.env.HOME = originalHome;
+    }
+}
 
 function runCli(args: string[], cwd: string, homeDir: string, extraEnv: NodeJS.ProcessEnv = {}) {
     const result = spawnSync(
@@ -1013,6 +1035,28 @@ describe('Global init defaults', () => {
         );
     });
 
+    it('refreshes compose-oriented direct templates without inventing a plain stack', () => {
+        fs.writeFileSync(
+            path.join(homeDir, '.superposition.yml'),
+            yaml.dump({
+                localConfigTemplate: {
+                    mounts: [
+                        { source: 'history', destination: '/history', target: 'composeVolume' },
+                    ],
+                },
+            })
+        );
+        const homeBefore = snapshotFiles(homeDir);
+
+        const result = runCli(['defaults', 'refresh-local'], repoDir, homeDir);
+
+        expect(result.status).toBe(0);
+        expect(fs.readFileSync(path.join(repoDir, 'superposition.local.yml'), 'utf8')).toContain(
+            'composeVolume'
+        );
+        expect(snapshotFiles(homeDir)).toEqual(homeBefore);
+    });
+
     it('uses the canonical project stack for stack-aware refresh and safely backs up forced replacement', () => {
         fs.writeFileSync(
             path.join(repoDir, '.superposition.yml'),
@@ -1066,6 +1110,127 @@ describe('Global init defaults', () => {
         }
     });
 
+    it('covers interactive approval and cancellation without creating unintended backups', async () => {
+        const target = path.join(repoDir, 'superposition.local.yml');
+        fs.writeFileSync(target, 'env:\n  OLD: old\n');
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({ localConfigTemplate: { env: { NEW: 'new' } } })
+        );
+        const homeBefore = snapshotFiles(homeDir);
+
+        await inWorkspace(repoDir, homeDir, () =>
+            refreshLocalDefaultsCommand(
+                {},
+                { isInteractive: () => true, confirm: async () => false }
+            )
+        );
+        expect(fs.readFileSync(target, 'utf8')).toBe('env:\n  OLD: old\n');
+        expect(fs.readdirSync(repoDir).filter((entry) => entry.includes('.backup-'))).toEqual([]);
+        expect(snapshotFiles(homeDir)).toEqual(homeBefore);
+
+        await inWorkspace(repoDir, homeDir, () =>
+            refreshLocalDefaultsCommand(
+                {},
+                { isInteractive: () => true, confirm: async () => true }
+            )
+        );
+        expect(fs.readFileSync(target, 'utf8')).toContain('NEW: new');
+        const backups = fs.readdirSync(repoDir).filter((entry) => entry.includes('.backup-'));
+        expect(backups).toHaveLength(1);
+        expect(fs.readFileSync(path.join(repoDir, backups[0]), 'utf8')).toBe('env:\n  OLD: old\n');
+        expect(snapshotFiles(homeDir)).toEqual(homeBefore);
+    });
+
+    it('contains backup and final-install failures without changing original or home bytes', async () => {
+        const target = path.join(repoDir, 'superposition.local.yml');
+        const original = 'env:\n  OLD: old\n';
+        fs.writeFileSync(target, original);
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({ localConfigTemplate: { env: { NEW: 'new' } } })
+        );
+        const homeBefore = snapshotFiles(homeDir);
+
+        await expect(
+            inWorkspace(repoDir, homeDir, () =>
+                refreshLocalDefaultsCommand(
+                    { force: true },
+                    {
+                        createExclusiveBackup: () => {
+                            throw new Error('backup unavailable');
+                        },
+                    }
+                )
+            )
+        ).rejects.toThrow('backup unavailable');
+        expect(fs.readFileSync(target, 'utf8')).toBe(original);
+        expect(fs.readdirSync(repoDir).filter((entry) => entry.includes('.backup-'))).toEqual([]);
+
+        await expect(
+            inWorkspace(repoDir, homeDir, () =>
+                refreshLocalDefaultsCommand(
+                    { force: true },
+                    {
+                        atomicWrite: () => {
+                            throw new Error('install unavailable');
+                        },
+                    }
+                )
+            )
+        ).rejects.toThrow('Local config replacement failed after backup');
+        expect(fs.readFileSync(target, 'utf8')).toBe(original);
+        expect(fs.readdirSync(repoDir).filter((entry) => entry.includes('.backup-'))).toHaveLength(
+            1
+        );
+        expect(snapshotFiles(homeDir)).toEqual(homeBefore);
+    });
+
+    it('cleans staged atomic writes when final installation fails', () => {
+        const target = path.join(repoDir, 'superposition.local.yml');
+        fs.writeFileSync(target, 'original\n');
+        expect(() =>
+            atomicWrite(target, 'replacement\n', {
+                renameSync: () => {
+                    throw new Error('rename unavailable');
+                },
+            })
+        ).toThrow('rename unavailable');
+        expect(fs.readFileSync(target, 'utf8')).toBe('original\n');
+        expect(fs.readdirSync(repoDir).filter((entry) => entry.endsWith('.tmp'))).toEqual([]);
+    });
+
+    it('rejects invalid selected-template compatibility without target creation or home mutation', () => {
+        fs.writeFileSync(
+            path.join(repoDir, '.superposition.yml'),
+            yaml.dump({ stack: 'plain', overlays: ['nodejs'] })
+        );
+        fs.writeFileSync(
+            path.join(homeDir, '.container-superposition.yml'),
+            yaml.dump({
+                localConfigTemplate: {
+                    common: {
+                        mounts: [
+                            { source: 'history', destination: '/history', target: 'composeVolume' },
+                        ],
+                    },
+                    compose: { env: { SELECTED: 'compose' } },
+                },
+            })
+        );
+        const homeBefore = snapshotFiles(homeDir);
+
+        const result = runCli(['defaults', 'refresh-local'], repoDir, homeDir);
+
+        expect(result.status).not.toBe(0);
+        expect(result.stderr).toContain(
+            'Project mount target "composeVolume" requires stack: compose'
+        );
+        expect(fs.existsSync(path.join(repoDir, 'superposition.local.yml'))).toBe(false);
+        expect(fs.readdirSync(repoDir).filter((entry) => entry.includes('.backup-'))).toEqual([]);
+        expect(snapshotFiles(homeDir)).toEqual(homeBefore);
+    });
+
     it('refuses noninteractive replacement without force and writes nothing for stack-aware templates without project authority', () => {
         fs.writeFileSync(path.join(repoDir, 'superposition.local.yml'), 'env:\n  OLD: old\n');
         fs.writeFileSync(
@@ -1085,6 +1250,17 @@ describe('Global init defaults', () => {
         const missingProject = runCli(['defaults', 'refresh-local'], repoDir, homeDir);
         expect(missingProject.status).not.toBe(0);
         expect(fs.existsSync(path.join(repoDir, 'superposition.local.yml'))).toBe(false);
+    });
+
+    it('states refresh precedence, backup, force, and sync-only authority in direct help', () => {
+        const result = runCli(['defaults', 'refresh-local', '--help'], repoDir, homeDir);
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain(
+            '~/.container-superposition.yml wins over ~/.superposition.yml'
+        );
+        expect(result.stdout).toContain('--force');
+        expect(result.stdout).toContain('sibling backups');
+        expect(result.stdout).toContain('never replay/remediation');
     });
 
     it('ignores invalid global defaults for plan and doctor', () => {

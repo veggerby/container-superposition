@@ -73,28 +73,73 @@ export function createExclusiveBackup(targetPath: string): string {
     throw new Error('Unable to reserve a distinct sibling backup name');
 }
 
-function atomicWrite(targetPath: string, content: string): void {
+export interface AtomicWriteDependencies {
+    writeFileSync: typeof fs.writeFileSync;
+    renameSync: typeof fs.renameSync;
+    existsSync: typeof fs.existsSync;
+    rmSync: typeof fs.rmSync;
+}
+
+const DEFAULT_ATOMIC_WRITE_DEPENDENCIES: AtomicWriteDependencies = {
+    writeFileSync: fs.writeFileSync,
+    renameSync: fs.renameSync,
+    existsSync: fs.existsSync,
+    rmSync: fs.rmSync,
+};
+
+export function atomicWrite(
+    targetPath: string,
+    content: string,
+    dependencies: Partial<AtomicWriteDependencies> = {}
+): void {
+    const ops = { ...DEFAULT_ATOMIC_WRITE_DEPENDENCIES, ...dependencies };
     const staged = path.join(
         path.dirname(targetPath),
         `.${path.basename(targetPath)}.${process.pid}.${Date.now()}.tmp`
     );
     try {
-        fs.writeFileSync(staged, content, { encoding: 'utf8', flag: 'wx' });
-        fs.renameSync(staged, targetPath);
+        ops.writeFileSync(staged, content, { encoding: 'utf8', flag: 'wx' });
+        ops.renameSync(staged, targetPath);
     } finally {
-        if (fs.existsSync(staged)) fs.rmSync(staged, { force: true });
+        if (ops.existsSync(staged)) ops.rmSync(staged, { force: true });
     }
 }
 
-export async function refreshLocalDefaultsCommand(options: RefreshOptions): Promise<void> {
-    const overlays = loadBuiltInOverlaysConfig();
-    const loaded = loadGlobalDefaults(overlays);
+export interface RefreshLocalDefaultsDependencies {
+    loadBuiltInOverlaysConfig: typeof loadBuiltInOverlaysConfig;
+    loadGlobalDefaults: typeof loadGlobalDefaults;
+    loadProjectConfig: typeof loadProjectConfig;
+    isInteractive: () => boolean;
+    confirm: typeof confirm;
+    createExclusiveBackup: typeof createExclusiveBackup;
+    atomicWrite: (targetPath: string, content: string) => void;
+}
+
+const DEFAULT_REFRESH_DEPENDENCIES: RefreshLocalDefaultsDependencies = {
+    loadBuiltInOverlaysConfig,
+    loadGlobalDefaults,
+    loadProjectConfig,
+    isInteractive: () => process.stdin.isTTY === true && process.stdout.isTTY === true,
+    confirm,
+    createExclusiveBackup,
+    atomicWrite,
+};
+
+export async function refreshLocalDefaultsCommand(
+    options: RefreshOptions,
+    dependencies: Partial<RefreshLocalDefaultsDependencies> = {}
+): Promise<void> {
+    const deps = { ...DEFAULT_REFRESH_DEPENDENCIES, ...dependencies };
+    const overlays = deps.loadBuiltInOverlaysConfig();
+    const loaded = deps.loadGlobalDefaults(overlays);
     if (!loaded) throw new Error('No supported global defaults file was found.');
     const template = loaded.selection.localConfigTemplate;
     if (!template)
         throw new Error(`Global defaults file ${loaded.path} has no localConfigTemplate.`);
 
-    const project = isStackAwareLocalConfigTemplate(template) ? loadProjectConfig(overlays) : null;
+    const project = isStackAwareLocalConfigTemplate(template)
+        ? deps.loadProjectConfig(overlays)
+        : null;
     if (isStackAwareLocalConfigTemplate(template) && !project?.selection.stack) {
         throw new Error(
             'Stack-aware localConfigTemplate requires a valid canonical repository project configuration with stack: plain or compose.'
@@ -102,7 +147,10 @@ export async function refreshLocalDefaultsCommand(options: RefreshOptions): Prom
     }
     const stack = project?.selection.stack;
     const selection = materializeGlobalLocalConfigTemplate(template, stack ?? 'plain');
-    validateMaterializedLocalConfigTemplate(selection, stack ?? 'plain');
+    // Direct templates have no stack authority and retain their authored local-field semantics.
+    // Compatibility validation is meaningful only for a stack-aware template selected by a
+    // validated canonical project stack.
+    if (stack) validateMaterializedLocalConfigTemplate(selection, stack);
     if (!hasMeaningfulLocalProjectConfig(selection)) {
         throw new Error(`Global defaults file ${loaded.path} has no usable localConfigTemplate.`);
     }
@@ -116,12 +164,12 @@ export async function refreshLocalDefaultsCommand(options: RefreshOptions): Prom
     }
 
     if (!options.force) {
-        if (!process.stdin.isTTY || !process.stdout.isTTY) {
+        if (!deps.isInteractive()) {
             throw new Error(
                 'Refusing to replace existing superposition.local.yml without --force when confirmation is unavailable.'
             );
         }
-        const approved = await confirm({
+        const approved = await deps.confirm({
             message:
                 'Replace superposition.local.yml? Its current contents will be saved as a sibling backup.',
             default: false,
@@ -131,9 +179,9 @@ export async function refreshLocalDefaultsCommand(options: RefreshOptions): Prom
             return;
         }
     }
-    const backupPath = createExclusiveBackup(targetPath);
+    const backupPath = deps.createExclusiveBackup(targetPath);
     try {
-        atomicWrite(targetPath, content);
+        deps.atomicWrite(targetPath, content);
     } catch (error) {
         throw new Error(
             `Local config replacement failed after backup ${backupPath}: ${error instanceof Error ? error.message : String(error)}`

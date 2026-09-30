@@ -242,7 +242,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
     defaults
         .command('refresh-local')
         .description(
-            'Explicitly refresh repository local config from selected home defaults; existing files require confirmation or --force and are backed up as siblings'
+            'Explicit bootstrap/sync only (never replay/remediation): ~/.container-superposition.yml wins over ~/.superposition.yml; replacements need confirmation or --force and get sibling backups'
         )
         .option(
             '--force',

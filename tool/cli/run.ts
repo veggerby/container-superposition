@@ -7,7 +7,6 @@ import ora from 'ora';
 import { checkbox, input, password, select } from '@inquirer/prompts';
 import type {
     OverlayMetadata,
-    ProjectEnvVar,
     QuestionnaireAnswers,
     Stack,
     SuperpositionManifest,
@@ -53,10 +52,7 @@ import {
     writeProjectConfig,
     writeProjectConfigCustomizations,
     validateMaterializedLocalConfigTemplate as validateSharedMaterializedLocalConfigTemplate,
-    type GlobalLocalConfigTemplateSelection,
     type LoadedGlobalDefaults,
-    type LocalProjectConfigSelection,
-    type StackAwareLocalProjectConfigTemplateSelection,
 } from '../schema/project-config.js';
 import { isInsideGitRepo, createBackup, ensureBackupPatternsInGitignore } from '../utils/backup.js';
 import { buildAnswersFromCliArgs, mergeAnswers } from '../questionnaire/answers.js';
@@ -65,141 +61,8 @@ import { runQuestionnaire, loadOverlaysContextWrapper } from '../questionnaire/q
 import { parseCliArgs } from './args.js';
 import { isSilentOutput, restoreOutput } from './output.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
-import { deepMerge } from '../utils/merge.js';
 import { collectOverlayParameters } from '../utils/parameters.js';
 import { assertComposeNetworkNameSupported } from '../utils/compose-network.js';
-
-function isStackAwareLocalConfigTemplate(
-    template: GlobalLocalConfigTemplateSelection | undefined
-): template is StackAwareLocalProjectConfigTemplateSelection {
-    return Boolean(
-        template &&
-        typeof template === 'object' &&
-        !Array.isArray(template) &&
-        ('common' in template || 'plain' in template || 'compose' in template)
-    );
-}
-
-function compactLocalConfigSelection(
-    selection: LocalProjectConfigSelection
-): LocalProjectConfigSelection {
-    const env = selection.env && Object.keys(selection.env).length > 0 ? selection.env : undefined;
-    const mounts = selection.mounts && selection.mounts.length > 0 ? selection.mounts : undefined;
-    const shellAliases =
-        selection.shell?.aliases && Object.keys(selection.shell.aliases).length > 0
-            ? selection.shell.aliases
-            : undefined;
-    const shellSnippets =
-        selection.shell?.snippets && selection.shell.snippets.length > 0
-            ? selection.shell.snippets
-            : undefined;
-    const shell =
-        shellAliases || shellSnippets
-            ? { aliases: shellAliases, snippets: shellSnippets }
-            : undefined;
-    const customizations =
-        selection.customizations && Object.keys(selection.customizations).length > 0
-            ? selection.customizations
-            : undefined;
-
-    return {
-        env,
-        mounts,
-        shell,
-        vscodeExtensions: selection.vscodeExtensions,
-        customizations,
-        portOffset: selection.portOffset,
-        ports: selection.ports,
-    };
-}
-
-function mergeLocalConfigSelections(
-    common: LocalProjectConfigSelection | undefined,
-    branch: LocalProjectConfigSelection | undefined
-): LocalProjectConfigSelection {
-    return compactLocalConfigSelection({
-        env: { ...(common?.env ?? {}), ...(branch?.env ?? {}) },
-        mounts: [...(common?.mounts ?? []), ...(branch?.mounts ?? [])],
-        shell:
-            common?.shell || branch?.shell
-                ? {
-                      aliases: {
-                          ...(common?.shell?.aliases ?? {}),
-                          ...(branch?.shell?.aliases ?? {}),
-                      },
-                      snippets: [
-                          ...(common?.shell?.snippets ?? []),
-                          ...(branch?.shell?.snippets ?? []),
-                      ],
-                  }
-                : undefined,
-        customizations:
-            common?.customizations || branch?.customizations
-                ? deepMerge(common?.customizations ?? {}, branch?.customizations ?? {})
-                : undefined,
-        vscodeExtensions: [
-            ...(common?.vscodeExtensions ?? []),
-            ...(branch?.vscodeExtensions ?? []),
-        ],
-        portOffset: branch?.portOffset ?? common?.portOffset,
-        ports: branch?.ports !== undefined ? [...branch.ports] : common?.ports,
-    });
-}
-
-function materializeGlobalLocalConfigTemplate(
-    template: GlobalLocalConfigTemplateSelection | undefined,
-    stack: Stack
-): LocalProjectConfigSelection | undefined {
-    if (!template) {
-        return undefined;
-    }
-
-    if (!isStackAwareLocalConfigTemplate(template)) {
-        return template;
-    }
-
-    return mergeLocalConfigSelections(
-        template.common,
-        stack === 'compose' ? template.compose : template.plain
-    );
-}
-
-function validateMaterializedLocalConfigTemplate(
-    selection: LocalProjectConfigSelection | undefined,
-    stack: Stack
-): void {
-    if (!selection) {
-        return;
-    }
-
-    for (const entry of Object.values(selection.env ?? {})) {
-        const structuredEntry =
-            typeof entry === 'string' ? ({ value: entry } satisfies ProjectEnvVar) : entry;
-        if (structuredEntry.target === 'composeEnv' && stack !== 'compose') {
-            throw new Error(
-                'Project env target "composeEnv" requires stack: compose because no docker-compose.yml is generated for plain stacks'
-            );
-        }
-    }
-
-    for (const mount of selection.mounts ?? []) {
-        if (mount.target === 'composeVolume' && stack !== 'compose') {
-            throw new Error(
-                'Project mount target "composeVolume" requires stack: compose because no docker-compose.yml is generated for plain stacks'
-            );
-        }
-    }
-
-    if (stack === 'compose') {
-        for (const [index, port] of (selection.ports ?? []).entries()) {
-            if (!port.value.includes(':')) {
-                throw new Error(
-                    `ports[${index}]: stack 'compose' expects a HOST:CONTAINER port binding (with colon), got "${port.value}". Use a bare port expression only on stack 'plain'.`
-                );
-            }
-        }
-    }
-}
 
 function printGlobalDefaultsPrecedenceNotice(globalDefaults: LoadedGlobalDefaults): void {
     if (!globalDefaults.ignoredPath) {

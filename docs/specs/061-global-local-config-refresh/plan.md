@@ -157,3 +157,24 @@ None. Confirmation copy and exact TTY classification are explicitly bounded by t
 ## Implementation Notes
 
 - Update this section only if implementation diverges from the plan; any divergence that changes requirements, acceptance criteria, or non-goals must be routed back to Lead/Interrogator.
+
+### Convergence cycle 1
+
+- source before / after: initial implementation candidate `f64a9fbecd0a708f7d99346390b8f725b1f9df29`; no correction source yet.
+- findings resolved: none; first independent review established four batched findings (`GLC-R001` through `GLC-R004`).
+- findings remaining or new: direct-template plain-stack fallback is contract-invalid; automated destructive-path coverage and direct subcommand help are incomplete; remove superseded duplicate init helpers unless a bounded evidence-based reason retains them.
+- acceptance evidence gained: independent reproduction proved `GLC-REFRESH-003` is not met and review gap analysis classified `GLC-REFRESH-012` and `GLC-REFRESH-013` as not met; it also confirmed the correction scope is bounded and architecture remains aligned.
+- validation state changed: targeted candidate Vitest and exploratory TTY cancellation passed; direct compose-oriented direct-template reproduction failed the approved contract. Broad validation is deliberately invalidated for the corrected tree.
+- repeated work or failures: none; this is the first correction cycle.
+- token/invocation telemetry: Standard route has used spec authoring, planning, one coherent implementation, and one independent review; correction stays one bounded package.
+- decision: **CONTINUE**.
+- next bounded action: implement and test the complete batched reviewer findings, preserve the reviewer-owned record, run source-revision-matched validation, then re-request independent review.
+
+### Convergence cycle 2
+
+- source before / after: correction working tree based on `f64a9fbecd0a708f7d99346390b8f725b1f9df29`; the correction commit records this plan and the preserved reviewer gate.
+- findings resolved: `GLC-R001` direct templates retain authored semantics without a fabricated stack; `GLC-R002` adds controlled confirmation/filesystem-failure coverage; `GLC-R003` completes direct help; `GLC-R004` removes dead init duplicates.
+- implementation decision: reused the existing config loader/materializer and Node filesystem APIs (implementation-ladder rung 2/3); small command-local dependency seams enable stable destructive-path tests without dependencies or a new abstraction.
+- validation: targeted Vitest, focused BDD, build with compiled direct-template smoke, root regen/doctor, diff check, and the required `task validate` are recorded in `review-gate.md`.
+- plan deviation: none. The test seams are the planned focused seam, not a behavior or architecture change.
+- next bounded action: submit the committed correction for the required independent re-review.
