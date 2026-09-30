@@ -66,7 +66,7 @@
 
 ### Checks not selected
 
-- Targeted unit, integration, BDD, browser, build, generated-output, schema, regen, and doctor checks are not applicable: no executable behavior, workflow/CLI behavior, overlay/schema source, generated output, or browser UI changes. `task validate` runs the full existing unit suite as the mandatory repository gate.
+- Targeted unit, integration, BDD, browser, build, generated-output, schema, and regen checks are not applicable: no executable behavior, workflow/CLI behavior, overlay/schema source, generated output, or browser UI changes. `task validate` runs the full existing unit suite as the mandatory repository gate. The pre-merge `npm run init -- doctor` check is required regardless of generated-output triggers and is recorded in `artifacts/validation.md`.
 
 ## Acceptance-Criteria Evidence Plan
 

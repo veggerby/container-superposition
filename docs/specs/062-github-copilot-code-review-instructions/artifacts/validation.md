@@ -14,20 +14,22 @@
 
 ## Checks run
 
-| Check                    | Command or method                                                                            | Source revision                                | Exit code | Result                                                                                                                 |
-| ------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Required final gate      | Reused recorded `task validate`                                                              | Implementation tree unchanged from `ca59b190…` | 0         | PASSED — 54 test files / 804 tests passed; 1 integration test file / 20 tests skipped by its existing integration gate |
-| Instruction coverage     | Reused Python assertion over `.github/copilot-instructions.md`; verified no root `CLAUDE.md` | Implementation tree unchanged from `ca59b190…` | 0         | PASSED                                                                                                                 |
-| Patch hygiene            | Re-run `git diff --cached --check` after the record correction                               | Current staged correction worktree             | 0         | PASSED                                                                                                                 |
-| Workflow synchronization | Re-inspected spec, plan, validation, and review-gate lifecycle records                       | Current staged correction worktree             | 0         | PASSED                                                                                                                 |
+| Check                    | Command or method                                                                            | Source revision                                              | Exit code | Result                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Required final gate      | Reused recorded `task validate`                                                              | Implementation tree unchanged from `ca59b190…`               | 0         | PASSED — 54 test files / 804 tests passed; 1 integration test file / 20 tests skipped by its existing integration gate |
+| Instruction coverage     | Reused Python assertion over `.github/copilot-instructions.md`; verified no root `CLAUDE.md` | Implementation tree unchanged from `ca59b190…`               | 0         | PASSED                                                                                                                 |
+| Patch hygiene            | Re-run `git diff --cached --check` after the record correction                               | Current staged correction worktree                           | 0         | PASSED                                                                                                                 |
+| Workflow synchronization | Re-inspected spec, plan, validation, and review-gate lifecycle records                       | Current staged correction worktree                           | 0         | PASSED                                                                                                                 |
+| Pre-merge doctor         | `npm run init -- doctor`                                                                     | PR #187 branch HEAD `c4df641`                                | 0         | PASSED: Healthy; 0 blocking, 0 fix now, 0 manual, 21 healthy; no Reproducibility errors or files changed               |
+| PR feedback final gate   | `task validate`                                                                              | PR #187 branch HEAD `c4df641` + four spec-local record edits | 0         | PASSED: 54 test files / 805 tests passed; existing integration gate skipped 1 file / 20 tests                          |
 
 ## Checks not run
 
-| Check                                                       | Reason                                                         | Residual risk                                                              |
-| ----------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Targeted unit/integration/BDD/browser tests                 | No executable behavior or testable runtime path changed.       | Copilot platform application behavior remains external to this repository. |
-| Build                                                       | No compiled code or package output changed.                    | None for this documentation/configuration-only scope.                      |
-| Generated validation, schema/docs generation, regen, doctor | No overlays, schemas, generators, or generated output changed. | None for this scope.                                                       |
+| Check                                               | Reason                                                         | Residual risk                                                              |
+| --------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Targeted unit/integration/BDD/browser tests         | No executable behavior or testable runtime path changed.       | Copilot platform application behavior remains external to this repository. |
+| Build                                               | No compiled code or package output changed.                    | None for this documentation/configuration-only scope.                      |
+| Generated validation, schema/docs generation, regen | No overlays, schemas, generators, or generated output changed. | None for this scope.                                                       |
 
 ## Acceptance criteria evidence
 
@@ -41,11 +43,11 @@
 
 - Review mode: `INDEPENDENT`
 - Review status: `PASS` (correction cycle 1 independently re-reviewed)
-- Execution status: `ACTIVE`
+- Execution status: `CLOSED` (local integration committed as `7ac82e6`; PR #187 remains open; no merge claimed)
 - Risk decision: `ACCEPTED` by the maintainer — GitHub controls whether and how hosted Copilot discovers and applies repository instructions; local validation cannot prove hosted behavior.
 
 ## Validation claim
 
 Validation status: `PASS`
 
-Residual risk: the maintainer has accepted that GitHub controls whether and how hosted Copilot discovers and applies repository instructions, which local validation cannot prove. Independent re-review passed; integration remains a separate Lead-owned step.
+Residual risk: the maintainer has accepted that GitHub controls whether and how hosted Copilot discovers and applies repository instructions, which local validation cannot prove. Independent re-review passed. Local integration was committed as `7ac82e6` and opened as PR #187; PR merge remains pending.

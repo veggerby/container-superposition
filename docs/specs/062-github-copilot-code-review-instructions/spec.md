@@ -6,7 +6,7 @@ phase: 'CLOSED'
 execution_profile: 'Standard'
 review_mode: 'INDEPENDENT'
 review_status: 'PASS'
-execution_status: 'ACTIVE'
+execution_status: 'CLOSED'
 risk_status: 'ACCEPTED'
 completion: 'DONE'
 owner: 'delivery-lead'
@@ -65,4 +65,4 @@ The repository already maintains authoritative contributor and review guidance i
 - Added concise repository-wide `.github/copilot-instructions.md` guidance that routes Copilot reviews to current authorities and path-specific instructions without duplicating them.
 - Added the required spec-first plan, compact validation evidence, and independent-review candidate; synchronized the spec index, taxonomy, and contributor-visible changelog.
 - No production code, GitHub workflow/platform configuration, generated output, path-specific instruction, or `AGENTS.md` change was made. No `CLAUDE.md` was added.
-- Validation: the recorded `task validate` passed for the unchanged implementation source tree; workflow-only lifecycle updates reuse that evidence. See `artifacts/validation.md` and `review-gate.md`; independent re-review passed and Lead integration closed the task without changing substantive implementation.
+- Validation: the recorded `task validate` passed for the unchanged implementation source tree; workflow-only lifecycle updates reuse that evidence. The required pre-merge doctor check passed on PR #187 HEAD `c4df641` with no Reproducibility errors. See `artifacts/validation.md` and `review-gate.md`; independent re-review passed, local integration was committed as `7ac82e6`, and PR #187 is open pending merge. No substantive implementation changed in this follow-up.

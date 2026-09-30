@@ -35,7 +35,7 @@ Reviewer-owned status and gate updates made after reviewing tree `2921c8db…` d
     - Python instruction-content assertion plus `test -f .github/copilot-instructions.md` and `! test -e CLAUDE.md` — passed; all required authority, review-focus, conflict, and unsupported-approval concepts present in a concise 16-line file.
     - Python spec/index/taxonomy synchronization assertion — passed; status and all five criterion IDs were consistent.
     - `git diff --name-status ca59b190… 2921c8db…` and path-scoped `git diff --quiet` — passed; correction changed only the four spec-local records and left implementation/configuration inputs unchanged.
-- Manifest gap analysis: no build, BDD, browser, schema, generated-output, regen, doctor, or targeted runtime test was applicable because no runtime, CLI/workflow behavior, overlay/schema source, or generated output changed. Hosted Copilot discovery/application cannot be proven locally and is addressed as accepted residual risk below.
+- Manifest gap analysis: no build, BDD, browser, schema, generated-output, regen, or targeted runtime test was applicable because no runtime, CLI/workflow behavior, overlay/schema source, or generated output changed. The separately required pre-merge doctor check passed later on PR #187 HEAD `c4df641` (see the post-review update below). Hosted Copilot discovery/application cannot be proven locally and is addressed as accepted residual risk below.
 
 ## Acceptance-criteria classification
 
@@ -84,4 +84,8 @@ Residual risk remains that GitHub controls whether and how hosted Copilot discov
 
 ## Final route
 
-Review gate passed with execution status `ACTIVE`. Route to Lead-owned integration when desired. Do not claim branch creation, pull-request creation, merge, or overall completion from this review record.
+Review gate passed with execution status `ACTIVE` at review time. Route to Lead-owned integration when desired. Do not claim branch creation, pull-request creation, merge, or overall completion from this historical review verdict.
+
+## Post-review PR #187 update
+
+Local integration was subsequently committed as `7ac82e6` and PR #187 was opened; the spec's execution status is now `CLOSED` for the local delivery. The PR remains open and no merge is claimed. In response to [PR comment 4144378707](https://github.com/veggerby/container-superposition/pull/187#discussion_r4144378707), `npm run init -- doctor` ran on branch HEAD `c4df641` and returned Healthy with 21 healthy checks, zero blocking/fix-now/manual checks, no Reproducibility errors, and no files changed. This later evidence does not rewrite the earlier independent PASS verdict.
