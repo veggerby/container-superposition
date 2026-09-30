@@ -107,6 +107,13 @@ The command reports the selected source path, any ignored lower-precedence path,
 document. It does not expand authored values, merge defaults into project files, or make home state
 an input to `plan`, `regen`, `doctor`, replay, or remediation.
 
+To explicitly synchronize a repository local file later, run `cs defaults refresh-local`. A direct
+template needs no project stack; a stack-aware template uses only the validated canonical repository
+project file's `stack`, never `initDefaults` or an existing local file. Creation needs no prompt.
+Replacement asks for confirmation, or requires `--force` when no confirmation is available, and
+saves the old local file first as a collision-safe timestamped sibling backup. This remains an
+explicit sync action, not replay or remediation authority.
+
 ## Local config: `superposition.local.yml`
 
 Use `superposition.local.yml` for machine-specific mounts, env, shell aliases, VS Code

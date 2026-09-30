@@ -128,46 +128,49 @@ _No specs yet._
 
 ### CLI-COMMAND
 
-| Spec                                                                                             | Title                                    | Status |
-| ------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------ |
-| [004-doctor-fix](004-doctor-fix/spec.md)                                                         | `doctor --fix` — Interactive Auto-Repair | Final  |
-| [037-cli-command-modularization](037-cli-command-modularization/spec.md)                         | Adopt Command Modularization             | Final  |
-| [038-doctor-and-plan-command-modularization](038-doctor-and-plan-command-modularization/spec.md) | Doctor and Plan Command Modularization   | Final  |
+| Spec                                                                                             | Title                                                | Status      |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------- | ----------- |
+| [004-doctor-fix](004-doctor-fix/spec.md)                                                         | `doctor --fix` — Interactive Auto-Repair             | Final       |
+| [037-cli-command-modularization](037-cli-command-modularization/spec.md)                         | Adopt Command Modularization                         | Final       |
+| [038-doctor-and-plan-command-modularization](038-doctor-and-plan-command-modularization/spec.md) | Doctor and Plan Command Modularization               | Final       |
+| [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)                       | Refresh Repository Local Config from Global Defaults | Implemented |
 
 ### CLI-FLAG
 
-| Spec                                                                                                                                       | Title                                                               | Status |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ------ |
-| [007-target-aware-generation](007-target-aware-generation/spec.md)                                                                         | Target-Aware Generation                                             | Final  |
-| [017-doctor-dry-run](017-doctor-dry-run/spec.md)                                                                                           | Doctor `--fix --dry-run` Flag                                       | Final  |
-| [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Final  |
+| Spec                                                                                                                                       | Title                                                               | Status      |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ----------- |
+| [007-target-aware-generation](007-target-aware-generation/spec.md)                                                                         | Target-Aware Generation                                             | Final       |
+| [017-doctor-dry-run](017-doctor-dry-run/spec.md)                                                                                           | Doctor `--fix --dry-run` Flag                                       | Final       |
+| [044-deterministic-compose-port-rendering-and-optional-env-files](044-deterministic-compose-port-rendering-and-optional-env-files/spec.md) | Deterministic Compose Port Rendering and Optional Env File Emission | Final       |
+| [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)                                                                 | Refresh Repository Local Config from Global Defaults                | Implemented |
 
 ### CLI-UX
 
-| Spec                                                                                                 | Title                                                                   | Status |
-| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------ |
-| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                             | Verbose Plan Graph                                                      | Final  |
-| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                                   | Doctor Overlay Dependency Resolution Check                              | Final  |
-| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md)         | Doctor Compose / Port Cross-Validation                                  | Final  |
-| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                                 | Doctor `.env.example` Drift Detection                                   | Final  |
-| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                         | Doctor Reproducibility Check                                            | Final  |
-| [021-deterministic-generated-readme](021-deterministic-generated-readme/spec.md)                     | Deterministic Generated README Header                                   | Final  |
-| [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md)                 | Variable Expansion and Substitution Consolidation                       | Final  |
-| [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                                 | Ad-hoc Project Parameters                                               | Final  |
-| [027-devcontainer-gitignore-content](027-devcontainer-gitignore-content/spec.md)                     | devcontainerGitignore — Drop `!.gitignore` from Generated Content       | Final  |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)         | Discovery Surface and Canonical Docs Alignment                          | Draft  |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)       | Preset-Led Onboarding for Common Jobs-to-be-Done                        | Draft  |
-| [032-init-and-regen-guided-flows](032-init-and-regen-guided-flows/spec.md)                           | Init and Regen Guided Flows                                             | Final  |
-| [033-cli-discovery-preview-and-fingerprint](033-cli-discovery-preview-and-fingerprint/spec.md)       | CLI Discovery, Preview, and Fingerprint Commands                        | Final  |
-| [034-doctor-diagnostics-and-remediation-ux](034-doctor-diagnostics-and-remediation-ux/spec.md)       | Doctor Diagnostics and Remediation UX                                   | Final  |
-| [035-adopt-and-migrate-conversion-workflows](035-adopt-and-migrate-conversion-workflows/spec.md)     | Adopt and Migrate Conversion Workflows                                  | Final  |
-| [036-doctor-git-tracking-safety](036-doctor-git-tracking-safety/spec.md)                             | Doctor Git-Tracking Safety Checks for Local Config and Generated Output | Final  |
-| [042-global-default-configuration](042-global-default-configuration/spec.md)                         | User-Scoped Global Defaults with Stack-Aware Local Templates            | Final  |
-| [046-explain-port-rendering-and-readability](046-explain-port-rendering-and-readability/spec.md)     | Explain Port Rendering and Readability Polish                           | Final  |
-| [047-cli-output-relevance-and-noise-reduction](047-cli-output-relevance-and-noise-reduction/spec.md) | CLI Output Relevance and Noise Reduction                                | Final  |
-| [048-cross-command-cli-guidance-relevance](048-cross-command-cli-guidance-relevance/spec.md)         | Cross-Command CLI Guidance Relevance and Redundancy Reduction           | Final  |
-| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)                         | Expand User-Scoped Global Init Defaults Surface                         | Final  |
-| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md) | Natural-Language Project Config Authoring Workflow                      | Final  |
+| Spec                                                                                                 | Title                                                                   | Status      |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------- |
+| [001-verbose-plan-graph](001-verbose-plan-graph/spec.md)                                             | Verbose Plan Graph                                                      | Final       |
+| [013-doctor-dependency-check](013-doctor-dependency-check/spec.md)                                   | Doctor Overlay Dependency Resolution Check                              | Final       |
+| [014-doctor-compose-port-cross-validation](014-doctor-compose-port-cross-validation/spec.md)         | Doctor Compose / Port Cross-Validation                                  | Final       |
+| [015-doctor-env-example-drift](015-doctor-env-example-drift/spec.md)                                 | Doctor `.env.example` Drift Detection                                   | Final       |
+| [016-doctor-reproducibility-check](016-doctor-reproducibility-check/spec.md)                         | Doctor Reproducibility Check                                            | Final       |
+| [021-deterministic-generated-readme](021-deterministic-generated-readme/spec.md)                     | Deterministic Generated README Header                                   | Final       |
+| [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md)                 | Variable Expansion and Substitution Consolidation                       | Final       |
+| [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                                 | Ad-hoc Project Parameters                                               | Final       |
+| [027-devcontainer-gitignore-content](027-devcontainer-gitignore-content/spec.md)                     | devcontainerGitignore — Drop `!.gitignore` from Generated Content       | Final       |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)         | Discovery Surface and Canonical Docs Alignment                          | Draft       |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)       | Preset-Led Onboarding for Common Jobs-to-be-Done                        | Draft       |
+| [032-init-and-regen-guided-flows](032-init-and-regen-guided-flows/spec.md)                           | Init and Regen Guided Flows                                             | Final       |
+| [033-cli-discovery-preview-and-fingerprint](033-cli-discovery-preview-and-fingerprint/spec.md)       | CLI Discovery, Preview, and Fingerprint Commands                        | Final       |
+| [034-doctor-diagnostics-and-remediation-ux](034-doctor-diagnostics-and-remediation-ux/spec.md)       | Doctor Diagnostics and Remediation UX                                   | Final       |
+| [035-adopt-and-migrate-conversion-workflows](035-adopt-and-migrate-conversion-workflows/spec.md)     | Adopt and Migrate Conversion Workflows                                  | Final       |
+| [036-doctor-git-tracking-safety](036-doctor-git-tracking-safety/spec.md)                             | Doctor Git-Tracking Safety Checks for Local Config and Generated Output | Final       |
+| [042-global-default-configuration](042-global-default-configuration/spec.md)                         | User-Scoped Global Defaults with Stack-Aware Local Templates            | Final       |
+| [046-explain-port-rendering-and-readability](046-explain-port-rendering-and-readability/spec.md)     | Explain Port Rendering and Readability Polish                           | Final       |
+| [047-cli-output-relevance-and-noise-reduction](047-cli-output-relevance-and-noise-reduction/spec.md) | CLI Output Relevance and Noise Reduction                                | Final       |
+| [048-cross-command-cli-guidance-relevance](048-cross-command-cli-guidance-relevance/spec.md)         | Cross-Command CLI Guidance Relevance and Redundancy Reduction           | Final       |
+| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)                         | Expand User-Scoped Global Init Defaults Surface                         | Final       |
+| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md) | Natural-Language Project Config Authoring Workflow                      | Final       |
+| [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)                           | Refresh Repository Local Config from Global Defaults                    | Implemented |
 
 ---
 
@@ -235,18 +238,19 @@ _No specs yet._
 
 ## PROJECT — Project-level configuration
 
-| Spec                                                                           | Title                                                        | Status |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
-| [002-superposition-config-file](002-superposition-config-file/spec.md)         | Project Configuration File                                   | Final  |
-| [008-project-file-canonical](008-project-file-canonical/spec.md)               | Make superposition.yml Canonical Input                       | Final  |
-| [009-project-env](009-project-env/spec.md)                                     | Unified Project-Level Environment Variables                  | Final  |
-| [018-init-project-file](018-init-project-file/spec.md)                         | `init --project-file`                                        | Final  |
-| [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                   | Final  |
-| [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                   | Final  |
-| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs                | Final  |
-| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml`   | Final  |
-| [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Final  |
-| [043-compose-network-name](043-compose-network-name/spec.md)                   | Project-Specific Compose Network Names                       | Final  |
-| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final  |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final  |
-| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)             | First-Class VS Code Extensions Field                         | Final  |
+| Spec                                                                           | Title                                                        | Status      |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------ | ----------- |
+| [002-superposition-config-file](002-superposition-config-file/spec.md)         | Project Configuration File                                   | Final       |
+| [008-project-file-canonical](008-project-file-canonical/spec.md)               | Make superposition.yml Canonical Input                       | Final       |
+| [009-project-env](009-project-env/spec.md)                                     | Unified Project-Level Environment Variables                  | Final       |
+| [018-init-project-file](018-init-project-file/spec.md)                         | `init --project-file`                                        | Final       |
+| [019-project-mounts](019-project-mounts/spec.md)                               | First-Class Mounts Support                                   | Final       |
+| [022-local-superposition-config](022-local-superposition-config/spec.md)       | Local Superposition Config                                   | Final       |
+| [029-versioned-private-catalogs](029-versioned-private-catalogs/spec.md)       | Versioned Private Overlay and Preset Catalogs                | Final       |
+| [041-local-port-conflict-overrides](041-local-port-conflict-overrides/spec.md) | Local Port Conflict Overrides in `superposition.local.yml`   | Final       |
+| [042-global-default-configuration](042-global-default-configuration/spec.md)   | User-Scoped Global Defaults with Stack-Aware Local Templates | Final       |
+| [043-compose-network-name](043-compose-network-name/spec.md)                   | Project-Specific Compose Network Names                       | Final       |
+| [049-global-init-defaults-surface](049-global-init-defaults-surface/spec.md)   | Expand User-Scoped Global Init Defaults Surface              | Final       |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final       |
+| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)             | First-Class VS Code Extensions Field                         | Final       |
+| [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)     | Refresh Repository Local Config from Global Defaults         | Implemented |

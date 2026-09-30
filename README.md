@@ -18,6 +18,9 @@ written.
 # Inspect personal init defaults (read-only; no project/replay authority)
 npx container-superposition defaults --json
 
+# Explicitly refresh repository local config from those defaults
+npx container-superposition defaults refresh-local
+
 # Discover available overlays and presets
 npx container-superposition list
 npx container-superposition explain postgres
@@ -96,6 +99,7 @@ All commands accept `--silent` to suppress routine human-readable status, progre
     - Add `--ignore-global-defaults` to bypass `~/.container-superposition.yml` and `~/.superposition.yml` for one run
     - Add `--project-root <path>` to resolve persisted input from a different repository root
 - `defaults` — inspect the selected home-directory global defaults file read-only; reports `~/.container-superposition.yml` over `~/.superposition.yml` precedence and never feeds replay/remediation
+    - `defaults refresh-local` explicitly creates or refreshes `superposition.local.yml` from its validated template. Existing files require confirmation (or noninteractive `--force`) and are first preserved as timestamped sibling backups; this is sync input only, never replay/remediation authority.
 - `regen` — deterministically replay the repository project file (`superposition.yml` required)
     - Add `--compose-env-files` to update shared intent to `composeEnvFiles: true` before regeneration
     - Add `--project-root <path>` to resolve persisted input from a different repository root

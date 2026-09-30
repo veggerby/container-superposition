@@ -1,4 +1,6 @@
 import * as fs from 'fs';
+import * as path from 'path';
+import chalk from 'chalk';
 
 export function getExactGitignoreBlock(sectionName: string, patterns: string[]): string {
     const lines = patterns
@@ -101,4 +103,23 @@ export function appendGitignoreSection(
     }
 
     return true;
+}
+
+export function ensureLocalConfigIgnored(projectRoot: string): void {
+    try {
+        const added = appendGitignoreSection(
+            path.join(projectRoot, '.gitignore'),
+            'container-superposition local config',
+            ['superposition.local.yml']
+        );
+        if (added) {
+            console.log('Added superposition.local.yml to root .gitignore.');
+        }
+    } catch {
+        console.warn(
+            chalk.yellow(
+                '⚠ superposition.local.yml is not ignored by Git.\n  Add this line to root .gitignore: superposition.local.yml'
+            )
+        );
+    }
 }
