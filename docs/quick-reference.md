@@ -141,6 +141,19 @@ npx container-superposition defaults --json
 `~/.superposition.yml`) and the normalized effective document. It never writes project files,
 generated output, home files, or Git state, and it does not make home defaults replay authority.
 
+### Refresh repository local defaults explicitly
+
+```bash
+npx container-superposition defaults refresh-local
+# Required for noninteractive replacement of an existing local file:
+npx container-superposition defaults refresh-local --force
+```
+
+`refresh-local` is an explicit bootstrap/synchronization action: it materializes the selected direct
+or canonical-project-stack-aware template into `superposition.local.yml`. Existing files require
+confirmation unless `--force` is supplied, and are saved first as collision-safe timestamped sibling
+backups. It never makes home defaults replay or remediation input.
+
 ### Local amendment for an existing team devcontainer
 
 Use this when the repository already has a team-owned devcontainer and should not adopt Container Superposition shared intent:

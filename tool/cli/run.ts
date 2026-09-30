@@ -47,10 +47,12 @@ import {
     loadLocalProjectConfig,
     loadProjectConfig,
     materializeLocalCustomizationConfig,
+    materializeGlobalLocalConfigTemplate as materializeSharedGlobalLocalConfigTemplate,
     mergeInitDefaultsWithCliInputs,
     writeLocalProjectConfig,
     writeProjectConfig,
     writeProjectConfigCustomizations,
+    validateMaterializedLocalConfigTemplate as validateSharedMaterializedLocalConfigTemplate,
     type GlobalLocalConfigTemplateSelection,
     type LoadedGlobalDefaults,
     type LocalProjectConfigSelection,
@@ -63,8 +65,8 @@ import { runQuestionnaire, loadOverlaysContextWrapper } from '../questionnaire/q
 import { parseCliArgs } from './args.js';
 import { isSilentOutput, restoreOutput } from './output.js';
 import { appendGitignoreSection } from '../utils/gitignore.js';
-import { collectOverlayParameters } from '../utils/parameters.js';
 import { deepMerge } from '../utils/merge.js';
+import { collectOverlayParameters } from '../utils/parameters.js';
 import { assertComposeNetworkNameSupported } from '../utils/compose-network.js';
 
 function isStackAwareLocalConfigTemplate(
@@ -1238,10 +1240,10 @@ export async function main(): Promise<void> {
             !findLocalProjectConfig(projectRoot) &&
             !fs.existsSync(localTemplatePath);
         const materializedGlobalLocalConfigTemplate = shouldScaffoldGlobalLocalTemplate
-            ? materializeGlobalLocalConfigTemplate(globalLocalConfigTemplate, answers.stack)
+            ? materializeSharedGlobalLocalConfigTemplate(globalLocalConfigTemplate, answers.stack)
             : undefined;
         if (shouldScaffoldGlobalLocalTemplate) {
-            validateMaterializedLocalConfigTemplate(
+            validateSharedMaterializedLocalConfigTemplate(
                 materializedGlobalLocalConfigTemplate,
                 answers.stack
             );

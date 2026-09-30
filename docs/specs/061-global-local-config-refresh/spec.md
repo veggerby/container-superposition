@@ -1,8 +1,8 @@
 ---
 spec: '061-global-local-config-refresh'
 title: 'Refresh Repository Local Config from Global Defaults'
-status: 'Draft'
-phase: 'SHAPING'
+status: 'Implemented'
+phase: 'VALIDATING'
 execution_profile: 'Standard'
 review_mode: 'INDEPENDENT'
 review_status: 'NOT_STARTED'
@@ -60,19 +60,19 @@ The command explicitly refreshes the repository-root `superposition.local.yml` f
 
 ## Acceptance Criteria
 
-- [ ] GLC-REFRESH-001: Given both supported home defaults files exist, when `cs defaults refresh-local` runs, then it selects `~/.container-superposition.yml` and ignores `~/.superposition.yml`; given only the latter exists, it selects that file.
-- [ ] GLC-REFRESH-002: Given the selected defaults file cannot be parsed or validated, contains no usable `localConfigTemplate`, or no supported defaults file is selected, when refresh runs, then it reports the relevant selected-file/source error and makes no repository writes.
-- [ ] GLC-REFRESH-003: Given a valid direct `localConfigTemplate` and no repository `superposition.local.yml`, when refresh runs, then it creates the repository local file from that template without requesting replacement confirmation.
-- [ ] GLC-REFRESH-004: Given a valid stack-aware template and canonical repository shared project configuration with `stack: plain` or `stack: compose`, when refresh runs, then it materializes respectively `common + plain` or `common + compose` with spec 042 merge, mount-target, and literal-preservation semantics; it excludes the unselected branch.
-- [ ] GLC-REFRESH-005: Given stack-aware defaults but absent or invalid canonical repository stack authority, when refresh runs, then it refuses before creating, replacing, or backing up the repository local file and does not use the existing local file or `initDefaults` to choose a stack.
-- [ ] GLC-REFRESH-006: Given a repository local file already exists and an interactive replacement is available, when refresh runs without `--force`, then it presents an explicit replacement confirmation; on cancellation it leaves the local file unchanged and creates no backup.
-- [ ] GLC-REFRESH-007: Given a repository local file already exists and interactive confirmation is unavailable, when refresh runs without `--force`, then it safely refuses and leaves the local file unchanged with no backup; with `--force`, it may proceed only after all other validations and backup requirements pass.
-- [ ] GLC-REFRESH-008: Given refresh will replace an existing repository local file, when replacement is approved or forced, then it first creates one distinct timestamped sibling backup of the original; a colliding backup name is never overwritten, and backup creation failure leaves the original local file unchanged.
-- [ ] GLC-REFRESH-009: Given a successful approved or forced replacement, when refresh completes, then `superposition.local.yml` contains the validated selected materialized template and the original remains available in the reported sibling backup for manual rework.
-- [ ] GLC-REFRESH-010: Given invalid defaults, invalid selected-template compatibility, declined confirmation, noninteractive refusal without `--force`, or backup failure, when refresh exits, then it does not write a new local file, replace the existing local file, or alter home defaults.
-- [ ] GLC-REFRESH-011: Given `regen`, `doctor`, `plan`, replay-style `init`, or another workflow that has not explicitly invoked `defaults refresh-local`, when it runs, then it does not read or apply home defaults as replay or remediation authority.
-- [ ] GLC-REFRESH-012: Command help and user documentation describe `defaults refresh-local`, its `--force` replacement guard, selected-file precedence, backup behavior, and the fact that home defaults remain explicit bootstrap/sync input rather than replay/remediation authority.
-- [ ] GLC-REFRESH-013: Automated command and unit coverage proves the selection, direct and stack-aware materialization, creation, confirmation/refusal, forced replacement, collision-safe backup, selected-file errors, and no-write failure paths above.
+- [x] GLC-REFRESH-001: Given both supported home defaults files exist, when `cs defaults refresh-local` runs, then it selects `~/.container-superposition.yml` and ignores `~/.superposition.yml`; given only the latter exists, it selects that file.
+- [x] GLC-REFRESH-002: Given the selected defaults file cannot be parsed or validated, contains no usable `localConfigTemplate`, or no supported defaults file is selected, when refresh runs, then it reports the relevant selected-file/source error and makes no repository writes.
+- [x] GLC-REFRESH-003: Given a valid direct `localConfigTemplate` and no repository `superposition.local.yml`, when refresh runs, then it creates the repository local file from that template without requesting replacement confirmation.
+- [x] GLC-REFRESH-004: Given a valid stack-aware template and canonical repository shared project configuration with `stack: plain` or `stack: compose`, when refresh runs, then it materializes respectively `common + plain` or `common + compose` with spec 042 merge, mount-target, and literal-preservation semantics; it excludes the unselected branch.
+- [x] GLC-REFRESH-005: Given stack-aware defaults but absent or invalid canonical repository stack authority, when refresh runs, then it refuses before creating, replacing, or backing up the repository local file and does not use the existing local file or `initDefaults` to choose a stack.
+- [x] GLC-REFRESH-006: Given a repository local file already exists and an interactive replacement is available, when refresh runs without `--force`, then it presents an explicit replacement confirmation; on cancellation it leaves the local file unchanged and creates no backup.
+- [x] GLC-REFRESH-007: Given a repository local file already exists and interactive confirmation is unavailable, when refresh runs without `--force`, then it safely refuses and leaves the local file unchanged with no backup; with `--force`, it may proceed only after all other validations and backup requirements pass.
+- [x] GLC-REFRESH-008: Given refresh will replace an existing repository local file, when replacement is approved or forced, then it first creates one distinct timestamped sibling backup of the original; a colliding backup name is never overwritten, and backup creation failure leaves the original local file unchanged.
+- [x] GLC-REFRESH-009: Given a successful approved or forced replacement, when refresh completes, then `superposition.local.yml` contains the validated selected materialized template and the original remains available in the reported sibling backup for manual rework.
+- [x] GLC-REFRESH-010: Given invalid defaults, invalid selected-template compatibility, declined confirmation, noninteractive refusal without `--force`, or backup failure, when refresh exits, then it does not write a new local file, replace the existing local file, or alter home defaults.
+- [x] GLC-REFRESH-011: Given `regen`, `doctor`, `plan`, replay-style `init`, or another workflow that has not explicitly invoked `defaults refresh-local`, when it runs, then it does not read or apply home defaults as replay or remediation authority.
+- [x] GLC-REFRESH-012: Command help and user documentation describe `defaults refresh-local`, its `--force` replacement guard, selected-file precedence, backup behavior, and the fact that home defaults remain explicit bootstrap/sync input rather than replay/remediation authority.
+- [x] GLC-REFRESH-013: Automated command and unit coverage proves the selection, direct and stack-aware materialization, creation, confirmation/refusal, forced replacement, collision-safe backup, selected-file errors, and no-write failure paths above.
 
 ## Non-goals
 
@@ -102,6 +102,11 @@ The command explicitly refreshes the repository-root `superposition.local.yml` f
 - Home defaults may contain personal paths or shell content. Refresh must copy only validated approved local-config data and must not expand or reinterpret authored values.
 - Repository shared project config remains the only valid stack authority for this explicit sync. Using home `initDefaults` or the old local file instead would weaken project-file-first determinism.
 - This is a Standard-profile task and requires an INDEPENDENT review before integration because it adds a public command, replacement/backup behavior, schema-adjacent selection semantics, tests, and user documentation.
+
+## Implementation Notes
+
+- Implemented `defaults refresh-local` as an explicit, non-replay synchronization action. Shared template materialization now lives with project-config semantics and is reused by fresh init.
+- Validation and self-check evidence: `review-gate.md`.
 
 ## Handoff
 

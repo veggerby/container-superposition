@@ -18,7 +18,7 @@ import { doctorCommand } from '../commands/doctor.js';
 import { adoptCommand } from '../commands/adopt.js';
 import { hashCommand } from '../commands/hash.js';
 import { migrateCommand } from '../commands/migrate.js';
-import { defaultsCommand } from '../commands/defaults.js';
+import { defaultsCommand, refreshLocalDefaultsCommand } from '../commands/defaults.js';
 import { amendCommand } from '../commands/amend.js';
 import { loadOverlaysContextWrapper } from '../questionnaire/questionnaire.js';
 import { enableSilentOutput } from './output.js';
@@ -228,7 +228,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         });
 
     // Defaults command
-    program
+    const defaults = program
         .command('defaults')
         .description(
             'Inspect effective home-directory init defaults read-only; ~/.container-superposition.yml wins over ~/.superposition.yml'
@@ -237,6 +237,27 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--json', 'Output selected source, ignored source, and normalized document as JSON')
         .action(async (options) => {
             await defaultsCommand(options);
+        });
+
+    defaults
+        .command('refresh-local')
+        .description(
+            'Explicitly refresh repository local config from selected home defaults; existing files require confirmation or --force and are backed up as siblings'
+        )
+        .option(
+            '--force',
+            'Replace an existing local config without interactive confirmation; still requires a safe backup'
+        )
+        .option('--silent', SILENT_OPTION_DESCRIPTION)
+        .action(async (options) => {
+            try {
+                await refreshLocalDefaultsCommand(options);
+            } catch (error) {
+                console.error(
+                    `Failed to refresh local config: ${error instanceof Error ? error.message : String(error)}`
+                );
+                process.exitCode = 1;
+            }
         });
 
     // Explain command
