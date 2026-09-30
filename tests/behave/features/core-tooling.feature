@@ -492,6 +492,31 @@ Feature: Core CLI tooling workflows
     And the file "superposition.local.yml" should not exist
     And the file ".devcontainer" should not exist
 
+  Scenario: Defaults refresh-local explicitly creates local config from selected home defaults
+    Given an inline workspace fixture:
+      """
+      files:
+        README.md:
+          text: refresh defaults workspace
+      """
+    And an inline home defaults fixture:
+      """
+      files:
+        .container-superposition.yml:
+          yaml:
+            localConfigTemplate:
+              shell:
+                snippets:
+                  - export TOKEN=${TOKEN:-literal}
+      """
+    When I run the CLI command
+      """
+      defaults refresh-local
+      """
+    Then the command exits successfully
+    And the file "superposition.local.yml" should exist
+    And the file "superposition.local.yml" should contain "export TOKEN=${TOKEN:-literal}"
+
   Scenario: Explain inspects a compose overlay with files and services
     Given an inline workspace fixture:
       """

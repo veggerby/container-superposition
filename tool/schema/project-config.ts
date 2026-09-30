@@ -16,6 +16,7 @@ import type {
     ObservabilityTool,
     OverlaysConfig,
     ProjectEnvTarget,
+    ProjectEnvVar,
     ProjectMount,
     ProjectMountTarget,
     ProjectShellConfig,
@@ -35,6 +36,7 @@ import {
     assertComposeNetworkNameSupported,
     validateComposeNetworkName,
 } from '../utils/compose-network.js';
+import { deepMerge } from '../utils/merge.js';
 import {
     isNamespaceQualifiedId,
     parseCatalogDeclarations,
@@ -1077,6 +1079,109 @@ export function hasMeaningfulLocalProjectConfig(
             ([key, value]) => key !== '$schema' && value !== undefined
         )
     );
+}
+
+export function isStackAwareLocalConfigTemplate(
+    template: GlobalLocalConfigTemplateSelection | undefined
+): template is StackAwareLocalProjectConfigTemplateSelection {
+    return Boolean(
+        template &&
+        typeof template === 'object' &&
+        !Array.isArray(template) &&
+        ('common' in template || 'plain' in template || 'compose' in template)
+    );
+}
+
+function compactLocalConfigSelection(
+    selection: LocalProjectConfigSelection
+): LocalProjectConfigSelection {
+    const shellAliases = selection.shell?.aliases;
+    const shellSnippets = selection.shell?.snippets;
+    return {
+        env: selection.env && Object.keys(selection.env).length ? selection.env : undefined,
+        mounts: selection.mounts?.length ? selection.mounts : undefined,
+        shell:
+            shellAliases || shellSnippets
+                ? { aliases: shellAliases, snippets: shellSnippets }
+                : undefined,
+        vscodeExtensions: selection.vscodeExtensions?.length
+            ? selection.vscodeExtensions
+            : undefined,
+        customizations:
+            selection.customizations && Object.keys(selection.customizations).length
+                ? selection.customizations
+                : undefined,
+        portOffset: selection.portOffset,
+        ports: selection.ports,
+    };
+}
+
+export function materializeGlobalLocalConfigTemplate(
+    template: GlobalLocalConfigTemplateSelection | undefined,
+    stack: Stack
+): LocalProjectConfigSelection | undefined {
+    if (!template || !isStackAwareLocalConfigTemplate(template)) return template;
+    const common = template.common;
+    const branch = stack === 'compose' ? template.compose : template.plain;
+    return compactLocalConfigSelection({
+        env: { ...(common?.env ?? {}), ...(branch?.env ?? {}) },
+        mounts: [...(common?.mounts ?? []), ...(branch?.mounts ?? [])],
+        shell:
+            common?.shell || branch?.shell
+                ? {
+                      aliases: {
+                          ...(common?.shell?.aliases ?? {}),
+                          ...(branch?.shell?.aliases ?? {}),
+                      },
+                      snippets: [
+                          ...(common?.shell?.snippets ?? []),
+                          ...(branch?.shell?.snippets ?? []),
+                      ],
+                  }
+                : undefined,
+        customizations:
+            common?.customizations || branch?.customizations
+                ? deepMerge(common?.customizations ?? {}, branch?.customizations ?? {})
+                : undefined,
+        vscodeExtensions: [
+            ...(common?.vscodeExtensions ?? []),
+            ...(branch?.vscodeExtensions ?? []),
+        ],
+        portOffset: branch?.portOffset ?? common?.portOffset,
+        ports: branch?.ports !== undefined ? [...branch.ports] : common?.ports,
+    });
+}
+
+export function validateMaterializedLocalConfigTemplate(
+    selection: LocalProjectConfigSelection | undefined,
+    stack: Stack
+): void {
+    if (!selection) return;
+    for (const entry of Object.values(selection.env ?? {})) {
+        const structuredEntry =
+            typeof entry === 'string' ? ({ value: entry } satisfies ProjectEnvVar) : entry;
+        if (structuredEntry.target === 'composeEnv' && stack !== 'compose') {
+            throw new ProjectConfigError(
+                'Project env target "composeEnv" requires stack: compose because no docker-compose.yml is generated for plain stacks'
+            );
+        }
+    }
+    for (const mount of selection.mounts ?? []) {
+        if (mount.target === 'composeVolume' && stack !== 'compose') {
+            throw new ProjectConfigError(
+                'Project mount target "composeVolume" requires stack: compose because no docker-compose.yml is generated for plain stacks'
+            );
+        }
+    }
+    if (stack === 'compose') {
+        for (const [index, port] of (selection.ports ?? []).entries()) {
+            if (!port.value.includes(':')) {
+                throw new ProjectConfigError(
+                    `ports[${index}]: stack 'compose' expects a HOST:CONTAINER port binding (with colon), got "${port.value}". Use a bare port expression only on stack 'plain'.`
+                );
+            }
+        }
+    }
 }
 
 export function findProjectConfig(repoRoot: string = process.cwd()): ProjectConfigFileEntry[] {

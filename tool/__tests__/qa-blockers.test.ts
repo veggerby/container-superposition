@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 
 vi.mock('@inquirer/prompts', () => ({
     select: vi.fn().mockResolvedValue('Cancel'),
+    confirm: vi.fn().mockResolvedValue(false),
 }));
 
 import { buildInitEntryChoices, buildShortcutOverlayChoices } from '../cli/run.js';
