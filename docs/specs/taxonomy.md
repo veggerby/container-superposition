@@ -194,18 +194,19 @@ _No specs yet._
 
 ### DOCS-GUIDE
 
-| Spec                                                                                                                     | Title                                                                                      | Status |
-| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------ |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)                             | Discovery Surface and Canonical Docs Alignment                                             | Draft  |
-| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)                           | Preset-Led Onboarding for Common Jobs-to-be-Done                                           | Draft  |
-| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md)               | Project-Local Contributor Skills Initiative                                                | Final  |
-| [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)                   | Overlay Solution Discovery and Write Loop                                                  | Final  |
-| [042-global-default-configuration](042-global-default-configuration/spec.md)                                             | User-Scoped Global Defaults with Stack-Aware Local Templates                               | Final  |
-| [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run                                     | Final  |
-| [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                                              | Final  |
-| [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final  |
-| [054-overlay-audit-remediation](054-overlay-audit-remediation/spec.md)                                                   | Full Overlay Audit Remediation                                                             | Draft  |
-| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md)                     | Natural-Language Project Config Authoring Workflow                                         | Final  |
+| Spec                                                                                                                     | Title                                                                                      | Status      |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ----------- |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)                             | Discovery Surface and Canonical Docs Alignment                                             | Draft       |
+| [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)                           | Preset-Led Onboarding for Common Jobs-to-be-Done                                           | Draft       |
+| [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md)               | Project-Local Contributor Skills Initiative                                                | Final       |
+| [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)                   | Overlay Solution Discovery and Write Loop                                                  | Final       |
+| [042-global-default-configuration](042-global-default-configuration/spec.md)                                             | User-Scoped Global Defaults with Stack-Aware Local Templates                               | Final       |
+| [045-root-taskfile-and-mandatory-contributor-validation](045-root-taskfile-and-mandatory-contributor-validation/spec.md) | Root Taskfile and Mandatory Contributor Validation Run                                     | Final       |
+| [052-overlay-requirements-capture](052-overlay-requirements-capture/spec.md)                                             | Overlay Requirements Capture Prompt and Skill                                              | Final       |
+| [053-behave-bdd-overlay-discovery](053-behave-bdd-overlay-discovery/spec.md)                                             | Behave BDD Coverage, Overlay Discovery, Semantic Assertions, and Inline Workspace Fixtures | Final       |
+| [054-overlay-audit-remediation](054-overlay-audit-remediation/spec.md)                                                   | Full Overlay Audit Remediation                                                             | Draft       |
+| [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md)                     | Natural-Language Project Config Authoring Workflow                                         | Final       |
+| [062-github-copilot-code-review-instructions](062-github-copilot-code-review-instructions/spec.md)                       | GitHub Copilot Repository-Wide Code Review Instructions                                    | Implemented |
 
 ### DOCS-API
 
