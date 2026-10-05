@@ -2,6 +2,10 @@
 
 This guide explains how to use the `.devcontainer/custom/` directory to preserve project-specific customizations across regenerations.
 
+> **Compatibility / migration only:** `--from-manifest` accepts a legacy
+> `superposition.json` receipt. Migrate it to `superposition.yml` first, then
+> use normal project-file `regen`; it is not the steady-state customization path.
+
 ## Overview
 
 When you regenerate a devcontainer (e.g., to add a new overlay), all manual changes to the generated files are normally lost. The **custom patches** feature solves this problem by allowing you to define customizations in a special directory that is preserved and automatically merged during regeneration.
@@ -39,11 +43,10 @@ Create a custom devcontainer patch:
 ### 3. Regenerate (Customizations Preserved)
 
 ```bash
-# Add a new overlay by regenerating
-npm run init -- --from-manifest .devcontainer/superposition.json
+# Regenerate canonical shared intent after changing its flat overlays: list.
+npm run init -- regen
 
-# Select additional overlays (e.g., aws-cli)
-# Your custom patches will be automatically applied ✅
+# Custom patches are automatically applied ✅
 ```
 
 ## Supported Customization Files
@@ -330,9 +333,8 @@ cat > .devcontainer/custom/devcontainer.patch.json << EOF
 }
 EOF
 
-# 4. Regenerate to apply customizations
-npm run init -- --from-manifest .devcontainer/superposition.json
-# (Select same overlays or add new ones)
+# 4. Regenerate canonical shared intent to apply customizations
+npm run init -- regen
 
 # 5. Customizations are now applied ✅
 ```
@@ -342,17 +344,14 @@ npm run init -- --from-manifest .devcontainer/superposition.json
 ```bash
 # You want to add Redis to an existing setup
 
-# 1. Check current configuration
-cat .devcontainer/superposition.json
+# 1. Check and update current shared configuration.
+cat superposition.yml
 
-# 2. Regenerate from manifest
-npm run init -- --from-manifest .devcontainer/superposition.json
+# 2. Preview the revised overlay selection, then regenerate it.
+npm run init -- plan --stack compose --overlays nodejs,postgres,redis --diff
+npm run init -- regen
 
-# 3. In the questionnaire, select:
-#    - Keep existing: nodejs, postgres
-#    - Add new: redis
-#
-# 4. Custom patches are automatically preserved and merged ✅
+# 3. Custom patches are automatically preserved and merged ✅
 ```
 
 ### Migrating Manual Changes
@@ -374,8 +373,8 @@ cat > .devcontainer/custom/devcontainer.patch.json << EOF
 }
 EOF
 
-# 2. Regenerate (your changes will now be preserved)
-npm run init -- --from-manifest .devcontainer/superposition.json
+# 2. Regenerate canonical shared intent (your changes will now be preserved)
+npm run init -- regen
 
 # 3. Verify custom patches were applied
 cat .devcontainer/devcontainer.json | jq '.mounts'

@@ -14,25 +14,22 @@ written.
 
 ## Quickstart
 
+`superposition.yml` (or `.superposition.yml`) is the canonical shared input.
+Commit it to the repository. Use a flat `overlays:` list for explicit team
+selection; presets are optional shortcuts. `superposition.json` is a generated
+compatibility receipt, not the normal file to edit.
+
 ```bash
-# Inspect personal init defaults (read-only; no project/replay authority)
-npx container-superposition defaults --json
-
-# Explicitly refresh repository local config from those defaults
-npx container-superposition defaults refresh-local
-
-# Discover available overlays and presets
+# Discover and inspect the current catalog (read-only).
 npx container-superposition list
 npx container-superposition explain postgres
 
-# Preview before writing files
-npx container-superposition plan --stack compose --overlays nodejs,postgres,grafana
-npx container-superposition plan --stack compose --overlays grafana --verbose
+# Preview before any write. --verbose explains resolution; --diff reviews change.
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition plan --stack compose --overlays nodejs,postgres --verbose
+npx container-superposition plan --stack compose --overlays nodejs,postgres --diff
 
-# Guided questionnaire — writes shared project intent and generated output
-npx container-superposition init
-
-# Declarative project config committed in the repo
+# Declare shared project intent, then write generated output.
 cat > superposition.yml <<'YAML'
 stack: compose
 overlays:
@@ -40,38 +37,22 @@ overlays:
   - postgres
 env:
   APP_ENV: development
-mounts:
-  - "./local-tools:/workspace/tools"
-ports:
-  - ${API_PORT:-8080}:8080
-vscodeExtensions:
-  - GitHub.copilot
-customizations:
-  envTemplate:
-    POSTGRES_PASSWORD: postgres
 YAML
 npx container-superposition init --no-interactive
 
-# Regenerate from the repository project file
+# After a reviewed project-file change, replay it.
 npx container-superposition regen
 
-# Or select the project file explicitly
-npx container-superposition regen --from-project
+# Use the guided questionnaire when you want help authoring shared intent.
+npx container-superposition init
 
-# Reuse persisted project-file values without the questionnaire
-npx container-superposition init --from-project --no-interactive
-
-# Write only superposition.yml without generating .devcontainer/
-npx container-superposition init --stack compose --preset web-api --no-scaffold
-
-# Migrate a manifest-only repo to the project-file model
+# Migrate a manifest-only repository to the project-file model.
 npx container-superposition migrate
-
-# Personal local layer for a non-adopting repo that already has a devcontainer
-npx container-superposition amend init
-$EDITOR .container-superposition/amendment.yml
-npx container-superposition amend refresh
 ```
+
+Use `defaults --json` to inspect personal init defaults and `defaults
+refresh-local` to explicitly create local enrichment. Use `amend` for a
+non-adopting repository with an existing team-owned devcontainer.
 
 ## What It Does
 
@@ -84,7 +65,7 @@ npx container-superposition amend refresh
 - Project config: `superposition.yml` (or `.superposition.yml`) is the **canonical input** for all
   generation and regeneration flows. Commit it to your repo for reproducible team and CI builds.
     - `init` always writes `superposition.yml` as its primary output
-    - `regen` reads only the project file — `superposition.json` is an output-only receipt
+    - Normal `regen` reads the project file — `superposition.json` is an output-only receipt; `regen --from-manifest` is deprecated compatibility/migration support only
     - Repos without a project file should run `cs migrate` once to create one from their manifest
     - Optional `~/.superposition.yml` defaults can prefill only eligible fresh `init` runs (`~/.container-superposition.yml` still works and wins when both exist); inspect the effective document with read-only `cs defaults --json`
     - `doctor` compares the project file against the last-generated manifest and reports drift
@@ -111,7 +92,7 @@ All commands accept `--silent` to suppress routine human-readable status, progre
 - `explain` — inspect overlay or preset details
 - `plan` — preview output before writing
     - Add `--verbose` to narrate dependency resolution and inclusion reasons
-    - Add `--from-manifest <path>` to preview an existing manifest with the same explanation model
+    - Compatibility / migration only: add `--from-manifest <path>` to inspect a legacy manifest before migrating it to a project file
 - `hash` — deterministic environment fingerprint
 - `doctor` — validate environment and detect project-file drift
 

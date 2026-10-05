@@ -71,12 +71,15 @@ S3_ENDPOINT=http://minio:9000
 
 ## Regenerate with Customizations
 
-Add Redis to your stack:
+Add Redis to the canonical project file, preview the selection, then regenerate:
 
 ```bash
-npm run init -- --from-manifest .devcontainer/superposition.json
-# Select redis in addition to existing overlays
+npm run init -- plan --stack compose --overlays nodejs,postgres,redis --diff
+npm run init -- regen
 ```
+
+`--from-manifest` is compatibility / migration-only support for legacy receipts;
+use `migrate` before returning to project-file replay.
 
 ## Result
 

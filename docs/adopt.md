@@ -4,14 +4,14 @@ The `adopt` command helps you **migrate an existing `.devcontainer/` configurati
 
 If you do **not** want team migration and only need a personal local layer on top of an existing team-owned devcontainer, use [`amend`](local-devcontainer-amendment.md) instead. `amend` keeps shared project intent out of the repository, writes local-only artifacts under `.container-superposition/`, and launches through a generated alternate config.
 
-`adopt` scans your current `devcontainer.json` and any linked `docker-compose.yml` files, matches their contents against all available overlays, and produces:
+`adopt` scans your current `devcontainer.json` and any linked `docker-compose.yml` files, matches their contents against all available overlays, and writes a project-file-first conversion:
 
-1. **`superposition.json`** — the manifest written to the **project root** (next to your `src/`, `package.json`, etc.), ready to commit and share with your team
-2. **`.superposition.yml`** — an optional repository-root project file when you pass `--project-file`, using the same inferred stack, overlays, output path, and supported customizations
-3. **`.devcontainer/custom/devcontainer.patch.json`** — any config that has no overlay equivalent (custom features, extensions, mounts, remoteEnv, etc.)
-4. **`.devcontainer/custom/docker-compose.patch.yml`** — any compose services that have no overlay equivalent
+1. **`.superposition.yml`** (or the existing `superposition.yml`) — the canonical repository-root shared intent, containing the inferred stack, flat `overlays:` selection, output path, and supported customizations
+2. **`superposition.json`** — a generated compatibility/audit receipt; do not hand-edit it as steady-state team configuration
+3. **`.devcontainer/custom/devcontainer.patch.json`** — config with no overlay equivalent (custom features, extensions, mounts, remote environment, and similar settings)
+4. **`.devcontainer/custom/docker-compose.patch.yml`** — compose services with no overlay equivalent
 
-The custom patches in `custom/` are automatically merged on every `regen`, so your project-specific configuration is never lost.
+The custom patches in `custom/` are preserved and merged on every `regen`. Review the project file and patches before replaying them; adoption itself does not regenerate the devcontainer.
 
 ## Quick Start
 
@@ -19,18 +19,20 @@ The custom patches in `custom/` are automatically merged on every `regen`, so yo
 # Personal-only local layer without team migration: use amend, not adopt
 npx container-superposition amend init
 
-# Analyse your existing .devcontainer/ for team migration (prints a report, writes nothing)
+# Inspect an existing .devcontainer/ before writing anything
 npx container-superposition adopt --dry-run
 
-# Run the analysis and write the generated files
+# Write canonical shared intent, the compatibility receipt, and any preserved patches
 npx container-superposition adopt
 
-# Also write a repository-root project file for project-config workflows
-npx container-superposition adopt --project-file
+# Review the inferred project intent, then replay it
+npx container-superposition regen
 
-# Force-overwrite any existing superposition.json / custom/ files
+# Overwrite existing conversion artifacts only after reviewing the write risk
 npx container-superposition adopt --force
 ```
+
+`adopt --project-file` is deprecated and has no additional effect: `adopt` writes the project file by default.
 
 ## Docker Compose Devcontainers
 
@@ -102,17 +104,17 @@ automatically added to `.gitignore`.
 
 ## Options
 
-| Option                | Description                                                                              |
-| --------------------- | ---------------------------------------------------------------------------------------- |
-| `-d, --dir <path>`    | Path to the existing `.devcontainer/` directory (default: `./.devcontainer`)             |
-| `--dry-run`           | Print the analysis without writing any files                                             |
-| `--force`             | Overwrite existing `superposition.json` / `custom/` files                                |
-| `--backup`            | Force a backup even when inside a git repo                                               |
-| `--no-backup`         | Disable backup creation even when it would normally be performed                         |
-| `--backup-dir <path>` | Custom backup directory location                                                         |
-| `--project-file`      | Also write a repository-root project config (`.superposition.yml` by default)            |
-| `--silent`            | Suppress routine output, including ordinary warnings, while preserving errors and writes |
-| `--json`              | Output analysis as JSON (useful for scripting; incompatible with `--silent`)             |
+| Option                | Description                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| `-d, --dir <path>`    | Path to the existing `.devcontainer/` directory (default: `./.devcontainer`)                        |
+| `--dry-run`           | Print the analysis without writing any files                                                        |
+| `--force`             | Overwrite existing conversion artifacts (project file, compatibility receipt, or `custom/` patches) |
+| `--backup`            | Force a backup even when inside a git repo                                                          |
+| `--no-backup`         | Disable backup creation even when it would normally be performed                                    |
+| `--backup-dir <path>` | Custom backup directory location                                                                    |
+| `--project-file`      | Deprecated no-op; `adopt` writes the repository-root project file by default                        |
+| `--silent`            | Suppress routine output, including ordinary warnings, while preserving errors and writes            |
+| `--json`              | Output analysis as JSON (useful for scripting; incompatible with `--silent`)                        |
 
 `--silent` and `--json` cannot be combined. The CLI rejects the combination before it analyzes or writes adopt artifacts.
 
@@ -141,25 +143,37 @@ Source                                                      Action
 ghcr.io/corp/internal-tools:1                               No overlay covers this feature — preserve in custom/devcontainer.patch.json
 service: my-app (image: my-registry/my-app:latest)          No overlay covers this service — preserve in custom/docker-compose.patch.yml
 
-Suggested command:
-  container-superposition init --stack compose --language nodejs --database postgres,redis
-
 💡 Custom patches will be written to .devcontainer/custom/ to preserve
    any configuration that has no overlay equivalent.
+```
+
+Use the detected stack and overlays to review the project file that `adopt` writes. For the example above, its shared intent should use the canonical flat selection model:
+
+```yaml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
+    - redis
 ```
 
 ## After Adopt
 
 Once `adopt` has run:
 
-1. **Review `superposition.json`** — verify the detected overlays are correct; add or remove as needed.
-2. **Review `.superposition.yml` if you generated one** — it captures the same inferred setup as a repository-root project file, including inline supported customizations.
-3. **Review `custom/` patches** — inspect what was preserved and trim anything no longer needed.
-4. **Regenerate** — rebuild your `.devcontainer/` from the manifest or project file:
+1. **Review `.superposition.yml` or `superposition.yml`** — this is the shared intent to correct when inferred overlays or settings need adjustment.
+2. **Review `custom/` patches** — inspect what was preserved and trim anything no longer needed.
+3. **Preview** — inspect the resolved configuration before writing generated output:
+    ```bash
+    npx container-superposition plan
+    npx container-superposition plan --verbose
+    npx container-superposition plan --diff
+    ```
+4. **Regenerate** — rebuild `.devcontainer/` from the canonical project file:
     ```bash
     npx container-superposition regen
     ```
-5. **Commit `superposition.json`**, the optional project file, and, if applicable, `custom/` patches.
+5. **Commit the project file** and any intended `custom/` patches. `superposition.json` is a generated compatibility/audit receipt, not the team-owned configuration to hand-edit.
 
 ## JSON Output
 
@@ -169,7 +183,7 @@ Use `--json` to get machine-readable output for scripting or CI workflows:
 npx container-superposition adopt --dry-run --json | jq .suggestedOverlays
 ```
 
-The JSON object contains:
+Relevant JSON fields include:
 
 ```jsonc
 {
@@ -198,13 +212,12 @@ The JSON object contains:
     },
     "suggestedStack": "compose",
     "suggestedOverlays": ["nodejs", "postgres", "redis"],
-    "suggestedCommand": "container-superposition init --stack compose --language nodejs --database postgres,redis",
 }
 ```
 
 ## See Also
 
-- [Team Workflow](team-workflow.md) — Manifest-first team collaboration workflow
+- [Team Workflow](team-workflow.md) — Project-file-first team collaboration workflow
 - [Custom Patches](custom-patches.md) — How `custom/` patches are merged
 - [Workflows and Regeneration](workflows.md) — Regeneration and backup details
 - [Quick Reference](quick-reference.md) — All commands at a glance

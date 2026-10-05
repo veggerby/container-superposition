@@ -4,7 +4,7 @@
 **Taxonomy**: `CLI-UX, DOCS-GUIDE`
 **Created**: 2026-06-22
 **Author**: Workflow Orchestrator
-**Status**: Draft
+**Status**: Implemented
 **Input**: Opportunity backlog items 1, 3, and 5 from `docs/opportunities/README.md` — fix discovery surface gaps, align docs/help/examples to one canonical model, and make preview-first planning workflow easy to find.
 
 ---
@@ -162,3 +162,26 @@ None blocking spec completion.
 **PM → Developer**
 
 Reason: UX contract and scope boundaries now explicit; no further architecture pass required.
+
+## Implementation Notes
+
+- **2026-10-02:** Completed all six named first-party documentation surfaces:
+  `README.md`, `tool/README.md`, `docs/quick-reference.md`, `docs/examples.md`,
+  `docs/team-workflow.md`, and `docs/messaging-quick-start.md`. They now use
+  project-file-first flat `overlays:` examples, order discovery (`list`) and
+  inspection (`explain`) before explicit `plan`, `plan --verbose`, and `plan --diff`
+  previews, then `init`/`regen` writes. Retained `superposition.json` and
+  category-field material is explicitly compatibility, migration, or
+  maintainer/API-only context.
+- Previously shipped CLI work remains unchanged: default discovery includes
+  `messaging`, and human-readable rich port output avoids `[object Object]`.
+- No Behave scenario was added because this remainder changes explanatory Markdown
+  and workflow artifacts only, not CLI behavior. Existing
+  `tests/behave/features/core-tooling.feature` covers discovery and preview/replay
+  command workflows; it was rerun with focused command/UX Vitest coverage.
+- Validation evidence is recorded in
+  [`artifacts/implementation-evidence.md`](artifacts/implementation-evidence.md).
+- **Plan deviation:** Initial verification incorrectly treated four named guides as
+  already aligned. Their stale guidance was completed in this route; no CLI/source,
+  test, overlay, schema, or generated-output files changed. QA-owned status/feedback
+  fields were not added or altered.

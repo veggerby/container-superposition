@@ -1,22 +1,8 @@
 # Opportunity Backlog
 
-Last updated: 2026-07-28
+Last updated: 2026-10-02
 
 ## Prioritized
-
-### 1. Discovery surface clarity and canonical docs alignment
-
-- **type**: UX
-- **status**: prioritized
-- **value summary**: Improve user trust, discovery quality, and day-one experience by aligning CLI discovery surfaces, docs, examples, and preview-first workflow guidance around the current canonical model.
-- **urgency**: High
-- **confidence**: High
-- **rough effort/risk**: Low-Medium effort, Low risk
-- **evidence**:
-    - Draft spec exists: `docs/specs/030-discovery-surface-and-docs-alignment/spec.md`.
-    - Repo evidence in the spec/backlog shows missing `messaging` in default discovery, `[object Object]` rendering in filtered output, stale category-centric config guidance, and underexposed `plan` / `plan --verbose` / `plan --diff` workflow.
-    - `docs/roadmap.md` currently places this theme in `Now`.
-- **recommended next prompt or owner**: `/spec` or implementation handoff for `docs/specs/030-discovery-surface-and-docs-alignment/spec.md`.
 
 ### 2. Preset-led onboarding for common jobs-to-be-done
 
@@ -50,12 +36,12 @@ Last updated: 2026-07-28
 
 ### Quick wins
 
-1. Discovery surface clarity and canonical docs alignment
-2. Portfolio refresh after recent workflow and overlay-contract wins
-3. Preset-led onboarding for common jobs-to-be-done
+1. Portfolio refresh after recent workflow and overlay-contract wins
+2. Preset-led onboarding for common jobs-to-be-done
 
 ### Recently shipped / no longer active opportunities
 
+- Discovery surface clarity and canonical docs alignment shipped through spec `030-discovery-surface-and-docs-alignment`: discovery now includes `messaging`, rich port fields render readably, and first-party guides teach project-file-first preview-before-write workflow.
 - Versioned private overlay and preset catalogs shipped through spec `029-versioned-private-catalogs`.
 - Repeatable compose-overlay rollout shipped through specs `050-compose-overlay-instances` and `051-repeatable-compose-overlay-rollout`.
 
@@ -69,6 +55,6 @@ Last updated: 2026-07-28
 
 - Ranking emphasizes expected value first because the current prioritization request explicitly deprioritized effort as a decision driver.
 - Confidence remains evidence-bound to repository docs/specs only; no telemetry, support volume, or market research was reviewed here.
-- `030` remains the strongest broad UX/trust opportunity and is still the clearest low-risk shipping candidate.
+- Spec `030` moved to recently shipped after completing its CLI discovery, rendering, and canonical-guide alignment outcomes.
 - Private catalogs and repeatable compose-overlay rollout moved out of the active backlog because shipped specs `029`, `050`, and `051` now cover that work.
 - Earlier repo-local Pi skill opportunities are no longer active backlog leaders because the relevant workflow/skill work has already shipped through specs `039` and `052`.

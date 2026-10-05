@@ -1,467 +1,96 @@
 # Quick Reference
 
-## Base Images
+## Safe workflow
 
-| Image                  | ID         | Use Case                              | Stability    |
-| ---------------------- | ---------- | ------------------------------------- | ------------ |
-| **Debian Bookworm** ⭐ | `bookworm` | Production-ready, recommended default | Stable (LTS) |
-| **Debian Trixie**      | `trixie`   | Newer packages for testing            | Testing      |
-| **Custom Image** ⚠️    | `custom`   | Specific requirements, may conflict   | Varies       |
+`superposition.yml` (or `.superposition.yml`) is the canonical shared input.
+Commit it with the application code. Use a flat `overlays:` list when the team
+wants explicit selections; presets are optional shorthand. Generated
+`superposition.json` is a compatibility and audit receipt, not normal authoring
+input.
 
-**Default**: Debian Bookworm (`mcr.microsoft.com/devcontainers/base:bookworm`)
-
-- Battle-tested in production
-- Broad compatibility with all overlays
-- Regular security updates
-
-**When to use custom images**:
-
-- Specific compliance requirements
-- Organization-standardized base images
-- Need for particular base OS (Ubuntu, Alpine, etc.)
-
-⚠️ **Caution**: Custom images may require overlay configuration adjustments and thorough testing.
-
-## Base Templates
-
-| Template    | Use Case           | Contents                                                                |
-| ----------- | ------------------ | ----------------------------------------------------------------------- |
-| **plain**   | Simple projects    | Minimal Debian image, git, zsh, basic tools                             |
-| **compose** | Multi-service apps | Docker Compose, devcontainer service, project-specific `devnet` network |
-
-## Interactive Overlay Selection
-
-When running the questionnaire interactively, overlays are presented in a **categorized multi-select with dependency tracking**:
-
-**Features**:
-
-- 📋 **Categorized view** - Overlays grouped by category with visual separators
-- ⚡ **Dependency auto-resolution** - Required dependencies automatically added
-- ⚠️ **Conflict detection** - Post-selection conflict resolution UI
-- 🔍 **Space to toggle** - Select/deselect individual overlays
-- ✓ **Visual indicators** - Required dependencies marked with `(required)` in yellow
-- 📊 **Stack compatibility** - Only shows overlays compatible with selected stack
-
-**Keyboard workflow**:
-
-- `↑/↓` - Navigate overlays
-- `Space` - Toggle selection
-- `Enter` - Confirm selection
-
-**Dependency Resolution**:
-
-- **Automatic**: Select Grafana → Prometheus auto-added (marked as required)
-- **Recursive**: Dependencies of dependencies also auto-added
-- **Post-selection**: Conflicts (e.g., docker-in-docker ↔ docker-sock) resolved after selection
-
-**Example workflow**:
-
-1. Select Node.js, PostgreSQL, Grafana
-2. System auto-adds Prometheus (required by Grafana)
-3. No conflicts → Configuration complete
-4. If conflicts exist → Resolve conflicts UI appears
-
-This ensures valid configurations without manual dependency tracking!
-
-## Language Overlays
-
-| Overlay    | Version     | Key Features                    | Extensions                                   |
-| ---------- | ----------- | ------------------------------- | -------------------------------------------- |
-| **dotnet** | .NET 10     | C# DevKit, build tools, testing | C# DevKit, GUID generator, Nuke, REST Client |
-| **nodejs** | Node LTS    | TypeScript, npm/yarn            | ESLint, Prettier, npm IntelliSense           |
-| **python** | Python 3.12 | pip, venv, dev tools            | Pylance, Black, Ruff                         |
-| **mkdocs** | Python 3.12 | MkDocs, Material theme          | Markdown All-in-One, Markdownlint, Mermaid   |
-
-## Database Overlays
-
-| Overlay      | Version | Ports | Environment Variables                         |
-| ------------ | ------- | ----- | --------------------------------------------- |
-| **postgres** | 16      | 5432  | POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD |
-| **redis**    | 7       | 6379  | REDIS_PASSWORD (optional)                     |
-
-## Observability Overlays
-
-| Overlay            | Purpose             | Ports                                       | Dependencies          |
-| ------------------ | ------------------- | ------------------------------------------- | --------------------- |
-| **otel-collector** | Telemetry pipeline  | 4317 (gRPC), 4318 (HTTP), 8889 (Prometheus) | -                     |
-| **jaeger**         | Distributed tracing | 16686 (UI), 14250 (model.proto)             | -                     |
-| **prometheus**     | Metrics collection  | 9090                                        | -                     |
-| **grafana**        | Visualization       | 3000                                        | prometheus (required) |
-| **loki**           | Log aggregation     | 3100                                        | -                     |
-
-### Observability Stack Combinations
-
-| Stack            | Use Case               | Command                                                         |
-| ---------------- | ---------------------- | --------------------------------------------------------------- |
-| **Traces Only**  | Distributed tracing    | `--observability jaeger`                                        |
-| **Metrics Only** | Performance monitoring | `--observability prometheus,grafana`                            |
-| **Standard**     | Traces + Metrics       | `--observability otel-collector,jaeger,prometheus,grafana`      |
-| **Complete**     | Full observability     | `--observability otel-collector,jaeger,prometheus,grafana,loki` |
-
-## Cloud/DevOps Overlays
-
-| Overlay          | Tools         | Extensions                     |
-| ---------------- | ------------- | ------------------------------ |
-| **aws-cli**      | AWS CLI       | AWS Toolkit                    |
-| **azure-cli**    | Azure CLI     | Azure Account, Azure Resources |
-| **kubectl-helm** | kubectl, Helm | Kubernetes                     |
-
-## Development Tool Overlays
-
-| Overlay              | Purpose                        | Contents                     | Conflicts        |
-| -------------------- | ------------------------------ | ---------------------------- | ---------------- |
-| **docker-in-docker** | Docker daemon inside container | Docker CLI, daemon           | docker-sock      |
-| **docker-sock**      | Docker socket mounting         | Docker CLI, socket access    | docker-in-docker |
-| **playwright**       | Browser testing                | Playwright, Chromium         | -                |
-| **codex**            | AI code assistant              | Codex tools and integrations | -                |
-
-## Service Startup Order
-
-Services start in this order (controlled by `serviceOrder` in `overlay.yml`):
-
-1. **Order 0** - Infrastructure: postgres, redis
-2. **Order 1** - Observability backends: jaeger, prometheus, loki
-3. **Order 2** - Middleware: otel-collector
-4. **Order 3** - Visualization: grafana
-5. **Last** - devcontainer (main application)
-
-## Common Commands
-
-### Silent automation
-
-Every command accepts `--silent` to suppress routine human-readable output, including ordinary non-fatal warnings, while retaining failure diagnostics. Do not combine it with `--json`: JSON remains the machine-output mode, and the CLI rejects `--silent --json` before it performs command work.
-
-### Inspect personal defaults (read-only)
+Follow **discover → inspect → preview → write**:
 
 ```bash
-npx container-superposition defaults --json
+# Read-only discovery
+npx container-superposition list
+npx container-superposition list --category messaging
+npx container-superposition explain postgres
+
+# Preview an explicit proposed selection
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition plan --stack compose --overlays nodejs,postgres --verbose
+npx container-superposition plan --stack compose --overlays nodejs,postgres --diff
 ```
 
-`defaults` reports the selected home defaults file (`~/.container-superposition.yml` wins over
-`~/.superposition.yml`) and the normalized effective document. It never writes project files,
-generated output, home files, or Git state, and it does not make home defaults replay authority.
+`--verbose` explains why overlays are resolved; `--diff` compares planned output
+with the existing `.devcontainer/` output.
 
-### Refresh repository local defaults explicitly
+## Shared project file
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
+env:
+    APP_ENV: development
+```
+
+After previewing, write or replay output:
 
 ```bash
-npx container-superposition defaults refresh-local
-# Required for noninteractive replacement of an existing local file:
-npx container-superposition defaults refresh-local --force
+# Create/update intent and generated output without prompts
+npx container-superposition init --no-interactive
+
+# Replay the committed project file later
+npx container-superposition regen
 ```
 
-`refresh-local` is an explicit bootstrap/synchronization action: it materializes the selected direct
-or canonical-project-stack-aware template into `superposition.local.yml`. Existing files require
-confirmation unless `--force` is supplied, and are saved first as collision-safe timestamped sibling
-backups. It never makes home defaults replay or remediation input.
-
-### Local amendment for an existing team devcontainer
-
-Use this when the repository already has a team-owned devcontainer and should not adopt Container Superposition shared intent:
+Use `init --no-scaffold` only to write the project file without generated
+output. Use `migrate` for a legacy manifest-only repository:
 
 ```bash
-npx container-superposition amend init
-$EDITOR .container-superposition/amendment.yml
-npx container-superposition amend refresh
-npx container-superposition amend inspect
-# Launch with the printed devcontainer up --workspace-folder ... --config ... command.
-npx container-superposition amend remove
+npx container-superposition migrate
 ```
 
-The amendment layer is local-only, protected through worktree-local Git exclude rules when available, and never stages or untracks files automatically. VS Code's ordinary **Reopen in Container** flow keeps using the team base; after the printed Dev Container CLI command starts the amended container, attach/open it through normal VS Code Dev Containers flows. See [Local Devcontainer Amendment](local-devcontainer-amendment.md).
-
-### Interactive
-
-```bash
-npm run init
-```
-
-### Simple Scenarios
-
-```bash
-# Plain image with language
-npm run init -- --stack plain --language python
-
-# Compose with database
-npm run init -- --stack compose --language nodejs --database postgres
-```
-
-### Production-Ready
-
-```bash
-# Microservice with full observability
-npm run init -- \
-  --stack compose \
-  --language dotnet \
-  --database postgres,redis \
-  --observability otel-collector,jaeger,prometheus,grafana,loki \
-  --cloud-tools kubectl-helm
-
-# Multi-cloud development
-npm run init -- \
-  --stack compose \
-  --language python \
-  --database postgres \
-  --cloud-tools aws-cli,azure-cli,kubectl-helm
-```
-
-## Doctor Command
-
-The `doctor` command validates the current environment and devcontainer configuration.
-
-### Basic Diagnostics
-
-```bash
-# Run diagnostics against the default .devcontainer/
-container-superposition doctor
-
-# Specify a custom path
-container-superposition doctor --output ./my-project/.devcontainer
-
-# Point to a manifest file directly (outputPath is derived from the manifest)
-container-superposition doctor --from-manifest ./superposition.json
-
-# Load the output path from the repository project file (superposition.yml)
-container-superposition doctor --from-project
-
-# Run discovery relative to a different repository root
-container-superposition doctor --project-root /path/to/repo
-
-# Machine-readable JSON output
-container-superposition doctor --json
-```
-
-### Auto-Repair with `--fix`
-
-The `--fix` flag runs the full diagnosis and then attempts to automatically repair
-any fixable issues:
-
-```bash
-# Interactive auto-repair (text output)
-container-superposition doctor --fix
-
-# Machine-readable repair output (for CI/scripting)
-container-superposition doctor --fix --json
-```
-
-**Fix run output vocabulary:**
-
-| Outcome                  | Meaning                                              |
-| ------------------------ | ---------------------------------------------------- |
-| `fixed`                  | Tool changed the environment; re-check now passes    |
-| `already compliant`      | No change needed — check already passed              |
-| `skipped`                | Not attempted (prerequisite step failed)             |
-| `requires manual action` | Automation unsafe/unavailable; manual steps provided |
-
-**Fixable issue classes:**
-
-| Issue                                        | Auto-fix condition                                         |
-| -------------------------------------------- | ---------------------------------------------------------- |
-| Stale / legacy `superposition.json` manifest | Always — migrate to current schema                         |
-| Missing or corrupt `devcontainer.json`       | When a valid manifest is present — regenerate              |
-| Unsupported Node.js runtime                  | Only when `nvm`, `fnm`, or `volta` is installed            |
-| Docker daemon not accessible                 | Manual only — platform-specific restart instructions shown |
-
-**Remediation ordering:** Manifest migration always runs before devcontainer regeneration.
-If migration fails, regeneration is skipped and marked as `skipped`.
-
-**Safety:** All file mutations use atomic write (write to `.tmp`, then rename).
-A timestamped backup is created before any manifest is modified.
-
-**Exit codes:**
-
-- `0` — all findings resolved (success or already-compliant)
-- `0` — some findings require manual action (`repaired-with-warnings`)
-- `1` — unresolved failures remain after fix run
-
-### JSON Fix Run Structure
-
-```json
-{
-  "outputPath": "./.devcontainer",
-  "requestedJson": true,
-  "initialFindings": [...],
-  "executions": [
-    {
-      "findingId": "manifest-version",
-      "remediationKey": "manifest-migration",
-      "attempted": true,
-      "outcome": "fixed",
-      "reason": "Manifest migrated to current schema version",
-      "changedFiles": [".devcontainer/superposition.json"],
-      "backupPath": ".devcontainer/superposition.json.backup-2026-03-19-..."
-    }
-  ],
-  "finalFindings": [...],
-  "summary": {
-    "fixed": 1,
-    "alreadyCompliant": 3,
-    "skipped": 0,
-    "requiresManualAction": 0,
-    "total": 4
-  },
-  "exitDisposition": "success"
-}
-```
-
-## Output Structure
-
-### Minimal (plain + language)
-
-```
-.devcontainer/
-└── devcontainer.json
-```
-
-### Typical (compose + language + database)
-
-```
-.devcontainer/
-├── devcontainer.json
-├── docker-compose.yml
-├── docker-compose.postgres.yml
-└── .env.example
-```
-
-### Full (compose + language + database + observability)
-
-```
-.devcontainer/
-├── devcontainer.json
-├── docker-compose.yml                 # Base
-├── docker-compose.postgres.yml        # Database
-├── docker-compose.otel-collector.yml  # Telemetry
-├── docker-compose.jaeger.yml          # Tracing
-├── docker-compose.prometheus.yml      # Metrics
-├── docker-compose.grafana.yml         # Visualization
-├── docker-compose.loki.yml            # Logs
-├── .env.example                       # Merged variables
-├── otel-collector-config.yaml         # Collector config
-├── prometheus.yml                     # Prometheus config
-├── grafana-datasources.yml            # Grafana datasources
-└── loki-config.yaml                   # Loki config
-```
-
-## Environment Variables by Overlay
-
-### Databases
-
-```bash
-# PostgreSQL
-POSTGRES_VERSION=16
-POSTGRES_DB=devdb
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_PORT=5432
-
-# Redis
-REDIS_VERSION=7
-REDIS_PORT=6379
-REDIS_PASSWORD=  # Optional
-```
-
-### Observability
-
-```bash
-# OpenTelemetry Collector
-OTEL_COLLECTOR_VERSION=0.122.1
-
-# Jaeger
-JAEGER_VERSION=1.67.0
-
-# Prometheus
-PROMETHEUS_VERSION=v3.5.0
-
-# Grafana
-GRAFANA_VERSION=11.6.0
-GRAFANA_ADMIN_USER=admin
-GRAFANA_ADMIN_PASSWORD=admin
-
-# Loki
-LOKI_VERSION=3.4.2
-```
-
-## Port Reference
-
-| Port  | Service     | Purpose                 |
-| ----- | ----------- | ----------------------- |
-| 3000  | Grafana     | Visualization dashboard |
-| 3100  | Loki        | Log ingestion API       |
-| 4317  | Jaeger/OTLP | OTLP gRPC receiver      |
-| 4318  | Jaeger/OTLP | OTLP HTTP receiver      |
-| 5000  | .NET        | HTTP endpoint           |
-| 5001  | .NET        | HTTPS endpoint          |
-| 5432  | PostgreSQL  | Database                |
-| 6379  | Redis       | Cache                   |
-| 8000  | MkDocs      | Documentation server    |
-| 8080  | Generic     | Web application         |
-| 8888  | OTLP        | Collector metrics       |
-| 8889  | OTLP        | Prometheus exporter     |
-| 9090  | Prometheus  | Metrics API/UI          |
-| 13133 | OTLP        | Health check            |
-| 16686 | Jaeger      | Tracing UI              |
-
-## Dependencies
-
-### Required for Observability
-
-| Component      | Depends On               |
-| -------------- | ------------------------ |
-| otel-collector | jaeger, prometheus, loki |
-| grafana        | prometheus, loki, jaeger |
-| devcontainer   | All selected services    |
-
-### Standalone Services
-
-These work independently:
-
-- postgres
-- redis
-- jaeger (can accept traces directly)
-- prometheus (can scrape directly)
-- loki (can accept logs directly)
-
-## Migration from Old Templates
-
-| Old Template      | New Equivalent                                                                                                              |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `dotnet`          | `--stack compose --language dotnet`                                                                                         |
-| `node-typescript` | `--stack compose --language nodejs`                                                                                         |
-| `python-mkdocs`   | `--stack plain --language mkdocs`                                                                                           |
-| `fullstack`       | `--stack compose --language nodejs --database postgres+redis --observability otel-collector,jaeger,prometheus,grafana,loki` |
-
-## File Types
-
-| File                      | Behavior                                       |
-| ------------------------- | ---------------------------------------------- |
-| `devcontainer.patch.json` | Merged into devcontainer.json (not copied)     |
-| `.env.example`            | Merged into combined .env.example (not copied) |
-| `docker-compose.yml`      | Copied as `docker-compose.{overlay}.yml`       |
-| Other files               | Copied as-is to output directory               |
-| Directories               | Copied recursively to output directory         |
-
-## Type Definitions
-
-```typescript
-// Base templates
-type Stack = 'plain' | 'compose';
-
-// Languages
-type LanguageOverlay = 'dotnet' | 'nodejs' | 'python' | 'mkdocs';
-
-// Databases
-type Database = 'none' | 'postgres' | 'redis' | 'postgres+redis';
-
-// Observability
-type ObservabilityTool = 'otel-collector' | 'jaeger' | 'prometheus' | 'grafana' | 'loki';
-
-// Cloud tools
-type CloudTool = 'azure-cli' | 'aws-cli' | 'kubectl-helm';
-```
-
-## Helpful Links
-
-- [Architecture](architecture.md) - Deep dive into composition
-- [Dependencies](dependencies.md) - Service dependency management
-- [Creating Overlays](creating-overlays.md) - Overlay development guide
-- [Examples](examples.md) - Usage examples and patterns
-- [Contributing](../../CONTRIBUTING.md) - How to contribute
+## Common commands
+
+| Command                                          | Purpose                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------- |
+| `list`                                           | Discover recommended starts, overlays, and presets.           |
+| `explain <id>`                                   | Inspect an overlay or preset's fit and trade-offs.            |
+| `plan --stack <plain\|compose> --overlays <ids>` | Preview before writing.                                       |
+| `plan --verbose`                                 | Explain dependency resolution and inclusion reasons.          |
+| `plan --diff`                                    | Review planned change against existing generated output.      |
+| `init`                                           | Interactively create/edit shared intent, then write output.   |
+| `init --no-interactive`                          | Write from persisted/project inputs without prompts.          |
+| `regen`                                          | Replay canonical shared project intent.                       |
+| `doctor`                                         | Diagnose project health and project-file drift.               |
+| `adopt --dry-run`                                | Inspect an existing handwritten devcontainer before adoption. |
+| `migrate`                                        | Convert legacy `superposition.json` intent to a project file. |
+
+All human-readable commands accept `--silent`; do not combine it with `--json`.
+
+## Selection notes
+
+- `plain` creates a single-image devcontainer; `compose` supports multi-service
+  overlays.
+- Discover live categories with `list --help`; current categories include
+  `language`, `database`, `messaging`, `observability`, `cloud`, `dev`, and
+  `preset`.
+- Messaging overlays are `nats`, `rabbitmq`, and `redpanda`; see
+  [Messaging quick start](messaging-quick-start.md).
+- Use `explain <id>` rather than relying on a static overlay table for current
+  compatibility, ports, dependencies, parameters, and conflicts.
+
+## Local configuration and Git
+
+Use `superposition.local.yml` for untracked machine-specific mounts,
+environment values, editor settings, or port overrides. It enriches generated
+output but is not shared replay authority. Choose whether `.devcontainer/` is
+committed or ignored as a team policy; shared changes always belong in
+`superposition.yml`.
+
+See [Authoring `superposition.yml`](superposition-yml.md),
+[Examples](examples.md), and [Team workflow](team-workflow.md) for details.

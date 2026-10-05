@@ -144,6 +144,17 @@ def step_then_command_stdout_should_contain(context, expected_text):
         )
 
 
+@then('the command stdout should not contain "{unexpected_text}"')
+def step_then_command_stdout_should_not_contain(context, unexpected_text):
+    result = _require_command_result(context)
+    if unexpected_text in result.stdout:
+        raise AssertionError(
+            _command_failure_message(
+                result, f'Expected command stdout not to contain {unexpected_text!r}.'
+            )
+        )
+
+
 @then('the command stderr should contain "{expected_text}"')
 def step_then_command_stderr_should_contain(context, expected_text):
     result = _require_command_result(context)

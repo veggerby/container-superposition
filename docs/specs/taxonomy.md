@@ -157,7 +157,7 @@ _No specs yet._
 | [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md)                 | Variable Expansion and Substitution Consolidation                       | Final       |
 | [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                                 | Ad-hoc Project Parameters                                               | Final       |
 | [027-devcontainer-gitignore-content](027-devcontainer-gitignore-content/spec.md)                     | devcontainerGitignore — Drop `!.gitignore` from Generated Content       | Final       |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)         | Discovery Surface and Canonical Docs Alignment                          | Draft       |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)         | Discovery Surface and Canonical Docs Alignment                          | Implemented |
 | [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)       | Preset-Led Onboarding for Common Jobs-to-be-Done                        | Draft       |
 | [032-init-and-regen-guided-flows](032-init-and-regen-guided-flows/spec.md)                           | Init and Regen Guided Flows                                             | Final       |
 | [033-cli-discovery-preview-and-fingerprint](033-cli-discovery-preview-and-fingerprint/spec.md)       | CLI Discovery, Preview, and Fingerprint Commands                        | Final       |
@@ -196,7 +196,7 @@ _No specs yet._
 
 | Spec                                                                                                                     | Title                                                                                      | Status      |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ----------- |
-| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)                             | Discovery Surface and Canonical Docs Alignment                                             | Draft       |
+| [030-discovery-surface-and-docs-alignment](030-discovery-surface-and-docs-alignment/spec.md)                             | Discovery Surface and Canonical Docs Alignment                                             | Implemented |
 | [031-preset-led-onboarding-for-common-jobs](031-preset-led-onboarding-for-common-jobs/spec.md)                           | Preset-Led Onboarding for Common Jobs-to-be-Done                                           | Draft       |
 | [039-project-local-contributor-skills-initiative](039-project-local-contributor-skills-initiative/spec.md)               | Project-Local Contributor Skills Initiative                                                | Final       |
 | [040-overlay-solution-discovery-and-write-loop](040-overlay-solution-discovery-and-write-loop/spec.md)                   | Overlay Solution Discovery and Write Loop                                                  | Final       |

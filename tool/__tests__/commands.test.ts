@@ -88,6 +88,15 @@ describe('Command Tests', () => {
             expect(output).not.toContain('postgres — PostgreSQL database');
         });
 
+        it('renders human-readable port metadata in filtered results', async () => {
+            await listCommand(overlaysConfig, { category: 'database' });
+            const output = consoleLogSpy.mock.calls.join('\n');
+            expect(output).toContain(
+                'postgres — PostgreSQL 16 database [database, sql, postgres] | Ports: 5432/tcp — postgres — PostgreSQL database connection'
+            );
+            expect(output).not.toContain('[object Object]');
+        });
+
         it('outputs semantic JSON model', async () => {
             await listCommand(overlaysConfig, { json: true });
             const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0]);
