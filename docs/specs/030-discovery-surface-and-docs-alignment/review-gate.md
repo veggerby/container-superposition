@@ -406,16 +406,16 @@ No open high-, medium-, or low-severity findings were identified. Recurring-find
 
 ## Acceptance-criteria classification
 
-| Criterion | Status | Independent evidence |
-| --- | --- | --- |
-| AC-1 | MET | Live default `list` output includes the `messaging` category and NATS, RabbitMQ, and Redpanda; unit/full validation passes. |
-| AC-2 | MET | Live filtered messaging output renders readable numeric and structured `Ports:` values and contains no `[object Object]`; focused Behave and unit/full validation pass. |
-| AC-3 | MET | Full review of the six named guides confirms project-file-first, flat-overlay, preview-before-write guidance; retained manifest mentions are compatibility, migration, or generated-receipt context. |
-| AC-4 | MET | Primary examples use `superposition.yml` and flat `overlays:`. Expanded-root stale-token review found only explicitly historical/prohibitive category/index references. |
-| AC-5 | MET | Named first-run guides surface `plan`, `plan --verbose`, and `plan --diff` before `init`/`regen`. |
-| AC-6 | MET | The final preset prose is internally consistent and its exact command succeeds; the expanded inventory and targeted scans expose no unlabeled current stale flag, `_serviceOrder`, or operative legacy-index recommendation. |
-| AC-7 | MET | Runtime changes remain confined to discovery rendering/help wording; no `init`, `regen`, or `plan` generation semantics changed, and the full suite passes. |
-| AC-8 | MET | Command-level and Behave regressions assert readable filtered port metadata and absence of object stringification; current-tree checks pass. |
+| Criterion | Status | Independent evidence                                                                                                                                                                                                         |
+| --------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1      | MET    | Live default `list` output includes the `messaging` category and NATS, RabbitMQ, and Redpanda; unit/full validation passes.                                                                                                  |
+| AC-2      | MET    | Live filtered messaging output renders readable numeric and structured `Ports:` values and contains no `[object Object]`; focused Behave and unit/full validation pass.                                                      |
+| AC-3      | MET    | Full review of the six named guides confirms project-file-first, flat-overlay, preview-before-write guidance; retained manifest mentions are compatibility, migration, or generated-receipt context.                         |
+| AC-4      | MET    | Primary examples use `superposition.yml` and flat `overlays:`. Expanded-root stale-token review found only explicitly historical/prohibitive category/index references.                                                      |
+| AC-5      | MET    | Named first-run guides surface `plan`, `plan --verbose`, and `plan --diff` before `init`/`regen`.                                                                                                                            |
+| AC-6      | MET    | The final preset prose is internally consistent and its exact command succeeds; the expanded inventory and targeted scans expose no unlabeled current stale flag, `_serviceOrder`, or operative legacy-index recommendation. |
+| AC-7      | MET    | Runtime changes remain confined to discovery rendering/help wording; no `init`, `regen`, or `plan` generation semantics changed, and the full suite passes.                                                                  |
+| AC-8      | MET    | Command-level and Behave regressions assert readable filtered port metadata and absence of object stringification; current-tree checks pass.                                                                                 |
 
 ## Validation/context manifest gap analysis
 
@@ -423,15 +423,15 @@ The supplied expected fingerprint was reproduced before review. The latest imple
 
 ### Independently executed against fingerprint `629c5e96…`
 
-| Check | Result | Evidence / scope |
-| --- | --- | --- |
-| Revision, status, fingerprint, 43-path inventory, `git diff --check HEAD` | PASSED | Expected revision/fingerprint reproduced; no whitespace errors. |
-| Exact corrected preset preview | PASSED | `npm run init -- plan --stack compose --overlays python,postgres,redis,otel-collector,prometheus,grafana,loki` exited 0 and resolved the documented selection. |
-| Full preset prose and changelog section review | PASSED | YAML and command selections match; `[Unreleased]` retains both candidate entries; released `0.1.13` contains neither duplicate. |
-| Live default and filtered messaging discovery | PASSED | Default output includes messaging; filtered output has readable ports and no `[object Object]`. |
-| Targeted current-guidance scans and six-guide preview-order review | PASSED | Remaining category/index/internal signals are historical, prohibitive, or authority text rather than current stale workflow guidance. |
-| `task validate` | PASSED | `lint:fix`, lint/typecheck, and Vitest passed: 54 files passed, 1 skipped; 806 tests passed, 20 normally gated integration tests skipped. Fingerprint remained unchanged. |
-| `npm run test:bdd -- tests/behave/features/core-tooling.feature` | PASSED | 36 scenarios and 206 steps passed, including filtered-port rendering and negative object-stringification coverage. |
+| Check                                                                     | Result | Evidence / scope                                                                                                                                                          |
+| ------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Revision, status, fingerprint, 43-path inventory, `git diff --check HEAD` | PASSED | Expected revision/fingerprint reproduced; no whitespace errors.                                                                                                           |
+| Exact corrected preset preview                                            | PASSED | `npm run init -- plan --stack compose --overlays python,postgres,redis,otel-collector,prometheus,grafana,loki` exited 0 and resolved the documented selection.            |
+| Full preset prose and changelog section review                            | PASSED | YAML and command selections match; `[Unreleased]` retains both candidate entries; released `0.1.13` contains neither duplicate.                                           |
+| Live default and filtered messaging discovery                             | PASSED | Default output includes messaging; filtered output has readable ports and no `[object Object]`.                                                                           |
+| Targeted current-guidance scans and six-guide preview-order review        | PASSED | Remaining category/index/internal signals are historical, prohibitive, or authority text rather than current stale workflow guidance.                                     |
+| `task validate`                                                           | PASSED | `lint:fix`, lint/typecheck, and Vitest passed: 54 files passed, 1 skipped; 806 tests passed, 20 normally gated integration tests skipped. Fingerprint remained unchanged. |
+| `npm run test:bdd -- tests/behave/features/core-tooling.feature`          | PASSED | 36 scenarios and 206 steps passed, including filtered-port rendering and negative object-stringification coverage.                                                        |
 
 ### Reused or intentionally skipped
 
