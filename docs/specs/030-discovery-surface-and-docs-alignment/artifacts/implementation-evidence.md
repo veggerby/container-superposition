@@ -1,5 +1,58 @@
 # Correction-cycle validation evidence
 
+## 2026-10-05 authorized completion batch (latest implementer self-check)
+
+- User authorization: finish Spec 030 from the preserved working tree, including
+  guidance inventory, filesystem contract, team workflow, and all remaining
+  review findings. Earlier stopped cycles below are retained as historical
+  evidence, not current execution blockers after this explicit authorization.
+- Revision: `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`;
+  intentionally non-clean candidate preserved. Executor: coding implementer.
+  Environment: Node v24.21.0, npm 11.19.0, Task 3.45.4.
+- An independent pre-edit inventory review reproduced the historical 260/151/50
+  scan, identified `CONTRIBUTING.md` as an additional current conflict, and
+  confirmed the two root-receipt corrections. The amended inventory records
+  the initial 13 guidance-file boundary and the fourteenth `docs/presets.md`
+  correction after independent review. No CLI source, overlay manifests,
+  schema types, or generated output behavior changed in this correction batch.
+- `npm run test:bdd -- tests/behave/features/core-tooling.feature`: exit 0,
+  36 scenarios / 206 steps passed. The candidate already includes the Behave
+  rendering scenario; the additional documentation-only correction does not
+  require a new scenario.
+- `npx vitest run tool/__tests__/commands.test.ts tool/__tests__/ux-renderers.test.ts`:
+  exit 0, 94 tests passed.
+- `task validate`: exit 0, lint:fix, lint/typecheck, 806 tests passed;
+  20 normally gated integration tests skipped.
+- `npm run docs:generate`, `npm run schema:generate`: exit 0, generated files
+  unchanged; executed because overlay README guidance changed. `npm run init -- doctor`:
+  exit 0, healthy (21 checks, 0 blocking, 0 reproducibility errors).
+- Seven distinct safe `npm run init -- plan --stack ... --overlays ...`
+  selections were executed against live source CLI, including the observability
+  stack with and without Python demo, plain Node.js, Python/Jupyter, LocalStack,
+  PostgreSQL, and the final compose template Python selection. The initially
+  proposed compose example with Node.js and Grafana returned a conflict (exit 1)
+  and was replaced by the verified Python selection; no invalid example remains
+  in that template. Help confirms the `--port-offset` flag. Changed write
+  examples were checked against help but not executed against the root project.
+- `git diff --check HEAD`: exit 0. Source/compiled build, `regen`, and browser
+  checks not selected because the batch only corrects guidance, not generator
+  behavior; doctor plus regenerated overlay reference/schema cover the overlay
+  README boundary. No manual generated artifact edit was made.
+- AC-1/2/8: focused unit and BDD coverage for default categories and filtered
+  port metadata. AC-3/4/5/6: amended finite inventory, fourteen corrected
+  surfaces, named guides, and executable preview examples. AC-7: no changes to
+  `init`, `regen`, or `plan` semantics in this correction batch.
+- First independent final-tree review requested two corrections: a conflicting
+  `docs/presets.md` runnable example and a duplicate changelog addition under
+  released `0.1.13`. Both were corrected: the replacement preset selection
+  `python,postgres,redis,otel-collector,prometheus,grafana,loki` ran through
+  live `plan` with exit 0 and no conflicts; only the added released entry was
+  removed while `[Unreleased]` retained the current candidate description.
+- Review status: **SELF_CHECK** on these corrections; independent re-review
+  of the final tree is required before claiming completion.
+
+---
+
 - **Executor:** coding implementer
 - **Correction baseline/tree identity:** `07bb3e8bdc77675df563632a49532081ccd9f1376c833470fa00b93d194415de`
 - **Source revision:** `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`
@@ -108,3 +161,95 @@
 - **Execution status:** ACTIVE
 - **Review mode / status:** `SELF_CHECK` / `SELF_CHECKED`; comprehensive `INDEPENDENT` review remains required.
 - **Residual risk:** The CLI still emits a legacy `suggestedCommand` value in its JSON/analysis model, but this authorized documentation-only scope does not change CLI behavior. The corrected end-user documentation deliberately does not present it as recommended workflow; independently review this boundary against AC-6.
+
+---
+
+# Maintainer-authorized R5–R7 correction-batch evidence
+
+- **Executor / review mode:** coding implementer; `SELF_CHECK` only.
+- **Source revision:** `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`.
+- **Source-tree condition:** intentionally non-clean tree containing prior Spec 030 changes; those changes were preserved. The final tracked-tree fingerprint and timestamp are reported in the implementation handoff. Spec-local artifacts are intentionally excluded from the provenance fingerprint convention.
+- **Scope:** documentation/workflow-artifact correction only. No CLI behavior change was made for R5–R7.
+
+## Validation surface executed
+
+| Surface                  | Check / method                                                                                                                                 | Result                                                                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Live example contract    | `npm run init -- plan --stack compose --overlays nodejs,postgres` plus `--verbose` and `--diff`; root dogfooding plain selection plus `--diff` | PASSED — each exit 0                                                                                                             |
+| Command contract         | `npm run init -- init --help`; `regen --help`; `adopt --help`; `migrate --help`; `npm run init -- list --category preset`                      | PASSED — options and current metadata discovery verified                                                                         |
+| Existing CLI regression  | `npx vitest run tool/__tests__/commands.test.ts tool/__tests__/ux-renderers.test.ts`                                                           | PASSED — 94 tests                                                                                                                |
+| Existing BDD regression  | `npm run test:bdd -- tests/behave/features/core-tooling.feature`                                                                               | PASSED — 36 scenarios / 206 steps                                                                                                |
+| Doctor                   | `npm run init -- doctor`                                                                                                                       | PASSED — no reproducibility error                                                                                                |
+| Required repository gate | `task validate`                                                                                                                                | PASSED — 806 tests passed; 20 normally gated integration tests skipped                                                           |
+| Documentation hygiene    | focused R5/R6 token scan, `git diff --check`                                                                                                   | PASSED — all retained matches are valid flat-overlay input, compatibility/audit wording, or an explicit legacy-index prohibition |
+
+## R5–R7 dispositions and acceptance evidence
+
+| Finding / criterion       | Evidence                                                                                                                                                                  | Status           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `SPEC030-R5` / AC-6       | `docs/adopt.md` and dogfooding preview commands now supply live `--stack` and `--overlays` values; runtime plan variants exit 0.                                          | MET (SELF_CHECK) |
+| `SPEC030-R6` / AC-4, AC-6 | `custom-patches`, filesystem, overlay-authoring, preset, and deployment-target guides now lead with `superposition.yml` / flat `overlays:` and label manifests correctly. | MET (SELF_CHECK) |
+| `SPEC030-R7`              | Spec notes and changelog identify the actual candidate's list rendering, command-test, and Behave work.                                                                   | MET (SELF_CHECK) |
+| AC-1, AC-2, AC-8          | Existing candidate tests and focused BDD continue to cover messaging category presence and readable filtered port rendering.                                              | MET (SELF_CHECK) |
+| AC-3, AC-5, AC-7          | Named guides plus corrected first-party surfaces retain canonical preview-first guidance; no init/regen/plan semantics changed in this batch.                             | MET (SELF_CHECK) |
+
+## BDD justification
+
+No Behave scenario changed for R5–R7 because these corrections change Markdown and workflow records, not observable command behavior. The candidate's existing user-visible filtered-list rendering correction already adds Behave coverage; the focused feature was rerun successfully. Live help/runtime verification covers corrected executable documentation examples.
+
+## Skipped checks and residual risk
+
+- `npm run build`, generated docs/schema, and `regen` were not selected: no source, overlay, schema, or generated-output behavior changed in R5–R7. Residual risk is documentation accuracy, mitigated by live command verification and independent review.
+- Independent review/integration are not performed by this implementer. Existing review verdict remains `CHANGES_REQUESTED` until a reviewer rechecks this exact final tree.
+
+## Validation claim
+
+- **Validation status:** PASS (implementer self-check)
+- **Execution status:** ACTIVE
+- **Risk decision:** PENDING_ACCEPTANCE by independent review
+- **Handoff:** ready for the requested independent gate; not integrated.
+
+---
+
+# Authorized complete R6/R7 correction evidence
+
+- **Executor / review mode:** coding implementer; `SELF_CHECK` only.
+- **Source revision:** `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`.
+- **Validation timestamp:** `2026-10-05T07:08:39Z`.
+- **Environment:** Node `v24.21.0`, npm `11.19.0`, Task `3.45.4`.
+- **Tracked working-tree fingerprint:** `e93254c072cd4762f93ffff49a288045fc2b010d7175772a5f50de4a70017cb9` from `git diff --no-ext-diff HEAD | sha256sum`; the intentionally unclean tree and spec-local artifacts are preserved.
+- **Scope:** all explicitly authorized first-party R6 docs/examples, target-preview wording, receipt path, and R7 changelog placement. No CLI behavior changed.
+
+## Finding and acceptance evidence
+
+| Finding / criterion       | Evidence                                                                                                                                                                                                                                                                                     | Status             |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `SPEC030-R6` / AC-4, AC-6 | Messaging, minimal/editor, workflow, custom-patch, and custom-patch-example guidance now lead with project files and flat overlays; receipt inspection uses `.devcontainer/superposition.json`. Deployment-target guidance explicitly states that `plan` cannot accept or preview `target:`. | MET (`SELF_CHECK`) |
+| `SPEC030-R7`              | Current canonical-guides and filtered-list-rendering entries are under `[Unreleased]`; `0.1.13` released history is preserved.                                                                                                                                                               | MET (`SELF_CHECK`) |
+| AC-1, AC-2, AC-8          | Existing candidate command and Behave coverage remains unchanged; full validation passed.                                                                                                                                                                                                    | MET (`SELF_CHECK`) |
+| AC-3, AC-5, AC-7          | Existing named-guide alignment remains intact; this pass changes docs/workflow records only.                                                                                                                                                                                                 | MET (`SELF_CHECK`) |
+
+## Checks run
+
+| Check                    | Command or method                                                                     | Result                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Live command contract    | `npm run init -- plan --help`, `init --help`, and `regen --help`                      | PASSED — confirmed plan has no target input and current init/regen contracts.                                       |
+| Corrected examples       | Every changed `plan --stack … --overlays …` command, including `--diff`               | PASSED — all exit 0.                                                                                                |
+| Documentation scan       | Targeted stale category-flag, manifest-replay, receipt-path, and target-preview scans | PASSED — no current stale token remains in the corrected files; receipt path is `.devcontainer/superposition.json`. |
+| Doctor                   | `npm run init -- doctor`                                                              | PASSED — healthy; no reproducibility error.                                                                         |
+| Required repository gate | `task validate`                                                                       | PASSED — 806 tests passed; 20 integration tests skipped by the normal gate.                                         |
+| Diff hygiene             | `git diff --check`                                                                    | PASSED.                                                                                                             |
+
+## Checks not run
+
+| Check                                                                       | Reason                                                                                                                              | Residual risk                                                                           |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `npm run build`, `task validate:generated`, schema/docs generation, `regen` | No source, overlay, schema, generated-output, or compilation change.                                                                | Documentation accuracy is mitigated by live CLI checks; compiled behavior is unchanged. |
+| Behave edit/run                                                             | Documentation and workflow-record correction only; existing candidate Behave coverage is for the unchanged list rendering behavior. | Prose remains subject to independent content review.                                    |
+
+## Validation claim
+
+- **Validation status:** PASS (`SELF_CHECK`)
+- **Execution status:** ACTIVE
+- **Review mode / status:** `INDEPENDENT` requested; existing independent verdict remains `CHANGES_REQUESTED` until re-review of fingerprint `e93254c0…`.
+- **Risk decision:** PENDING_ACCEPTANCE by independent review; integration is not claimed.

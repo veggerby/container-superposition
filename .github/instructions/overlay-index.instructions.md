@@ -32,9 +32,9 @@ Each overlay's `overlay.yml` file is the single source of truth for:
 - ✅ Easier to maintain (single edit point)
 - ✅ No "register in index.yml" step
 
-## File Structure
+## Historical central-index format (migration reference only)
 
-The index.yml file is organized into sections by overlay category:
+The following central-index structure and validation procedure document the previous approach. Do not edit or validate `overlays/index.yml` for new overlays; use each overlay's `overlay.yml` instead. The index.yml file was organized into sections by overlay category:
 
 ```yaml
 # Overlay Metadata
@@ -691,7 +691,8 @@ language_overlays:
 
 10. **Validate YAML syntax:**
     ```bash
-    yamllint overlays/index.yml
+    # Current authoring: validate the overlay's own manifest
+    yamllint overlays/<id>/overlay.yml
     ```
 
 ## Example: Adding PostgreSQL Overlay
@@ -803,7 +804,9 @@ dev_tool_overlays:
 5. **Test the overlay:**
     ```bash
     npm run build
-    npm run init -- --stack compose --language my-overlay
+    npm run init -- plan --stack compose --overlays my-overlay
+    # Add my-overlay to superposition.yml overlays: before writing
+    npm run init -- init --no-interactive
     ```
 
 **No registration step needed!** The overlay loader automatically discovers overlay.yml files.
@@ -979,7 +982,9 @@ After creating or modifying an overlay.yml manifest:
     npm run init
 
     # Test with CLI
-    npm run init -- --stack compose --language [overlay-id]
+    npm run init -- plan --stack compose --overlays <overlay-id>
+    # Add the selected ID to superposition.yml overlays: before writing
+    npm run init -- init --no-interactive
     ```
 
 7. **Run Tests:**

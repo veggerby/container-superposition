@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **First-class VS Code extension IDs** — `superposition.yml`, `superposition.local.yml`, and eligible global defaults now support `vscodeExtensions` lists that append additional VS Code extension IDs to generated `devcontainer.json` without requiring raw `customizations.devcontainerPatch` snippets.
 
+### Changed
+
+- **Canonical discovery and workflow guides** — first-party guides now teach project-file-first flat `overlays:` selection and the discover → inspect → preview → write path; manifest references remain explicitly compatibility, audit, migration, or command-inspection context.
+
+### Fixed
+
+- **Filtered overlay discovery port rendering** — category-filtered `list` output now renders structured port metadata as readable port tokens instead of `[object Object]`; command-level and Behave coverage protect the rendering contract
+
 ## [0.1.13] - 2026-07-27
 
 ### Added
@@ -51,8 +59,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stable prerelease npm tag in publish automation** — the shared `prerelease` tag now publishes only from publish-worthy changes merged to `main`, with each staged build published directly in the OIDC-backed npm command. PR package publishing is explicit manual dispatch from the trusted `main` workflow only, verifies the maintainer-supplied immutable PR head SHA, and uses the PR-scoped `pr-{number}` tag; it never updates `prerelease` or `latest`.
 
 ### Changed
-
-- **Canonical discovery and workflow guides** — `README.md`, `tool/README.md`, `docs/quick-reference.md`, `docs/examples.md`, `docs/team-workflow.md`, and `docs/messaging-quick-start.md` now teach project-file-first flat `overlays:` selection and the discover → inspect → preview → write path; manifest references remain explicitly compatibility/migration-only.
 
 - **Overlay catalog audit remediation** — compose overlays now rely on generator-owned final network naming, use `overlay.yml serviceOrder` as the documented startup-order source of truth, pin audited image defaults away from moving `latest` aliases (with the documented `comfyui` flavor exception), keep `.shared` inventory truthful, and record explicit bespoke-vs-reuse dispositions for the current tool/runtime decision set
 

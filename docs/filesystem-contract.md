@@ -11,6 +11,7 @@ your-project/
 │   ├── docker-compose.yml       # Services (compose stack only)
 │   ├── .env.example             # Optional environment variable templates
 │   ├── ports.json               # Port documentation and connection strings
+│   ├── superposition.json       # Generated compatibility/audit receipt (default output path)
 │   ├── CODESPACES.md            # Codespaces setup guidance (--target codespaces only)
 │   ├── GITPOD.md                # Gitpod setup guidance (--target gitpod only)
 │   ├── DEVPOD.md                # DevPod setup guidance (--target devpod only)
@@ -20,7 +21,7 @@ your-project/
 │   └── custom/                  # Your customizations (preserved across regen)
 │       ├── devcontainer.patch.json
 │       └── docker-compose.patch.yml
-├── superposition.json           # Manifest file (enables regeneration)
+├── superposition.yml            # Canonical shared generation intent
 ├── superposition.local.yml      # Optional local config for managed repos (gitignored, not shared)
 ├── .container-superposition/    # Local amendment input/state for non-adopting repos (amend only)
 ├── .gitpod.yml                  # Gitpod workspace config (--target gitpod only)
@@ -50,8 +51,8 @@ your-project/
 
 ## Files You Should Commit
 
-- `superposition.yml` or `.superposition.yml`
-- `superposition.json`
+- `superposition.yml` or `.superposition.yml` — canonical shared intent for `init --no-interactive`, `regen`, and remediation
+- `.devcontainer/superposition.json` only when your repository needs the generated compatibility/audit receipt (under the configured output directory); do not hand-edit it as steady-state configuration. Specialized conversion flows such as `adopt` may also write a root receipt.
 - `.devcontainer/` only when your repository intentionally commits generated output
 - `.devcontainer/custom/` (project-specific patches)
 - `.devcontainer/.env.example` when `composeEnvFiles: true`

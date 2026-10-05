@@ -59,8 +59,8 @@ npx container-superposition init --from-manifest ./superposition.json
 Useful variants:
 
 ```bash
-# Write only the project file
-npx container-superposition init --stack compose --language nodejs --no-scaffold
+# Write only the project file described by superposition.yml
+npx container-superposition init --no-interactive --no-scaffold
 
 # Resolve persisted input relative to another repository root
 npx container-superposition init --from-project --project-root ../my-project

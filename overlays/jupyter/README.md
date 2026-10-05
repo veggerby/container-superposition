@@ -70,10 +70,22 @@ JUPYTER_TOKEN=your-secure-token
 
 ### Port Configuration
 
-The default port (8888) can be changed via the `--port-offset` option:
+Set the offset in canonical shared intent after discovering and inspecting the overlays:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - python
+    - jupyter
+portOffset: 100
+```
+
+Preview the offset before writing output:
 
 ```bash
-npm run init -- --port-offset 100 --stack compose --language python,jupyter
+npm run init -- plan --stack compose --overlays python,jupyter --port-offset 100
+npm run init -- init --no-interactive
 # Jupyter will be on port 8988
 ```
 

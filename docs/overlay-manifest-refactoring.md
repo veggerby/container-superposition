@@ -146,14 +146,16 @@ ports: []
 
 ```bash
 npm run build
-npm run init -- --stack compose --language my-overlay
+npm run init -- plan --stack compose --overlays my-overlay
+# After adding my-overlay to the flat overlays: list in superposition.yml:
+npm run init -- init --no-interactive
 ```
 
 **No registration step needed!** The loader automatically discovers the new overlay.
 
 ## Migration from Central index.yml
 
-For repositories still using the centralized `overlays/index.yml`:
+Legacy / migration only: for historical repositories that used the centralized `overlays/index.yml` (do not add entries to it in this repository):
 
 ### Using the Migration Tool
 

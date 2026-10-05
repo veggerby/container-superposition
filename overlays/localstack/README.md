@@ -57,10 +57,21 @@ Set `LOCALSTACK_SERVICES` to enable specific services or use `LOCALSTACK_SERVICE
 
 ### Port Configuration
 
-The default ports (4566, 4571) can be changed via the `--port-offset` option when initializing the devcontainer:
+Set the offset in canonical shared intent after discovering and inspecting the overlay:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - localstack
+portOffset: 100
+```
+
+Preview the offset before writing output:
 
 ```bash
-npm run init -- --port-offset 100 --stack compose --cloud localstack
+npm run init -- plan --stack compose --overlays localstack --port-offset 100
+npm run init -- init --no-interactive
 # LocalStack Edge will be on port 4666, S3 on port 4671
 ```
 

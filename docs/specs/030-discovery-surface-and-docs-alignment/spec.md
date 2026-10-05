@@ -165,23 +165,43 @@ Reason: UX contract and scope boundaries now explicit; no further architecture p
 
 ## Implementation Notes
 
-- **2026-10-02:** Completed all six named first-party documentation surfaces:
-  `README.md`, `tool/README.md`, `docs/quick-reference.md`, `docs/examples.md`,
-  `docs/team-workflow.md`, and `docs/messaging-quick-start.md`. They now use
-  project-file-first flat `overlays:` examples, order discovery (`list`) and
-  inspection (`explain`) before explicit `plan`, `plan --verbose`, and `plan --diff`
-  previews, then `init`/`regen` writes. Retained `superposition.json` and
-  category-field material is explicitly compatibility, migration, or
-  maintainer/API-only context.
-- Previously shipped CLI work remains unchanged: default discovery includes
-  `messaging`, and human-readable rich port output avoids `[object Object]`.
-- No Behave scenario was added because this remainder changes explanatory Markdown
-  and workflow artifacts only, not CLI behavior. Existing
-  `tests/behave/features/core-tooling.feature` covers discovery and preview/replay
-  command workflows; it was rerun with focused command/UX Vitest coverage.
-- Validation evidence is recorded in
+- **2026-10-02:** This uncommitted Spec 030 candidate includes both CLI and
+  documentation work. `tool/commands/list.ts` and `tool/cli/args.ts` make default
+  discovery include `messaging` and render structured category-filtered port metadata
+  as readable values rather than `[object Object]`. `tool/__tests__/commands.test.ts`,
+  `tests/behave/features/core-tooling.feature`, and
+  `tests/behave/steps/generation_steps.py` cover that user-visible rendering contract.
+- The six named guides (`README.md`, `tool/README.md`, `docs/quick-reference.md`,
+  `docs/examples.md`, `docs/team-workflow.md`, and `docs/messaging-quick-start.md`)
+  and the correction-batch guides (`docs/adopt.md`, `docs/custom-patches.md`,
+  `docs/filesystem-contract.md`, `docs/creating-overlays.md`, `docs/presets.md`, and
+  `docs/deployment-targets.md`) teach project-file-first flat `overlays:` selection
+  and discover → inspect → preview → write. `superposition.json` is retained only as
+  a generated compatibility/audit receipt, migration input, or command-specific
+  inspection surface.
+- **R5–R7 correction batch:** preview examples now include the required live
+  `--stack` and `--overlays` selection input; preset metadata guidance no longer
+  directs authors to `overlays/index.yml`; and the changelog records the filtered-list
+  rendering correction. No `init`, `regen`, or `plan` generation semantics changed.
+- Behave coverage was added for the list-rendering behavior in this candidate and is
+  rerun for the correction batch. No new Behave scenario is needed for the Markdown
+  corrections because they do not alter observable CLI behavior; live help/runtime
+  checks validate each executable example.
+- Validation and correction dispositions are recorded in
   [`artifacts/implementation-evidence.md`](artifacts/implementation-evidence.md).
-- **Plan deviation:** Initial verification incorrectly treated four named guides as
-  already aligned. Their stale guidance was completed in this route; no CLI/source,
-  test, overlay, schema, or generated-output files changed. QA-owned status/feedback
-  fields were not added or altered.
+  The intentionally non-clean tree remains on baseline `12f3dd65f1b56258a834ff5a946c26d852fbf8b7`;
+  this status is implementer-owned only and does not claim clean baseline, QA finality,
+  or independent approval.
+- **2026-10-05 completion correction:** The expanded guidance inventory now includes
+  root contributor guides, templates, overlay READMEs, and the two previously
+  misclassified root-receipt diagrams. Thirteen current guidance files were
+  corrected in the authorized batch (the inventory's original ten,
+  `CONTRIBUTING.md`, `docs/filesystem-contract.md`, and `docs/team-workflow.md`);
+  an independent review then found and prompted a fourteenth guide correction
+  in `docs/presets.md` plus removal of a duplicate released changelog entry.
+  Normal generation
+  places the receipt at `.devcontainer/superposition.json` by default; `adopt`
+  can also write a root receipt. The named guides, source/tests, and changelog
+  remain part of the same intentionally non-clean candidate. Evidence and the
+  independent final-tree verdict are recorded in the spec-local artifacts;
+  this note alone does not claim QA approval.

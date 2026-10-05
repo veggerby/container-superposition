@@ -308,8 +308,9 @@ Build and test your overlay:
 
 ```bash
 npm run build
-npm run init -- --stack compose --language my-feature
-# Or specify category: --database my-feature, --observability my-feature, etc.
+# Add my-feature to the flat overlays: list in superposition.yml, with stack: compose
+npm run init -- plan --stack compose --overlays my-feature
+npm run init -- init --no-interactive
 ```
 
 Verify the generated `.devcontainer/` configuration works correctly.
@@ -449,7 +450,9 @@ npm run init
 ### Test Non-Interactive Mode
 
 ```bash
-npm run init -- --stack compose --language nodejs --database postgres --no-interactive
+# In a disposable project with superposition.yml containing stack: compose and overlays: [nodejs, postgres]:
+npm run init -- plan --stack compose --overlays nodejs,postgres
+npm run init -- init --no-interactive
 ```
 
 ### Verify Output

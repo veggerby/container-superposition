@@ -9,8 +9,10 @@ artifacts separate:
   untracked.
 - **`.devcontainer/`** — generated output. Teams choose whether to commit it,
   but must make that policy explicit.
-- **`superposition.json`** — generated compatibility and audit receipt. It is
-  not the steady-state team source of truth.
+- **`.devcontainer/superposition.json`** — generated compatibility and audit
+  receipt at the default output path (or under a configured output directory).
+  It is not the steady-state team source of truth. `adopt` can also write a root
+  receipt as part of conversion.
 
 The safe team workflow is **discover → inspect → preview → write**:
 
@@ -26,9 +28,9 @@ The safe team workflow is **discover → inspect → preview → write**:
 my-project/
 ├── superposition.yml         # Committed: shared generation intent
 ├── superposition.local.yml   # Untracked: one developer's enrichment
-├── superposition.json        # Generated compatibility/audit receipt
 ├── .gitignore
 ├── .devcontainer/            # Generated; commit policy is explicit
+│   ├── superposition.json    # Generated compatibility/audit receipt
 │   ├── devcontainer.json
 │   ├── docker-compose.yml    # compose projects
 │   └── custom/               # preserved project-specific escape hatches
@@ -264,8 +266,8 @@ team automation. See the [Adopt Command guide](adopt.md).
 
 ## Legacy / migration only: manifest-first repositories
 
-A repository that has only `superposition.json` should migrate once rather than
-continue hand-editing or committing the manifest as authority:
+A repository that has only a legacy root `superposition.json` should migrate
+once rather than continue hand-editing or committing the manifest as authority:
 
 ```bash
 # Convert the compatibility receipt to canonical project intent.

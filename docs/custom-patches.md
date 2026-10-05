@@ -12,10 +12,23 @@ When you regenerate a devcontainer (e.g., to add a new overlay), all manual chan
 
 ## Quick Start
 
-### 1. Generate Initial Devcontainer
+### 1. Author Shared Intent and Generate
+
+Create the team-owned project file with the flat overlay selection:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
+```
+
+Preview that explicit selection before writing, then generate from the project file:
 
 ```bash
-npm run init -- --stack compose --language nodejs --database postgres
+npm run init -- plan --stack compose --overlays nodejs,postgres
+npm run init -- init --no-interactive
 ```
 
 ### 2. Add Custom Patches
@@ -241,7 +254,7 @@ The `.devcontainer/custom/` directory is:
 
 - ✅ **Preserved** during regeneration (never deleted)
 - ✅ **Automatically merged** into generated files
-- ✅ **Tracked** in `superposition.json` manifest
+- ✅ **Recorded** in the generated `superposition.json` compatibility/audit receipt
 
 ## Use Cases
 
@@ -318,14 +331,23 @@ services:
 
 ### Initial Generation
 
-```bash
-# 1. Generate devcontainer
-npm run init -- --stack compose --language nodejs --database postgres
+```yaml
+# 1. Commit shared intent in superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
+```
 
-# 2. Test the generated devcontainer
+```bash
+# 2. Preview and generate from the project file.
+npm run init -- plan --stack compose --overlays nodejs,postgres
+npm run init -- init --no-interactive
+
+# 3. Test the generated devcontainer.
 # Open in VS Code: Dev Containers: Reopen in Container
 
-# 3. Add customizations
+# 4. Add customizations
 mkdir -p .devcontainer/custom
 cat > .devcontainer/custom/devcontainer.patch.json << EOF
 {
@@ -333,10 +355,10 @@ cat > .devcontainer/custom/devcontainer.patch.json << EOF
 }
 EOF
 
-# 4. Regenerate canonical shared intent to apply customizations
+# 5. Regenerate canonical shared intent to apply customizations.
 npm run init -- regen
 
-# 5. Customizations are now applied ✅
+# 6. Customizations are now applied ✅
 ```
 
 ### Regeneration Workflow
@@ -412,7 +434,7 @@ Lifecycle scripts are executed in this order:
 
 ### Manifest Tracking
 
-The `superposition.json` manifest tracks whether customizations are present:
+The generated `superposition.json` compatibility/audit receipt can record whether customizations are present:
 
 ```json
 {
@@ -456,7 +478,7 @@ This helps tools understand that custom patches are in use.
 1. Verify custom directory exists: `ls .devcontainer/custom/`
 2. Check patch file syntax: `jq . .devcontainer/custom/devcontainer.patch.json`
 3. Look for error messages during generation
-4. Verify manifest tracking: `cat .devcontainer/superposition.json | jq .customizations`
+4. Inspect the generated receipt when needed: `cat .devcontainer/superposition.json | jq .customizations`
 
 ### Merge Conflicts
 

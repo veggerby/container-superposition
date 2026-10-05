@@ -13,10 +13,19 @@ You're working on a Node.js API that:
 
 ## Initial Setup
 
-Generate the base devcontainer:
+Create the canonical shared intent, preview its flat overlay selection, then generate:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
+```
 
 ```bash
-npm run init -- --stack compose --language nodejs --database postgres
+npm run init -- plan --stack compose --overlays nodejs,postgres
+npm run init -- init --no-interactive
 ```
 
 ## Add Custom Patches

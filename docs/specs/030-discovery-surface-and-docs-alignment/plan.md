@@ -170,3 +170,79 @@
 - token/invocation telemetry: unavailable; not needed for the decision.
 - decision: **STOP_NON_CONVERGENT**.
 - next bounded action or human decision: no implementation next. A maintainer must explicitly authorize a rebatched expanded correction scope and/or accept a waiver before delivery can resume.
+
+### R5–R7 correction batch after convergence cycle 4 (maintainer-authorized)
+
+- authorization and scope: maintainer authorized the complete bounded `SPEC030-R5` through `SPEC030-R7` batch: correct invalid no-input preview examples; align `custom-patches`, filesystem, overlay-authoring, preset, and deployment-target guides; and reconcile the completion record and changelog. No CLI behavior change is in scope.
+- implementation: all runnable preview examples now supply `--stack` and flat `--overlays` input; the dogfooding instruction uses the root project's live selection. The five listed guides now make the project file canonical, frame the manifest only as a generated compatibility/audit receipt or inspection surface, and remove legacy category flags/index registration from current guidance. The spec and changelog now accurately describe the candidate's list-rendering, unit, and Behave work.
+- validation: live plan variants, command help, preset listing, targeted stale-token scans, focused command tests, focused BDD, doctor, `git diff --check`, and required `task validate` were executed; exact final provenance is in `artifacts/implementation-evidence.md`.
+- BDD rationale: no BDD feature changed for the documentation-only R5/R6/R7 corrections. The candidate already contains a Behave scenario for its user-visible filtered-list rendering correction; that focused feature was rerun.
+- decision: **STOP**. The batch is `SELF_CHECKED` and ready to return for the requested independent gate. Do not alter the existing independent verdict or claim integration.
+
+### Convergence cycle 5
+
+- source before / after: prior independent fingerprint `25cf7281b08a879c7b91971b29a2dc2ca57bb9ca49565e5222fb7854c018f623` (cycle 4) / latest independently reviewed fingerprint `272cc9d2d515434ecce43310eccdf07a9ecb6f7dda2ae54439461e6f6fba57b8`; both at `HEAD` `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`.
+- findings resolved: material progress — recurring `SPEC030-R5` is **RESOLVED**; corrected preview commands passed live CLI checks.
+- findings remaining or new: the prior R6 stale-guidance concern recurs as equivalent `SPEC030-R6` **OPEN** after the claimed complete first-party correction; `SPEC030-R7` remains **OPEN**, now specifically because both candidate entries are under released `0.1.13` rather than `[Unreleased]`.
+- acceptance evidence gained: none for the blocked criteria; AC-4 and AC-6 remain `NOT_MET` despite R5's resolution.
+- validation state changed: no executable regression. Exact-tree evidence at `272cc9d2…` was reused (`task validate`, focused Vitest, focused Behave, and doctor all passed); independent gap-targeted CLI/doc checks established the recurring R6 and current R7. Re-running broad validation would not clear either documentation finding.
+- repeated work or failures: equivalent R6 stale guidance recurred after a correction asserted complete first-party alignment, while acceptance evidence for AC-4/AC-6 did not improve.
+- token/invocation telemetry: unavailable; not material to this decision.
+- decision: **STOP_NON_CONVERGENT** under the bounded protocol; this is not another correction plan. Execution: **BLOCKED**. Risk: **PENDING_ACCEPTANCE**.
+- next bounded action or human decision: do not correct R6/R7. Resume only after explicit repository-maintainer/product-owner authorization both (1) defines the exhaustive documentation boundary, including exactly which first-party files and legacy/compatibility contexts are in or out, and (2) approves another correction after the independent reviewer asserted that expanded scope. After authorization, replan the newly bounded batch; independent review remains required. No ADR need is identified.
+
+### Convergence cycle 6 — authorized complete R6/R7 correction
+
+- authorization and scope: the current delegated task explicitly authorizes all first-party docs/examples named by the independent re-review, plus the deployment-target preview claim and current `[Unreleased]` changelog placement. It requires one coherent correction pass; no CLI behavior change is in scope.
+- source before / after: `HEAD` remains `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`; post-validation tracked-tree fingerprint is `e93254c072cd4762f93ffff49a288045fc2b010d7175772a5f50de4a70017cb9` at `2026-10-05T07:08:39Z`.
+- finding disposition: `SPEC030-R6` **RESOLVED_PENDING_INDEPENDENT_REVIEW** — messaging, minimal/editor, workflow, custom-patch, and custom-patch-example guidance now use project-file/flat-overlay selections; the receipt command uses `.devcontainer/superposition.json`; deployment-target guidance states that `plan` cannot preview target-specific artifacts. `SPEC030-R7` **RESOLVED_PENDING_INDEPENDENT_REVIEW** — current candidate entries are under `[Unreleased]`; released `0.1.13` history is restored unchanged.
+- validation state changed: all corrected `plan` examples exited 0; targeted stale-token and receipt-path scans were clean; `npm run init -- doctor`, `git diff --check`, and required `task validate` passed (`806` tests passed, `20` normal integration tests skipped).
+- BDD rationale: no Behave scenario changed because this correction changes documentation and workflow records only. Existing candidate Behave coverage for the list-rendering behavior remains applicable; live CLI execution validates every changed executable preview example.
+- decision: **STOP** — self-check completed. Return the whole candidate to the requested **INDEPENDENT** gate; do not overwrite its existing `CHANGES_REQUESTED` verdict or claim integration.
+
+### Convergence cycle 7
+
+- source before / after: authorized exhaustive-correction fingerprint `e93254c072cd4762f93ffff49a288045fc2b010d7175772a5f50de4a70017cb9` / current independently targeted fingerprint `ee01d7977f013d747792b4c9f0768b3b7712df70a07a6502d580ccb9a3b3f065`; both at `HEAD` `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`.
+- findings resolved: no closure accepted for recurring `SPEC030-R6` in this convergence assessment; outcomes outside the targeted finding were not reassessed.
+- findings remaining or new: equivalent `SPEC030-R6` remains **OPEN**. Unlabeled current workflow examples still use legacy category flags in `.github/instructions/overlay-authoring.instructions.md:911,929`, `.github/instructions/overlay-index.instructions.md:806,982`, and `.github/instructions/overlay-docs.instructions.md:299`, despite the authorized scope expressly covering all first-party docs, examples, CLI help, tests, and workflow artifacts.
+- acceptance evidence gained: none for the blocked criteria. The material tree change does not improve acceptance evidence for AC-4 or AC-6 because current first-party guidance still contradicts the flat-`overlays:` canonical model.
+- validation state changed: the current fingerprint and cited instruction excerpts were independently reproduced; `git diff --check HEAD` passes, but formatting/diff hygiene cannot clear the recurring guidance defect. Prior broad executable validation is not evidence that the exhaustive documentation boundary is aligned.
+- repeated work or failures: equivalent R6 has recurred after cycle 5 already stopped for non-convergence and after a newly authorized correction claimed exhaustive first-party coverage. This is the protocol's explicit stop condition, not a basis for another correction launch.
+- token/invocation telemetry: unavailable and immaterial to the decision.
+- decision: **STOP_NON_CONVERGENT**. Execution remains **BLOCKED**; risk remains **PENDING_ACCEPTANCE**; integration is not ready.
+- next bounded action or human decision: freeze implementation. Route to the Lead/repository maintainer to choose explicit risk acceptance, cancellation, or a separately authorized diagnosis-first restart based on a finite independently reviewed inventory of every first-party workflow surface. Do not launch another correction from this cycle record. Any future route should use a **Governed** profile and retain **INDEPENDENT** review; the existing validation manifest must be rediscovered because the exhaustive-scope assumption was invalidated. No ADR is indicated, and rollback is containment-only: preserve the current tree until the authority chooses whether to retain or revert the unaccepted correction batch.
+
+### Convergence cycle 8 — governed inventory replan
+
+- source before / after: `HEAD` remains `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`; pre-replan tracked-tree fingerprint `8780049ea2e9037899da016806f9b7280d245cdd9bf6e7250f0b26ee20c1c91c`; the intentionally dirty partial candidate is preserved and no correction was attempted.
+- findings resolved: the scope-control diagnosis is now finite and reproducible; the inventory explicitly enumerates `docs/`, `.github/instructions/`, `.pi/`, `templates/`, and `overlays/*/README.md`, including `--observability` / `--cloud` signals and the reviewer-named six-file omission.
+- findings remaining or new: recurring `SPEC030-R6` remains open; ten current conflicts are proposed as one exact correction batch, pending independent pre-edit approval. AC-4 and AC-6 remain `NOT_MET`.
+- acceptance evidence gained: bounded inventory evidence only — 260 raw paths, 151 eligible paths, 50 signal candidates, plus manual inspection and historical exclusion of `docs/architecture.md`; no acceptance criterion improved to `MET`.
+- validation state changed: the prior manifest is not reused because its exhaustive-scope assumption was invalidated; a new DISCOVER-mode strategy and invalidation rules are recorded in `artifacts/current-guidance-inventory.md`. No product validation was run because this cycle is inventory-only.
+- repeated work or failures: the earlier query excluded product templates by name and omitted template/overlay roots and two category flags, causing a new bounded evidence gap before corrections.
+- token/invocation telemetry: unavailable and immaterial to the decision.
+- decision: **REPLAN** — changed evidence scope and sequencing require independent approval of the finite inventory before any correction implementer resumes.
+- next bounded action or human decision: independent pre-edit review of the inventory and exact ten-file batch. If approved, use **Governed** execution, direct documentation correction within that boundary, and return to **INDEPENDENT** review; otherwise return the disputed classification to Lead/maintainer. No ADR is needed.
+
+### Convergence cycle 9 — second pre-edit rejection
+
+- source before / after: cycle-8 pre-replan tracked-tree fingerprint `8780049ea2e9037899da016806f9b7280d245cdd9bf6e7250f0b26ee20c1c91c` / cycle-9 pre-record inventory tree fingerprint `99d1ea4b6baa93f7cd111664d2892802ae38983e2b3e453203f95f9a5f3ecbad`; `HEAD` remains `12f3dd65f1b56258a834ff5a946c26d852fbf8b7` on `main`, and no current-guidance correction was attempted. The reviewer reproduced the finite `260 / 151 / 50` counts.
+- findings resolved: none. Reproducible enumeration did not prove the manual classifications complete or correct.
+- findings remaining or new: recurring `SPEC030-R6` remains **OPEN**. The inventory incorrectly classified `docs/filesystem-contract.md:24` and `docs/team-workflow.md:29` as aligned despite current wrong root receipt claims, expanding the proposed boundary from ten to twelve files.
+- acceptance evidence gained: none; AC-4 and AC-6 remain `NOT_MET`.
+- validation state changed: the independent pre-edit gate is `CHANGES_REQUESTED` for the second time after the broader inventory replan. Exact counts pass, but classification evidence is insufficient to establish an exhaustive safe correction boundary.
+- repeated work or failures: `SPEC030-R6` recurs before editing, scope grows again without acceptance-criterion gain, and successive reviewer batches continue to reveal omitted current-guidance surfaces. This is a reviewer scope drip-feeding/non-convergence signal, not a basis for another inventory or correction cycle.
+- token/invocation telemetry: unavailable and immaterial to the decision.
+- decision: **STOP_NON_CONVERGENT**. Execution: **BLOCKED**. Risk: **PENDING_ACCEPTANCE**. Execution profile remains **Governed**; **INDEPENDENT** review remains required for any future authorized route.
+- next bounded action or human decision: freeze implementation and preserve all partial changes. Route to an explicit human maintainer decision: either authorize a governed twelve-file correction despite the recurring pre-edit scope failure, or accept the documented AC-4/AC-6 residual risk. Do not launch another inventory, replan, or correction without that authorization. Route recommendation: human authorization/risk acceptance only; no ADR need is identified, and rollback remains containment-only pending that decision.
+
+### Convergence cycle 10 — user-authorized completion
+
+- The current user explicitly requested completion from the preserved tree, including the inventory, filesystem contract, team workflow, and all remaining review findings. This supersedes the historical freeze instruction in cycle 9; it does not waive AC-4/AC-6 or independent review.
+- Independent pre-edit review of the inventory reproduced the original 260/151/50 counts but found `CONTRIBUTING.md` missing from the ten-plus-two correction boundary. The expanded-root inventory amendment records the finite thirteen-file guidance batch and historical exclusions. Existing reviewer verdicts remain historical until an independent final-tree review.
+- Deliver the thirteen-file correction as a single documentation batch; retain source/tests and prior partial work. Recheck runnable examples and residual stale signals, run mandatory `task validate` and focused behavior/BDD evidence, then request independent final review. Do not claim finality on implementer self-check alone.
+
+### Convergence cycle 11 — independent final-tree corrections
+
+- Independent review accepted the receipt correction and expanded guidance inventory but found one invalid `docs/presets.md` example (`nodejs` conflicts with `grafana`) and the previously added duplicate entry in released `0.1.13`. Verdict was `CHANGES_REQUESTED`, not a waiver.
+- Correct the guide with a live conflict-free flat-overlay selection and remove only the duplicate released changelog addition, leaving the `[Unreleased]` entry. This expands the correction to fourteen guides without changing executable behavior or spec requirements. Revalidate, then return for independent re-review.

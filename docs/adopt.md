@@ -165,9 +165,9 @@ Once `adopt` has run:
 2. **Review `custom/` patches** — inspect what was preserved and trim anything no longer needed.
 3. **Preview** — inspect the resolved configuration before writing generated output:
     ```bash
-    npx container-superposition plan
-    npx container-superposition plan --verbose
-    npx container-superposition plan --diff
+    npx container-superposition plan --stack compose --overlays nodejs,postgres,redis
+    npx container-superposition plan --stack compose --overlays nodejs,postgres,redis --verbose
+    npx container-superposition plan --stack compose --overlays nodejs,postgres,redis --diff
     ```
 4. **Regenerate** — rebuild `.devcontainer/` from the canonical project file:
     ```bash
