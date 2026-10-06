@@ -232,7 +232,7 @@ The `plan` command shows a dry-run preview of what will be generated, including 
 # Preview generation for postgres and grafana
 npx container-superposition plan --stack compose --overlays postgres,grafana
 
-# Preview generation from an existing manifest
+# Compatibility / migration only: inspect a legacy manifest before migration
 npx container-superposition plan --from-manifest .devcontainer/superposition.json
 ```
 
@@ -279,10 +279,10 @@ Files to Create/Modify:
 - `--stack <type>` - Base template: `plain` or `compose` when planning from explicit overlays
 - `--overlays <list>` - Comma-separated list of overlay IDs
 
-### Manifest Input
+### Compatibility / migration-only manifest input
 
-- `--from-manifest <path>` - Load stack and overlay roots from an existing `superposition.json`
-- Use either `--overlays` or `--from-manifest` for a given `plan` invocation
+- `--from-manifest <path>` loads stack and overlay roots from a legacy `superposition.json` for inspection before migration; it is not steady-state project input.
+- Use either `--overlays` or `--from-manifest` for a given `plan` invocation, then use `migrate` to create canonical project intent.
 
 ### Optional Options
 
@@ -346,13 +346,13 @@ Dependency Resolution:
 
 This keeps the standard summary intact and adds the reasoning behind direct selections, auto-added dependencies, and failure notes when resolution cannot complete cleanly.
 
-The same verbose explanation works for existing manifests:
+The same verbose explanation is available for legacy manifests during compatibility/migration work:
 
 ```bash
 npx container-superposition plan --from-manifest .devcontainer/superposition.json --verbose
 ```
 
-In manifest mode, overlays loaded from `superposition.json` are treated as the explicit root set and auto-added dependencies are still explained separately.
+In this compatibility mode, overlays loaded from `superposition.json` are treated as the explicit root set and auto-added dependencies are still explained separately.
 
 ### Conflict Detection
 
@@ -384,7 +384,7 @@ npx container-superposition plan --stack compose --overlays postgres --json
 # Include structured dependency explanations
 npx container-superposition plan --stack compose --overlays grafana --json --verbose
 
-# Include structured dependency explanations from a manifest
+# Compatibility / migration only: include structured explanations from a legacy manifest
 npx container-superposition plan --from-manifest .devcontainer/superposition.json --json --verbose
 ```
 

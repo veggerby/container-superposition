@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **First-class VS Code extension IDs** — `superposition.yml`, `superposition.local.yml`, and eligible global defaults now support `vscodeExtensions` lists that append additional VS Code extension IDs to generated `devcontainer.json` without requiring raw `customizations.devcontainerPatch` snippets.
 
+### Changed
+
+- **Canonical discovery and workflow guides** — first-party guides now teach project-file-first flat `overlays:` selection and the discover → inspect → preview → write path; manifest references remain explicitly compatibility, audit, migration, or command-inspection context.
+
+### Fixed
+
+- **Filtered overlay discovery port rendering** — category-filtered `list` output now renders structured port metadata as readable port tokens instead of `[object Object]`; command-level and Behave coverage protect the rendering contract
+
 ## [0.1.13] - 2026-07-27
 
 ### Added

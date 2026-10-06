@@ -1,338 +1,207 @@
 # Team Collaboration Workflow
 
-This guide explains how to use Container Superposition in a team setting, where you want to standardize development environments without locking developers into specific configurations.
+Container Superposition keeps team intent, local enrichment, and generated
+artifacts separate:
 
-## Overview
+- **`superposition.yml` (or `.superposition.yml`)** — canonical shared intent;
+  commit and review it with the application code.
+- **`superposition.local.yml`** — optional machine-local enrichment; keep it
+  untracked.
+- **`.devcontainer/`** — generated output. Teams choose whether to commit it,
+  but must make that policy explicit.
+- **`.devcontainer/superposition.json`** — generated compatibility and audit
+  receipt at the default output path (or under a configured output directory).
+  It is not the steady-state team source of truth. `adopt` can also write a root
+  receipt as part of conversion.
 
-The team collaboration workflow separates **team standards** (committed manifest) from **generated files** (local, gitignored) and **personal customizations** (optional, committed).
+The safe team workflow is **discover → inspect → preview → write**:
 
-**Key Benefits:**
+1. `list` discovers overlays and presets.
+2. `explain <id>` checks fit and trade-offs.
+3. `plan`, `plan --verbose`, and `plan --diff` review the intended result.
+4. `init` or `regen` writes the project file and generated output only after
+   review.
 
-- ✅ **No lock-in** - Generated files are plain JSON/YAML, fully editable
-- ✅ **One-command onboarding** - New developers run `npx container-superposition regen`
-- ✅ **Personal customizations** - Developers can add their own preferences via `superposition.local.yml` or `.devcontainer/custom/`
-- ✅ **Version control friendly** - Only manifest is committed, not generated files
-- ✅ **CI validation** - Validate manifest without committing generated files
+## Repository layout
 
-## Repository Structure
-
-```
+```text
 my-project/
-├── superposition.json       # Committed - team-wide standard
-├── .gitignore               # Ignore .devcontainer/ and superposition.local.yml
-├── superposition.local.yml  # Optional local config - not committed
-├── .devcontainer/           # Generated locally, in .gitignore
-│   ├── devcontainer.json    # Generated from manifest
-│   ├── docker-compose.yml   # Generated from manifest
-│   ├── .env.example         # Generated from manifest
-│   ├── README.md            # Generated from manifest
-│   └── custom/              # Optional - committed personal customizations
-│       ├── devcontainer.patch.json
-│       └── docker-compose.patch.yml
-└── src/                     # Your application code
+├── superposition.yml         # Committed: shared generation intent
+├── superposition.local.yml   # Untracked: one developer's enrichment
+├── .gitignore
+├── .devcontainer/            # Generated; commit policy is explicit
+│   ├── superposition.json    # Generated compatibility/audit receipt
+│   ├── devcontainer.json
+│   ├── docker-compose.yml    # compose projects
+│   └── custom/               # preserved project-specific escape hatches
+└── src/
 ```
 
-## Step-by-Step Setup
+Generated output is standard editable devcontainer configuration. Do not treat
+manual edits to it as durable replay authority: put shared changes in
+`superposition.yml`, local changes in `superposition.local.yml`, or use the
+preserved `custom/` mechanism where appropriate.
 
-### 0. Migrating an Existing Devcontainer (Optional)
+## Set up shared intent
 
-If you already have a hand-crafted `.devcontainer/`, use `adopt` to create the
-initial manifest automatically instead of writing it by hand:
+### 1. Discover, inspect, and preview
+
+Start with read-only commands before creating files:
 
 ```bash
-# See what would be detected and generated (nothing is written)
-npx container-superposition adopt --dry-run
-
-# Run the adoption (writes superposition.json and custom/ patches)
-npx container-superposition adopt
-
-# Or also emit a repository-root project file for project-config workflows
-npx container-superposition adopt --project-file
+npx container-superposition list
+npx container-superposition explain postgres
+npx container-superposition plan --stack compose --overlays nodejs,postgres,redis
+npx container-superposition plan --stack compose --overlays nodejs,postgres,redis --verbose
+npx container-superposition plan --stack compose --overlays nodejs,postgres,redis --diff
 ```
 
-`adopt` reads every feature URI, VS Code extension, and Docker Compose service
-image in your existing configuration and maps them to overlays. Anything with
-no overlay equivalent (custom features, project-specific services, custom
-mounts, unmatched environment variables, …) is written to
-`.devcontainer/custom/` so it survives every subsequent `regen`.
+Presets are optional shortcuts for common jobs. Use `list --category preset` and
+`explain <preset-id>` to evaluate one; the project file remains the shared
+configuration model.
 
-`superposition.json` is written to the **project root** (not inside
-`.devcontainer/`), so it can be committed alongside your application code and
-shared with the rest of the team — matching the standard team workflow. If you
-pass `--project-file`, `adopt` also writes a repository-root `.superposition.yml`
-using the same inferred stack, overlays, output path, and supported
-customizations.
+### 2. Create and commit the project file
 
-See the [Adopt Command guide](adopt.md) for full details.
-
-### 1. Create the Team Manifest
-
-The team lead or maintainer creates the initial manifest:
-
-```bash
-# Generate manifest only (no .devcontainer/ files)
-npx container-superposition init --write-manifest-only \
-  --stack compose \
-  --language nodejs \
-  --database postgres,redis \
-  --observability prometheus,grafana
-```
-
-This creates `superposition.json` in the current directory:
-
-```json
-{
-    "manifestVersion": "1",
-    "generatedBy": "X.Y.Z",
-    "generated": "2026-02-17T14:00:00.000Z",
-    "baseTemplate": "compose",
-    "baseImage": "bookworm",
-    "overlays": ["nodejs", "postgres", "redis", "prometheus", "grafana"],
-    "portOffset": 0
-}
-```
-
-### 2. Configure Git Ignore
-
-If you are using `superposition.yml`, you can enable automatic generation of
-`outputPath/.gitignore` by setting:
+Write explicit, reviewable team intent using flat `overlays:` entries:
 
 ```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - dotnet
+    - postgres
+    - redis
+    - prometheus
+    - grafana
+env:
+    APP_ENV: development
 devcontainerGitignore: true
 ```
 
-This writes:
+Preview the explicit selection before writing generated output:
 
-```gitignore
-*
+```bash
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana --verbose
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana --diff
+npx container-superposition init --no-interactive
 ```
 
-When using local config, add `superposition.local.yml` to root `.gitignore` (the tool does this
-automatically when possible). If generated output was already tracked, `.gitignore` does not untrack
-it. Run this manually to untrack generated output for the default path:
+Commit the shared intent (and generated output only if that is your team policy):
+
+```bash
+git add superposition.yml .gitignore
+git commit -m "Add shared devcontainer intent"
+git push
+```
+
+`init` writes shared project intent and normally generates `.devcontainer/`.
+Use `--no-scaffold` only when you deliberately want to create the project file
+without output; preview and run `init --no-interactive` later to write it.
+
+## Git policy and local configuration
+
+Choose and document one generated-output policy:
+
+- **Generated locally:** ignore `.devcontainer/`; every developer runs `regen`.
+- **Committed output:** review generated diffs alongside `superposition.yml` and
+  keep regeneration deterministic.
+
+For local-only configuration, add this to the repository `.gitignore`:
+
+```gitignore
+superposition.local.yml
+```
+
+Prefer `devcontainerGitignore: true` in shared intent when generated output is
+local-only. It creates an output-level ignore file. Git ignores do not untrack
+existing files; to stop tracking the default generated directory, run the
+manual command below after checking its effect:
 
 ```bash
 git rm -r --cached -- .devcontainer
 ```
 
-If you prefer manual Git ignore management (or need custom exceptions), add the following to your
-repository `.gitignore`:
+The tool does not mutate the Git index automatically.
 
-```gitignore
-# DevContainer - generated locally from superposition.json
-.devcontainer/
+Use `superposition.local.yml` for one developer's mounts, editor extensions,
+shell configuration, environment values, or port-conflict overrides:
 
-# Exception: Allow custom directory (personal customizations)
-!.devcontainer/custom/
-
-# Exception: Keep .gitignore itself
-!.devcontainer/.gitignore
+```yaml
+# superposition.local.yml — do not commit
+mounts:
+    - source: ${HOME}/.cache/my-tool
+      destination: /home/vscode/.cache/my-tool
+      type: bind
+      target: devcontainerMount
+vscodeExtensions:
+    - streetsidesoftware.code-spell-checker
 ```
 
-**Recommended:** Also create `.devcontainer/.gitignore` to prevent accidental commits when
-`devcontainerGitignore` is not enabled:
-
-```gitignore
-# Ignore all generated files
-*
-
-# Except custom directory and this .gitignore
-!custom/
-!.gitignore
-```
-
-### 3. Commit the Manifest
+After changing shared or local intent, preview the intended selection before replaying:
 
 ```bash
-git add superposition.json .gitignore
-git commit -m "Add devcontainer manifest for standardized dev environment"
-git push
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana --diff
+npx container-superposition regen
 ```
 
-### 4. Document for Team Members
-
-Add to your `README.md`:
-
-````markdown
-## Development Setup
-
-This project uses [Container Superposition](https://github.com/veggerby/container-superposition) for standardized development environments.
-
-### Prerequisites
-
-- Docker Desktop or Docker Engine
-- VS Code with Dev Containers extension
-
-### Setup
-
-1. Clone the repository
-2. Generate devcontainer from manifest:
-   \```bash
-   npx container-superposition regen
-   \```
-3. Open in VS Code and rebuild container (Command Palette: "Dev Containers: Rebuild Container")
-
-The devcontainer includes:
-
-- Node.js with TypeScript
-- PostgreSQL and Redis
-- Prometheus and Grafana for observability
-````
-
-## Developer Onboarding
-
-New team members follow these steps:
-
-### 1. Clone Repository
+## Onboard a team member
 
 ```bash
 git clone https://github.com/your-org/my-project.git
 cd my-project
-```
-
-### 2. Generate Devcontainer
-
-```bash
+npx container-superposition list
+npx container-superposition explain postgres
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana --verbose
 npx container-superposition regen
-```
-
-This reads `superposition.json` and generates the `.devcontainer/` folder locally.
-
-### 3. Open in Container
-
-Open the project in VS Code:
-
-```bash
 code .
 ```
 
-Then:
+Then use **Dev Containers: Rebuild and Reopen in Container** in VS Code. The
+first two commands are optional orientation when the chosen overlays are already
+familiar; `plan` remains the review step before `regen` writes output.
 
-1. Command Palette (`Cmd/Ctrl+Shift+P`)
-2. Select "Dev Containers: Rebuild and Reopen in Container"
-3. Wait for container to build
-4. Start developing!
+## Update shared intent
 
-## Personal Customizations
-
-Developers can add their own customizations without affecting the team standard.
-
-### Example: Add Personal VS Code Extensions
-
-Create `.devcontainer/custom/devcontainer.patch.json`:
-
-```json
-{
-    "customizations": {
-        "vscode": {
-            "extensions": ["eamodio.gitlens", "usernamehw.errorlens", "pkief.material-icon-theme"],
-            "settings": {
-                "editor.fontSize": 14,
-                "workbench.colorTheme": "Monokai"
-            }
-        }
-    }
-}
-```
-
-### Example: Add Personal Docker Compose Service
-
-Create `.devcontainer/custom/docker-compose.patch.yml`:
+Edit the committed project file; do not hand-edit `superposition.json`.
 
 ```yaml
-services:
-    my-debug-service:
-        image: redis-commander:latest
-        ports:
-            - '8081:8081'
-        networks:
-            - devnet
+# Add Jaeger to the existing flat selection.
+overlays:
+    - dotnet
+    - postgres
+    - redis
+    - prometheus
+    - grafana
+    - jaeger
 ```
 
-### Regenerate to Apply
-
-After adding customizations:
+Then review and commit the source change:
 
 ```bash
+npx container-superposition explain jaeger
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana,jaeger --verbose
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana,jaeger --diff
 npx container-superposition regen
-```
-
-The custom patches are automatically merged with the team standard.
-
-**Commit your customizations:**
-
-```bash
-git add .devcontainer/custom/
-git commit -m "Add personal dev environment customizations"
-```
-
-## Updating the Team Standard
-
-When the team needs to add or remove overlays:
-
-### 1. Update the Manifest
-
-You can either:
-
-**Option A: Manually edit `superposition.json`**
-
-```json
-{
-    "overlays": [
-        "nodejs",
-        "postgres",
-        "redis",
-        "prometheus",
-        "grafana",
-        "jaeger" // Added
-    ]
-}
-```
-
-**Option B: Regenerate with new settings**
-
-```bash
-npx container-superposition init --write-manifest-only \
-  --stack compose \
-  --language nodejs \
-  --database postgres,redis \
-  --observability prometheus,grafana,jaeger
-```
-
-### 2. Test Locally
-
-```bash
-npx container-superposition regen
-```
-
-Verify the changes work as expected.
-
-### 3. Commit and Push
-
-```bash
-git add superposition.json
+git add superposition.yml
 git commit -m "Add Jaeger tracing to devcontainer"
 git push
 ```
 
-### 4. Team Members Update
-
-Team members pull the changes and regenerate:
+Team members pull the project file change, review it, and regenerate:
 
 ```bash
 git pull
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana,jaeger --diff
 npx container-superposition regen
 ```
 
-Then rebuild their container in VS Code.
+## CI validation
 
-## CI/CD Integration
-
-You can validate the manifest in CI without generating files.
-
-### GitHub Actions Example
-
-Create `.github/workflows/validate-devcontainer.yml`:
+CI should validate the same shared project file that developers review. A
+preview can run on pull requests; a generation smoke check can follow when the
+runner supports the required environment.
 
 ```yaml
 name: Validate DevContainer
@@ -340,7 +209,8 @@ name: Validate DevContainer
 on:
     pull_request:
         paths:
-            - 'superposition.json'
+            - 'superposition.yml'
+            - '.superposition.yml'
             - '.github/workflows/validate-devcontainer.yml'
 
 jobs:
@@ -348,25 +218,19 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-
-            - name: Setup Node.js
-              uses: actions/setup-node@v4
+            - uses: actions/setup-node@v4
               with:
                   node-version: '20'
-
-            - name: Validate manifest with plan command
+            - name: Preview explicit selection
+              run: npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana --diff
+            - name: Regenerate and smoke test
               run: |
-                  npx container-superposition plan --from-manifest superposition.json
-
-            - name: Generate and smoke test
-              run: |
-                  npx container-superposition regen --no-interactive
-                  # Verify key files exist
+                  npx container-superposition regen
                   test -f .devcontainer/devcontainer.json
                   test -f .devcontainer/docker-compose.yml
 ```
 
-### GitLab CI Example
+Equivalent GitLab job:
 
 ```yaml
 validate-devcontainer:
@@ -374,223 +238,126 @@ validate-devcontainer:
     stage: test
     only:
         changes:
-            - superposition.json
+            - superposition.yml
+            - .superposition.yml
             - .gitlab-ci.yml
     script:
-        - npx container-superposition plan --from-manifest superposition.json
-        - npx container-superposition regen --no-interactive
+        - npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana --diff
+        - npx container-superposition regen
         - test -f .devcontainer/devcontainer.json
 ```
 
-## Migration from Existing Setup
+## Adopt an existing devcontainer
 
-If you already have a `.devcontainer/` folder:
-
-### 1. Generate Manifest from Existing Config
-
-If you have a `superposition.json` in `.devcontainer/`, move it:
+For a hand-authored `.devcontainer/`, inspect conversion first and then write
+only after reviewing the result:
 
 ```bash
-mv .devcontainer/superposition.json .
+npx container-superposition adopt --dry-run
+npx container-superposition adopt
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition plan --stack compose --overlays nodejs,postgres --diff
 ```
 
-If you don't have a manifest, create one based on your current setup:
+Standard `adopt` writes repository project intent, a compatibility manifest, and
+preserved `custom/` patches for material it cannot model directly. The
+`adopt --project-file` option is deprecated and a no-op; do not include it in
+team automation. See the [Adopt Command guide](adopt.md).
+
+## Legacy / migration only: manifest-first repositories
+
+A repository that has only a legacy root `superposition.json` should migrate
+once rather than continue hand-editing or committing the manifest as authority:
 
 ```bash
-npx container-superposition init --write-manifest-only \
-  --stack compose \
-  --language nodejs \
-  --database postgres
-```
+# Convert the compatibility receipt to canonical project intent.
+npx container-superposition migrate --from-manifest ./superposition.json
 
-### 2. Backup Existing Config
-
-```bash
-mv .devcontainer .devcontainer.old
-```
-
-### 3. Generate from Manifest
-
-```bash
+# Preview the migrated selection, then write generated output.
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition plan --stack compose --overlays nodejs,postgres --diff
 npx container-superposition regen
+
+git add superposition.yml .gitignore
+git commit -m "Migrate devcontainer intent to project file"
 ```
 
-### 4. Compare and Migrate Customizations
-
-Compare your old config with the new one:
-
-```bash
-diff -r .devcontainer.old .devcontainer
-```
-
-Move any custom configurations to `.devcontainer/custom/`:
-
-```bash
-mkdir -p .devcontainer/custom
-# Move your custom patches
-```
-
-### 5. Update Git Ignore
-
-Add `.devcontainer/` to `.gitignore` (except `custom/`).
-
-### 6. Commit Manifest
-
-```bash
-git rm -r .devcontainer  # Remove from version control
-git add .gitignore superposition.json .devcontainer/custom/
-git commit -m "Migrate to manifest-first workflow"
-```
+`regen --from-manifest` is deprecated compatibility support. Use `migrate` to
+make a project file, then return to normal project-file replay.
 
 ## Troubleshooting
 
-### "No manifest found" Error
+### `regen` cannot find shared intent
 
-**Problem:** `npx container-superposition regen` says "No manifest found"
+Ensure the repository root contains exactly one canonical project file:
+`superposition.yml` or `.superposition.yml`. If the repository has only a
+legacy manifest, run `migrate` as shown above.
 
-**Solution:** Ensure `superposition.json` exists in:
+### Generated files are tracked unexpectedly
 
-- Current directory (`./superposition.json`), or
-- `.devcontainer/` directory (legacy location)
+1. Confirm the team policy and `.gitignore` entries.
+2. Enable `devcontainerGitignore: true` when output should remain local.
+3. Use `git rm -r --cached -- .devcontainer` manually to untrack existing
+   generated files; the tool never changes the Git index itself.
 
-### Merge Conflicts in Generated Files
+### Local customizations are missing
 
-**Problem:** Developers have merge conflicts in `.devcontainer/devcontainer.json`
+1. Confirm `superposition.local.yml` is in the repository root and untracked.
+2. Check its YAML and supported fields in the
+   [project-file reference](superposition-yml.md#local-config-superpositionlocalyml).
+3. Run `plan --diff`, then `regen`.
 
-**Solution:** This shouldn't happen if `.devcontainer/` is gitignored. If it does:
+### Port conflicts on one machine
 
-1. Ensure `.devcontainer/` is in `.gitignore`
-2. Remove from version control: `git rm -r --cached .devcontainer/`
-3. Each developer runs: `npx container-superposition regen`
-
-### Custom Patches Not Applied
-
-**Problem:** Changes in `.devcontainer/custom/` aren't showing up
-
-**Solution:**
-
-1. Verify custom patches are valid JSON/YAML
-2. Run `npx container-superposition regen` to regenerate
-3. Check that custom directory is not in `.gitignore`
-
-### Port Conflicts
-
-**Problem:** Multiple team members running containers on same machine
-
-**Solution:** Each developer can use a different port offset:
+Keep the team selection unchanged and set `portOffset` or local `ports:` in
+untracked `superposition.local.yml`. Preview and regenerate:
 
 ```bash
-# Developer A (no offset)
-npx container-superposition regen
-
-# Developer B (offset +100)
-npx container-superposition init --from-manifest superposition.json \
-  --port-offset 100 --output .devcontainer
-```
-
-Or create personal manifests with different offsets in `.devcontainer/custom/`.
-
-## Best Practices
-
-### 1. Document Requirements in README
-
-Always document the prerequisites and setup steps in your project's README.
-
-### 2. Keep Manifest Minimal
-
-Only include overlays the team actually needs. Developers can add extras via custom patches.
-
-### 3. Use Presets for Common Stacks
-
-If your team uses a standard stack, use presets:
-
-```bash
-npx container-superposition init --write-manifest-only --preset web-api
-```
-
-### 4. Version Control Custom Directory
-
-Commit `.devcontainer/custom/` to let developers share useful customizations:
-
-```bash
-git add .devcontainer/custom/
-git commit -m "Share useful debug extensions"
-```
-
-### 5. Regular Updates
-
-Periodically update overlays to get security patches and new features:
-
-```bash
-# Update tool
-npm update container-superposition
-
-# Regenerate
+npx container-superposition plan --stack compose --overlays dotnet,postgres,redis,prometheus,grafana --diff
 npx container-superposition regen
 ```
 
-### 6. Test Before Committing
+## Monorepos
 
-Always test manifest changes locally before committing:
+Each independently generated service should own its own project file. Flat
+`overlays:` remains the explicit selection model in every service.
 
-```bash
-# Make changes to superposition.json
-npx container-superposition regen
-# Test in container
-# If good, commit
-git add superposition.json
-git commit -m "Update devcontainer manifest"
-```
-
-## Advanced: Monorepo Setup
-
-For monorepos with multiple services:
-
-```
+```text
 monorepo/
-├── superposition.json              # Shared base manifest
 ├── service-a/
-│   ├── superposition.json          # Service-specific manifest (extends base)
-│   └── .devcontainer/              # Generated locally
-├── service-b/
-│   ├── superposition.json
+│   ├── superposition.yml
 │   └── .devcontainer/
-└── .gitignore                      # Ignore all .devcontainer/ folders
+├── service-b/
+│   ├── superposition.yml
+│   └── .devcontainer/
+└── .gitignore
 ```
 
-Each service can have its own manifest that extends the base:
-
-**service-a/superposition.json:**
-
-```json
-{
-    "baseTemplate": "compose",
-    "baseImage": "bookworm",
-    "overlays": ["nodejs", "postgres"]
-}
+```yaml
+# service-a/superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
 ```
 
-**service-b/superposition.json:**
-
-```json
-{
-    "baseTemplate": "compose",
-    "baseImage": "bookworm",
-    "overlays": ["python", "redis", "rabbitmq"]
-}
+```yaml
+# service-b/superposition.yml
+stack: compose
+overlays:
+    - python
+    - redis
+    - rabbitmq
 ```
 
-Developers work on specific services:
+From each service directory, run `list`, `explain`, `plan`, and `regen` in that
+order as needed. Do not assume project-file inheritance between service roots
+unless a separate supported configuration model is documented.
 
-```bash
-cd service-a
-npx container-superposition regen
-code .
-```
+## See also
 
-## See Also
-
-- [Adopt Command](adopt.md) - Migrate an existing devcontainer to the overlay-based workflow
-- [Quick Reference](quick-reference.md) - Common commands and flags
-- [Overlay Documentation](overlays.md) - Available overlays
-- [Custom Patches](../tool/README.md#custom-patches) - Custom patch format
+- [Authoring `superposition.yml`](superposition-yml.md)
+- [Adopt Command](adopt.md)
+- [Quick Reference](quick-reference.md)
+- [Overlay Documentation](overlays.md)
+- [Custom Patches](custom-patches.md)

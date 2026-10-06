@@ -34,10 +34,31 @@ The enhanced observability stack provides a complete solution for monitoring, tr
 
 ### 1. Create a Complete Observability Stack
 
+Discover the overlays, then record the selection as shared project intent:
+
 ```bash
-npm run init -- \
-  --stack compose \
-  --observability otel-collector,tempo,prometheus,alertmanager,loki,promtail,grafana,otel-demo-nodejs
+npm run init -- list --category observability
+```
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - otel-collector
+    - tempo
+    - prometheus
+    - alertmanager
+    - loki
+    - promtail
+    - grafana
+    - otel-demo-nodejs
+```
+
+Preview the selection before writing output:
+
+```bash
+npm run init -- plan --stack compose --overlays otel-collector,tempo,prometheus,alertmanager,loki,promtail,grafana,otel-demo-nodejs
+npm run init -- init --no-interactive
 ```
 
 This creates a development environment with:
@@ -273,11 +294,12 @@ docker restart prometheus
 
 **Add Python demo for multi-language testing:**
 
+Add `otel-demo-python` to the existing flat `overlays:` list in `superposition.yml`,
+then preview the complete selection before regeneration:
+
 ```bash
-# Update your project with Python demo
-npm run init -- \
-  --stack compose \
-  --observability otel-demo-python
+npm run init -- plan --stack compose --overlays otel-collector,tempo,prometheus,alertmanager,loki,promtail,grafana,otel-demo-nodejs,otel-demo-python --diff
+npm run init -- regen
 ```
 
 **Generate traces from both services:**

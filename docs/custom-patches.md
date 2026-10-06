@@ -2,16 +2,33 @@
 
 This guide explains how to use the `.devcontainer/custom/` directory to preserve project-specific customizations across regenerations.
 
+> **Compatibility / migration only:** `--from-manifest` accepts a legacy
+> `superposition.json` receipt. Migrate it to `superposition.yml` first, then
+> use normal project-file `regen`; it is not the steady-state customization path.
+
 ## Overview
 
 When you regenerate a devcontainer (e.g., to add a new overlay), all manual changes to the generated files are normally lost. The **custom patches** feature solves this problem by allowing you to define customizations in a special directory that is preserved and automatically merged during regeneration.
 
 ## Quick Start
 
-### 1. Generate Initial Devcontainer
+### 1. Author Shared Intent and Generate
+
+Create the team-owned project file with the flat overlay selection:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
+```
+
+Preview that explicit selection before writing, then generate from the project file:
 
 ```bash
-npm run init -- --stack compose --language nodejs --database postgres
+npm run init -- plan --stack compose --overlays nodejs,postgres
+npm run init -- init --no-interactive
 ```
 
 ### 2. Add Custom Patches
@@ -39,11 +56,10 @@ Create a custom devcontainer patch:
 ### 3. Regenerate (Customizations Preserved)
 
 ```bash
-# Add a new overlay by regenerating
-npm run init -- --from-manifest .devcontainer/superposition.json
+# Regenerate canonical shared intent after changing its flat overlays: list.
+npm run init -- regen
 
-# Select additional overlays (e.g., aws-cli)
-# Your custom patches will be automatically applied ✅
+# Custom patches are automatically applied ✅
 ```
 
 ## Supported Customization Files
@@ -238,7 +254,7 @@ The `.devcontainer/custom/` directory is:
 
 - ✅ **Preserved** during regeneration (never deleted)
 - ✅ **Automatically merged** into generated files
-- ✅ **Tracked** in `superposition.json` manifest
+- ✅ **Recorded** in the generated `superposition.json` compatibility/audit receipt
 
 ## Use Cases
 
@@ -315,14 +331,23 @@ services:
 
 ### Initial Generation
 
-```bash
-# 1. Generate devcontainer
-npm run init -- --stack compose --language nodejs --database postgres
+```yaml
+# 1. Commit shared intent in superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
+```
 
-# 2. Test the generated devcontainer
+```bash
+# 2. Preview and generate from the project file.
+npm run init -- plan --stack compose --overlays nodejs,postgres
+npm run init -- init --no-interactive
+
+# 3. Test the generated devcontainer.
 # Open in VS Code: Dev Containers: Reopen in Container
 
-# 3. Add customizations
+# 4. Add customizations
 mkdir -p .devcontainer/custom
 cat > .devcontainer/custom/devcontainer.patch.json << EOF
 {
@@ -330,11 +355,10 @@ cat > .devcontainer/custom/devcontainer.patch.json << EOF
 }
 EOF
 
-# 4. Regenerate to apply customizations
-npm run init -- --from-manifest .devcontainer/superposition.json
-# (Select same overlays or add new ones)
+# 5. Regenerate canonical shared intent to apply customizations.
+npm run init -- regen
 
-# 5. Customizations are now applied ✅
+# 6. Customizations are now applied ✅
 ```
 
 ### Regeneration Workflow
@@ -342,17 +366,14 @@ npm run init -- --from-manifest .devcontainer/superposition.json
 ```bash
 # You want to add Redis to an existing setup
 
-# 1. Check current configuration
-cat .devcontainer/superposition.json
+# 1. Check and update current shared configuration.
+cat superposition.yml
 
-# 2. Regenerate from manifest
-npm run init -- --from-manifest .devcontainer/superposition.json
+# 2. Preview the revised overlay selection, then regenerate it.
+npm run init -- plan --stack compose --overlays nodejs,postgres,redis --diff
+npm run init -- regen
 
-# 3. In the questionnaire, select:
-#    - Keep existing: nodejs, postgres
-#    - Add new: redis
-#
-# 4. Custom patches are automatically preserved and merged ✅
+# 3. Custom patches are automatically preserved and merged ✅
 ```
 
 ### Migrating Manual Changes
@@ -374,8 +395,8 @@ cat > .devcontainer/custom/devcontainer.patch.json << EOF
 }
 EOF
 
-# 2. Regenerate (your changes will now be preserved)
-npm run init -- --from-manifest .devcontainer/superposition.json
+# 2. Regenerate canonical shared intent (your changes will now be preserved)
+npm run init -- regen
 
 # 3. Verify custom patches were applied
 cat .devcontainer/devcontainer.json | jq '.mounts'
@@ -413,7 +434,7 @@ Lifecycle scripts are executed in this order:
 
 ### Manifest Tracking
 
-The `superposition.json` manifest tracks whether customizations are present:
+The generated `superposition.json` compatibility/audit receipt can record whether customizations are present:
 
 ```json
 {
@@ -457,7 +478,7 @@ This helps tools understand that custom patches are in use.
 1. Verify custom directory exists: `ls .devcontainer/custom/`
 2. Check patch file syntax: `jq . .devcontainer/custom/devcontainer.patch.json`
 3. Look for error messages during generation
-4. Verify manifest tracking: `cat .devcontainer/superposition.json | jq .customizations`
+4. Inspect the generated receipt when needed: `cat .devcontainer/superposition.json | jq .customizations`
 
 ### Merge Conflicts
 

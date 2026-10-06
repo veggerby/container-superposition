@@ -616,20 +616,50 @@ grafana:
 
 ### 1. Test Standalone
 
+Create a temporary project file that selects the overlay, then preview and generate it:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - my-overlay
+```
+
 ```bash
-npm run init -- --stack compose --my-overlay
+npm run init -- plan --stack compose --overlays my-overlay
+npm run init -- init --no-interactive
 ```
 
 ### 2. Test With Dependencies
 
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - my-overlay
+    - postgres
+    - redis
+```
+
 ```bash
-npm run init -- --stack compose --my-overlay --postgres --redis
+npm run init -- plan --stack compose --overlays my-overlay,postgres,redis
+npm run init -- init --no-interactive
 ```
 
 ### 3. Test In Combination
 
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - my-overlay
+    - postgres
+```
+
 ```bash
-npm run init -- --stack compose --language nodejs --my-overlay --postgres
+npm run init -- plan --stack compose --overlays nodejs,my-overlay,postgres
+npm run init -- init --no-interactive
 ```
 
 ### 4. Add Overlay BDD Coverage When Behavior Changes

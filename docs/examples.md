@@ -1,182 +1,174 @@
 # Usage Examples
 
-Common usage patterns for the init tool.
+These examples use the project-file-first workflow: **discover → inspect → preview → write**.
+`superposition.yml` (or `.superposition.yml`) is the shared, committed intent file.
+`superposition.local.yml` is optional local-only enrichment. Generated `superposition.json`
+is a compatibility and audit receipt, not the file a team edits for normal changes.
 
-## Interactive Mode
+## Discover and inspect before choosing
 
 ```bash
-npm run init
+# Browse recommended starts, overlays, and presets.
+npx container-superposition list
+
+# Narrow a discovery question, then inspect a candidate's fit and trade-offs.
+npx container-superposition list --category messaging
+npx container-superposition explain rabbitmq
 ```
 
-Follow the prompts to select your stack, database, tools, and output location.
+Use a preset when a common starting point fits; it is optional shorthand. Use a
+flat `overlays:` list when the team wants explicit control over every selection.
 
-## Declarative Project Config
+## Preview before writing
+
+Use `plan` with a proposed selection before creating project files. `--verbose`
+explains dependency resolution; `--diff` compares the proposal with existing
+generated output.
+
+```bash
+npx container-superposition plan --stack compose --overlays dotnet,postgres,grafana
+npx container-superposition plan --stack compose --overlays dotnet,postgres,grafana --verbose
+npx container-superposition plan --stack compose --overlays dotnet,postgres,grafana --diff
+```
+
+`plan` previews an explicit proposed stack and overlay list. When changing an
+existing project file, pass its intended selections again before writing with
+`regen`.
+
+## Declarative project configuration
+
+Create and commit `superposition.yml` for shared intent:
 
 ```yaml
 stack: compose
-language:
-    - nodejs
-database:
+overlays:
+    - dotnet
     - postgres
-outputPath: ./.devcontainer
+    - grafana
 env:
     APP_ENV: development
 customizations:
     envTemplate:
         POSTGRES_PASSWORD: postgres
-    devcontainerPatch:
-        features:
-            ghcr.io/devcontainers-extra/features/apt-get-packages:1:
-                packages: jq
 ```
+
+Then write generated output without the questionnaire:
 
 ```bash
-npm run init -- --no-interactive
+npx container-superposition init --no-interactive
 ```
 
-Creates the same generated output you would get from equivalent clean-generation
-input, while keeping the setup intent in version control.
+Later, edit the same project file, preview the result, and replay it:
 
 ```bash
-npm run init -- regen
+$EDITOR superposition.yml
+npx container-superposition plan --stack compose --overlays dotnet,postgres,grafana --diff
+npx container-superposition regen
 ```
 
-Regenerates from the repository project file by default when one exists.
+See [Authoring `superposition.yml`](superposition-yml.md) for every supported
+field, including parameters, mounts, ports, local config, and repeatable overlay
+instances.
 
-## Non-Interactive Examples
+## Common project files
 
-### .NET with PostgreSQL
-
-```bash
-npm run init -- --stack compose --language dotnet --postgres --output ./.devcontainer
-```
-
-Creates:
-
-- Docker Compose base template
-- .NET 10 SDK and C# DevKit
-- PostgreSQL 16 service
-- Database client tools
-- Environment variables for connection
-
-### Node.js API with Observability
-
-```bash
-npm run init -- \
-  --stack compose \
-  --language nodejs \
-  --postgres \
-  --observability otel-collector,jaeger,prometheus,grafana
-```
-
-Creates:
-
-- Docker Compose infrastructure
-- Node.js LTS with TypeScript
-- PostgreSQL database
-- OpenTelemetry Collector pipeline
-- Jaeger for distributed tracing
-- Prometheus for metrics
-- Grafana for visualization
-
-### Full Observability Stack
-
-```bash
-npm run init -- \
-  --stack compose \
-  --language dotnet \
-  --database postgres+redis \
-  --observability otel-collector,jaeger,prometheus,grafana,loki \
-  --cloud-tools aws-cli,kubectl-helm
-```
-
-Creates:
-
-- Docker Compose infrastructure
-- .NET microservice setup
-- PostgreSQL and Redis
-- Complete observability stack (traces, metrics, logs)
-- AWS CLI and Kubernetes tools
-
-### Minimal Documentation Site
-
-```bash
-npm run init -- --stack plain --language mkdocs --output ./my-docs/.devcontainer
-```
-
-Creates:
-
-- Simple image-based devcontainer
-- Python with MkDocs
-- Documentation tools
-- Minimal configuration
-
-### Multi-Cloud Python Development
-
-```bash
-npm run init -- \
-  --stack compose \
-  --language python \
-  --postgres \
-  --cloud-tools aws-cli,azure-cli,kubectl-helm
-```
-
-Creates:
-
-- Docker Compose base
-- Python 3.12 with linting
-- PostgreSQL database
-- AWS, Azure, and Kubernetes CLIs
-
-## Programmatic Usage
-
-```javascript
-import { composeDevContainer } from './tool/questionnaire/composer.js';
-
-await composeDevContainer({
-    stack: 'compose',
-    baseImage: 'bookworm',
-    language: ['dotnet'],
-    needsDocker: true,
-    database: 'postgres',
-    playwright: false,
-    observability: ['otel-collector', 'jaeger', 'prometheus', 'grafana'],
-    cloudTools: ['aws-cli'],
-    devTools: [],
-    outputPath: './.devcontainer',
-});
-```
-
-## Output Structure
-
-All examples produce:
-
-```
-.devcontainer/
-├── devcontainer.json                  # Merged configuration
-├── docker-compose.yml                 # Base compose (if compose template)
-├── .env.example                       # Combined environment variables
-├── scripts/
-│   └── post_create.sh                 # Setup scripts
-├── docker-compose.postgres.yml        # If postgres selected
-├── docker-compose.redis.yml           # If redis selected
-├── docker-compose.otel-collector.yml  # If otel-collector selected
-├── docker-compose.jaeger.yml          # If jaeger selected
-├── docker-compose.prometheus.yml      # If prometheus selected
-├── docker-compose.grafana.yml         # If grafana selected
-├── docker-compose.loki.yml            # If loki selected
-├── otel-collector-config.yaml         # Observability configs
-├── prometheus.yml
-├── grafana-datasources.yml
-└── loki-config.yaml
-```
-
-## Customization After Generation
-
-Prefer editing `superposition.yml` and regenerating:
+### .NET service with PostgreSQL
 
 ```yaml
 # superposition.yml
+stack: compose
+overlays:
+    - dotnet
+    - postgres
+```
+
+```bash
+npx container-superposition plan --stack compose --overlays dotnet,postgres
+npx container-superposition init --no-interactive
+```
+
+This selects the compose base, .NET tooling, PostgreSQL, and the associated
+client/environment setup.
+
+### .NET API with observability
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - dotnet
+    - postgres
+    - otel-collector
+    - jaeger
+    - prometheus
+    - grafana
+```
+
+```bash
+npx container-superposition plan --stack compose --overlays dotnet,postgres,otel-collector,jaeger,prometheus,grafana --verbose
+npx container-superposition init --no-interactive
+```
+
+### Minimal documentation site
+
+```yaml
+# superposition.yml
+stack: plain
+overlays:
+    - mkdocs
+outputPath: ./my-docs/.devcontainer
+```
+
+```bash
+npx container-superposition plan --stack plain --overlays mkdocs
+npx container-superposition init --no-interactive
+```
+
+### Messaging service
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - dotnet
+    - rabbitmq
+    - prometheus
+    - grafana
+```
+
+```bash
+npx container-superposition list --category messaging
+npx container-superposition explain rabbitmq
+npx container-superposition plan --stack compose --overlays dotnet,rabbitmq,prometheus,grafana --verbose
+npx container-superposition init --no-interactive
+```
+
+## Presets are optional shorthand
+
+A preset can seed a common setup, but the result is still shared project intent
+that can be inspected and evolved with flat overlays.
+
+```bash
+npx container-superposition list --category preset
+npx container-superposition explain web-api
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition init --stack compose --preset web-api --no-scaffold
+```
+
+`--no-scaffold` writes the project file only. Review the generated
+`superposition.yml`, then run `plan` and `init --no-interactive` when ready to
+write `.devcontainer/`.
+
+## Customize safely
+
+Keep shared configuration in `superposition.yml` and replay it:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
 containerName: My Custom Name
 env:
     MY_VAR: value
@@ -187,427 +179,86 @@ customizations:
             - 8080
 ```
 
-Then regenerate:
-
 ```bash
+npx container-superposition plan --stack compose --overlays nodejs,postgres --diff
 npx container-superposition regen
 ```
 
-## Help and Documentation
+Keep machine-specific mounts, editor extensions, shell changes, or port-conflict
+overrides in untracked `superposition.local.yml`; it enriches generated output
+without replacing the team file. See the [local-config section](superposition-yml.md#local-config-superpositionlocalyml).
 
-```bash
-# Show all options
-npm run init -- --help
+## Generated output and overlay material
 
-# Show version
-npm run init -- --version
-```
+The generated `.devcontainer/` directory contains ordinary editable devcontainer
+configuration. The tool preserves documented `custom/` escape hatches during
+replay; put durable shared intent in the project file rather than relying on
+ad-hoc generated-file edits.
 
-## Common Patterns
+### Maintainer context: overlay-provided files
 
-### Microservice with Full Observability
+Overlay authors can provide a `devcontainer.patch.json`, compose fragments,
+`.env.example`, and additional configuration files. These are maintainer inputs,
+not the normal project-authoring workflow:
 
-Production-ready microservice with complete observability:
-
-```bash
-npm run init -- \
-  --stack compose \
-  --language dotnet \
-  --postgres \
-  --observability otel-collector,jaeger,prometheus,grafana,loki \
-  --cloud-tools kubectl-helm
-```
-
-This creates:
-
-- .NET microservice with Docker Compose
-- PostgreSQL database
-- OpenTelemetry pipeline (collector → jaeger/prometheus/loki → grafana)
-- Kubernetes deployment tools
-- Complete local development environment matching production
-
-### Frontend Application with Testing
-
-Common for frontend applications:
-
-```bash
-npm run init -- \
-  --stack compose \
-  --language nodejs \
-  --redis \
-  --dev-tools playwright
-```
-
-### Backend API with Metrics Only
-
-Lightweight observability for REST APIs:
-
-```bash
-npm run init -- \
-  --stack compose \
-  --language nodejs \
-  --postgres \
-  --observability prometheus,grafana
-```
-
-### Distributed Tracing Setup
-
-Focus on distributed tracing without full observability:
-
-```bash
-npm run init -- \
-  --stack compose \
-  --language dotnet \
-  --database postgres+redis \
-  --observability otel-collector,jaeger
-```
-
-### Documentation Sites
-
-For documentation projects:
-
-```bash
-npm run init -- --stack plain --language mkdocs
-```
-
-### Multi-Cloud Python Development
-
-For Python projects targeting multiple clouds:
-
-```bash
-npm run init -- \
-  --stack compose \
-  --language python \
-  --postgres \
-  --cloud-tools aws-cli,azure-cli,kubectl-helm
-```
-
-## Observability Stack Combinations
-
-### Minimal (Traces Only)
-
-```bash
---observability jaeger
-```
-
-Direct tracing without collector.
-
-### Minimal (Metrics Only)
-
-```bash
---observability prometheus,grafana
-```
-
-Metrics collection and visualization.
-
-### Standard (Traces + Metrics)
-
-```bash
---observability otel-collector,jaeger,prometheus,grafana
-```
-
-Complete telemetry pipeline for traces and metrics.
-
-### Complete (Traces + Metrics + Logs)
-
-```bash
---observability otel-collector,jaeger,prometheus,grafana,loki
-```
-
-Full observability stack with centralized logging.
-
-## Service Dependencies
-
-The system handles dependencies automatically. For example, if you select:
-
-```bash
---observability otel-collector,prometheus,grafana
-```
-
-The generated `docker-compose.yml` will include:
-
-```yaml
-services:
-    prometheus:
-        # starts first
-
-    otel-collector:
-        depends_on:
-            - prometheus # waits for prometheus
-
-    grafana:
-        depends_on:
-            - prometheus # waits for prometheus
-
-    devcontainer:
-        depends_on:
-            - otel-collector # waits for otel-collector
-```
-
-Services start in the correct order automatically!
-
-## Adding Custom Configuration Files
-
-Overlays can include additional configuration files that are automatically copied to your output. For example:
-
-### Creating an Overlay with Config Files
-
-```
+```text
 overlays/my-service/
-├── devcontainer.patch.json    # DevContainer configuration
-├── docker-compose.yml         # Service definition
-├── .env.example               # Environment variables
-├── otel-collector.yml         # OpenTelemetry configuration
+├── overlay.yml
+├── devcontainer.patch.json
+├── docker-compose.yml
+├── .env.example
 └── config/
-    ├── nginx.conf             # Nginx configuration
-    └── app-settings.json      # Application settings
+    └── app-settings.json
 ```
 
-When you select this overlay, **all files** (except `devcontainer.patch.json` and `.env.example`) are copied to your output:
+See [Creating overlays](creating-overlays.md) for maintainer requirements.
 
+### Maintainer context: programmatic composition
+
+The composer API accepts normalized selection data used by the tool internals.
+Category fields below are **maintainer/API compatibility context**, not the
+recommended user configuration shape; project files should use flat `overlays:`.
+
+```javascript
+import { composeDevContainer } from './tool/questionnaire/composer.js';
+
+await composeDevContainer({
+    stack: 'compose',
+    language: ['dotnet'],
+    database: 'postgres',
+    observability: ['otel-collector', 'jaeger', 'prometheus', 'grafana'],
+    outputPath: './.devcontainer',
+});
 ```
-.devcontainer/
-├── devcontainer.json
-├── .env.example               # Merged from all selected overlays
-├── docker-compose.my-service.yml
-├── otel-collector.yml         # Copied from overlay
-└── config/
-    ├── nginx.conf             # Copied from overlay
-    └── app-settings.json      # Copied from overlay
-```
 
-### Environment Variables per Overlay
+## Legacy / migration only: manifest repositories
 
-Each overlay provides its own `.env.example` with relevant variables:
-
-**postgres/.env.example:**
+If a repository predates project files and only has `superposition.json`, migrate
+it once. Do not hand-edit the manifest or use it as the ongoing team source of
+truth.
 
 ```bash
-POSTGRES_VERSION=16
-POSTGRES_DB=devdb
-POSTGRES_PASSWORD=postgres
+# Inspect the legacy receipt path if needed, then create canonical shared intent.
+npx container-superposition migrate --from-manifest ./superposition.json
+
+# Preview the migrated selection before writing generated output.
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition regen
 ```
 
-**redis/.env.example:**
+`regen --from-manifest` remains deprecated compatibility support. Prefer
+`migrate`, commit the resulting project file, and use normal project-file replay.
+
+## Help and reference
 
 ```bash
-REDIS_VERSION=7
-REDIS_PORT=6379
+npm run init -- --help
+npm run init -- list --help
+npm run init -- plan --help
+npm run init -- regen --help
 ```
 
-**Combined output .env.example:**
-
-```bash
-# Environment Variables
-# Generated by container-superposition init tool
-
-# PostgreSQL Configuration
-POSTGRES_VERSION=16
-POSTGRES_DB=devdb
-POSTGRES_PASSWORD=postgres
-
-# Redis Configuration
-REDIS_VERSION=7
-REDIS_PORT=6379
-```
-
-Copy `.env.example` to `.env` and customize for your needs.
-
-## Manifest Regeneration Examples
-
-Every generation creates a `superposition.json` manifest file that records your configuration. Use it to iterate on your setup, update to latest versions, or experiment safely.
-
-### Basic Workflow: Iterating on Configuration
-
-```bash
-# 1. Initial setup - Start simple
-npm run init -- --stack compose --language nodejs --database postgres
-# Creates .devcontainer/ and superposition.json
-
-# 2. Verify it works
-code .
-# Dev Containers: Reopen in Container
-
-# 3. Later: Add Redis and observability
-npm run init -- --from-manifest ./superposition.json
-# Questionnaire appears with nodejs and postgres already selected
-# Add: redis, otel-collector, prometheus, grafana
-# Original .devcontainer/ automatically backed up to .devcontainer.backup-{timestamp}/
-```
-
-**What happens:**
-
-- Previous selections (nodejs, postgres) pre-selected in questionnaire
-- You modify the selection (add redis, observability tools)
-- Original devcontainer backed up with timestamp
-- New devcontainer generated with updated selections
-- New superposition.json reflects current configuration
-
-### Non-Interactive Regeneration
-
-Use `regen` when you want deterministic replay of a persisted source:
-
-```bash
-# Regenerate with exact same selections from a manifest, no backup
-npm run init -- regen --from-manifest ./superposition.json --no-backup
-
-# Or let regen use the repository project file when present
-npm run init -- regen
-```
-
-**Use cases:**
-
-- **CI/CD**: Regenerate template from manifest in pipeline
-- **Updates**: Get latest overlay versions without manual re-selection
-- **Testing**: Quickly regenerate after overlay changes
-
-### Switching Languages
-
-```bash
-# Started with Node.js
-npm run init -- --stack compose --language nodejs --database postgres
-
-# Switch to Python
-npm run init -- --from-manifest ./superposition.json
-# In questionnaire:
-#   - Deselect nodejs
-#   - Select python
-#   - Keep postgres (already selected)
-# Regenerate
-```
-
-### Adding Observability to Existing Setup
-
-```bash
-# Initial minimal setup
-npm run init -- --stack compose --language dotnet --database postgres,redis
-
-# Add full observability stack
-npm run init -- --from-manifest ./superposition.json
-# Add: otel-collector, jaeger, prometheus, grafana, loki
-# All existing selections preserved
-```
-
-### Team Workflow: Sharing Configurations
-
-```bash
-# Developer 1: Create and commit manifest
-npm run init -- --stack compose --language nodejs --database postgres --observability prometheus,grafana
-git add superposition.json .devcontainer/
-git commit -m "Add devcontainer configuration"
-git push
-
-# Developer 2: Clone and regenerate from manifest
-git clone <repo>
-npm install
-npm run init -- regen --from-manifest ./superposition.json
-# Gets exact same devcontainer setup
-```
-
-### Custom Backup Location
-
-```bash
-# Backup to custom directory
-npm run init -- --from-manifest ./superposition.json --backup-dir ../backups/
-# Creates backup in ../backups/.devcontainer.backup-{timestamp}/
-```
-
-### Manifest Fields Preserved
-
-The manifest stores and restores:
-
-```json
-{
-    "version": "X.Y.Z",
-    "generated": "2026-02-08T10:00:00Z",
-    "baseTemplate": "compose",
-    "baseImage": "bookworm",
-    "overlays": ["nodejs", "postgres", "redis"],
-    "portOffset": 100,
-    "preset": "web-api",
-    "presetChoices": { "language": "nodejs" },
-    "containerName": "My API Project",
-    "outputPath": "./.devcontainer"
-}
-```
-
-**Preserved on regeneration:**
-
-- Base template selection (plain/compose)
-- Base image selection
-- All overlay selections
-- Port offset
-- Preset (if used) and preset choices
-- Container name (from devcontainer.json)
-- Output path
-
-### Edge Cases Handled
-
-**Missing overlays:**
-
-```bash
-# If manifest references overlays that no longer exist
-npm run init -- --from-manifest ./superposition.json
-# ⚠️  Warning: Some overlays from manifest no longer exist: old-overlay
-# Continues with remaining valid overlays
-```
-
-**Version mismatch:**
-
-```bash
-# If manifest version differs
-npm run init -- --from-manifest ./old-manifest.json
-# ⚠️  Manifest version 0.0.5 may not be fully compatible with this tool
-# Continues using manifest as-is
-```
-
-### Backup Management
-
-**Default behavior:**
-
-```bash
-npm run init -- --from-manifest ./superposition.json
-# Creates: .devcontainer.backup-2026-02-08-143022/
-# Contains: devcontainer.json, docker-compose.yml, all scripts, features, etc.
-```
-
-**Backup patterns automatically added to project root `.gitignore`:**
-
-```gitignore
-# Container Superposition backups
-.devcontainer.backup-*/
-*.backup-*
-superposition.json.backup-*
-```
-
-**Restore from backup:**
-
-```bash
-# If regeneration didn't work as expected, restore from backup
-rm -rf .devcontainer
-mv .devcontainer.backup-2026-02-08-143022 .devcontainer
-# Or cherry-pick specific files from backup
-cp .devcontainer.backup-2026-02-08-143022/devcontainer.json .devcontainer/
-```
-
-### Advanced: Multiple Environments
-
-```bash
-# Development environment
-npm run init -- --stack compose --language nodejs --database postgres --output ./dev
-mv dev/superposition.json dev-superposition.json
-
-# Staging environment (more observability)
-npm run init -- --from-manifest ./dev-superposition.json --output ./staging
-# Add: otel-collector, jaeger, prometheus, grafana
-mv staging/superposition.json staging-superposition.json
-
-# Production environment (full stack)
-npm run init -- --from-manifest ./staging-superposition.json --output ./prod
-# Add: loki, redis for caching
-mv prod/superposition.json prod-superposition.json
-
-# Now you have three manifests for different environments
-# Regenerate any environment from its manifest
-npm run init -- regen --from-manifest ./dev-superposition.json --output ./dev
-```
+- [Quick reference](quick-reference.md)
+- [Authoring `superposition.yml`](superposition-yml.md)
+- [Team workflow](team-workflow.md)
+- [Overlay catalog](overlays.md)

@@ -174,26 +174,31 @@ npm run init
 
 ### Command-Line Mode
 
-Presets are not directly available via CLI yet, but you can achieve the same result:
-
-**Web API equivalent:**
+Use a preset as an optional shortcut, then commit the resulting `superposition.yml` as
+team-owned intent. You can always author the equivalent flat `overlays:` list directly.
 
 ```bash
-npm run init -- \
-  --stack compose \
-  --language nodejs \
-  --database postgres,redis \
-  --observability otel-collector,prometheus,grafana,loki
+npm run init -- init --preset web-api
 ```
 
-**Microservice equivalent:**
+For an explicit project-file-first selection, use the flat form and preview it before writing:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - python
+    - postgres
+    - redis
+    - otel-collector
+    - prometheus
+    - grafana
+    - loki
+```
 
 ```bash
-npm run init -- \
-  --stack compose \
-  --language nodejs \
-  --database rabbitmq \
-  --observability otel-collector,jaeger,prometheus,grafana
+npm run init -- plan --stack compose --overlays python,postgres,redis,otel-collector,prometheus,grafana,loki
+npm run init -- init --no-interactive
 ```
 
 ## Customizing Presets
@@ -255,9 +260,9 @@ Suggested ports (informational):
 | Full-Stack   | Frontend  | 3000  |
 | Full-Stack   | Backend   | 8000  |
 
-## Manifest Tracking
+## Generated Receipt
 
-Presets are tracked in `superposition.json`:
+The generated `superposition.json` compatibility/audit receipt can record the preset expansion:
 
 ```json
 {
@@ -265,17 +270,14 @@ Presets are tracked in `superposition.json`:
     "baseTemplate": "compose",
     "preset": "web-api",
     "presetChoices": {
-        "language": "nodejs"
+        "language": "python"
     },
-    "overlays": ["nodejs", "postgres", "redis", "otel-collector", "prometheus", "grafana", "loki"]
+    "overlays": ["python", "postgres", "redis", "otel-collector", "prometheus", "grafana", "loki"]
 }
 ```
 
-This allows you to:
-
-- Know which preset was used
-- See which choices were made
-- Reproduce the same configuration
+This is useful for compatibility and audit inspection. The committed `superposition.yml`
+remains the canonical shared input for replay and regeneration.
 
 ## Creating Custom Presets
 
@@ -317,23 +319,14 @@ glueConfig:
         Usage instructions here...
 ```
 
-2. Register in `overlays/index.yml`:
+2. Keep all preset metadata and definition in that file. Do **not** register it in
+   `overlays/index.yml`; that legacy index is not an authoring surface.
 
-```yaml
-preset_overlays:
-    - id: my-preset
-      name: My Custom Stack
-      description: Description of your stack
-      category: preset
-      supports: [compose]
-      tags: [preset, custom]
-```
-
-3. Test:
+3. Test the metadata-driven preset through the live CLI:
 
 ```bash
-npm run build
-npm run init
+npm run init -- list --category preset
+npm run init -- init --preset my-preset
 ```
 
 ## Best Practices
@@ -342,7 +335,7 @@ npm run init
 2. **Customize after selection** to add project-specific needs
 3. **Review PRESET-README.md** for usage instructions
 4. **Copy .env.example to .env** and customize values
-5. **Check superposition.json** to understand what was configured
+5. **Review `superposition.yml`** to understand and edit the shared selection; inspect `superposition.json` only as a generated compatibility/audit receipt
 
 ## FAQ
 

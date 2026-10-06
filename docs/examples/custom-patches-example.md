@@ -13,10 +13,19 @@ You're working on a Node.js API that:
 
 ## Initial Setup
 
-Generate the base devcontainer:
+Create the canonical shared intent, preview its flat overlay selection, then generate:
+
+```yaml
+# superposition.yml
+stack: compose
+overlays:
+    - nodejs
+    - postgres
+```
 
 ```bash
-npm run init -- --stack compose --language nodejs --database postgres
+npm run init -- plan --stack compose --overlays nodejs,postgres
+npm run init -- init --no-interactive
 ```
 
 ## Add Custom Patches
@@ -71,12 +80,15 @@ S3_ENDPOINT=http://minio:9000
 
 ## Regenerate with Customizations
 
-Add Redis to your stack:
+Add Redis to the canonical project file, preview the selection, then regenerate:
 
 ```bash
-npm run init -- --from-manifest .devcontainer/superposition.json
-# Select redis in addition to existing overlays
+npm run init -- plan --stack compose --overlays nodejs,postgres,redis --diff
+npm run init -- regen
 ```
+
+`--from-manifest` is compatibility / migration-only support for legacy receipts;
+use `migrate` before returning to project-file replay.
 
 ## Result
 

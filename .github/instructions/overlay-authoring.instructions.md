@@ -266,7 +266,7 @@ Define ports to forward from container to host.
 
 - Only forward ports users will actively use
 - Provide descriptive labels
-- Match ports declared in `overlays/index.yml` for the overlay
+- Match ports declared in the overlay's `overlay.yml` and owned compose/patch files
 - Ports will be offset by composer.ts if `--port-offset` is used
 
 #### Lifecycle Commands
@@ -908,7 +908,9 @@ For structured generated output, use the shared JSON/YAML/Compose/script asserti
 
     ```bash
     # Generate devcontainer with your overlay
-    npm run init -- --stack compose --language nodejs --your-overlay
+    npm run init -- plan --stack compose --overlays nodejs,my-overlay
+    # Add nodejs and my-overlay to superposition.yml overlays: before writing
+    npm run init -- init --no-interactive
 
     # Open in VS Code and rebuild container
     code generated-project/
@@ -926,7 +928,9 @@ For structured generated output, use the shared JSON/YAML/Compose/script asserti
 6. **Test port offset:**
 
     ```bash
-    npm run init -- --port-offset 100 --stack compose --database postgres
+    npm run init -- plan --stack compose --overlays postgres --port-offset 100
+    # Set stack: compose, overlays: [postgres], portOffset: 100 in superposition.yml
+    npm run init -- init --no-interactive
     # Verify PostgreSQL is on port 5532, not 5432
     ```
 

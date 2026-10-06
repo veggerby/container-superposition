@@ -38,8 +38,9 @@ This guide helps you choose the right messaging overlay for your development env
 **Example:**
 
 ```bash
-# Generate with RabbitMQ
-container-superposition --stack compose --database rabbitmq --language nodejs
+# Preview the flat overlay selection, then write the project file with init.
+npx container-superposition plan --stack compose --overlays nodejs,rabbitmq
+npx container-superposition init --no-interactive
 ```
 
 ## When to Use Redpanda
@@ -64,8 +65,9 @@ container-superposition --stack compose --database rabbitmq --language nodejs
 **Example:**
 
 ```bash
-# Generate with Redpanda
-container-superposition --stack compose --database redpanda --language nodejs
+# Preview the flat overlay selection, then write the project file with init.
+npx container-superposition plan --stack compose --overlays redpanda
+npx container-superposition init --no-interactive
 ```
 
 **Why Redpanda over Kafka?**
@@ -99,8 +101,9 @@ container-superposition --stack compose --database redpanda --language nodejs
 **Example:**
 
 ```bash
-# Generate with NATS
-container-superposition --stack compose --database nats --language nodejs
+# Preview the flat overlay selection, then write the project file with init.
+npx container-superposition plan --stack compose --overlays nodejs,nats
+npx container-superposition init --no-interactive
 ```
 
 **Why NATS?**
@@ -117,14 +120,13 @@ You can use multiple messaging systems together for different purposes:
 
 ```bash
 # RabbitMQ for task queues + NATS for real-time updates
-container-superposition --stack compose \
-  --database rabbitmq,nats \
-  --language nodejs
+npx container-superposition plan --stack compose --overlays nodejs,rabbitmq,nats
 
 # Redpanda for event streaming + RabbitMQ for work queues
-container-superposition --stack compose \
-  --database redpanda,rabbitmq \
-  --language nodejs,python
+npx container-superposition plan --stack compose --overlays python,redpanda,rabbitmq
+
+# After placing the selected stack and overlays in superposition.yml:
+npx container-superposition init --no-interactive
 ```
 
 **Common Patterns:**

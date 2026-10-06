@@ -210,6 +210,21 @@ Feature: Core CLI tooling workflows
       language
       """
 
+  Scenario: Filtered list renders readable port metadata
+    Given an inline workspace fixture:
+      """
+      files:
+        README.md:
+          text: filtered discovery workspace
+      """
+    When I run the CLI command
+      """
+      list --category database
+      """
+    Then the command exits successfully
+    And the command stdout should contain "Ports: 5432/tcp — postgres — PostgreSQL database connection"
+    And the command stdout should not contain "[object Object]"
+
   Scenario: External path catalogs stay namespace-qualified across discovery and replay
     Given an inline workspace fixture:
       """

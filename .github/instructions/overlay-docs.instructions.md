@@ -296,7 +296,11 @@ Default port: `5432`
 
 Customize with port offset:
 \```bash
-npm run init -- --stack compose --database postgres --port-offset 100
+npm run init -- plan --stack compose --overlays postgres --port-offset 100
+
+# With stack: compose, overlays: [postgres], portOffset: 100 in superposition.yml:
+
+npm run init -- init --no-interactive
 
 # PostgreSQL will be on port 5532
 
@@ -560,4 +564,4 @@ Before considering overlay documentation complete, verify:
 **Related Instructions:**
 
 - `.github/instructions/overlay-authoring.instructions.md` - Guide for creating overlay files (devcontainer.patch.json, docker-compose.yml, scripts)
-- `.github/instructions/overlay-index.instructions.md` - Guide for registering overlays in overlays/index.yml
+- `.github/instructions/overlay-index.instructions.md` - Per-overlay `overlay.yml` metadata guide (legacy index sections are historical only)

@@ -1,4 +1,4 @@
-import type { OverlayMetadata, OverlaysConfig } from '../schema/types.js';
+import type { OverlayMetadata, OverlaysConfig, PortMetadata } from '../schema/types.js';
 import { findProjectConfig } from '../schema/project-config.js';
 import { describeSource } from '../ux/semantics/source.js';
 import { resolveNextStep } from '../ux/semantics/next-step.js';
@@ -108,6 +108,28 @@ function buildCommonGoals(overlaysConfig: OverlaysConfig): string[] {
     return goals.slice(0, 4);
 }
 
+function formatPortMetadata(port: number | PortMetadata): string {
+    if (typeof port === 'number') {
+        return String(port);
+    }
+
+    return [
+        `${port.port}${port.protocol ? `/${port.protocol}` : ''}`,
+        port.service,
+        port.description,
+    ]
+        .filter((part): part is string => Boolean(part))
+        .join(' — ');
+}
+
+function formatFilteredOverlay(overlay: OverlayMetadata): string {
+    const tags = overlay.tags?.length ? ` [${overlay.tags.join(', ')}]` : '';
+    const ports = overlay.ports?.length
+        ? ` | Ports: ${overlay.ports.map(formatPortMetadata).join(', ')}`
+        : '';
+    return `${overlay.id} — ${overlay.description}${tags}${ports}`;
+}
+
 function renderFiltered(overlays: OverlayMetadata[], options: ListOptions): string {
     const filters = [
         options.category ? `category: ${options.category}` : null,
@@ -136,15 +158,7 @@ function renderFiltered(overlays: OverlayMetadata[], options: ListOptions): stri
     return [
         renderSection('Filter summary', `Filtered by ${filters.join(', ')}`),
         '',
-        renderSection(
-            'Best matches',
-            renderList(
-                overlays.map(
-                    (overlay) =>
-                        `${overlay.id} — ${overlay.description}${overlay.tags && overlay.tags.length > 0 ? ` [${overlay.tags.join(', ')}]` : ''}`
-                )
-            )
-        ),
+        renderSection('Best matches', renderList(overlays.map(formatFilteredOverlay))),
         '',
         renderSection('How to widen or inspect next', [
             'remove one filter to widen choices',

@@ -82,7 +82,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         )
         .option(
             '--from-manifest <path>',
-            'Load configuration from existing superposition.json manifest'
+            'Compatibility / migration only: load legacy superposition.json input'
         )
         .option('--no-interactive', 'Use persisted input values directly without questionnaire')
         .option(
@@ -284,7 +284,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('--overlays <list>', 'Comma-separated list of overlay IDs')
         .option(
             '--from-manifest <path>',
-            'Load stack and overlays from an existing superposition.json manifest'
+            'Compatibility / migration only: inspect a legacy superposition.json manifest'
         )
         .option(
             '--port-offset <number>',
@@ -321,7 +321,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         .option('-o, --output <path>', 'Devcontainer path to validate (default: ./.devcontainer)')
         .option(
             '--from-manifest <path>',
-            'Load configuration from an existing superposition.json manifest'
+            'Compatibility / migration only: load legacy superposition.json input'
         )
         .option('--from-project', 'Load configuration from the repository project file')
         .option(
@@ -462,7 +462,7 @@ export async function parseCliArgs(): Promise<CliArgs | null> {
         )
         .option(
             '--from-manifest <path>',
-            'Path to superposition.json (default: auto-discover in .devcontainer/ or repository root)'
+            'Compatibility / migration-only legacy superposition.json path (default: auto-discover in .devcontainer/ or repository root)'
         )
         .option(
             '--output <path>',

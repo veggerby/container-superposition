@@ -209,7 +209,9 @@ async function applyGlueConfig(glueConfig: PresetGlueConfig, envPath: string, ou
 }
 ```
 
-#### 3. Manifest (superposition.json)
+#### 3. Generated compatibility/audit receipt (`.devcontainer/superposition.json` by default)
+
+The canonical shared selection remains in `superposition.yml`; the receipt is not a preset authoring target.
 
 ```json
 {
@@ -376,7 +378,7 @@ glueConfig:
         - [Suggestion 2]
 ```
 
-**Output**: `PRESET-README.md` in project root alongside `superposition.json`
+**Output**: `PRESET-README.md` in the configured output directory alongside the generated compatibility/audit receipt (`.devcontainer/superposition.json` by default)
 
 ## Dependency Resolution
 
@@ -392,13 +394,11 @@ Presets participate in normal dependency resolution:
 ```yaml
 # Preset selects grafana
 selects:
-  required:
-    - grafana
+    required:
+        - grafana
 
-# Grafana requires prometheus
-# overlays/index.yml
-- id: grafana
-  requires: [prometheus]
+# Grafana's overlays/grafana/overlay.yml declares the dependency:
+requires: [prometheus]
 
 # Result: Both grafana AND prometheus included
 ```
@@ -407,9 +407,9 @@ selects:
 
 ### Adding New Presets
 
-1. **Create YAML file** in `overlays/.presets/`
-2. **Register in** `overlays/index.yml`
-3. **No code changes needed** (declarative system)
+1. **Create a preset YAML file** in `overlays/.presets/` with its ID and selection metadata.
+2. **Discover it** with `npm run init -- list --category preset` and inspect it with `npm run init -- explain <preset-id>`.
+3. **Test** the selection using `npm run init -- init --preset <preset-id>` in a disposable project. No central index registration is needed.
 
 **Validation**:
 
@@ -493,6 +493,6 @@ container-superposition --preset web-api --preset-choice language=nodejs
 ## See Also
 
 - [Presets User Guide](presets.md) - User-facing documentation
-- [Overlay Index](../overlays/index.yml) - Preset registrations
+- [Overlay authoring](creating-overlays.md) - Per-overlay metadata and dependencies
 - [Creating Overlays](creating-overlays.md) - How to create presets
 - [Dependencies](dependencies.md) - Dependency resolution system

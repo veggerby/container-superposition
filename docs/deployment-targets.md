@@ -5,27 +5,29 @@ selected deployment environment using the `--target` flag.
 
 ## Quick Start
 
-```bash
-# Default — local development (no additional files)
-npx container-superposition init --stack compose --language nodejs
+Set the deployment target in the canonical shared project file alongside the flat overlay
+selection. `plan` can preview the stack and overlays, but it does not accept `target:` and
+therefore does not preview target-specific artifacts. Review the project file, preview the
+selection, then write it:
 
-# GitHub Codespaces (adds hostRequirements + CODESPACES.md)
-npx container-superposition init --target codespaces
-
-# Gitpod (adds .gitpod.yml + GITPOD.md)
-npx container-superposition init --target gitpod
-
-# DevPod (adds devpod.yaml + DEVPOD.md)
-npx container-superposition init --target devpod
-
-# Full example for Codespaces
-npx container-superposition init \
-    --stack compose \
-    --language nodejs \
-    --database postgres \
-    --dev-tools docker-in-docker \
-    --target codespaces
+```yaml
+# superposition.yml
+stack: compose
+target: codespaces
+overlays:
+    - nodejs
+    - postgres
+    - docker-in-docker
 ```
+
+```bash
+npx container-superposition plan --stack compose --overlays nodejs,postgres,docker-in-docker
+npx container-superposition init --no-interactive
+```
+
+Use `target: local`, `codespaces`, `gitpod`, or `devpod` in `superposition.yml`. A
+preset may be a shortcut for choosing overlays, but the project file remains the shared
+regeneration authority.
 
 ## Supported Deployment Targets
 
@@ -97,31 +99,37 @@ alongside the standard `.devcontainer/` output.
 
 ### CLI Mode
 
-Pass `--target` directly — the target is applied without interactive prompts:
+For unattended CLI use, put the target in the project file; `init --no-interactive` applies
+it without prompts. The preview still covers only the stack and overlays:
+
+```yaml
+# superposition.yml
+stack: compose
+target: gitpod
+overlays:
+    - nodejs
+    - docker-in-docker
+```
 
 ```bash
-npx container-superposition init \
-    --stack compose \
-    --language nodejs \
-    --dev-tools docker-in-docker \
-    --target gitpod
+npx container-superposition plan --stack compose --overlays nodejs,docker-in-docker
+npx container-superposition init --no-interactive
 ```
 
 ### Regeneration
 
-The selected target is saved in `superposition.json` as the `target` field. Regeneration
-re-produces the correct artifacts automatically without re-prompting:
+The selected target is stored in `superposition.yml` as the canonical shared intent.
+`superposition.json` may record it as a generated compatibility/audit receipt. Regeneration
+reproduces the correct artifacts without re-prompting:
 
 ```bash
-# superposition.json contains "target": "gitpod"
+# superposition.yml contains: target: gitpod
 npx container-superposition regen   # → .gitpod.yml and GITPOD.md reproduced
 ```
 
-To switch target on regeneration, pass `--target` explicitly:
-
-```bash
-npx container-superposition regen --target codespaces
-```
+To switch targets, edit `target:` in `superposition.yml`, review that target change, preview
+the corresponding flat overlay selection with `plan`, then run `regen`. `plan` does not
+accept a target input, so it cannot preview target-specific artifacts.
 
 Stale artifacts from the previous target (e.g. `.gitpod.yml`) are **removed automatically**
 before the new target's artifacts are written.

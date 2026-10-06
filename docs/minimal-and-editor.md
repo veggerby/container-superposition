@@ -1,68 +1,66 @@
 # Minimal Mode and Editor Profiles
 
-Container Superposition provides options to customize the generated development environment based on your needs and preferences.
+Container Superposition stores these choices in the team-owned `superposition.yml`. Use flat
+`overlays:` to select capabilities, preview that selection, then write or replay the project
+file.
 
-## Minimal Mode
+> `plan` previews the selected stack and overlays. It does not accept `minimal`, `editor`, or
+> `target` input, so review those project-file settings before writing.
 
-Use `--minimal` to generate lean configurations by excluding optional overlays.
+## Minimal mode
 
-### Usage
+Set `minimal: true` to omit overlays whose `overlay.yml` declares `minimal: true`:
 
-```bash
-# Generate minimal configuration
-container-superposition init --minimal
-
-# With other options
-container-superposition init --stack plain --language nodejs --minimal
-
-# Compare: Normal vs Minimal
-container-superposition init --language nodejs --dev-tools modern-cli-tools,git-helpers,codex
-# ✓ Includes: nodejs, modern-cli-tools, git-helpers, codex
-
-container-superposition init --language nodejs --dev-tools modern-cli-tools,git-helpers,codex --minimal
-# ✓ Includes: nodejs (essential)
-# ✗ Excludes: modern-cli-tools, git-helpers, codex (marked as optional)
+```yaml
+# superposition.yml
+stack: plain
+minimal: true
+overlays:
+    - nodejs
+    - modern-cli-tools
+    - git-helpers
+    - codex
 ```
 
-### What Gets Excluded
-
-Overlays marked with `minimal: true` in their `overlay.yml` are excluded in minimal mode:
-
-- **modern-cli-tools** — Enhanced CLI tools (jq, yq, ripgrep, fd, bat)
-- **git-helpers** — Git LFS, GitHub CLI, GPG/SSH support
-- **codex** — AI-powered coding assistant
-
-Essential overlays (languages, databases, required tools) are always included.
-
-### When to Use Minimal Mode
-
-**CI/CD Environments:**
+Preview the explicit selection, then generate:
 
 ```bash
-container-superposition init --minimal --stack compose --language nodejs --database postgres
+npx container-superposition plan --stack plain --overlays nodejs,modern-cli-tools,git-helpers,codex
+npx container-superposition init --no-interactive
 ```
 
-**Resource-Constrained Codespaces:**
+The preview shows the requested overlays. During generation, minimal mode excludes optional
+overlays such as `modern-cli-tools`, `git-helpers`, and `codex`; essential language and service
+overlays remain included.
+
+### When to use it
+
+Use `minimal: true` for CI, resource-constrained workspaces, tutorials, or any environment that
+needs only essential capabilities. For example, a lean Codespaces setup can keep its target and
+minimal setting in shared intent:
+
+```yaml
+# superposition.yml
+stack: compose
+target: codespaces
+minimal: true
+overlays:
+    - python
+    - postgres
+    - docker-in-docker
+```
 
 ```bash
-container-superposition init --minimal --target codespaces --language python
+npx container-superposition plan --stack compose --overlays python,postgres,docker-in-docker
+npx container-superposition init --no-interactive
 ```
 
-**Learning/Tutorials:**
+`plan` does not preview `target: codespaces` or minimal-mode exclusions; review those fields in
+the project file before `init` writes target-specific artifacts.
 
-```bash
-container-superposition init --minimal --stack plain --language nodejs
-```
+### Marking an overlay as optional
 
-**Production-like Environments:**
-
-```bash
-container-superposition init --minimal --stack compose --language dotnet --database sqlserver
-```
-
-### Marking Overlays as Optional
-
-When creating overlays, add `minimal: true` to mark them as optional:
+Overlay authors can mark an overlay as optional in its metadata:
 
 ```yaml
 # overlays/modern-cli-tools/overlay.yml
@@ -70,76 +68,41 @@ id: modern-cli-tools
 name: Modern CLI Tools
 description: Enhanced command-line tools
 category: dev
-minimal: true # Excluded in minimal mode
+minimal: true
 ```
 
-## Editor Profiles
+## Editor profiles
 
-Use `--editor` to choose which editor customizations to include.
+Set `editor` in `superposition.yml` to choose generated editor customizations:
 
-### Usage
+```yaml
+# superposition.yml
+stack: plain
+editor: none # vscode (default) | jetbrains | none
+overlays:
+    - python
+```
 
 ```bash
-# VS Code (default) - Include VS Code extensions and settings
-container-superposition init --editor vscode
-
-# None - CLI-only, no editor customizations
-container-superposition init --editor none
-
-# JetBrains - Generate .idea/ project settings and run configurations
-container-superposition init --editor jetbrains
+npx container-superposition plan --stack plain --overlays python
+npx container-superposition init --no-interactive
 ```
 
-### Available Profiles
+### Available profiles
 
-#### vscode (Default)
+#### `vscode` (default)
 
-Includes VS Code extensions and settings from overlays.
+Includes VS Code extensions and settings contributed by selected overlays.
 
-```json
-{
-    "customizations": {
-        "vscode": {
-            "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
-            "settings": {
-                "editor.defaultFormatter": "esbenp.prettier-vscode"
-            }
-        }
-    }
-}
-```
+#### `none`
 
-#### none
+Removes editor customizations. It is useful for CI, server, terminal-only, or other non-editor
+workflows.
 
-Removes all editor customizations. Useful for:
+#### `jetbrains`
 
-- CI/CD containers
-- Server environments
-- Terminal-only workflows
-- Using different editors (vim, emacs, etc.)
-
-```json
-{
-    // No customizations field
-}
-```
-
-#### jetbrains
-
-Generates JetBrains IDE project artifacts and sets the appropriate IDE backend in
-`devcontainer.json`. VS Code customizations are removed.
-
-```json
-{
-    "customizations": {
-        "jetbrains": {
-            "backend": "WebStorm"
-        }
-    }
-}
-```
-
-The `backend` value is automatically selected based on the primary language overlay:
+Generates JetBrains IDE project artifacts and selects an IDE backend in `devcontainer.json`. VS
+Code customizations are removed. The backend is selected from the primary language overlay:
 
 | Language overlay          | JetBrains IDE                     |
 | ------------------------- | --------------------------------- |
@@ -151,175 +114,85 @@ The `backend` value is automatically selected based on the primary language over
 | `rust`                    | `RustRover`                       |
 | none / multiple / unknown | `IntelliJIdea` (generic fallback) |
 
-##### Generated artifacts
+JetBrains generation creates matching run configurations in the project-root `.idea/` directory.
+Existing `.idea/` files are never overwritten. Switching later to `editor: vscode` does not
+remove that directory because it may contain user-created configuration.
 
-In addition to the `devcontainer.json` update, enabling JetBrains support generates the
-following files in the **project root** (the parent of `.devcontainer/`):
+## Combining minimal mode and editor settings
 
+Keep all shared generation choices together in the project file:
+
+```yaml
+# superposition.yml
+stack: compose
+minimal: true
+editor: none
+overlays:
+    - nodejs
+    - postgres
 ```
-.idea/
-  .gitignore                        # shared workspace entries committed to VCS
-  runConfigurations/
-    npm_dev.xml                     # Node.js — npm run dev
-    python_main.xml                 # Python — python main.py
-    go_run.xml                      # Go — go run ./...
-    dotnet_run.xml                  # .NET — dotnet run
-    java_run.xml                    # Java — Application run
-    rust_run.xml                    # Rust — cargo run
-```
-
-Only run configuration files matching the selected language overlays are created.
-
-##### Existing `.idea/` directory
-
-If `.idea/` already exists (e.g., from a previous generation or user customisation),
-existing files are **never overwritten**. Only files that are missing are written.
-
-##### Regenerating with a different editor profile
-
-If you later regenerate with `--editor vscode` after a JetBrains generation, the `.idea/`
-directory is **not removed** — it may contain user-created configurations. Switch back
-to `--editor jetbrains` if you want to add new run configurations.
-
-### When to Use Editor Profiles
-
-**Terminal Workflows:**
 
 ```bash
-container-superposition init --editor none --language python
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition init --no-interactive
 ```
 
-**JetBrains IDEs:**
+To change an existing setup, edit `superposition.yml`, preview the resulting stack and flat
+overlay list, then replay it:
 
 ```bash
-container-superposition init --editor jetbrains --language java
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition plan --stack compose --overlays nodejs,postgres --diff
+npx container-superposition regen
 ```
 
-**CI/CD (no editor needed):**
-
-```bash
-container-superposition init --editor none --minimal --language nodejs
-```
-
-## Combining Flags
-
-Both flags can be used together with init or regen commands:
-
-```bash
-# Minimal, CLI-only configuration
-container-superposition init --minimal --editor none --language nodejs
-
-# Regenerate existing setup in minimal mode without editor customizations
-container-superposition regen --minimal --editor none
-
-# Resource-efficient Codespaces setup
-container-superposition init --minimal --editor vscode --target codespaces --language python
-
-# Lean JetBrains environment
-container-superposition init --minimal --editor jetbrains --language java
-```
-
-## Regeneration Workflow
-
-The `regen` command is particularly useful when you want to modify an existing setup:
-
-```bash
-# Step 1: Create initial setup with all extras
-container-superposition init --language nodejs --dev-tools modern-cli-tools,git-helpers,codex
-
-# Step 2: Later, regenerate without the extras
-container-superposition regen --minimal
-# Reads existing manifest, excludes optional overlays
-
-# Step 3: Or regenerate for a different editor
-container-superposition regen --editor jetbrains
-# Adds JetBrains customizations and generates .idea/ artifacts
-
-# Step 4: Or both together
-container-superposition regen --minimal --editor none
-# Lean, CLI-only regeneration
-```
+`regen` reads the canonical project file. The generated
+`.devcontainer/superposition.json` is a compatibility/audit receipt, not the steady-state source
+of settings.
 
 ## Examples
 
-### Minimal Node.js for CI
+### Full local development
+
+```yaml
+# superposition.yml
+stack: compose
+editor: vscode
+overlays:
+    - python
+    - postgres
+    - docker-sock
+    - git-helpers
+    - modern-cli-tools
+    - pre-commit
+    - prometheus
+    - grafana
+```
 
 ```bash
-container-superposition init \
-  --minimal \
-  --editor none \
-  --stack plain \
-  --language nodejs \
-  --output .devcontainer
+npx container-superposition plan --stack compose --overlays python,postgres,docker-sock,git-helpers,modern-cli-tools,pre-commit,prometheus,grafana
+npx container-superposition init --no-interactive
 ```
 
-**Result:** Bare-bones Node.js environment, no extras, no editor extensions.
+### Lean JetBrains workspace
 
-### Full-Featured Local Development
+```yaml
+# superposition.yml
+stack: compose
+minimal: true
+editor: jetbrains
+overlays:
+    - nodejs
+    - postgres
+```
 
 ```bash
-container-superposition init \
-  --editor vscode \
-  --stack compose \
-  --language nodejs \
-  --database postgres \
-  --dev-tools docker-sock,git-helpers,modern-cli-tools,pre-commit \
-  --observability prometheus,grafana
+npx container-superposition plan --stack compose --overlays nodejs,postgres
+npx container-superposition init --no-interactive
 ```
 
-**Result:** Complete development environment with all tools and VS Code extensions.
-
-### Codespaces-Optimized Setup
-
-```bash
-container-superposition init \
-  --minimal \
-  --editor vscode \
-  --target codespaces \
-  --stack compose \
-  --language python \
-  --database postgres
-```
-
-**Result:** Lean Codespaces environment with essential tools and VS Code extensions.
-
-### JetBrains IDE Setup
-
-```bash
-container-superposition init \
-  --editor jetbrains \
-  --stack compose \
-  --language nodejs \
-  --database postgres
-```
-
-**Result:** Node.js + PostgreSQL workspace with `.idea/` project settings, a `WebStorm`
-backend in `devcontainer.json`, and an `npm run dev` run configuration ready to use. No
-VS Code extensions included.
-
-## Manifest Support
-
-Both settings are stored in `superposition.json`:
-
-```json
-{
-    "version": "X.Y.Z",
-    "generated": "2026-02-13T09:00:00.000Z",
-    "minimal": true,
-    "editor": "none",
-    "overlays": ["nodejs"]
-}
-```
-
-Use `container-superposition regen` to regenerate from manifest:
-
-```bash
-# Regenerate with same settings
-container-superposition regen
-```
-
-## See Also
+## See also
 
 - [CLI Reference](../README.md#cli-usage)
-- [Overlay Authoring](creating-overlays.md)
+- [Project-file reference](superposition-yml.md)
 - [Deployment Targets](deployment-targets.md)
