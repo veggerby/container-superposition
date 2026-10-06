@@ -262,6 +262,7 @@ export interface QuestionnaireAnswers {
     overlayParameters?: Record<string, string>; // Shared overlay parameter values ({{cs.KEY}} substitution)
     overlaySelections?: NormalizedOverlaySelection[]; // Canonical overlay selections including named instances
     composeEnvFiles?: boolean; // Whether .devcontainer/.env and .env.example should be generated for compose stacks
+    installCsCommand?: boolean; // Install the matching container-superposition CLI in the generated devcontainer
 }
 
 /**
@@ -525,6 +526,7 @@ export interface SuperpositionManifest {
     target?: DeploymentTarget; // Deployment target used during generation
     minimal?: boolean; // Whether minimal mode was used during generation
     editor?: EditorProfile; // Editor profile used during generation
+    installCsCommand?: boolean; // Whether the generated devcontainer installs the matching CLI
     customizations?: {
         enabled: boolean;
         location: string;
@@ -718,6 +720,7 @@ export interface ProjectConfigSelection {
     outputPath?: string;
     portOffset?: number;
     composeEnvFiles?: boolean;
+    installCsCommand?: boolean;
     target?: DeploymentTarget;
     minimal?: boolean;
     editor?: EditorProfile;

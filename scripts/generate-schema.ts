@@ -381,6 +381,12 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                 description:
                     'When true, writes outputPath/.gitignore with wildcard rules so generated devcontainer artifacts are not committed.',
             },
+            installCsCommand: {
+                type: 'boolean',
+                default: true,
+                description:
+                    'Install the exact matching container-superposition version in the generated devcontainer so cs regen is available. Set false to opt out.',
+            },
             vscodeExtensions: {
                 type: 'array',
                 description:

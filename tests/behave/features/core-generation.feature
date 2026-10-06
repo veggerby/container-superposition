@@ -154,6 +154,50 @@ Feature: Core generation workflow
       redis-queue
       """
 
+  Scenario: Regen installs the matching cs command by default without a Node.js overlay
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: plain
+            outputPath: ./.devcontainer
+      """
+    When I run the CLI command
+      """
+      regen
+      """
+    Then the command exits successfully
+    And the file ".devcontainer/scripts/setup-container-superposition.sh" should exist
+    And the file ".devcontainer/scripts/setup-container-superposition.sh" should contain "CS_VERSION='0.1.3'"
+    And the JSON file ".devcontainer/devcontainer.json" should have value at "postCreateCommand.setup-container-superposition" equal:
+      """
+      bash .devcontainer/scripts/setup-container-superposition.sh
+      """
+
+  Scenario: Regen honors installCsCommand false for compose projects
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: compose
+            overlays:
+              - postgres
+            installCsCommand: false
+            outputPath: ./.devcontainer
+      """
+    When I run the CLI command
+      """
+      regen
+      """
+    Then the command exits successfully
+    And the file ".devcontainer/scripts/setup-container-superposition.sh" should not exist
+    And the JSON file ".devcontainer/superposition.json" should have value at "installCsCommand" equal:
+      """
+      false
+      """
+
   Scenario: Regen materializes semantic script output for setup helpers
     Given a workspace fixture "plain-nodejs"
     When I run the CLI command

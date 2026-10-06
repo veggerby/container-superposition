@@ -1508,6 +1508,7 @@ export function loadProjectConfig(
         'outputPath',
         'portOffset',
         'composeEnvFiles',
+        'installCsCommand',
         'target',
         'minimal',
         'editor',
@@ -1570,6 +1571,7 @@ export function loadProjectConfig(
         outputPath: expectOptionalString(document.outputPath, 'outputPath'),
         portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
         composeEnvFiles: expectOptionalBoolean(document.composeEnvFiles, 'composeEnvFiles'),
+        installCsCommand: expectOptionalBoolean(document.installCsCommand, 'installCsCommand'),
         target: expectOptionalEnum(document.target, 'target', TARGET_VALUES),
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
@@ -1788,6 +1790,7 @@ export function buildAnswersFromProjectConfig(
         outputPath: selection.outputPath,
         portOffset: selection.portOffset,
         composeEnvFiles: selection.composeEnvFiles,
+        installCsCommand: selection.installCsCommand,
         target: selection.target,
         minimal: selection.minimal,
         editor: selection.editor,
@@ -1897,6 +1900,7 @@ export function buildProjectConfigSelectionFromAnswers(
         outputPath: answers.outputPath,
         portOffset: answers.portOffset,
         composeEnvFiles: answers.composeEnvFiles,
+        installCsCommand: answers.installCsCommand,
         target: answers.target,
         minimal: answers.minimal,
         editor: answers.editor,
@@ -2123,6 +2127,9 @@ function buildProjectConfigDocument(selection: ProjectConfigSelection): Record<s
     if (selection.outputPath) document.outputPath = selection.outputPath;
     if (selection.portOffset !== undefined) document.portOffset = selection.portOffset;
     if (selection.composeEnvFiles === true) document.composeEnvFiles = true;
+    if (selection.installCsCommand !== undefined) {
+        document.installCsCommand = selection.installCsCommand;
+    }
     if (selection.target) document.target = selection.target;
     if (selection.minimal !== undefined) document.minimal = selection.minimal;
     if (selection.editor) document.editor = selection.editor;
@@ -2449,6 +2456,7 @@ export function buildAnswersFromManifest(
         playwright: distributed.devTools?.includes('playwright' as DevTool) ?? false,
         outputPath,
         portOffset: manifest.portOffset,
+        installCsCommand: manifest.installCsCommand,
         overlaySelections,
     };
 }

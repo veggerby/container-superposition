@@ -94,6 +94,9 @@ const TEMPLATES_ANCHOR =
 
 const TEMPLATES_DIR = resolveRepoPath('templates', TEMPLATES_ANCHOR);
 const REPO_ROOT = path.dirname(TEMPLATES_DIR);
+const NODE_FEATURE = 'ghcr.io/devcontainers/features/node:1';
+const CS_COMMAND_SETUP_KEY = 'setup-container-superposition';
+const CS_COMMAND_SETUP_FILE = 'setup-container-superposition.sh';
 
 // ─── JetBrains support ────────────────────────────────────────────────────
 
@@ -426,6 +429,62 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
 /**
  * Merge packages from cross-distro-packages feature
  */
+function applyCsCommandCapability(
+    config: DevContainer,
+    installCsCommand: boolean | undefined
+): void {
+    if (installCsCommand === false) {
+        return;
+    }
+
+    config.features ??= {};
+    if (!config.features[NODE_FEATURE]) {
+        config.features[NODE_FEATURE] = { version: 'lts' };
+    }
+
+    config.remoteEnv = mergeRemoteEnv(config.remoteEnv ?? {}, {
+        PATH: '${containerEnv:HOME}/.npm-global/bin:${containerEnv:PATH}',
+    });
+}
+
+function materializeCsCommandSetup(
+    config: DevContainer,
+    outputPath: string,
+    fileRegistry: FileRegistry,
+    installCsCommand: boolean | undefined
+): void {
+    if (installCsCommand === false) {
+        return;
+    }
+
+    const scriptsDir = path.join(outputPath, 'scripts');
+    fs.mkdirSync(scriptsDir, { recursive: true });
+    fileRegistry.addDirectory('scripts');
+
+    const setupUtilsSrc = path.join(TEMPLATES_DIR, 'scripts', 'setup-utils.sh');
+    const setupUtilsDest = path.join(scriptsDir, 'setup-utils.sh');
+    fs.copyFileSync(setupUtilsSrc, setupUtilsDest);
+    fs.chmodSync(setupUtilsDest, 0o755);
+    fileRegistry.addFile('scripts/setup-utils.sh');
+
+    const installerSrc = path.join(TEMPLATES_DIR, 'scripts', CS_COMMAND_SETUP_FILE);
+    const installerDest = path.join(scriptsDir, CS_COMMAND_SETUP_FILE);
+    const installer = fs
+        .readFileSync(installerSrc, 'utf8')
+        .replace('{{CS_VERSION}}', getToolVersion());
+    fs.writeFileSync(installerDest, installer);
+    fs.chmodSync(installerDest, 0o755);
+    fileRegistry.addFile(`scripts/${CS_COMMAND_SETUP_FILE}`);
+
+    if (!config.postCreateCommand || typeof config.postCreateCommand === 'string') {
+        config.postCreateCommand = config.postCreateCommand
+            ? { default: config.postCreateCommand }
+            : {};
+    }
+    (config.postCreateCommand as Record<string, string>)[CS_COMMAND_SETUP_KEY] =
+        `bash .devcontainer/scripts/${CS_COMMAND_SETUP_FILE}`;
+}
+
 function mergeCrossDistroPackages(
     baseConfig: DevContainer,
     apt: string | undefined,
@@ -961,6 +1020,7 @@ function generateManifest(
         presetChoices: answers.presetChoices,
         containerName,
         target: effectiveTarget ?? answers.target ?? 'local',
+        installCsCommand: answers.installCsCommand,
     };
 
     if (answers.minimal) {
@@ -3391,6 +3451,7 @@ export async function composeDevContainer(
 
     config = applyProjectEnvToDevcontainer(config, substitutedProjectEnv, answers.stack, rootEnv);
     config = applyProjectMountsToDevcontainer(config, answers.projectMounts, answers.stack);
+    applyCsCommandCapability(config, answers.installCsCommand);
 
     // 7. Copy template files (docker-compose, scripts, etc.)
     const entries = fs.readdirSync(templatePath);
@@ -3474,6 +3535,7 @@ export async function composeDevContainer(
 
     // Merge setup scripts from overlays into postCreateCommand
     mergeSetupScripts(config, overlayApplications, outputPath, fileRegistry, actualOverlaysDir);
+    materializeCsCommandSetup(config, outputPath, fileRegistry, answers.installCsCommand);
     config = applyProjectShellConfig(config, answers.projectShell, outputPath, fileRegistry);
 
     // 10. Apply custom patches from .devcontainer/custom/ (if present)
