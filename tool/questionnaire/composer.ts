@@ -451,7 +451,8 @@ function materializeCsCommandSetup(
     config: DevContainer,
     outputPath: string,
     fileRegistry: FileRegistry,
-    installCsCommand: boolean | undefined
+    installCsCommand: boolean | undefined,
+    lifecycleOutputPath: string
 ): void {
     if (installCsCommand === false) {
         return;
@@ -481,8 +482,15 @@ function materializeCsCommandSetup(
             ? { default: config.postCreateCommand }
             : {};
     }
+    const setupCommandPath = path
+        .relative(
+            path.dirname(lifecycleOutputPath),
+            path.join(lifecycleOutputPath, 'scripts', CS_COMMAND_SETUP_FILE)
+        )
+        .split(path.sep)
+        .join('/');
     (config.postCreateCommand as Record<string, string>)[CS_COMMAND_SETUP_KEY] =
-        `bash .devcontainer/scripts/${CS_COMMAND_SETUP_FILE}`;
+        `bash ${setupCommandPath}`;
 }
 
 function mergeCrossDistroPackages(
@@ -3239,7 +3247,11 @@ export async function generateManifestOnly(
 export async function composeDevContainer(
     answers: CompositionInput,
     overlaysDir?: string,
-    options: { isRegen?: boolean; manifestAnswers?: CompositionInput } = {}
+    options: {
+        isRegen?: boolean;
+        manifestAnswers?: CompositionInput;
+        lifecycleOutputPath?: string;
+    } = {}
 ): Promise<GenerationSummary> {
     // Prepare overlays using shared logic
     const actualOverlaysDir = overlaysDir ?? path.join(REPO_ROOT, 'overlays');
@@ -3535,7 +3547,13 @@ export async function composeDevContainer(
 
     // Merge setup scripts from overlays into postCreateCommand
     mergeSetupScripts(config, overlayApplications, outputPath, fileRegistry, actualOverlaysDir);
-    materializeCsCommandSetup(config, outputPath, fileRegistry, answers.installCsCommand);
+    materializeCsCommandSetup(
+        config,
+        outputPath,
+        fileRegistry,
+        answers.installCsCommand,
+        options.lifecycleOutputPath ?? outputPath
+    );
     config = applyProjectShellConfig(config, answers.projectShell, outputPath, fileRegistry);
 
     // 10. Apply custom patches from .devcontainer/custom/ (if present)

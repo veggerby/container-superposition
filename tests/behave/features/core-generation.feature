@@ -175,6 +175,26 @@ Feature: Core generation workflow
       bash .devcontainer/scripts/setup-container-superposition.sh
       """
 
+  Scenario: Regen resolves the cs lifecycle script from a custom output path
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: plain
+            outputPath: ./generated-from-project
+      """
+    When I run the CLI command
+      """
+      regen
+      """
+    Then the command exits successfully
+    And the file "generated-from-project/scripts/setup-container-superposition.sh" should exist
+    And the JSON file "generated-from-project/devcontainer.json" should have value at "postCreateCommand.setup-container-superposition" equal:
+      """
+      bash generated-from-project/scripts/setup-container-superposition.sh
+      """
+
   Scenario: Regen honors installCsCommand false for compose projects
     Given an inline workspace fixture:
       """

@@ -103,6 +103,27 @@ describe('project installCsCommand', () => {
         );
     });
 
+    it('uses the configured output path for the lifecycle installer command', async () => {
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            yaml.dump({ stack: 'plain', outputPath: './generated-from-project' })
+        );
+
+        const loaded = loadProjectConfig(overlaysConfig, repoDir)!;
+        const answers = mergeAnswers(
+            buildAnswersFromProjectConfig(loaded.selection, overlaysConfig)
+        );
+        answers.outputPath = path.join(repoDir, 'generated-from-project');
+        await composeDevContainer(answers, OVERLAYS_DIR);
+
+        const devcontainer = JSON.parse(
+            fs.readFileSync(path.join(answers.outputPath, 'devcontainer.json'), 'utf8')
+        );
+        expect(devcontainer.postCreateCommand['setup-container-superposition']).toBe(
+            'bash generated-from-project/scripts/setup-container-superposition.sh'
+        );
+    });
+
     it('rejects non-boolean values before generation and coexists with the nodejs overlay', async () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
