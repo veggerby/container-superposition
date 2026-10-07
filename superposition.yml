@@ -13,4 +13,4 @@ overlays:
     - task
 outputPath: ./.devcontainer
 devcontainerGitignore: true
-installCsCommand: 0.1.14-main.37579967855
+installCsCommand: false

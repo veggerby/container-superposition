@@ -95,11 +95,11 @@ Bounded recovery:
 
 If publishing a source-matched candidate is not authorized, route to the task owner for re-plan or explicit risk disposition; do not substitute the current `0.1.3` registry artifact or accept shape-only tests as runtime evidence.
 
-## 2026-10-07 scope amendment and gate status
+## 2026-10-07 scope amendment and gate status (historical candidate)
 
 The user amended spec 063: omitted/true now installs npm `latest`, and a string selects a published npm version or dist-tag. This supersedes the exact-generator-version requirement and resolves the specific `0.1.3` published-bin mismatch without rewriting the history of REV-063-001. The new source, spec, plan, schema, tests, docs, and root dogfood selection are covered by the amended evidence at `artifacts/validation.md`, not by the original independent verdict above.
 
-**Review mode:** INDEPENDENT remains required. **Current amendment status:** SELF_CHECKED, pending independent review. **Execution:** BLOCKED for full acceptance on a mount-capable real Dev Container smoke. **Risk:** PENDING_ACCEPTANCE. No claim that the old independent review approves the amended candidate. The default `latest` currently points at `0.1.13`, which provides the `cs` binary but cannot replay a project file using the new `installCsCommand` field. The dogfooding config pins a compatible published prerelease; stable `latest` must catch up before default in-container regen can satisfy DEVCONTAINER-CS-003 generically.
+**Review mode:** INDEPENDENT remains required. **Current amendment status:** SELF_CHECKED, pending independent review. **Execution:** BLOCKED for full acceptance on a mount-capable real Dev Container smoke. **Risk:** PENDING_ACCEPTANCE. No claim that the old independent review approves the amended candidate. The default `latest` currently points at `0.1.13`, which provides the `cs` binary but cannot replay a project file using the new `installCsCommand` field. At this review point the dogfooding config pinned a compatible published prerelease; stable `latest` would need to catch up before default in-container regen can satisfy DEVCONTAINER-CS-003 generically.
 
 ### Independent amendment review and convergence cycle 1
 
@@ -111,7 +111,7 @@ The user amended spec 063: omitted/true now installs npm `latest`, and a string 
 
 ### User-confirmed default revision
 
-The user explicitly chose omitted/`true` to install the exact version recorded as `generatedBy` in the generated manifest. String versions/tags remain overrides; the root project pins a compatible published prerelease. The independent amendment review above assessed a previous `latest`-default candidate and does **not** approve this revised source. REV-063-001 remains a release blocker for the default in this source checkout (`generatedBy: 0.1.3`, published 0.1.3 lacks `cs`). REV-063-002 and REV-063-003 were addressed in source/schema/tests/docs, pending independent re-review. Real-container smoke remains unavailable because Docker Desktop denies the workspace bind mount. Execution: BLOCKED; risk: PENDING_ACCEPTANCE.
+The user explicitly chose omitted/`true` to install the exact version recorded as `generatedBy` in the generated manifest. String versions/tags remain overrides; at this review point the root project pinned a compatible published prerelease. The independent amendment review above assessed a previous `latest`-default candidate and does **not** approve this revised source. REV-063-001 remains a release blocker for the default in this source checkout (`generatedBy: 0.1.3`, published 0.1.3 lacks `cs`). REV-063-002 and REV-063-003 were addressed in source/schema/tests/docs, pending independent re-review. Real-container smoke remains unavailable because Docker Desktop denies the workspace bind mount. Execution: BLOCKED; risk: PENDING_ACCEPTANCE.
 
 ### Convergence cycle 2
 
@@ -127,3 +127,7 @@ The user explicitly chose omitted/`true` to install the exact version recorded a
 - REV-063-003: RESOLVED. Type comment, schema description, and docs align with generator-matched default and override.
 - REV-063-001: OPEN, unchanged. Published npm `0.1.3` lacks `cs`, and Docker Desktop cannot mount this workspace for real-container smoke.
 - Verdict: **CHANGES_REQUESTED**; execution **BLOCKED**; risk **PENDING_ACCEPTANCE**. Convergence decision: **STOP_NON_CONVERGENT on the remaining external blocker**; do not repeat local correction/review until publication or mount-capable evidence changes. No integration or done claim.
+
+### Root dogfooding opt-out
+
+The root project has since changed to `installCsCommand: false` because the checked-out repository runs its own CLI through `npm run init -- regen`. The earlier root prerelease installation evidence is historical; current root generation must omit the setup script and lifecycle entry. This does not change the default-on consumer-project contract or resolve REV-063-001 for that default. The independent verdict above applies to the prior candidate; this opt-out is separately validated against the current tree.

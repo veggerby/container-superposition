@@ -15,7 +15,7 @@
 - Reuse `getToolVersion()`, the generated `postCreateCommand` map, and `templates/scripts/setup-utils.sh`. Add a narrowly owned generated setup script that loads npm for a non-interactive lifecycle shell, installs `container-superposition@<selected version or tag>` globally, and verifies `cs` resolution and execution. Do not create an overlay, wrapper command, daemon, or dependency.
 - Apply the built-in capability before project/custom patches through the normal composition pipeline, using stable feature and lifecycle keys. Preserve existing custom-patch ordering and standard devcontainer merge semantics.
 - Record explicit `false` in `superposition.json` so compatibility replay/migration does not lose the opt-out; absent values in legacy receipts retain the new default-enabled behavior. A manifest schema-version increment is not expected for this additive optional field.
-- Add an explicit, currently compatible published npm version to the repository-root `superposition.yml` for dogfooding until the published generator-matched version supports this field and exports `cs`. Do not hand-edit root `.devcontainer/`; use regen only for inspection/evidence.
+- Set `installCsCommand: false` in the repository-root `superposition.yml`: this source checkout already runs its generator with `npm run init -- regen`, so the dogfooding container does not need a second global CLI installation. Do not hand-edit root `.devcontainer/`; use regen only for inspection/evidence.
 - Change schema source in `scripts/generate-schema.ts`, then regenerate `tool/schema/superposition.schema.json`. Do not directly edit generated schema, `dist/`, or `docs/overlays.md`.
 - Keep the field out of `superposition.local.yml`, global init defaults, CLI flags, and questionnaire prompts as required by the spec non-goals.
 
@@ -62,7 +62,7 @@
 
 | Attribute                          | Status  | Evidence / required action                                                                                                                                                  |
 | ---------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Correctness and task fit           | ALIGNED | A default-enabled root project field directly supplies `cs` in generated containers; `false` provides containment.                                                          |
+| Correctness and task fit           | ALIGNED | Consumer projects receive `cs` by default; this source-owning dogfooding project explicitly opts out and runs the CLI from source.                                          |
 | Architectural fit                  | ALIGNED | Project intent stays in `superposition.yml`; composer owns materialization; generated output remains standard devcontainer configuration.                                   |
 | Simplicity and proportionality     | ALIGNED | Reuses the existing official Node feature, npm package, version helper, setup utility, script registry, and lifecycle merge rather than adding an overlay or dependency.    |
 | Maintainability                    | ALIGNED | One generic composer capability and one focused setup script avoid duplicating overlay setup logic.                                                                         |
@@ -132,7 +132,7 @@
 ## Implementation Notes
 
 - Implemented the generic composer capability using the existing official Node feature, `getToolVersion()`, lifecycle command map, and `setup-utils.sh`; no new dependency, overlay, package manager, or wrapper was added.
-- Added the explicit root dogfood declaration. Following the npm version-selection amendment, the root project selects the published `0.1.14-main.37579967855` prerelease because the published generator-matched `0.1.3` does not export `cs` and stable `0.1.13` does not recognize the new project field; root `.devcontainer/` is regenerated from source.
+- Initially selected the published `0.1.14-main.37579967855` prerelease for dogfooding. The root project now explicitly opts out with `installCsCommand: false`: contributors use `npm run init -- regen` from the source checkout rather than installing a redundant global `cs` package. Root `.devcontainer/` is regenerated from source.
 - Validation correction: the default capability intentionally retains `scripts/` after overlay scripts are removed, so the stale-script regression now asserts removal of the overlay script and retention of the CS installer. Task overlay Behave expectations now include the additive lifecycle entry.
 - `task validate:generated` passed after those corrections. Disposable real-container smoke reached feature image build but Docker Desktop rejected both available workspace bind-mount paths before container start; DEVCONTAINER-CS-003 and DEVCONTAINER-CS-007 remain unverified. See `artifacts/validation.md` and `review-gate.md`.
 - No material scope or architecture deviation occurred. The task owner explicitly authorized implementation after recovery on 2026-10-06; this advanced the approved work past shaping without changing requirements.

@@ -18,7 +18,7 @@ This repository uses Container Superposition to generate its own development env
 2. Click "Reopen in Container" when prompted
 3. Everything is pre-configured: Node.js, TypeScript, Docker, Git tools, and Python 3.12 for the repo-owned Behave suite
 
-The devcontainer configuration is in `.devcontainer/` and is regenerated from the repository-root `superposition.yml`:
+The devcontainer configuration is in `.devcontainer/` and is regenerated from the repository-root `superposition.yml`. This source-owning dogfooding container sets `installCsCommand: false`: it does not install a separate global `cs` command. Run the generator from the checked-out source instead:
 
 ```bash
 npm run init -- regen
