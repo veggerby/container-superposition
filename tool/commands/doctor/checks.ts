@@ -1485,10 +1485,15 @@ export async function checkReproducibility(
 
         let answers;
         let mergedAnswers;
+        let lifecycleOutputPath: string;
         try {
             const baseAnswers = buildAnswersFromProjectConfig(
                 projectConfig.selection,
                 overlaysConfig
+            );
+            lifecycleOutputPath = path.resolve(
+                workingDir,
+                baseAnswers.outputPath || '.devcontainer'
             );
             const overlaysContext = loadOverlaysContextWrapper(workingDir);
             const withPreset = await applyPresetSelections(
@@ -1533,6 +1538,7 @@ export async function checkReproducibility(
             await composeDevContainer(answers, overlaysDir, {
                 isRegen: false,
                 manifestAnswers: mergedAnswers,
+                lifecycleOutputPath,
             });
         } catch (error) {
             return [

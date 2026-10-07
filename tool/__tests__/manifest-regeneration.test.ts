@@ -178,7 +178,7 @@ describe('Manifest Regeneration', () => {
         expect(fs.existsSync(setupBun)).toBe(false);
     });
 
-    it('should remove scripts/ directory entirely when all script-bearing overlays are removed on regen', async () => {
+    it('should retain only the default cs installer scripts when script-bearing overlays are removed on regen', async () => {
         const outputPath = path.join(TEST_OUTPUT_DIR, 'test-stale-scripts-dir');
 
         const baseAnswers: Omit<QuestionnaireAnswers, 'devTools'> = {
@@ -199,9 +199,11 @@ describe('Manifest Regeneration', () => {
         const scriptsDir = path.join(outputPath, 'scripts');
         expect(fs.existsSync(path.join(scriptsDir, 'setup-nodejs.sh'))).toBe(true);
 
-        // Step 2: regen with no script-bearing overlays — scripts/ dir must be removed
+        // Step 2: regen with no script-bearing overlays — stale overlay scripts are removed,
+        // while the default in-container cs capability remains.
         await composeDevContainer({ ...baseAnswers, language: [] });
 
-        expect(fs.existsSync(scriptsDir)).toBe(false);
+        expect(fs.existsSync(path.join(scriptsDir, 'setup-nodejs.sh'))).toBe(false);
+        expect(fs.existsSync(path.join(scriptsDir, 'setup-container-superposition.sh'))).toBe(true);
     });
 });

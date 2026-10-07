@@ -85,13 +85,14 @@ _No specs yet._
 
 ### COMPOSER-FEAT
 
-| Spec                                                                                     | Title                                                   | Status |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------ |
-| [010-compose-env-materialization](010-compose-env-materialization/spec.md)               | Compose Env Materialization and Env Template Naming     | Final  |
-| [043-compose-network-name](043-compose-network-name/spec.md)                             | Project-Specific Compose Network Names                  | Final  |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides | Final  |
-| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL   | Final  |
-| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                       | First-Class VS Code Extensions Field                    | Final  |
+| Spec                                                                                     | Title                                                      | Status      |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------- |
+| [010-compose-env-materialization](010-compose-env-materialization/spec.md)               | Compose Env Materialization and Env Template Naming        | Final       |
+| [043-compose-network-name](043-compose-network-name/spec.md)                             | Project-Specific Compose Network Names                     | Final       |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides    | Final       |
+| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL      | Final       |
+| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                       | First-Class VS Code Extensions Field                       | Final       |
+| [063-devcontainer-cs-command](063-devcontainer-cs-command/spec.md)                       | Container Superposition Command in Generated Devcontainers | Implemented |
 
 ### COMPOSER-FIX
 
@@ -105,15 +106,16 @@ _No specs yet._
 
 ### SCHEMA-FIELD
 
-| Spec                                                                                 | Title                                                   | Status |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------- | ------ |
-| [011-overlay-parameters](011-overlay-parameters/spec.md)                             | Overlay Parameters with Safe Substitution               | Final  |
-| [020-superposition-yml-schema](020-superposition-yml-schema/spec.md)                 | JSON Schema for `superposition.yml`                     | Final  |
-| [024-project-ports](024-project-ports/spec.md)                                       | Project-Level `ports` Field (plain/compose redesign)    | Final  |
-| [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md) | Variable Expansion and Substitution Consolidation       | Final  |
-| [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                 | Ad-hoc Project Parameters                               | Final  |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)               | Multi-Instance Compose Overlays with Instance Overrides | Final  |
-| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                   | First-Class VS Code Extensions Field                    | Final  |
+| Spec                                                                                 | Title                                                      | Status      |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------- | ----------- |
+| [011-overlay-parameters](011-overlay-parameters/spec.md)                             | Overlay Parameters with Safe Substitution                  | Final       |
+| [020-superposition-yml-schema](020-superposition-yml-schema/spec.md)                 | JSON Schema for `superposition.yml`                        | Final       |
+| [024-project-ports](024-project-ports/spec.md)                                       | Project-Level `ports` Field (plain/compose redesign)       | Final       |
+| [025-variable-expansion-consolidation](025-variable-expansion-consolidation/spec.md) | Variable Expansion and Substitution Consolidation          | Final       |
+| [026-adhoc-project-parameters](026-adhoc-project-parameters/spec.md)                 | Ad-hoc Project Parameters                                  | Final       |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)               | Multi-Instance Compose Overlays with Instance Overrides    | Final       |
+| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                   | First-Class VS Code Extensions Field                       | Final       |
+| [063-devcontainer-cs-command](063-devcontainer-cs-command/spec.md)                   | Container Superposition Command in Generated Devcontainers | Implemented |
 
 ### SCHEMA-VALID
 
@@ -254,3 +256,4 @@ _No specs yet._
 | [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)         | Multi-Instance Compose Overlays with Instance Overrides      | Final       |
 | [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)             | First-Class VS Code Extensions Field                         | Final       |
 | [061-global-local-config-refresh](061-global-local-config-refresh/spec.md)     | Refresh Repository Local Config from Global Defaults         | Implemented |
+| [063-devcontainer-cs-command](063-devcontainer-cs-command/spec.md)             | Container Superposition Command in Generated Devcontainers   | Implemented |

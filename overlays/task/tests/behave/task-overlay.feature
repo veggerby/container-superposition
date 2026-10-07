@@ -10,6 +10,7 @@ Feature: Task overlay behavior
     And the JSON file ".devcontainer/devcontainer.json" should have value at "postCreateCommand" equal:
       """
       setup-task: bash .devcontainer/scripts/setup-task.sh
+      setup-container-superposition: bash .devcontainer/scripts/setup-container-superposition.sh
       """
     And the script ".devcontainer/scripts/setup-task.sh" should assign "TASK_VERSION" equal "${TASK_VERSION:-v3.45.4}"
 
@@ -33,4 +34,5 @@ Feature: Task overlay behavior
     And the JSON file ".devcontainer/devcontainer.json" should have value at "postCreateCommand" equal:
       """
       setup-task: bash .devcontainer/scripts/setup-task.sh
+      setup-container-superposition: bash .devcontainer/scripts/setup-container-superposition.sh
       """

@@ -784,6 +784,23 @@ Docker Compose fallback.
 
 ---
 
+### `installCsCommand`
+
+```yaml
+installCsCommand: false
+```
+
+Container Superposition installs the matching `container-superposition` package in generated
+containers by default. This provides the real `cs` executable, so after container creation you can
+run `cs regen` from the mounted workspace and replay its canonical `superposition.yml`.
+
+The installation uses the generated devcontainer lifecycle setup, adds the official Node.js feature
+when no selected overlay already provides it, pins the package to the generator version, and fails
+container setup if installation or verification fails. Set `installCsCommand: false` to opt out of
+that runtime feature, setup script, and lifecycle command.
+
+---
+
 ### `outputPath`
 
 ```yaml
