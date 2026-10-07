@@ -154,7 +154,7 @@ Feature: Core generation workflow
       redis-queue
       """
 
-  Scenario: Regen installs the matching cs command by default without a Node.js overlay
+  Scenario: Regen installs the generator-matched cs command by default without a Node.js overlay
     Given an inline workspace fixture:
       """
       files:
@@ -169,10 +169,31 @@ Feature: Core generation workflow
       """
     Then the command exits successfully
     And the file ".devcontainer/scripts/setup-container-superposition.sh" should exist
-    And the file ".devcontainer/scripts/setup-container-superposition.sh" should contain "CS_VERSION='0.1.3'"
+    And the file ".devcontainer/scripts/setup-container-superposition.sh" should contain "CS_PACKAGE_SELECTION='0.1.3'"
     And the JSON file ".devcontainer/devcontainer.json" should have value at "postCreateCommand.setup-container-superposition" equal:
       """
       bash .devcontainer/scripts/setup-container-superposition.sh
+      """
+
+  Scenario: Regen selects an explicit npm dist-tag for the cs command
+    Given an inline workspace fixture:
+      """
+      files:
+        superposition.yml:
+          yaml:
+            stack: compose
+            installCsCommand: prerelease
+            outputPath: ./.devcontainer
+      """
+    When I run the CLI command
+      """
+      regen
+      """
+    Then the command exits successfully
+    And the file ".devcontainer/scripts/setup-container-superposition.sh" should contain "CS_PACKAGE_SELECTION='prerelease'"
+    And the JSON file ".devcontainer/superposition.json" should have value at "installCsCommand" equal:
+      """
+      prerelease
       """
 
   Scenario: Regen resolves the cs lifecycle script from a custom output path

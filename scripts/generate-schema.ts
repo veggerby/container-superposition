@@ -382,10 +382,27 @@ function buildSchema(overlays: OverlayMetadata[], presetIds: string[]): object {
                     'When true, writes outputPath/.gitignore with wildcard rules so generated devcontainer artifacts are not committed.',
             },
             installCsCommand: {
-                type: 'boolean',
+                oneOf: [
+                    { type: 'boolean' },
+                    {
+                        type: 'string',
+                        anyOf: [
+                            {
+                                pattern:
+                                    '^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$',
+                            },
+                            {
+                                pattern: '^[a-zA-Z0-9_-][a-zA-Z0-9._-]*$',
+                                not: {
+                                    pattern: '^([xX]|[vV]?[0-9]+(\\.([0-9]+|[xX])){0,2})$',
+                                },
+                            },
+                        ],
+                    },
+                ],
                 default: true,
                 description:
-                    'Install the exact matching container-superposition version in the generated devcontainer so cs regen is available. Set false to opt out.',
+                    'Install the exact container-superposition version recorded as manifest generatedBy when omitted or true. Set a published npm version or dist-tag to override it, or false to opt out.',
             },
             vscodeExtensions: {
                 type: 'array',

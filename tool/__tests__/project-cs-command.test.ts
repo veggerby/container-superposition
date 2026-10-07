@@ -31,7 +31,7 @@ describe('project installCsCommand', () => {
         fs.rmSync(repoDir, { recursive: true, force: true });
     });
 
-    it('defaults to enabled and pins the installer for plain projects without nodejs', async () => {
+    it('defaults to the manifest generator version for plain projects without nodejs', async () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
             yaml.dump({ stack: 'plain', outputPath: './.devcontainer' })
@@ -64,7 +64,8 @@ describe('project installCsCommand', () => {
         expect(devcontainer.postCreateCommand['setup-container-superposition']).toBe(
             'bash .devcontainer/scripts/setup-container-superposition.sh'
         );
-        expect(installer).toContain(`CS_VERSION='${getToolVersion()}'`);
+        expect(installer).toContain(`CS_PACKAGE_SELECTION='${manifest.generatedBy}'`);
+        expect(installer).toContain(`CS_EXPECTED_VERSION='${manifest.generatedBy}'`);
         expect(installer).toContain('cs --version');
         expect(manifest.installCsCommand).toBeUndefined();
     });
@@ -103,6 +104,62 @@ describe('project installCsCommand', () => {
         );
     });
 
+    it.each(['0.1.13', 'prerelease', 'latest', '2024-release', '_next', '-next', 'foo..bar'])(
+        'preserves npm selection %s through manifest replay and generation',
+        async (selection) => {
+            fs.writeFileSync(
+                path.join(repoDir, 'superposition.yml'),
+                yaml.dump({ stack: 'compose', installCsCommand: selection })
+            );
+            const loaded = loadProjectConfig(overlaysConfig, repoDir)!;
+            expect(loaded.selection.installCsCommand).toBe(selection);
+            expect(
+                (yaml.load(serializeProjectConfig(loaded.selection)) as Record<string, unknown>)
+                    .installCsCommand
+            ).toBe(selection);
+            const answers = mergeAnswers(
+                buildAnswersFromProjectConfig(loaded.selection, overlaysConfig)
+            );
+            answers.outputPath = path.join(repoDir, '.devcontainer');
+            await composeDevContainer(answers, OVERLAYS_DIR);
+            const installer = fs.readFileSync(
+                path.join(answers.outputPath, 'scripts', 'setup-container-superposition.sh'),
+                'utf8'
+            );
+            expect(installer).toContain(`CS_PACKAGE_SELECTION='${selection}'`);
+            expect(installer).toContain(
+                `CS_EXPECTED_VERSION='${selection === '0.1.13' ? selection : ''}'`
+            );
+            const manifest = JSON.parse(
+                fs.readFileSync(path.join(answers.outputPath, 'superposition.json'), 'utf8')
+            );
+            expect(manifest.installCsCommand).toBe(selection);
+            expect(
+                buildAnswersFromManifest(manifest, overlaysConfig, answers.outputPath)
+                    .installCsCommand
+            ).toBe(selection);
+        }
+    );
+
+    it('treats explicit true as the generator version', async () => {
+        fs.writeFileSync(
+            path.join(repoDir, 'superposition.yml'),
+            'stack: plain\ninstallCsCommand: true\n'
+        );
+        const loaded = loadProjectConfig(overlaysConfig, repoDir)!;
+        const answers = mergeAnswers(
+            buildAnswersFromProjectConfig(loaded.selection, overlaysConfig)
+        );
+        answers.outputPath = path.join(repoDir, '.devcontainer');
+        await composeDevContainer(answers, OVERLAYS_DIR);
+        expect(
+            fs.readFileSync(
+                path.join(answers.outputPath, 'scripts', 'setup-container-superposition.sh'),
+                'utf8'
+            )
+        ).toContain(`CS_PACKAGE_SELECTION='${getToolVersion()}'`);
+    });
+
     it('uses the configured output path for the lifecycle installer command', async () => {
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),
@@ -124,14 +181,30 @@ describe('project installCsCommand', () => {
         );
     });
 
-    it('rejects non-boolean values before generation and coexists with the nodejs overlay', async () => {
-        fs.writeFileSync(
-            path.join(repoDir, 'superposition.yml'),
-            yaml.dump({ stack: 'plain', installCsCommand: 'yes' })
-        );
-        expect(() => loadProjectConfig(overlaysConfig, repoDir)).toThrow(
-            'installCsCommand must be a boolean'
-        );
+    it('rejects unsafe package selections before generation and coexists with the nodejs overlay', async () => {
+        for (const invalid of [
+            '',
+            'latest; echo bad',
+            '@scope/package',
+            '../local',
+            '1.2',
+            '1.2.x',
+            'v1',
+            'v1.2',
+            'x',
+            'X',
+            123,
+            null,
+            [],
+        ]) {
+            fs.writeFileSync(
+                path.join(repoDir, 'superposition.yml'),
+                yaml.dump({ stack: 'plain', installCsCommand: invalid })
+            );
+            expect(() => loadProjectConfig(overlaysConfig, repoDir)).toThrow(
+                'installCsCommand must be a boolean or npm version/dist-tag'
+            );
+        }
 
         fs.writeFileSync(
             path.join(repoDir, 'superposition.yml'),

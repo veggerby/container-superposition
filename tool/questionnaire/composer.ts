@@ -24,7 +24,7 @@ import type {
     ProjectShellConfig,
 } from '../schema/types.js';
 import { loadOverlaysConfig } from '../schema/overlay-loader.js';
-import { ProjectConfigError } from '../schema/project-config.js';
+import { ProjectConfigError, parseInstallCsCommand } from '../schema/project-config.js';
 import {
     loadCustomPatches,
     hasCustomDirectory,
@@ -431,7 +431,7 @@ function mergeAptPackages(baseConfig: DevContainer, packages: string): DevContai
  */
 function applyCsCommandCapability(
     config: DevContainer,
-    installCsCommand: boolean | undefined
+    installCsCommand: boolean | string | undefined
 ): void {
     if (installCsCommand === false) {
         return;
@@ -451,7 +451,7 @@ function materializeCsCommandSetup(
     config: DevContainer,
     outputPath: string,
     fileRegistry: FileRegistry,
-    installCsCommand: boolean | undefined,
+    installCsCommand: boolean | string | undefined,
     lifecycleOutputPath: string
 ): void {
     if (installCsCommand === false) {
@@ -470,9 +470,18 @@ function materializeCsCommandSetup(
 
     const installerSrc = path.join(TEMPLATES_DIR, 'scripts', CS_COMMAND_SETUP_FILE);
     const installerDest = path.join(scriptsDir, CS_COMMAND_SETUP_FILE);
+    const selection = parseInstallCsCommand(installCsCommand);
+    const packageSelection = typeof selection === 'string' ? selection : getToolVersion();
+    const expectedVersion =
+        /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
+            packageSelection
+        )
+            ? packageSelection
+            : '';
     const installer = fs
         .readFileSync(installerSrc, 'utf8')
-        .replace('{{CS_VERSION}}', getToolVersion());
+        .replace('{{CS_PACKAGE_SELECTION}}', packageSelection)
+        .replace('{{CS_EXPECTED_VERSION}}', expectedVersion);
     fs.writeFileSync(installerDest, installer);
     fs.chmodSync(installerDest, 0o755);
     fileRegistry.addFile(`scripts/${CS_COMMAND_SETUP_FILE}`);

@@ -787,17 +787,25 @@ Docker Compose fallback.
 ### `installCsCommand`
 
 ```yaml
-installCsCommand: false
+installCsCommand: true # omitted or true installs the version recorded as generatedBy
+# installCsCommand: 0.1.13 # pin a published version (quote if your YAML parser needs it)
+# installCsCommand: prerelease # or choose an npm dist-tag
+# installCsCommand: false # opt out
 ```
 
-Container Superposition installs the matching `container-superposition` package in generated
-containers by default. This provides the real `cs` executable, so after container creation you can
-run `cs regen` from the mounted workspace and replay its canonical `superposition.yml`.
+Container Superposition installs the exact `container-superposition` version recorded as
+`generatedBy` in `.devcontainer/superposition.json` by default. A non-empty npm version or
+dist-tag string overrides that selection. This provides the
+real `cs` executable, so after container creation you can run `cs regen` from the mounted workspace
+and replay its canonical `superposition.yml`. The default pins the generator's version for reproducibility; explicit `latest` and other moving
+tags resolve at container creation time. Ensure the chosen release supports your project's
+configuration fields and exports `cs`. For source checkouts whose generator version has not yet
+been published with `cs`, select a compatible published prerelease or version.
 
 The installation uses the generated devcontainer lifecycle setup, adds the official Node.js feature
-when no selected overlay already provides it, pins the package to the generator version, and fails
-container setup if installation or verification fails. Set `installCsCommand: false` to opt out of
-that runtime feature, setup script, and lifecycle command.
+when no selected overlay already provides it, and fails container setup if installation or `cs`
+verification fails. Set `installCsCommand: false` to opt out of that runtime feature, setup script,
+and lifecycle command.
 
 ---
 

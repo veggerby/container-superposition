@@ -189,6 +189,25 @@ function expectOptionalBoolean(value: unknown, fieldName: string): boolean | und
     return expectBoolean(value, fieldName);
 }
 
+export function parseInstallCsCommand(value: unknown): boolean | string | undefined {
+    if (value === undefined) return undefined;
+    if (typeof value === 'boolean') return value;
+    // Permit exact semver releases (including prereleases) or simple npm dist-tags.
+    // Reject ranges, paths, package names, and shell syntax before generating a script.
+    const version =
+        /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+    const tag = /^[a-zA-Z0-9_-][a-zA-Z0-9._-]*$/;
+    // npm treats x/X and shortened v-prefixed numbers as semver ranges, not tags.
+    const rangeLikeTag = /^(?:[xX]|[vV]?[0-9]+(?:\.(?:[0-9]+|[xX])){0,2})$/;
+    if (
+        typeof value === 'string' &&
+        (version.test(value) || (tag.test(value) && !rangeLikeTag.test(value)))
+    ) {
+        return value;
+    }
+    throw new ProjectConfigError('installCsCommand must be a boolean or npm version/dist-tag');
+}
+
 function expectOptionalNumber(value: unknown, fieldName: string): number | undefined {
     if (value === undefined || value === null) {
         return undefined;
@@ -1571,7 +1590,7 @@ export function loadProjectConfig(
         outputPath: expectOptionalString(document.outputPath, 'outputPath'),
         portOffset: expectOptionalNonNegativeInteger(document.portOffset, 'portOffset'),
         composeEnvFiles: expectOptionalBoolean(document.composeEnvFiles, 'composeEnvFiles'),
-        installCsCommand: expectOptionalBoolean(document.installCsCommand, 'installCsCommand'),
+        installCsCommand: parseInstallCsCommand(document.installCsCommand),
         target: expectOptionalEnum(document.target, 'target', TARGET_VALUES),
         minimal: expectOptionalBoolean(document.minimal, 'minimal'),
         editor: expectOptionalEnum(document.editor, 'editor', EDITOR_VALUES),
@@ -2456,7 +2475,7 @@ export function buildAnswersFromManifest(
         playwright: distributed.devTools?.includes('playwright' as DevTool) ?? false,
         outputPath,
         portOffset: manifest.portOffset,
-        installCsCommand: manifest.installCsCommand,
+        installCsCommand: parseInstallCsCommand(manifest.installCsCommand),
         overlaySelections,
     };
 }

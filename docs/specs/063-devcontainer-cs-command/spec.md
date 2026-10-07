@@ -41,21 +41,21 @@ The project-file-first workflow treats `superposition.yml` as durable replay aut
 ## Scope and Resolved Decisions
 
 - The canonical task authority is this new spec. Existing project-file, schema, and regen specs define adjacent contracts but do not own default installation of the CLI inside generated containers.
-- The shared project-file field is the top-level boolean `installCsCommand`.
-- Omitting `installCsCommand` has the same behavior as `installCsCommand: true`; `false` is the explicit opt-out.
+- The shared project-file field is the top-level boolean-or-npm-version/tag `installCsCommand`.
+- Omitting `installCsCommand` has the same behavior as `installCsCommand: true`: install the exact generator version recorded as `generatedBy` in `.devcontainer/superposition.json`. `false` is the explicit opt-out. A non-empty npm version or dist-tag string (for example `0.1.13` or `prerelease`) installs that selection. Reject package names, paths, ranges containing shell syntax, and empty strings rather than interpolating unchecked input into generated shell.
 - The behavior is generic across plain and compose stacks and does not require selecting the Node.js or another specific overlay.
 - The installed `cs` executable is the real `container-superposition` package command, not a wrapper or lookalike command.
-- The generated setup must reuse the repository's existing Node/devcontainer feature, setup-script, lifecycle-command, and package-version capabilities rather than introducing a new package manager, runtime platform, or overlay.
+- The generated setup must reuse the repository's existing Node/devcontainer feature, setup-script, and lifecycle-command capabilities rather than introducing a new package manager, runtime platform, or overlay.
 
 ## Acceptance Criteria
 
-- [ ] DEVCONTAINER-CS-001: `superposition.yml` and `.superposition.yml` accept a top-level boolean `installCsCommand`; non-boolean values fail project-config loading before generated output is written.
+- [ ] DEVCONTAINER-CS-001: `superposition.yml` and `.superposition.yml` accept `installCsCommand` as a boolean or safe npm version/dist-tag string; empty, unsafe, or otherwise invalid values fail loading before generated output is written.
 - [ ] DEVCONTAINER-CS-002: When `installCsCommand` is omitted or `true`, generated plain and compose devcontainers include the runtime and lifecycle setup needed to install the real `container-superposition` package and expose its `cs` executable on the configured remote user's `PATH`, including projects that do not select the Node.js overlay.
 - [ ] DEVCONTAINER-CS-003: After creation of an enabled generated devcontainer, `cs --version` succeeds and `cs regen` can execute from the mounted workspace using the repository project file as canonical replay authority.
-- [ ] DEVCONTAINER-CS-004: The enabled setup installs an exact Container Superposition package version matching the generator version, reports installation or verification failure through the devcontainer lifecycle command, and composes without duplicating or weakening an already-selected Node runtime feature.
-- [ ] DEVCONTAINER-CS-005: When `installCsCommand: false`, generation adds no runtime feature, setup script, or lifecycle command solely for the `cs` command, and the explicit `false` value survives supported project-config serialization and compatibility-manifest replay.
+- [ ] DEVCONTAINER-CS-004: The enabled setup installs the manifest `generatedBy` version for omitted/true and the selected package version or dist-tag for a string; it reports installation or `cs` verification failure through the devcontainer lifecycle command and composes without duplicating or weakening an already-selected Node runtime feature.
+- [ ] DEVCONTAINER-CS-005: When `installCsCommand: false`, generation adds no runtime feature, setup script, or lifecycle command solely for the `cs` command; explicit `false` and string selections survive supported project-config serialization and compatibility-manifest replay.
 - [ ] DEVCONTAINER-CS-006: The generated project schema and `docs/superposition-yml.md` describe the field, its default-enabled behavior, its opt-out, and the resulting in-container `cs regen` workflow.
-- [ ] DEVCONTAINER-CS-007: Automated unit and Behave coverage proves parsing, default-enabled generation, explicit opt-out, plain/compose behavior, version pinning, coexistence with the Node.js overlay, deterministic regeneration, and invalid-value rejection; a real-container smoke check proves the installed command and in-container regen path.
+- [ ] DEVCONTAINER-CS-007: Automated unit and Behave coverage proves parsing, generator-matched default generation, explicit opt-out, plain/compose behavior, version/tag selection and replay, coexistence with the Node.js overlay, deterministic regeneration, and invalid-value rejection; a real-container smoke check proves the installed command and in-container regen path.
 - [ ] DEVCONTAINER-CS-008: The implementation updates `CHANGELOG.md` under `[Unreleased]`, regenerates affected derived artifacts only through their owning commands, and passes the repository's generated-output, reproducibility, and mandatory validation gates.
 
 ## Non-goals
@@ -87,7 +87,7 @@ The project-file-first workflow treats `superposition.yml` as durable replay aut
 - Default-enabled behavior changes generated output and container creation for existing project files that omit the field. The explicit `false` opt-out, documentation, and changelog must make that compatibility impact visible.
 - Installation requires package-registry/network access during container creation and can increase build/setup time. Failures must remain visible rather than silently leaving `cs` unavailable.
 - The installer must work in non-interactive lifecycle shells and for the configured remote user without assuming the Node.js overlay was selected.
-- Exact version pinning protects replay compatibility but means an unpublished or unavailable generator version cannot be installed; this should fail clearly.
+- The generator-matched default requires its exact version to have been published with a `cs` binary; a source checkout at `0.1.3` cannot get this from the immutable published `0.1.3`. Projects may select a compatible published version or dist-tag instead; moving tags resolve at container creation time. The root dogfooding project sets `installCsCommand: false` because it already contains the generator source and runs regeneration through `npm run init -- regen`; the generic in-container `cs` installation is for generated consumer projects.
 - Custom images and existing feature/lifecycle configuration must continue to compose through standard devcontainer mechanisms.
 - Root `.devcontainer/`, `dist/`, `docs/overlays.md`, and generated schema are not direct edit surfaces. Any changed generated artifact must come from its owning source and generation command.
 
