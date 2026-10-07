@@ -472,7 +472,12 @@ function materializeCsCommandSetup(
     const installerDest = path.join(scriptsDir, CS_COMMAND_SETUP_FILE);
     const selection = parseInstallCsCommand(installCsCommand);
     const packageSelection = typeof selection === 'string' ? selection : getToolVersion();
-    const expectedVersion = /^\d+\.\d+\.\d+/.test(packageSelection) ? packageSelection : '';
+    const expectedVersion =
+        /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
+            packageSelection
+        )
+            ? packageSelection
+            : '';
     const installer = fs
         .readFileSync(installerSrc, 'utf8')
         .replace('{{CS_PACKAGE_SELECTION}}', packageSelection)
