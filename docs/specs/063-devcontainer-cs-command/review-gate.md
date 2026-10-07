@@ -94,3 +94,36 @@ Bounded recovery:
 4. Attach concise source/package/container provenance to `artifacts/validation.md` and request one follow-up independent review.
 
 If publishing a source-matched candidate is not authorized, route to the task owner for re-plan or explicit risk disposition; do not substitute the current `0.1.3` registry artifact or accept shape-only tests as runtime evidence.
+
+## 2026-10-07 scope amendment and gate status
+
+The user amended spec 063: omitted/true now installs npm `latest`, and a string selects a published npm version or dist-tag. This supersedes the exact-generator-version requirement and resolves the specific `0.1.3` published-bin mismatch without rewriting the history of REV-063-001. The new source, spec, plan, schema, tests, docs, and root dogfood selection are covered by the amended evidence at `artifacts/validation.md`, not by the original independent verdict above.
+
+**Review mode:** INDEPENDENT remains required. **Current amendment status:** SELF_CHECKED, pending independent review. **Execution:** BLOCKED for full acceptance on a mount-capable real Dev Container smoke. **Risk:** PENDING_ACCEPTANCE. No claim that the old independent review approves the amended candidate. The default `latest` currently points at `0.1.13`, which provides the `cs` binary but cannot replay a project file using the new `installCsCommand` field. The dogfooding config pins a compatible published prerelease; stable `latest` must catch up before default in-container regen can satisfy DEVCONTAINER-CS-003 generically.
+
+### Independent amendment review and convergence cycle 1
+
+- **Verdict:** CHANGES_REQUESTED. Reviewed unstaged patch SHA-256 `b73adf9eb8b572da4af574c4c0cffc3daf1bb86c0381a194fb47cd06f8eca84e`, excluding unrelated staged files.
+- **REV-063-001 (Blocker):** `latest` currently resolves to `0.1.13` and cannot replay project files with `installCsCommand`; the package now provides the `cs` binary, but publication of a compatible stable release and mount-capable smoke remain necessary for generic default acceptance. Open, external release dependency.
+- **REV-063-002 (Medium):** parser/schema allowed invalid npm selectors; corrected with exact-version or safe dist-tag validation and invalid-range regression cases. Pending targeted re-review.
+- **REV-063-003 (Low):** stale plan/script wording corrected. Pending targeted re-review.
+- **Convergence:** CONTINUE for bounded medium/low corrections: relevant source changed and validation was refreshed. STOP on the external release/real-container blocker rather than repeating the same review loop. No integration claim until a compatible generator-matched package is published and a mount-capable runtime check passes.
+
+### User-confirmed default revision
+
+The user explicitly chose omitted/`true` to install the exact version recorded as `generatedBy` in the generated manifest. String versions/tags remain overrides; the root project pins a compatible published prerelease. The independent amendment review above assessed a previous `latest`-default candidate and does **not** approve this revised source. REV-063-001 remains a release blocker for the default in this source checkout (`generatedBy: 0.1.3`, published 0.1.3 lacks `cs`). REV-063-002 and REV-063-003 were addressed in source/schema/tests/docs, pending independent re-review. Real-container smoke remains unavailable because Docker Desktop denies the workspace bind mount. Execution: BLOCKED; risk: PENDING_ACCEPTANCE.
+
+### Convergence cycle 2
+
+- Previous/current implementation identity: `d6d22c2498204880f8506c0b7967f0b6e5ff643d9bf65074a58e0745e563f0b9` → `2f4ea95bef58375f57fc1066274d8913f5c30e7f589f06da58706f4313fb93a4` (non-spec diff SHA-256).
+- REV-063-002: source/schema now accept numeric-leading and leading punctuation npm tags and reject npm semver-like ranges; focused regressions added. REV-063-003: stale type comment corrected. Both require targeted re-review.
+- Acceptance evidence improved: `task validate:generated` passed after correction (818 tests, 58 Behave scenarios); published-version and Docker mount blockers persist unchanged.
+- Decision: CONTINUE only for targeted review of corrected selector/comment; STOP on repeated external REV-063-001 until publication and mount-capable container evidence become available.
+
+### Targeted independent follow-up
+
+- Candidate non-spec diff SHA-256 `2f4ea95bef58375f57fc1066274d8913f5c30e7f589f06da58706f4313fb93a4`, independently reproduced.
+- REV-063-002: RESOLVED. Exact semver and permitted npm tags accepted; abbreviated semver-like ranges rejected by parser and generated schema. Focused 12-test run passed independently.
+- REV-063-003: RESOLVED. Type comment, schema description, and docs align with generator-matched default and override.
+- REV-063-001: OPEN, unchanged. Published npm `0.1.3` lacks `cs`, and Docker Desktop cannot mount this workspace for real-container smoke.
+- Verdict: **CHANGES_REQUESTED**; execution **BLOCKED**; risk **PENDING_ACCEPTANCE**. Convergence decision: **STOP_NON_CONVERGENT on the remaining external blocker**; do not repeat local correction/review until publication or mount-capable evidence changes. No integration or done claim.

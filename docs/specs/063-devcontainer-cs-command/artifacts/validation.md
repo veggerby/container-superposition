@@ -77,3 +77,30 @@ The focused retry confirms the same daemon-host bind-mount blocker as the earlie
 - **Risk decision:** PENDING_ACCEPTANCE
 - **Validation status:** BLOCKED
 - **Residual risk:** DEVCONTAINER-CS-003 and DEVCONTAINER-CS-007 remain `UNVERIFIABLE` until a Docker daemon with a mountable workspace runs the disposable `devcontainer up` → `cs --version` → `cs regen` smoke, or the required authority accepts source-revision-matched equivalent CI evidence.
+
+## 2026-10-07 version-selection amendment (supersedes earlier validation for changed source)
+
+- Baseline: `27b68ff0d90e2327fd6a036125356983e62de7cb`; candidate is the unstaged diff in this worktree, excluding unrelated staged `Taskfile.yml` and `scripts/push-with-gh.sh` changes.
+- `npx vitest run tool/__tests__/project-cs-command.test.ts tool/__tests__/manifest-regeneration.test.ts`: PASS, 13 tests before final explicit-true addition.
+- `npm run test:bdd -- tests/behave/features/core-generation.feature`: PASS, 10 scenarios.
+- `task validate:generated`: PASS after final source/root change; 814 unit tests passed, 20 existing Docker-dependent tests skipped, 58 Behave scenarios passed, generated schema/docs/regen/doctor completed, doctor Healthy with 0 blocking.
+- `npm run build`: PASS. `git diff --check`: PASS.
+- Isolated npm prefix installer check of generated root script (`installCsCommand: 0.1.14-main.37579967855`): PASS; installed `cs --version` returned `0.1.14-main.37579967855`, and `cs regen` from a disposable plain project succeeded.
+- Isolated npm prefix installer check of default `latest`: PASS for installation, `cs --version` returned `0.1.13`; `cs regen` of a project with `installCsCommand: false` FAILED because published `0.1.13` does not understand the new field. The root project therefore pins a compatible published prerelease. Default `latest` will support in-container regen only when the stable release includes the new field.
+- Real-container check: BLOCKED. `docker run --rm -v "$PWD:/workspace:ro" mcr.microsoft.com/devcontainers/base:trixie ...` failed with Docker Desktop mount denial for `/workspaces/container-superposition` (exit 125). Dev Container lifecycle/PATH smoke remains unverified.
+- Review status: SELF_CHECKED, independent re-review pending; execution BLOCKED for full acceptance until mount-capable smoke and review gate.
+
+## 2026-10-07 user-confirmed generator-matched default
+
+- User chose omitted/true to select the manifest `generatedBy` version; the prior `latest`-default evidence is historical, not evidence for the current default.
+- Candidate identity: HEAD `27b68ff0d90e2327fd6a036125356983e62de7cb`, non-spec `git diff` SHA-256 `d6d22c2498204880f8506c0b7967f0b6e5ff643d9bf65074a58e0745e563f0b9`.
+- `npx vitest run tool/__tests__/project-cs-command.test.ts tool/__tests__/manifest-regeneration.test.ts`: PASS (14 tests). `task validate:generated`: PASS (814 tests, 20 existing Docker-dependent skips; 58 Behave scenarios; schema/docs/regen/doctor Healthy). `npm run build`: PASS. `git diff --check`: PASS.
+- Generated root script selects pinned published prerelease `0.1.14-main.37579967855` as specified by root `superposition.yml`. Isolated temporary-prefix installation and `cs regen` from a disposable project succeeded; `cs --version` returned the selected prerelease.
+- Default `generatedBy: 0.1.3` remains unverified for `cs` and is known broken against the immutable npm 0.1.3 artifact without a bin named `cs`. Real-container lifecycle smoke remains blocked by Docker Desktop host bind-mount denial. Independent re-review of this revised candidate remains pending; execution BLOCKED, risk PENDING_ACCEPTANCE.
+
+## 2026-10-07 selector correction
+
+- Candidate: HEAD `27b68ff0d90e2327fd6a036125356983e62de7cb`; current non-spec diff SHA-256 `2f4ea95bef58375f57fc1066274d8913f5c30e7f589f06da58706f4313fb93a4`.
+- Focused Vitest: PASS (12 `project-cs-command` tests, including accepted special dist-tags and rejected semver-like ranges). `task validate:generated`: PASS (818 tests, 20 existing Docker-dependent skips; 58 Behave scenarios, schema/docs/regen/doctor Healthy). `npm run build`: PASS. `git diff --check`: PASS.
+- Previous `task validate:generated` attempt failed a test that assumed YAML strings beginning with `-` were emitted unquoted. The assertion was corrected to parse the serialized YAML and the complete gate rerun passed.
+- No new real-container evidence; known Docker Desktop mount blocker and published `0.1.3` bin mismatch remain.
