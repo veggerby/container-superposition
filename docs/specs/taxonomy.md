@@ -85,14 +85,15 @@ _No specs yet._
 
 ### COMPOSER-FEAT
 
-| Spec                                                                                     | Title                                                      | Status      |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------- |
-| [010-compose-env-materialization](010-compose-env-materialization/spec.md)               | Compose Env Materialization and Env Template Naming        | Final       |
-| [043-compose-network-name](043-compose-network-name/spec.md)                             | Project-Specific Compose Network Names                     | Final       |
-| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                   | Multi-Instance Compose Overlays with Instance Overrides    | Final       |
-| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md) | Broaden Repeatable Compose Overlays Beyond PostgreSQL      | Final       |
-| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                       | First-Class VS Code Extensions Field                       | Final       |
-| [063-devcontainer-cs-command](063-devcontainer-cs-command/spec.md)                       | Container Superposition Command in Generated Devcontainers | Implemented |
+| Spec                                                                                                         | Title                                                                                | Status      |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ----------- |
+| [010-compose-env-materialization](010-compose-env-materialization/spec.md)                                   | Compose Env Materialization and Env Template Naming                                  | Final       |
+| [043-compose-network-name](043-compose-network-name/spec.md)                                                 | Project-Specific Compose Network Names                                               | Final       |
+| [050-compose-overlay-instances](050-compose-overlay-instances/spec.md)                                       | Multi-Instance Compose Overlays with Instance Overrides                              | Final       |
+| [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md)                     | Broaden Repeatable Compose Overlays Beyond PostgreSQL                                | Final       |
+| [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                                           | First-Class VS Code Extensions Field                                                 | Final       |
+| [063-devcontainer-cs-command](063-devcontainer-cs-command/spec.md)                                           | Container Superposition Command in Generated Devcontainers                           | Implemented |
+| [065-container-superposition-devcontainer-feature](065-container-superposition-devcontainer-feature/spec.md) | Installable Container Superposition Dev Container Feature for Existing Devcontainers | Draft       |
 
 ### COMPOSER-FIX
 
