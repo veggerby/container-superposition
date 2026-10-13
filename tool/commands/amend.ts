@@ -5,13 +5,27 @@ import * as crypto from 'crypto';
 import yaml from 'js-yaml';
 import { execFileSync } from 'child_process';
 import { deepMerge } from '../utils/merge.js';
+import { applyOverlay, resolveDependencies } from '../questionnaire/composer.js';
+import {
+    inventoryOverlayEffects,
+    type OverlayEffectInventory,
+} from '../questionnaire/overlay-effects.js';
+import { loadOverlayManifests } from '../schema/overlay-loader.js';
+import { parseCatalogDeclarations, resolveOverlaysContext } from '../schema/catalogs.js';
+import {
+    collectOverlayParameters,
+    findUnresolvedTokens,
+    resolveParameters,
+    substituteParameters,
+} from '../utils/parameters.js';
+import { resolveRepoPath } from '../utils/paths.js';
+import { fileURLToPath } from 'url';
 import {
     PROJECT_CONFIG_FILENAMES,
-    SUPERPOSITION_LOCAL_SCHEMA_URL,
     parseLocalProjectConfigDocument,
     type LocalProjectConfigSelection,
 } from '../schema/project-config.js';
-import type { ProjectMount } from '../schema/types.js';
+import type { CatalogDeclaration, CatalogReceiptEntry, ProjectMount } from '../schema/types.js';
 import {
     getExactGitignoreBlock,
     removeExactGitignoreBlock,
@@ -22,7 +36,10 @@ const LOCAL_DIR = '.container-superposition';
 const INPUT_REL = `${LOCAL_DIR}/amendment.yml`;
 const STATE_REL = `${LOCAL_DIR}/amendment-state.json`;
 const SUPPORT_DIR_REL = `${LOCAL_DIR}/amendment`;
-const STATE_VERSION = 1;
+const STATE_VERSION = 3;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const OVERLAYS_DIR = resolveRepoPath('overlays', __dirname);
+const TEMPLATES_DIR = resolveRepoPath('templates', __dirname);
 const EXCLUDE_SECTION = 'container-superposition local amendment';
 const MANAGED_AUTHORITY_PATHS = [
     ...PROJECT_CONFIG_FILENAMES,
@@ -64,6 +81,26 @@ interface AmendState {
     generatedArtifacts: string[];
     generatedArtifactSha256: Record<string, string>;
     mode: 'plain' | 'compose';
+    requestedOverlays?: string[];
+    resolvedOverlays?: string[];
+    compatibility?: { status: 'compatible'; baseShape: 'plain' | 'compose' };
+    catalogs?: CatalogReceiptEntry[];
+}
+
+interface AmendmentOverlaySelection {
+    catalogs?: CatalogDeclaration[];
+    overlays?: string[];
+    parameters?: Record<string, string>;
+}
+
+interface OverlayPlan {
+    requested: string[];
+    resolved: string[];
+    parameters: Record<string, string>;
+    baseShape: 'plain' | 'compose';
+    overlaysDir: string;
+    catalogs: CatalogReceiptEntry[];
+    effects: OverlayEffectInventory[];
 }
 
 interface Model {
@@ -161,10 +198,11 @@ function expectedArtifactAllowlist(model: Omit<Model, 'state'> | Model): Set<str
 }
 
 function assertExpectedArtifactName(model: Omit<Model, 'state'> | Model, artifact: string): void {
+    const isOwnedAmendmentArtifact = artifact.startsWith(`${SUPPORT_DIR_REL}/`);
     if (
         path.isAbsolute(artifact) ||
-        artifact.includes('..') ||
-        !expectedArtifactAllowlist(model).has(artifact)
+        artifact.split('/').includes('..') ||
+        (!expectedArtifactAllowlist(model).has(artifact) && !isOwnedAmendmentArtifact)
     ) {
         throw new Error(`Unexpected generated artifact path in receipt: ${artifact}`);
     }
@@ -447,11 +485,19 @@ function validateStateSchema(parsed: unknown, model: Omit<Model, 'state'>): Amen
         'generatedArtifacts',
         'generatedArtifactSha256',
         'mode',
+        'requestedOverlays',
+        'resolvedOverlays',
+        'compatibility',
+        'catalogs',
     ]);
     for (const key of Object.keys(state)) {
         if (!allowedKeys.has(key)) throw new Error(`Unexpected key in amendment receipt: ${key}`);
     }
-    if (state.formatVersion !== STATE_VERSION) {
+    if (
+        state.formatVersion !== 1 &&
+        state.formatVersion !== 2 &&
+        state.formatVersion !== STATE_VERSION
+    ) {
         throw new Error(
             `Unsupported amendment receipt version in ${model.stateRelPath}. Remove it manually or upgrade Container Superposition.`
         );
@@ -483,7 +529,10 @@ function validateStateSchema(parsed: unknown, model: Omit<Model, 'state'>): Amen
         if (!seen.has(artifact))
             throw new Error(`Unexpected generated artifact hash for ${artifact}.`);
     }
-    return state as AmendState;
+    return {
+        ...(state as AmendState),
+        formatVersion: STATE_VERSION,
+    };
 }
 
 function readReceiptBasePath(projectRoot: string): string | undefined {
@@ -652,7 +701,9 @@ function writeAtomic(filePath: string, content: string): void {
 }
 
 function defaultInput(): string {
-    return yaml.dump({ $schema: SUPERPOSITION_LOCAL_SCHEMA_URL }, { lineWidth: 1000 });
+    // The amendment vocabulary deliberately differs from superposition.local.yml.
+    // Do not point new files at that schema: it does not own amendment overlays.
+    return '# Personal local devcontainer amendment.\n# Add env, mounts, shell, customizations, overlays, or parameters here.\n';
 }
 
 function mountString(mount: ProjectMount): string {
@@ -825,9 +876,267 @@ function rewriteBaseRelativePaths(config: JsonObject, fromDir: string, toDir: st
     return rewritten;
 }
 
+function planOverlayEffects(model: Model, selection: AmendmentOverlaySelection): OverlayPlan {
+    const requested = selection.overlays ?? [];
+    const overlaysContext = resolveOverlaysContext(
+        model.projectRoot,
+        OVERLAYS_DIR,
+        selection.catalogs
+    );
+    if (new Set(requested).size !== requested.length || requested.some((id) => !id.trim())) {
+        throw new Error(
+            'amendment overlays must be a non-empty, duplicate-free list of overlay IDs.'
+        );
+    }
+    const manifests = [...loadOverlayManifests(overlaysContext.overlaysDir).values()];
+    const byId = new Map(manifests.map((manifest) => [manifest.id, manifest]));
+    for (const id of requested) {
+        if (!byId.has(id))
+            throw new Error(
+                `Overlay '${id}' is not available in the local catalog. Choose a compatible overlay or adopt for managed generation.`
+            );
+    }
+    const resolvedResult = resolveDependencies(requested, manifests, { warnOnConflicts: false });
+    if (resolvedResult.conflicts.length > 0) {
+        const conflict = resolvedResult.conflicts[0];
+        throw new Error(
+            `Overlay selection is incompatible: ${conflict.overlayId} conflicts with ${conflict.conflictId}. Choose a compatible overlay or adopt for managed generation.`
+        );
+    }
+    const baseShape = model.base.composeFiles.length > 0 ? 'compose' : 'plain';
+    const effects = inventoryOverlayEffects(overlaysContext.overlaysDir, resolvedResult.overlays);
+    for (const id of resolvedResult.overlays) {
+        const manifest = byId.get(id)!;
+        const supportedShapes = manifest.supports ?? [];
+        if (supportedShapes.length > 0 && !supportedShapes.includes(baseShape)) {
+            throw new Error(
+                `Overlay '${id}' requires ${supportedShapes.join(' or ')} but the discovered base shape is ${baseShape}. Use a compatible overlay, use a compose base, or adopt for managed generation.`
+            );
+        }
+    }
+    for (const effect of effects) {
+        for (const node of effect.nodes) {
+            if (node.kind !== 'patch' && node.kind !== 'imported-patch') continue;
+            for (const reference of node.references) {
+                // Amendment has no catalog asset declaration/mapping contract. A
+                // local overlay reference would otherwise point at an unowned,
+                // dangling path from the alternate configuration.
+                if (reference.classification === 'local-relative') {
+                    const importProvenance = node.declaredPath
+                        ? ` imported from '${node.declaredPath}'`
+                        : '';
+                    throw new Error(
+                        `Overlay '${effect.overlayId}'${importProvenance} has local ${reference.kind} reference '${reference.value}' at ${reference.pointer} that cannot be relocated into amendment ownership. Use a compatible overlay or adopt for managed generation.`
+                    );
+                }
+            }
+        }
+    }
+    const supplied = selection.parameters ?? {};
+    const parameters = resolveParameters(
+        collectOverlayParameters(resolvedResult.overlays, manifests),
+        supplied
+    );
+    if (parameters.missingRequired.length > 0) {
+        throw new Error(
+            `Overlay selection requires parameters: ${parameters.missingRequired.join(', ')}.`
+        );
+    }
+    return {
+        requested,
+        resolved: resolvedResult.overlays,
+        parameters: {
+            ...parameters.values,
+            CS_INSTANCE_SUFFIX: '',
+            CS_INSTANCE_ENV_SUFFIX: '',
+        },
+        baseShape,
+        overlaysDir: overlaysContext.overlaysDir,
+        catalogs: overlaysContext.catalogs,
+        effects,
+    };
+}
+
+function validateSharedComposeImport(importPath: string, overlaysDir: string): string | undefined {
+    if (!importPath.startsWith('.shared/')) {
+        return `has compose_import '${importPath}' outside the shared catalog directory.`;
+    }
+    const sharedDir = path.resolve(overlaysDir, '.shared');
+    const absolute = path.resolve(overlaysDir, importPath);
+    if (!contained(sharedDir, absolute)) {
+        return `has compose_import '${importPath}' that escapes the shared catalog directory.`;
+    }
+    if (!['.yml', '.yaml'].includes(path.extname(importPath).toLowerCase())) {
+        return `has compose_import '${importPath}' that is not YAML.`;
+    }
+    if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
+        return `references missing compose_import '${importPath}'.`;
+    }
+    ensureNoSymlinkComponents(overlaysDir, absolute);
+    return undefined;
+}
+
+function addOverlayFiles(
+    files: Map<string, string>,
+    effect: OverlayEffectInventory,
+    parameters: Record<string, string>
+): void {
+    const { overlayId, overlayDir } = effect;
+    const copy = (source: string, destination: string): void => {
+        const stat = fs.lstatSync(source);
+        if (stat.isSymbolicLink()) {
+            throw new Error(
+                `Overlay '${overlayId}' contains a symlink effect that cannot be safely materialized: ${rel(overlayDir, source)}.`
+            );
+        }
+        if (stat.isDirectory()) {
+            for (const entry of fs.readdirSync(source))
+                copy(path.join(source, entry), `${destination}/${entry}`);
+            return;
+        }
+        if (!stat.isFile()) {
+            throw new Error(
+                `Overlay '${overlayId}' contains an unsupported file effect: ${rel(overlayDir, source)}.`
+            );
+        }
+        const content = substituteParameters(fs.readFileSync(source, 'utf8'), parameters);
+        if (findUnresolvedTokens(content).length > 0) {
+            throw new Error(
+                `Overlay '${overlayId}' has unresolved parameter tokens in ${rel(overlayDir, source)}.`
+            );
+        }
+        files.set(destination, content);
+    };
+    for (const entry of effect.additionalFiles) {
+        copy(path.join(overlayDir, entry), `${SUPPORT_DIR_REL}/overlays/${overlayId}/${entry}`);
+    }
+    if (effect.envExamplePath) {
+        copy(effect.envExamplePath, `${SUPPORT_DIR_REL}/overlays/${overlayId}/.env.example`);
+    }
+    if (effect.gitignorePath) {
+        throw new Error(
+            `Overlay '${overlayId}' requires .gitignore changes that cannot be safely translated to local amendment ownership. Use adopt for managed generation.`
+        );
+    }
+}
+
+function mergeOverlayComposeEffects(
+    model: Model,
+    plan: OverlayPlan,
+    override: JsonObject
+): JsonObject {
+    if (plan.baseShape !== 'compose') return override;
+    const existingServices = new Set<string>();
+    const existingVolumes = new Set<string>();
+    for (const composeRel of model.base.composeFiles) {
+        const parsed = yaml.load(
+            fs.readFileSync(path.join(model.projectRoot, composeRel), 'utf8')
+        ) as JsonObject;
+        for (const name of Object.keys((parsed?.services as JsonObject) ?? {}))
+            existingServices.add(name);
+        for (const name of Object.keys((parsed?.volumes as JsonObject) ?? {}))
+            existingVolumes.add(name);
+    }
+    let merged = override;
+    const mergeFragment = (overlayId: string, source: string, imported = false): void => {
+        const content = substituteParameters(fs.readFileSync(source, 'utf8'), plan.parameters);
+        const unresolved = findUnresolvedTokens(content);
+        if (unresolved.length > 0)
+            throw new Error(
+                `Overlay '${overlayId}' has unresolved parameter token ${unresolved[0]} in ${path.basename(source)}.`
+            );
+        const fragment = yaml.load(content) as JsonObject;
+        if (!fragment || typeof fragment !== 'object' || Array.isArray(fragment)) {
+            throw new Error(
+                `Overlay '${overlayId}' has an invalid compose effect: ${path.basename(source)}.`
+            );
+        }
+        if (JSON.stringify(fragment).match(/(?:^|[^A-Za-z0-9])\.\.?\//)) {
+            throw new Error(
+                `Overlay '${overlayId}' compose fragment has relative file references that cannot yet be relocated into amendment ownership. Use a compatible overlay or adopt for managed generation.`
+            );
+        }
+        for (const service of Object.keys((fragment.services as JsonObject) ?? {})) {
+            if (!imported && existingServices.has(service)) {
+                throw new Error(
+                    `Overlay '${overlayId}' compose service '${service}' collides with the team-owned compose configuration. Choose a compatible overlay or adopt for managed generation.`
+                );
+            }
+            existingServices.add(service);
+        }
+        for (const volume of Object.keys((fragment.volumes as JsonObject) ?? {})) {
+            if (!imported && existingVolumes.has(volume)) {
+                throw new Error(
+                    `Overlay '${overlayId}' compose volume '${volume}' collides with the team-owned compose configuration. Choose a compatible overlay or adopt for managed generation.`
+                );
+            }
+            existingVolumes.add(volume);
+        }
+        merged = deepMerge(merged, fragment);
+    };
+    for (const effect of plan.effects) {
+        for (const importPath of effect.composeImports) {
+            const importPathError = validateSharedComposeImport(importPath, plan.overlaysDir);
+            if (importPathError) {
+                throw new Error(`Overlay '${effect.overlayId}' ${importPathError}`);
+            }
+            mergeFragment(effect.overlayId, path.join(plan.overlaysDir, importPath), true);
+        }
+        if (effect.composePath) mergeFragment(effect.overlayId, effect.composePath);
+    }
+    return merged;
+}
+
+function addOverlayScripts(
+    alternate: JsonObject,
+    files: Map<string, string>,
+    plan: OverlayPlan
+): JsonObject {
+    let output = alternate;
+    let needsSetupUtils = false;
+    for (const effect of plan.effects) {
+        const overlayId = effect.overlayId;
+        for (const [sourceName, lifecycle, keyPrefix, source] of [
+            ['setup.sh', 'postCreateCommand', 'setup', effect.setupPath],
+            ['verify.sh', 'postStartCommand', 'verify', effect.verifyPath],
+        ] as const) {
+            if (!source) continue;
+            const content = substituteParameters(fs.readFileSync(source, 'utf8'), plan.parameters);
+            const unresolved = findUnresolvedTokens(content);
+            if (unresolved.length > 0)
+                throw new Error(
+                    `Overlay '${overlayId}' has unresolved parameter token ${unresolved[0]} in ${sourceName}.`
+                );
+            const scriptRel = `${SUPPORT_DIR_REL}/scripts/${overlayId}/${sourceName}`;
+            files.set(scriptRel, content);
+            // Keep the utility beside every namespace-qualified script so a
+            // script that sources its sibling retains its original meaning.
+            files.set(
+                `${SUPPORT_DIR_REL}/scripts/${overlayId}/setup-utils.sh`,
+                fs.readFileSync(path.join(TEMPLATES_DIR, 'scripts', 'setup-utils.sh'), 'utf8')
+            );
+            needsSetupUtils = true;
+            const existing = output[lifecycle];
+            const commands =
+                existing === undefined
+                    ? {}
+                    : typeof existing === 'object' && !Array.isArray(existing)
+                      ? existing
+                      : { default: existing };
+            output = {
+                ...output,
+                [lifecycle]: { ...commands, [`${keyPrefix}-${overlayId}`]: `bash ${scriptRel}` },
+            };
+        }
+    }
+    void needsSetupUtils;
+    return output;
+}
+
 function composeOutputs(
     model: Model,
-    local: LocalProjectConfigSelection
+    local: LocalProjectConfigSelection,
+    overlaySelection: AmendmentOverlaySelection
 ): { files: Map<string, string>; state: AmendState } {
     const mode: AmendState['mode'] = model.base.composeFiles.length > 0 ? 'compose' : 'plain';
     let alternate = rewriteBaseRelativePaths(
@@ -837,6 +1146,23 @@ function composeOutputs(
     );
     const files = new Map<string, string>();
     const generatedArtifacts = [model.base.alternateRelPath];
+    const overlayPlan = planOverlayEffects(model, overlaySelection);
+    for (const overlayId of overlayPlan.resolved) {
+        const effect = overlayPlan.effects.find((candidate) => candidate.overlayId === overlayId)!;
+        alternate = applyOverlay(alternate, overlayId, overlayPlan.overlaysDir, {
+            silent: true,
+            tokenMap: overlayPlan.parameters,
+            effect,
+        }) as JsonObject;
+        addOverlayFiles(files, effect, overlayPlan.parameters);
+    }
+    alternate = addOverlayScripts(alternate, files, overlayPlan);
+    const unresolved = findUnresolvedTokens(JSON.stringify(alternate));
+    if (unresolved.length > 0) {
+        throw new Error(
+            `Overlay selection has unresolved parameter token ${unresolved[0]}; no amendment output was written.`
+        );
+    }
 
     alternate.remoteEnv = deepMerge(
         alternate.remoteEnv ?? {},
@@ -882,9 +1208,13 @@ function composeOutputs(
             'Compose-only amendment fields (composeEnv, composeVolume, dockerComposePatch) require a compose-backed base devcontainer.'
         );
     }
+    const hasOverlayComposeEffects = overlayPlan.effects.some(
+        (effect) => effect.composePath || effect.composeImports.length > 0
+    );
     const needsComposeOverride =
         mode === 'compose' &&
-        (Object.keys(composeEnv).length > 0 ||
+        (hasOverlayComposeEffects ||
+            Object.keys(composeEnv).length > 0 ||
             composeMounts.length > 0 ||
             local.customizations?.dockerComposePatch);
     if (needsComposeOverride) {
@@ -901,6 +1231,7 @@ function composeOutputs(
         if (local.customizations?.dockerComposePatch) {
             override = deepMerge(override, local.customizations.dockerComposePatch);
         }
+        override = mergeOverlayComposeEffects(model, overlayPlan, override);
         files.set(overrideRel, yaml.dump(override, { lineWidth: 1000 }));
         generatedArtifacts.push(overrideRel);
         const relativeFromAlternate = toPosix(
@@ -914,6 +1245,7 @@ function composeOutputs(
         ];
     }
 
+    for (const artifact of files.keys()) generatedArtifacts.push(artifact);
     files.set(model.base.alternateRelPath, `${JSON.stringify(alternate, null, 4)}\n`);
     const inputContent = fs.existsSync(model.inputAbsPath)
         ? fs.readFileSync(model.inputAbsPath)
@@ -930,6 +1262,10 @@ function composeOutputs(
         generatedArtifacts: sortedArtifacts,
         generatedArtifactSha256,
         mode,
+        requestedOverlays: overlayPlan.requested,
+        resolvedOverlays: overlayPlan.resolved,
+        compatibility: { status: 'compatible', baseShape: overlayPlan.baseShape },
+        catalogs: overlayPlan.catalogs,
     };
     return { files, state };
 }
@@ -945,6 +1281,9 @@ function assertSupportedAmendmentDocument(
         'shell',
         'vscodeExtensions',
         'customizations',
+        'catalogs',
+        'overlays',
+        'parameters',
     ]);
     const unsupportedKeys = Object.keys(document).filter((key) => !supportedKeys.has(key));
     if (unsupportedKeys.length > 0) {
@@ -972,9 +1311,14 @@ function assertSupportedAmendmentDocument(
     }
 }
 
-function parseInput(model: Model, useDefaultWhenMissing = false): LocalProjectConfigSelection {
+function parseInput(
+    model: Model,
+    useDefaultWhenMissing = false
+): { local: LocalProjectConfigSelection; overlays: AmendmentOverlaySelection } {
     if (!fs.existsSync(model.inputAbsPath)) {
-        if (useDefaultWhenMissing) return parseLocalProjectConfigDocument({}, model.inputRelPath);
+        if (useDefaultWhenMissing) {
+            return { local: parseLocalProjectConfigDocument({}, model.inputRelPath), overlays: {} };
+        }
         throw new Error(
             `Missing local amendment input ${model.inputRelPath}. Run amend init first.`
         );
@@ -992,7 +1336,36 @@ function parseInput(model: Model, useDefaultWhenMissing = false): LocalProjectCo
     }
     const document = parsed as Record<string, any>;
     assertSupportedAmendmentDocument(document, model.inputRelPath);
-    return parseLocalProjectConfigDocument(document, model.inputRelPath);
+    const catalogs = parseCatalogDeclarations(document.catalogs, model.projectRoot);
+    const overlays = document.overlays;
+    if (
+        overlays !== undefined &&
+        (!Array.isArray(overlays) || !overlays.every((value) => typeof value === 'string'))
+    ) {
+        throw new Error(`${model.inputRelPath} overlays must be an array of overlay IDs.`);
+    }
+    const parameters = document.parameters;
+    if (
+        parameters !== undefined &&
+        (!parameters ||
+            typeof parameters !== 'object' ||
+            Array.isArray(parameters) ||
+            !Object.values(parameters).every((value) => typeof value === 'string'))
+    ) {
+        throw new Error(`${model.inputRelPath} parameters must be a map of string values.`);
+    }
+    const localDocument = { ...document };
+    delete localDocument.catalogs;
+    delete localDocument.overlays;
+    delete localDocument.parameters;
+    return {
+        local: parseLocalProjectConfigDocument(localDocument, model.inputRelPath),
+        overlays: {
+            catalogs,
+            overlays,
+            parameters: parameters as Record<string, string> | undefined,
+        },
+    };
 }
 
 function applyOutputs(model: Model, files: Map<string, string>, state: AmendState): void {
@@ -1098,6 +1471,57 @@ function printSummary(action: string, model: Model, state: AmendState): void {
     void state;
 }
 
+function applyAmendmentTransaction(
+    model: Model,
+    action: AmendAction,
+    files: Map<string, string>,
+    state: AmendState
+): void {
+    const paths = new Set<string>([
+        model.inputAbsPath,
+        model.stateAbsPath,
+        ...[...files.keys(), ...(model.state?.generatedArtifacts ?? [])].map((artifact) =>
+            validateArtifactPath(model, artifact)
+        ),
+    ]);
+    if (model.git.excludePath) paths.add(model.git.excludePath);
+    const before = new Map<string, Buffer | null>(
+        [...paths].map((filePath) => [
+            filePath,
+            fs.existsSync(filePath) ? fs.readFileSync(filePath) : null,
+        ])
+    );
+    try {
+        ensureGitProtection(model);
+        if (action === 'init' && !fs.existsSync(model.inputAbsPath)) {
+            writeAtomic(model.inputAbsPath, defaultInput());
+        }
+        applyOutputs(model, files, state);
+    } catch (error) {
+        for (const [filePath, content] of before) {
+            if (content === null) fs.rmSync(filePath, { force: true });
+            else {
+                fs.mkdirSync(path.dirname(filePath), { recursive: true });
+                fs.writeFileSync(filePath, content);
+            }
+        }
+        // Do not leave command-created empty local directories after a failed
+        // first init. Never remove non-empty/user-owned directories.
+        for (const directory of [
+            model.supportDirAbsPath,
+            path.dirname(model.inputAbsPath),
+            model.base.alternateDirAbsPath,
+        ]) {
+            try {
+                fs.rmdirSync(directory);
+            } catch {
+                // A remaining directory contains prior or user-owned content.
+            }
+        }
+        throw error;
+    }
+}
+
 export async function amendCommand(action: AmendAction, options: AmendOptions = {}): Promise<void> {
     const model = resolveModel(options);
     if (action === 'inspect') {
@@ -1114,14 +1538,10 @@ export async function amendCommand(action: AmendAction, options: AmendOptions = 
         );
     }
     ensureLocalStatePathSafe(model);
-    const local = parseInput(model, action === 'init');
-    const { files, state } = composeOutputs(model, local);
+    const input = parseInput(model, action === 'init');
+    const { files, state } = composeOutputs(model, input.local, input.overlays);
     validateApplyPlan(model, files, state);
-    ensureGitProtection(model);
-    if (action === 'init' && !fs.existsSync(model.inputAbsPath)) {
-        writeAtomic(model.inputAbsPath, defaultInput());
-    }
-    applyOutputs(model, files, state);
+    applyAmendmentTransaction(model, action, files, state);
     printSummary(action === 'init' ? 'initialized' : 'refreshed', model, state);
 }
 
