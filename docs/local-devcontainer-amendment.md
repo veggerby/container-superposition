@@ -15,25 +15,27 @@ The command never stages files, unstages files, commits files, or runs `git rm`.
 
 ## Workflow
 
+If this is an existing devcontainer that does not already provide `cs`, first add the published `ghcr.io/veggerby/container-superposition/container-superposition:1` Feature to the team-owned devcontainer and rebuild it. Feature installation only makes the command available; it does not inspect this workspace or apply an amendment.
+
 ```bash
 # Create local input, local receipt, ignore protection, and a no-op alternate config
-npx container-superposition amend init
+cs amend init
 
 # Edit your personal layer
 $EDITOR .container-superposition/amendment.yml
 
 # Rebuild the alternate local config deterministically
-npx container-superposition amend refresh
+cs amend refresh
 
 # Inspect ownership, drift, generated files, ignore protection, and launch command
-npx container-superposition amend inspect
-npx container-superposition amend inspect --json
+cs amend inspect
+cs amend inspect --json
 
 # Remove generated local artifacts while keeping your input for later
-npx container-superposition amend remove
+cs amend remove
 
 # Remove generated artifacts and input; remove the local exclude block when safe
-npx container-superposition amend remove --purge
+cs amend remove --purge
 ```
 
 `amend remove --purge` leaves a Dev Container CLI-created sibling `devcontainer-lock.json` untouched. If that lock or user-managed content in `.container-superposition/` remains, the local exclude block stays in place so those files cannot be accidentally committed. Remove the remaining file manually if no longer needed; the exclude block can then be removed manually or by a later amendment purge.
@@ -46,7 +48,7 @@ Launch the amended configuration with the standard Dev Container CLI alternate-c
 devcontainer up --workspace-folder . --config .devcontainer/superposition-local/devcontainer.json
 ```
 
-Ordinary VS Code **Reopen in Container** and Dev Containers auto-discovery still select the team-owned base devcontainer. That is intentional: this workflow does not replace `.devcontainer/devcontainer.json`, write `.vscode/settings.json`, or make your personal alternate config the repository default.
+After `cs amend refresh`, rebuild the personal alternate configuration before using structural changes. Ordinary VS Code **Reopen in Container** and Dev Containers auto-discovery still select the team-owned base devcontainer. That is intentional: this workflow does not replace `.devcontainer/devcontainer.json`, write `.vscode/settings.json`, or make your personal alternate config the repository default.
 
 After the printed `devcontainer up --workspace-folder ... --config ...` command has started the amended container, use normal VS Code Dev Containers flows to enter it, such as **Attach to Running Container** or **Open Folder in Container** when supported by your VS Code/Dev Containers version. Do not commit the generated alternate config, replace the team's devcontainer, or change shared workspace settings just to make VS Code's default reopen action select your local amendment.
 
@@ -54,10 +56,9 @@ If you want the repository's ordinary VS Code reopen flow to use the amended set
 
 ## Local input fields
 
-`amendment.yml` reuses the same local enrichment field shapes as `superposition.local.yml` where they already exist:
+`amendment.yml` reuses the same local enrichment field shapes as `superposition.local.yml` where they already exist, but it is a distinct amendment vocabulary because it also supports local-only `catalogs`, `overlays`, and `parameters`. Do not point it at `superposition.local.schema.json`.
 
 ```yaml
-$schema: https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.local.schema.json
 env:
     PI_HOME: ${localEnv:HOME}/.pi
 mounts:
@@ -75,6 +76,10 @@ customizations:
             vscode:
                 settings:
                     pi.enabled: true
+
+# Optional personal overlay enrichment. This never changes team-owned files.
+overlays:
+    - aws-cli
 ```
 
 Compose-backed devcontainers may target compose environment or volumes:
@@ -94,6 +99,28 @@ customizations:
                 labels:
                     container-superposition.local: 'true'
 ```
+
+## Personal overlay enrichment and compatibility
+
+`overlays` is an opt-in local-only list. It can select built-in IDs or namespace-qualified IDs from an explicitly declared `catalogs` entry. Catalog declarations use the same immutable git/archive or repository-relative path rules as managed project catalogs; the amendment receipt records the resolved catalog identity alongside the resolved overlay selection. For example:
+
+```yaml
+catalogs:
+    - id: personal-tools
+      namespace: acme
+      source:
+          type: git
+          url: https://example.invalid/acme/personal-tools.git
+          commit: 0123456789abcdef0123456789abcdef01234567
+overlays:
+    - acme/personal-tools
+```
+
+`cs amend refresh` resolves its complete dependency set before writing the alternate configuration. It accepts a compatible selection only when every requested effect can be represented under amendment ownership; it never drops an overlay, dependency, feature, or parameter to make a selection appear to work.
+
+Compatibility is evaluated against the discovered base shape, not a permanent overlay allowlist. Compatible patches, setup/verify scripts (with their sibling setup utility), `.env.example`, and regular overlay support files are materialized beneath the receipt-owned `.container-superposition/amendment/` subtree. Compatible compose fragments without relative file references are added only to the personal compose override; a service or volume collision with the team-owned compose files is rejected. Imports that cannot retain their managed meaning under the personal subtree, including `.env` imports, are rejected before any write rather than silently omitted. For example, compose-only overlays such as `postgres` are rejected on a plain base before any new alternate configuration is written. The error names the incompatible overlay and routes you to choose a compatible overlay, use a compose base, or adopt managed generation. Effects that cannot be relocated safely (including overlay `.gitignore` changes, symlinks, or a collision) are rejected rather than partially applied.
+
+Successful receipts record requested and resolved overlays, the compatible base shape, and every owned artifact. `cs amend inspect --json` exposes that receipt, and `cs amend remove` deletes all receipt-owned outputs while leaving the team base untouched.
 
 ## Supported bases
 

@@ -15,6 +15,20 @@ This directory contains **unique** features that solve specific problems not add
 
 ## Available Custom Features
 
+### container-superposition
+
+Install the real `cs` command in an existing devcontainer through the published Feature:
+
+```json
+{
+    "features": {
+        "ghcr.io/veggerby/container-superposition/container-superposition:1": {}
+    }
+}
+```
+
+The Feature installs the command only. After rebuilding, use either canonical shared `superposition.yml` plus `cs regen`, or the personal local amendment workflow plus `cs amend refresh`; both routes require a subsequent rebuild for structural changes.
+
 ### cross-distro-packages
 
 **NEW**: Cross-distribution package manager with automatic distro detection.

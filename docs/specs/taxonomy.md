@@ -93,7 +93,7 @@ _No specs yet._
 | [051-repeatable-compose-overlay-rollout](051-repeatable-compose-overlay-rollout/spec.md)                     | Broaden Repeatable Compose Overlays Beyond PostgreSQL                                | Final       |
 | [056-vscode-extensions-field](056-vscode-extensions-field/spec.md)                                           | First-Class VS Code Extensions Field                                                 | Final       |
 | [063-devcontainer-cs-command](063-devcontainer-cs-command/spec.md)                                           | Container Superposition Command in Generated Devcontainers                           | Implemented |
-| [065-container-superposition-devcontainer-feature](065-container-superposition-devcontainer-feature/spec.md) | Installable Container Superposition Dev Container Feature for Existing Devcontainers | Draft       |
+| [065-container-superposition-devcontainer-feature](065-container-superposition-devcontainer-feature/spec.md) | Installable Container Superposition Dev Container Feature for Existing Devcontainers | Ready       |
 
 ### COMPOSER-FIX
 

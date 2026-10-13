@@ -8,7 +8,7 @@ Final releases are the only path that updates npm's `latest` tag.
 
 1. Update `CHANGELOG.md`.
 2. Create and publish a GitHub Release with a semver tag such as `v0.1.13`.
-3. The release workflow validates the tag, installs dependencies, lints, builds, generates the schema, tests, previews the package, and publishes with provenance.
+3. The release workflow validates the tag, installs dependencies, lints, builds, generates the schema, tests, previews the package, and publishes with provenance. After npm publication is available, it publishes only `features/container-superposition` to GHCR as `ghcr.io/veggerby/container-superposition/container-superposition:1`; it does not publish the repository's example/local Features.
 
 After a successful publish, the workflow summary includes exact-version install commands and the workflow updates an associated PR comment when it finds one. Verify the final release with:
 
@@ -77,3 +77,14 @@ npm view container-superposition@<exact-version> version
 ```
 
 Use `@prerelease` only to inspect the newest eligible merged-main staging build. Use `@pr-<number>` only to inspect the selected manually dispatched PR package.
+
+## Dev Container Feature release verification
+
+The Feature is released only from the final-release workflow, after its npm package is published. Verify the published OCI Feature and its installed command in a disposable devcontainer:
+
+```bash
+devcontainer features info tags ghcr.io/veggerby/container-superposition/container-superposition:1
+devcontainer up --workspace-folder <feature-smoke-fixture>
+```
+
+The smoke fixture must assert `cs --version`. Publishing or installing the Feature must not run `cs regen`, `cs amend refresh`, or any rebuild/reopen action itself.

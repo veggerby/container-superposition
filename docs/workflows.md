@@ -2,6 +2,20 @@
 
 This guide covers the current project-file-first workflow.
 
+## Add `cs` to an existing devcontainer
+
+For a repository that already owns its devcontainer, add the published Feature and rebuild once:
+
+```json
+{
+    "features": {
+        "ghcr.io/veggerby/container-superposition/container-superposition:1": {}
+    }
+}
+```
+
+The Feature installs and verifies the real `cs` command only. It does not select overlays, read project files, run `regen` or `amend refresh`, or rebuild/reopen a container. After the first rebuild, choose the managed shared-intent or personal amendment route below. Both routes require their explicit command and another rebuild before structural changes take effect.
+
 ## Canonical shared intent
 
 Commit exactly one repository-root project file:
@@ -68,7 +82,7 @@ npx container-superposition init --from-project --project-root ../my-project
 
 ## Replay shared intent with `regen`
 
-`regen` replays the repository project file into generated output:
+`regen` replays the repository project file into generated output. After changing shared intent, run `cs regen` from the rebuilt container and then rebuild the devcontainer to use the structural output:
 
 ```bash
 npx container-superposition regen
@@ -93,14 +107,14 @@ npx container-superposition regen
 Use `amend` when a repository already has a team-owned devcontainer and you only need a personal local layer. It does not create `superposition.yml`, `.superposition.yml`, `superposition.json`, or `superposition.local.yml`, and it does not mutate the Git index.
 
 ```bash
-npx container-superposition amend init
+cs amend init
 $EDITOR .container-superposition/amendment.yml
-npx container-superposition amend refresh
-npx container-superposition amend inspect
-npx container-superposition amend remove
+cs amend refresh
+cs amend inspect
+cs amend remove
 ```
 
-Launch the amended configuration with the printed `devcontainer up --workspace-folder ... --config ...` command. Ordinary VS Code **Reopen in Container** and Dev Containers auto-discovery continue to use the team-owned base; after the amended container is running, attach/open it through normal VS Code Dev Containers flows instead of replacing shared workspace or devcontainer settings. See [Local Devcontainer Amendment](local-devcontainer-amendment.md).
+After `cs amend refresh`, rebuild the personal alternate configuration before use. Launch the amended configuration with the printed `devcontainer up --workspace-folder ... --config ...` command. Ordinary VS Code **Reopen in Container** and Dev Containers auto-discovery continue to use the team-owned base; after the amended container is running, attach/open it through normal VS Code Dev Containers flows instead of replacing shared workspace or devcontainer settings. See [Local Devcontainer Amendment](local-devcontainer-amendment.md).
 
 ## Adopt and migrate conversion flows
 
