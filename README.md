@@ -54,6 +54,16 @@ Use `defaults --json` to inspect personal init defaults and `defaults
 refresh-local` to explicitly create local enrichment. Use `amend` for a
 non-adopting repository with an existing team-owned devcontainer.
 
+## Pi project-config authoring
+
+Install the project-config prompt and skill in Pi from this Git repository:
+
+```bash
+pi install git:github.com/veggerby/container-superposition
+```
+
+In any project, start Pi and enter `/project-config create a Node.js devcontainer with Postgres` (or invoke `/skill:project-config-authoring` directly). The prompt edits the target repository's `superposition.yml` or `.superposition.yml`, not this package's files. Review the Git source before installing; pin a tag or commit for reproducible installs. This Git install is not a Pi package gallery listing or a separate npm package.
+
 ## What It Does
 
 - Base templates: `plain` (single image) and `compose` (multi-service).

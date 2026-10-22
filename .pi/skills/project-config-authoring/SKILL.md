@@ -23,13 +23,11 @@ Use this skill when a user asks in natural language to create or update a Contai
 
 ## Read first
 
-1. `AGENTS.md`
-2. `docs/foundation.md`
-3. `docs/adr/adr001-project-file-first-replay-and-regeneration.md`
-4. `docs/superposition-yml.md`
-5. `npx container-superposition defaults --json` for read-only effective global-default inspection
-6. repository-root config candidates: `superposition.yml`, `.superposition.yml`, `superposition.local.yml`, `.superposition.local.yml`, `superposition.json`, and `.devcontainer/` only to understand current state
-7. live CLI discovery/help for the requested capability
+1. `AGENTS.md` in the target repository, if present; honor its instructions.
+2. The Container Superposition references bundled with this skill (resolve relative to the skill directory): `../../../docs/foundation.md`, `../../../docs/adr/adr001-project-file-first-replay-and-regeneration.md`, and `../../../docs/superposition-yml.md`. If these files are unavailable, use the published Container Superposition documentation; do not assume the target repository's `docs/` describes this tool.
+3. `npx container-superposition defaults --json` for read-only effective global-default inspection
+4. repository-root config candidates: `superposition.yml`, `.superposition.yml`, `superposition.local.yml`, `.superposition.local.yml`, `superposition.json`, and `.devcontainer/` only to understand current state
+5. live CLI discovery/help for the requested capability
 
 ## Required workflow
 

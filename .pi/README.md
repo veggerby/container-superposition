@@ -1,6 +1,6 @@
 # Project Pi Resources
 
-Pi auto-discovers this directory when started from the repository root.
+Pi auto-discovers this directory when started from the repository root. From another project, `pi install git:github.com/veggerby/container-superposition` installs only `/project-config` and `/skill:project-config-authoring` through the root `package.json` Pi manifest. Other project-local resources remain repo-only. Git installation does not list the package in Pi's npm-backed gallery.
 
 - `settings.json` enables project skill commands.
 - `agents/*.md` defines project-local role subagents (`overlay-writer`, `overlay-reviewer`, `overlay-consistency`, `overlay-architect`).

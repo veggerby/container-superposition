@@ -3,7 +3,7 @@ description: Author or update Container Superposition project config from a natu
 argument-hint: '<project setup intent>'
 ---
 
-Use the project-local skill `/skill:project-config-authoring`.
+Use `/skill:project-config-authoring` from the installed package or the current project.
 
 Task:
 
