@@ -24,10 +24,40 @@ Use this skill when a user asks in natural language to create or update a Contai
 ## Read first
 
 1. `AGENTS.md` in the target repository, if present; honor its instructions.
-2. The Container Superposition references bundled with this skill (resolve relative to the skill directory): `../../../docs/foundation.md`, `../../../docs/adr/adr001-project-file-first-replay-and-regeneration.md`, and `../../../docs/superposition-yml.md`. If these files are unavailable, use the published Container Superposition documentation; do not assume the target repository's `docs/` describes this tool.
-3. `npx container-superposition defaults --json` for read-only effective global-default inspection
-4. repository-root config candidates: `superposition.yml`, `.superposition.yml`, `superposition.local.yml`, `.superposition.local.yml`, `superposition.json`, and `.devcontainer/` only to understand current state
-5. live CLI discovery/help for the requested capability
+2. Repository-root config candidates: `superposition.yml`, `.superposition.yml`, `superposition.local.yml`, `.superposition.local.yml`, `superposition.json`, and `.devcontainer/` only to understand current state.
+3. Read-only effective global-default inspection via `defaults --json` and live CLI discovery/help for the requested capability. Do not rely on files relative to this skill or on Container Superposition documentation in the target repository.
+
+## CLI selection
+
+Run CLI calls through this shell function. Define it in each shell session that needs it (or run all calls in one session); do not assume a function persists across separate tool calls:
+
+```bash
+cs_cli() {
+  if command -v cs >/dev/null 2>&1; then
+    cs "$@"
+  else
+    npx container-superposition "$@"
+  fi
+}
+```
+
+Use the installed `cs` if it is on `PATH`; otherwise fall back to `npx container-superposition`. If the selected command fails, report the error rather than silently switching to another version. Do not run `init` or `regen` merely to validate YAML.
+
+## Project-file shape and schema authority
+
+Use this built-in contract for simple requests:
+
+```yaml
+# superposition.yml (or .superposition.yml): shared team intent
+stack: plain # or compose
+overlays:
+    - nodejs # flat overlay IDs confirmed by list/explain
+# optional: env: {APP_ENV: development}
+```
+
+The optional `superposition.local.yml` is for machine-only enrichment. Its supported top-level keys are `$schema`, `env`, `mounts`, `shell`, `vscodeExtensions`, `customizations`, `portOffset`, and `ports`. It does not select a stack or overlays and must not be committed. Shared top-level keys commonly include `stack`, `overlays`, `baseImage`, `env`, `ports`, `mounts`, `vscodeExtensions`, `parameters`, `outputPath`, and `devcontainerGitignore`. Do not infer nested shapes or use obsolete category selections for new files.
+
+For complete field types, constraints, and advanced settings, inspect the published [shared project schema](https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.schema.json) and [local config schema](https://raw.githubusercontent.com/veggerby/container-superposition/main/tool/schema/superposition.local.schema.json). These are online references, not files in the target repository. Prefer a schema matching the selected CLI version when available. If schemas cannot be accessed, limit edits to the simple shape above and existing well-formed fields, or stop when an unfamiliar field is needed. `plan --stack ... --overlays ...` checks the selected capability, not the full authored YAML; do not report it as schema validation. Do not invent a `$schema` URL if the matching schema is unknown.
 
 ## Required workflow
 
@@ -55,21 +85,21 @@ Ask one focused question at a time only when the answer changes shared intent, l
 Use live, read-only CLI surfaces before finalizing YAML. Start every workflow with:
 
 ```bash
-npx container-superposition defaults --json
+cs_cli defaults --json
 ```
 
 Then prefer commands such as:
 
 ```bash
-npx container-superposition list --json
-npx container-superposition list --supports plain --json
-npx container-superposition list --supports compose --json
-npx container-superposition explain <overlay-or-preset> --json
-npx container-superposition plan --stack <plain|compose> --overlays <comma-separated-ids> --json
-npx container-superposition plan --stack <plain|compose> --overlays <comma-separated-ids> --verbose
+cs_cli list --json
+cs_cli list --supports plain --json
+cs_cli list --supports compose --json
+cs_cli explain <overlay-or-preset> --json
+cs_cli plan --stack <plain|compose> --overlays <comma-separated-ids> --json
+cs_cli plan --stack <plain|compose> --overlays <comma-separated-ids> --verbose
 ```
 
-If a command is unavailable or fails, do not invent catalog facts. Record the failure, use checked documentation only where sufficient, or stop when the selection cannot be validated.
+If a command is unavailable or fails, do not invent catalog facts. Record the failure and stop when the selection cannot be validated.
 
 ### 4. Apply the plain-first stack rule
 
@@ -87,10 +117,10 @@ Include the stack rationale in the handoff.
 
 ### 5. Account for global defaults without making them authority
 
-Inspect supported home files through the CLI first:
+Inspect supported home files through the selected CLI first:
 
 ```bash
-npx container-superposition defaults --json
+cs_cli defaults --json
 ```
 
 The command reports the selected source, ignored lower-precedence source, and normalized effective document without writing files. If the command is unavailable, fall back to direct read-only inspection of:
@@ -110,7 +140,7 @@ Current precedence: `~/.container-superposition.yml` wins when both exist. Suppo
 
 - Update only the selected shared project file and, when needed, `superposition.local.yml`.
 - Do not edit CLI code, schemas, overlays, `.devcontainer/`, `superposition.json`, generated docs, or the Git index.
-- Keep `$schema` fields when present; add them when creating new files if useful for editor/schema validation.
+- Keep `$schema` fields when present; add one only when its URL is known to match the selected CLI/schema version.
 - Show or summarize the resulting diff before handoff.
 
 ### 7. Verify after writing
@@ -118,13 +148,13 @@ Current precedence: `~/.container-superposition.yml` wins when both exist. Suppo
 Run a read-only preview after writing using the stack and overlay selection from the edited project file, for example:
 
 ```bash
-npx container-superposition plan --stack <plain|compose> --overlays <comma-separated-ids> --json
+cs_cli plan --stack <plain|compose> --overlays <comma-separated-ids> --json
 ```
 
-Use `--verbose` or `--diff` when it adds useful evidence. If no overlays are selected, use CLI help/schema checks plus `doctor --from-project` when applicable rather than inventing a no-overlay `plan` invocation. Use:
+Use `--verbose` or `--diff` when it adds useful evidence. A selection preview does not validate the entire project file or local config; check authored keys against the schemas above when available and report any unvalidated fields. If no overlays are selected, use CLI help/schema checks plus `doctor --from-project` when applicable rather than inventing a no-overlay `plan` invocation. Use:
 
 ```bash
-npx container-superposition doctor --from-project
+cs_cli doctor --from-project
 ```
 
 only when generated output already exists and health/reproducibility evidence is relevant. Do not generate `.devcontainer/` merely to validate this authoring workflow.
@@ -152,8 +182,3 @@ Report:
 - global defaults considered and how they were treated;
 - post-write validation commands with exit statuses;
 - residual risks or stop conditions.
-
-## Related skills
-
-- `/skill:workflow-sync` when changing Pi assets, changelog, spec, or inventory files.
-- `/skill:canonical-docs-alignment` when broader user/contributor docs must be aligned.
