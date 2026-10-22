@@ -41,6 +41,14 @@
         "type": "git",
         "url": "https://github.com/veggerby/container-superposition.git"
     },
+    "pi": {
+        "skills": [
+            "./.pi/skills/project-config-authoring"
+        ],
+        "prompts": [
+            "./.pi/prompts/project-config.md"
+        ]
+    },
     "files": [
         "dist/",
         "templates/",
