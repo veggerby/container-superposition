@@ -1,0 +1,11 @@
+{
+    "name": "container-superposition",
+    "owner": { "name": "veggerby" },
+    "plugins": [
+        {
+            "name": "project",
+            "source": "./plugins/project",
+            "description": "Project-config command and authoring skill for Copilot CLI."
+        }
+    ]
+}

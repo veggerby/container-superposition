@@ -43,6 +43,7 @@ examples/.devcontainer/
 !tool/**/*
 !scripts/**/*
 !overlays/**/*
+!plugins/project/opencode.js
 *.tgz
 
 
