@@ -27,9 +27,9 @@ The user confirmed support for a Claude Code marketplace plugin and a Codex-inst
 
 - [ ] AC-066-01: This Git repository supplies a Claude Code marketplace with one plugin exposing the project-config command and project-config-authoring skill, not the repository's maintainer prompts, skills, or agents.
 - [ ] AC-066-02: All five harnesses have documented native installation from this GitHub repository without a user-managed clone/copy: Pi Git package, Claude Code marketplace, Copilot CLI marketplace, Codex plugin marketplace, and OpenCode package plugin. Native command-capable packages include the project-config prompt as a command and the authoring skill. Where a host uses skills rather than separate prompt commands, documentation states the native invocation and limitation explicitly.
-- [ ] AC-066-03: Pi installation and invocation remain compatible. Existing prompt/skill files remain canonical. Host formats that require fixed package paths use deterministically generated instruction payloads, with drift checks; no hand-maintained instruction forks are introduced.
+- [ ] AC-066-03: The installable prompt and authoring skill live canonically under the marketplace plugin directory's standard `commands/` and `skills/` paths. Native manifests select those same files without generated copies or symlinks. Pi installation and invocation remain compatible, and `.pi/settings.json` loads the root Pi package from the local repository rather than retaining duplicated project-config assets under `.pi/`.
 - [ ] AC-066-04: All installations preserve project-file-first authority, local-only boundaries, plain-first selection, live CLI discovery, and read-only post-write verification from spec 057 without assuming harness-specific tools or source-repository files.
-- [ ] AC-066-05: Documentation explains native installation, invocation, prerequisites, trust, update/removal, and scope. `gh skill` is an optional skill-only fallback, never described as a marketplace or full prompt-package install. Automated checks detect broken manifest paths, generated payload drift, command/skill registration defects, and accidental maintainer-resource exports. The existing Unreleased workflow entry is consolidated rather than duplicated.
+- [ ] AC-066-05: Documentation explains native installation, invocation, prerequisites, trust, update/removal, and scope. `gh skill` is an optional skill-only fallback, never described as a marketplace or full prompt-package install. Automated checks detect broken manifest paths, duplicate instruction assets, command/skill registration defects, and accidental maintainer-resource exports. The existing Unreleased workflow entry is consolidated rather than duplicated.
 
 ## Non-goals
 
@@ -42,7 +42,7 @@ The user confirmed support for a Claude Code marketplace plugin and a Codex-inst
 
 ## Ambiguities / Open Questions
 
-None. Native package/marketplace support is primary. A generated, self-contained Git subdirectory package is allowed when required for portable plugin paths and OpenCode loading. Skill-only installation remains optional. Supported versions and native test gaps must be stated.
+None. Native package/marketplace support is primary. The user's latest direction requires the marketplace plugin directory to own the installable resources and Pi project settings to load the local repository package. Native compatibility manifests are acceptable when they let all harnesses share standard command/skill directories without copies. Skill-only installation remains optional. Supported versions and native test gaps must be stated.
 
 ## Evidence / References
 
@@ -65,4 +65,4 @@ None. Native package/marketplace support is primary. A generated, self-contained
 
 ## Notes
 
-Requirements self-check: scope and compatibility are explicit, criteria are testable, and no CLI or architecture boundary changes are required. SELF_CHECK is proportionate for metadata and documentation packaging of existing instructions. Execution and validation evidence belong in `plan.md`. The direct-install extension was self-reviewed against the installed GitHub CLI help and successful remote installs for all five hosts before changing implementation; it requires no custom installer or new dependency. The native-package revision supersedes that skill-only completion claim. Fixed-path portable packaging and a small dependency-free OpenCode adapter are proportionate; generated payload drift checks preserve a single instruction authority.
+Requirements self-check: scope and compatibility are explicit, criteria are testable, and no CLI or architecture boundary changes are required. SELF_CHECK is proportionate for metadata and documentation packaging of existing instructions. Execution and validation evidence belong in `plan.md`. The direct-install extension was self-reviewed against the installed GitHub CLI help and successful remote installs for all five hosts before changing implementation; it requires no custom installer or new dependency. The native-package revision supersedes that skill-only completion claim. The latest relocation supersedes generated-payload packaging: one canonical native plugin tree and a small dependency-free OpenCode adapter preserve single instruction authority. Existing repository-maintainer Pi resources remain local and are not broadened into the public package.
