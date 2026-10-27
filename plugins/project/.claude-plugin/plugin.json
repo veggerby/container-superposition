@@ -1,9 +1,10 @@
 {
-    "name": "container-superposition",
-    "version": "1.1.0",
+    "name": "project",
+    "version": "1.2.0",
     "description": "Author Container Superposition project config from natural-language setup requests.",
     "author": { "name": "veggerby" },
     "repository": "https://github.com/veggerby/container-superposition",
     "license": "MIT",
-    "skills": "./skills"
+    "commands": ["./commands"],
+    "skills": ["./skills"]
 }

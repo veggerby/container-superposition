@@ -1,62 +1,60 @@
 # Portable Project Config Workflow Delivery
 
-## Current scope and authority
+## Current scope
 
-Requirements revision `d41d0b8` was committed before the latest relocation. It supersedes the generated-payload design and earlier skill-only completion claims. All public resources now live canonically in `plugins/project-config/`; repository-maintainer Pi assets stay local. Existing uncommitted work was preserved and corrected.
+The user confirmed the domain-scoped plugin name `project`. The marketplace and CLI package remain `container-superposition`. Current plugin ID: `project@container-superposition`; canonical directory: `plugins/project/`; Claude command: `/project:project-config`. Pi, Copilot, OpenCode command names and the authoring skill name remain unchanged. A future overlays plugin is possible but not implemented here.
+
+Requirements were updated before the rename. No implementation files were staged, unstaged, or committed by the agent during the rename. The user committed the preceding canonical layout as `d66e3c0` while this work was underway; that is the current baseline. Earlier shaping commits and pre-rename validation remain historical provenance, not claims about the renamed working tree.
 
 ## Implementation
 
-1. Move the unchanged project-config prompt to `plugins/project-config/commands/project-config.md` and authoring skill to `skills/project-config-authoring/SKILL.md`. Remove their old `.pi/` locations and the generated-copy script/npm commands.
-2. Move the Claude manifest into the plugin's `.claude-plugin/` directory. Claude and Copilot use this supported manifest and standard command/skill directories. Codex uses `.codex-plugin/plugin.json` selecting the same skill directory. Both plugin manifests use version 1.1.0 for cache refresh after relocation.
-3. All three marketplace catalogs select `./plugins/project-config`. Root `package.json` exports only the public skill and command to Pi. `.pi/settings.json` declares `packages: [".."]`, resolved from `.pi/` to the local repository root.
-4. The dependency-free OpenCode 1 adapter reads the canonical command and registers its template and skill directory in memory. Root `./server` is additive; `.` preserves the CLI main and wildcard exports retain deep-path compatibility. Include the plugin tree in npm/Git package files.
-5. Documentation explains native installation, command/skill differences, trust, scope, updates/removal, version limits, local Pi dogfooding, and optional skill-only downloads. One consolidated Unreleased Added entry is maintained.
+1. Rename the canonical plugin directory from `project-config` to `project`. Both native manifests use name `project` and version 1.2.0. Instruction bodies and OpenCode adapter behavior remain unchanged.
+2. Keep all three marketplace names as `container-superposition`; change only their plugin entry names and source paths. Native installation becomes `project@container-superposition`.
+3. Update root package exports, Pi resource paths, npm files inclusion, and the adapter's Git-ignore exception. `.pi/settings.json` retains `packages: [".."]` so local Pi uses the renamed canonical resources through the root package.
+4. Update installation, update/removal, and migration guidance. Old installed plugin identities must be removed explicitly; no silent user-config migration or compatibility alias is introduced.
+5. Regression checks distinguish marketplace and plugin identities, reject the obsolete plugin directory, and verify command/skill ownership, local Pi loading, Git inclusion, and isolated adapter loading.
 
-## Implementation ladder and safety
+## Design and safety
 
-Native manifests and shared directories remove the need for instruction generation or a custom installer. Only OpenCode requires small local code. No new dependency or separate npm publication is needed. The adapter reads only packaged resources, never writes target files or invokes shell commands, and reports an existing project-config command before mutation.
+Native manifests and shared directories avoid instruction copies, symlinks, or synchronization scripts. The dependency-free OpenCode 1 adapter only reads packaged files and updates host-provided in-memory configuration; it does not write target files or run shell commands. Existing command conflicts are explicit.
 
-OpenCode 1.19.4 did not select a Git subdirectory package correctly. An exact root Git-package fixture then failed Git dependency preparation. Its native HTTP package installer succeeded, so the guide uses a GitHub source archive URL. OpenCode 2's different API is not claimed compatible.
-
-No new ADR is required: CLI behavior, public entry points, project-file authority, schemas, overlays, and devcontainer generation are unchanged. Only distribution ownership and native packaging change.
+The CLI main/binaries and deep imports remain unchanged; `./server` points to the renamed adapter. No dependency, schema, overlay, generated devcontainer, or CLI behavior changes. OpenCode 1 uses the GitHub source-archive route because its tested Git dependency preparation failed for this repository; OpenCode 2 is not claimed compatible. No ADR is needed for this scoped packaging rename.
 
 ## Files and rollback
 
-- `plugins/project-config/`: canonical command, skill, native manifests, and OpenCode adapter.
-- Root `.claude-plugin/`, `.github/plugin/`, `.agents/plugins/` catalogs: one plugin each.
-- Root `package.json`, `.pi/settings.json`: package exports, files inclusion, and local Pi source.
-- `.gitignore`: narrow exception for the executable OpenCode source, otherwise hidden by the existing `*.js` build-output rule.
-- `tool/__tests__/agent-packaging.test.ts`: catalog/manifest paths, local package resolution, no source shadows/copies, isolated adapter loading, conflicts/missing files, and install documentation.
-- README, docs index, Pi inventory, guide, changelog, and spec records: aligned ownership and truthful native installation coverage.
-- Rollback restores the old Pi source paths and manifests, removes the native payload/catalogs and additive server export, and removes only the newly added local package setting. No target project/home configuration or generated devcontainer was changed.
+- `plugins/project/`: canonical manifests, command, skill, and adapter.
+- Root `.claude-plugin/`, `.github/plugin/`, `.agents/plugins/`: unchanged marketplace identity, renamed plugin entry/source.
+- `package.json`, `.gitignore`: new canonical paths; `.pi/settings.json` remains local-root package loading.
+- README, Pi inventory, installation guide, consolidated Unreleased Added entry, and tests: new identity plus migration guidance.
+- Rollback restores the old directory and plugin entries/paths. User-installed identities require explicit user cleanup; no home or target-project state is automatically changed.
 
-## Current validation
+## Validation
 
-- Targeted packaging tests: PASS, 12 tests after final formatting, including an explicit Git-ignore regression check for the adapter.
-- Native Pi RPC command discovery: PASS using `pi --approve --offline --mode rpc --no-session --no-extensions --no-mcp`. Both commands appear exactly once with `sourceInfo.origin=package`, `source=..`, `scope=project`, and paths under `plugins/project-config/`. Evidence: `/tmp/cs-canonical-pi-commands.json`. An initial assertion used a nonexistent top-level path field; corrected to the actual sourceInfo API and rerun successfully, without product-code changes.
-- Claude Code 2.1.311: `plugin validate plugins/project-config` passed for the final version 1.1.0 layout; only optional public-directory icon advice. Log: `/tmp/cs-canonical-final-claude.log`.
-- Codex 0.164.0: fresh native marketplace registration, plugin installation, and listing passed under isolated `/tmp/cs-canonical-final-codex.jOcpnd`. Installed version 1.1.0; all five installed files were byte-compared against the current plugin tree, including both native manifests, canonical command/skill, and adapter. No generated or deleted nested manifest is used.
-- Copilot CLI 1.0.104: fresh native marketplace registration, install, plugin listing, and command/skill discovery passed under isolated `/tmp/cs-canonical-final-copilot.CA1jkq`. The host reports version 1.1.0 and both `project-config` and `project-config-authoring` enabled from the current plugin.
-- OpenCode 1.19.4: the exact current root npm package archive was installed by the native HTTP package installer under isolated `/tmp/cs-canonical-final-opencode.H3gKKv`. `host-config.json` verifies the command template and `$ARGUMENTS`; `skills.json` verifies authoring-skill discovery. No old fixture or source checkout import was substituted for the installed package.
-- Source archive check after independent finding F066-004: copied exact root package metadata, `.gitignore`, and plugin tree into a fresh Git fixture, used ordinary `git add`, and built a `git archive`. The adapter is present in the archive. Native OpenCode HTTP installation of that Git-built archive passed, with both resources discovered. Evidence: `/tmp/cs-canonical-source-archive.pU93eT`. Unlike npm packing alone, this catches source-archive omission caused by ignore rules.
-- `npm run build` and `git diff --check`: PASS after relocation and final formatting.
-- `VITEST_MAX_WORKERS=2 task validate`: PASS, formatting/type checks and 830 tests passed. Twenty existing integration tests remain opt-in; no skips were added. Log: `/tmp/cs-canonical-final-validate.log`.
-- `npm run init -- doctor`: PASS, Healthy, 21 healthy checks, no blocking or reproducibility findings; no files changed. Log: `/tmp/cs-canonical-final-doctor.log`.
-- Final INDEPENDENT correction review: PASS. All four findings resolved, all acceptance criteria MET. The reviewer reran all 12 packaging tests, checked Git inclusion, and byte-compared current metadata/resources with the successfully installed Git source archive. The verdict is persisted in review.md. Earlier generated-payload fixture evidence is superseded and cannot establish the current layout.
-- Use `VITEST_MAX_WORKERS=2 task validate` to avoid a previously demonstrated unrelated CLI silent-mode timeout under high worker contention, without changing timeouts or skips.
+- Targeted packaging tests: PASS, 12 tests. `npm run build` and git diff --check passed after formatting. Missing local dependencies were restored using npm ci --ignore-scripts from the existing lockfile; no dependency or lockfile versions changed.
+- Native Pi RPC: PASS; both unchanged command names load once from package source `..` and paths under plugins/project/. Evidence: `/tmp/cs-project-pi-commands.json`.
+- Claude Code 2.1.311: plugin validation, local marketplace registration, and native installation of project@container-superposition passed in isolated `/tmp/cs-project-claude.4XjN2I`.
+- Codex 0.164.0: native marketplace registration/install/list passed in isolated `/tmp/cs-project-codex.xwdkW8`. Installed ID project@container-superposition, version 1.2.0; all five cached files byte-match plugins/project/.
+- Copilot CLI 1.0.104: native registration/install/list passed in isolated `/tmp/cs-project-copilot.B4EhhY`; project version 1.2.0 is enabled under marketplace container-superposition, with command and skill discovery verified.
+- OpenCode 1.19.4: ordinary git add and git archive of current package.json, .gitignore, and plugin files includes the renamed adapter. Native HTTP installation and command/skill discovery passed under `/tmp/cs-project-source-archive.AxogEy`.
+- Pre-rename native/gate evidence belongs to the prior version and is not claimed to validate the new plugin identity.
+- `VITEST_MAX_WORKERS=2 task validate`: PASS, formatting/type checks and 830 tests passed, with 20 existing opt-in integration skips; no new skips or timeout changes. Log: `/tmp/cs-project-validate.log`.
+- `npm run init -- doctor`: PASS, Healthy, 21 healthy checks, no reproducibility errors or file changes. Log: `/tmp/cs-project-doctor.log`.
+- Current INDEPENDENT rename review: PASS; all six acceptance criteria MET, no material findings. Reviewer reran 12 packaging tests and git diff --check, byte-compared Claude/Codex caches and the OpenCode source fixture, and inspected native Pi/Copilot evidence. Verdict persisted in review.md.
+- Use `VITEST_MAX_WORKERS=2 task validate` to avoid the previously observed unchanged CLI silent-mode timeout under high worker contention. No timeout increases or new skips.
 
 ## BDD applicability
 
-No Container Superposition command, authored YAML, schema, overlay, or devcontainer semantics changed. Existing Behave coverage remains applicable to the CLI authoring/discovery behavior. Native host package discovery is covered by unit contracts and actual host installation checks instead of adding external harness dependencies to shared Behave generation steps. Agent resources are no longer generated; no generated devcontainer validation trigger applies.
+No Container Superposition command, YAML, schema, overlay, or devcontainer semantics changed. Existing Behave coverage remains applicable to CLI behavior. Native host distribution contracts are covered by unit tests and direct native installation/discovery checks, without adding external host dependencies to Behave's generation steps. No generated-devcontainer trigger applies.
 
 ## Acceptance mapping
 
-- AC-066-01: Claude marketplace selects one proper plugin with one command and one authoring skill.
-- AC-066-02: native distribution exists for all five hosts; Codex uses native skill invocation rather than a separate prompt command.
-- AC-066-03: resources are canonical in standard plugin directories, without copies or symlinks. Native Pi RPC proves the local package setting loads both relocated resources.
-- AC-066-04: instruction bodies are unchanged. OpenCode does not write project files or silently replace conflicting commands.
-- AC-066-05: tests and docs reflect native install paths and scope; GitHub CLI is explicitly skill-only. Current-tree machine validation and INDEPENDENT review passed; all acceptance criteria are MET.
+- AC-066-01: Claude marketplace selects the domain-scoped project plugin, with only the current command and authoring skill.
+- AC-066-02: native distribution remains available for all five hosts; Codex uses skill invocation, not a separate prompt command.
+- AC-066-03: one canonical plugin tree; local Pi package still owns resource loading without duplicates.
+- AC-066-04: instruction bodies and authoring safety boundaries are unchanged.
+- AC-066-05: native install paths, scope, migration, trust, updates/removal, version limits, and skill-only fallback are documented.
+- AC-066-06: marketplace and plugin identities are distinct; all selectors and paths reflect the confirmed project name, leaving future plugin slots unimplemented.
 
 ## Residual risk
 
-Local source-matched host checks are accepted by the delivery lead as pre-publication packaging evidence. Direct GitHub installation of the unpublished candidate cannot run until it reaches the selected remote revision. Model-driven authoring behavior is not claimed tested by installation/discovery checks. No official directory approval or OpenCode 2 compatibility is claimed.
+Source-matched local/native checks are accepted as pre-publication evidence. Direct GitHub installation awaits publication of the selected revision. Model-driven authoring quality and OpenCode 2 compatibility are not claimed. The rename remains uncommitted for normal user review; no Git index state was silently rewritten.

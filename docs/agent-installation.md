@@ -1,13 +1,13 @@
 # Native project-config packages for coding harnesses
 
-Install from [veggerby/container-superposition](https://github.com/veggerby/container-superposition) using your harness's native package or marketplace mechanism. A skill-only download is not equivalent to installing the prompt/command package.
+Install from [veggerby/container-superposition](https://github.com/veggerby/container-superposition) using your harness's native package or marketplace mechanism. The marketplace is named `container-superposition`; its current plugin is `project`, installed as `project@container-superposition`. This domain grouping leaves room for separate future plugins, such as overlay authoring. A skill-only download is not equivalent to installing the prompt/command package.
 
 ## Installation coverage
 
 | Harness            | Native distribution                  | Installed entry point                                                               |
 | ------------------ | ------------------------------------ | ----------------------------------------------------------------------------------- |
 | Pi                 | Git package                          | `/project-config` and `/skill:project-config-authoring`                             |
-| Claude Code        | Repository-hosted marketplace plugin | `/container-superposition:project-config` plus authoring skill                      |
+| Claude Code        | Repository-hosted marketplace plugin | `/project:project-config` plus authoring skill                                      |
 | GitHub Copilot CLI | Repository-hosted marketplace plugin | `/project-config` plus authoring skill                                              |
 | Codex              | Repository-hosted plugin marketplace | `$project-config-authoring`; native skill invocation, not a separate prompt command |
 | OpenCode 1         | GitHub source-archive package plugin | `/project-config` plus authoring skill                                              |
@@ -35,7 +35,7 @@ In your target project:
 /project-config create a Node.js devcontainer with Postgres
 ```
 
-Alternatively invoke `/skill:project-config-authoring` directly. This installs both resources from the root `package.json` Pi manifest, which points into `plugins/project-config/`, not just a skill.
+Alternatively invoke `/skill:project-config-authoring` directly. This installs both resources from the root `package.json` Pi manifest, which points into `plugins/project/`, not just a skill.
 
 This repository dogfoods the same package locally through `.pi/settings.json`:
 
@@ -55,24 +55,24 @@ Run inside Claude Code:
 
 ```text
 /plugin marketplace add veggerby/container-superposition
-/plugin install container-superposition@container-superposition
+/plugin install project@container-superposition
 ```
 
 Choose user scope for personal availability or project scope to share the plugin requirement with the team. In the target project:
 
 ```text
-/container-superposition:project-config create a Node.js devcontainer with Postgres
+/project:project-config create a Node.js devcontainer with Postgres
 ```
 
-The plugin also exposes `project-config-authoring`. The root marketplace selects `plugins/project-config/`. Its `.claude-plugin/plugin.json` loads the standard `commands/` and `skills/` directories; Pi itself is not required.
+The plugin also exposes `project-config-authoring`. The root marketplace selects the `project` plugin at `plugins/project/`. Its `.claude-plugin/plugin.json` loads the standard `commands/` and `skills/` directories; Pi itself is not required.
 
-Use `/plugin` to update or uninstall. For maintainer validation, run `claude plugin validate /absolute/path/to/container-superposition/plugins/project-config`; use `claude --plugin-dir /absolute/path/to/container-superposition/plugins/project-config` for a test session without marketplace installation.
+Use `/plugin` to update or uninstall. For maintainer validation, run `claude plugin validate /absolute/path/to/container-superposition/plugins/project`; use `claude --plugin-dir /absolute/path/to/container-superposition/plugins/project` for a test session without marketplace installation.
 
 ## GitHub Copilot CLI marketplace
 
 ```bash
 copilot plugin marketplace add veggerby/container-superposition
-copilot plugin install container-superposition@container-superposition
+copilot plugin install project@container-superposition
 ```
 
 In an interactive Copilot CLI session:
@@ -83,15 +83,15 @@ In an interactive Copilot CLI session:
 
 Use `/skills list` or `copilot skill list --json` to verify both `project-config-authoring` and the `project-config` command were loaded. Copilot exposes prompt commands through its skill machinery; the package still includes the separate command template, not only the authoring skill.
 
-The catalog is `.github/plugin/marketplace.json`. It selects only `plugins/project-config`. Copilot's supported Claude-compatible plugin manifest loads the same `commands/` and `skills/` directories without instruction copies. Installation is personal to the active Copilot CLI configuration, not a shared project requirement.
+The catalog is `.github/plugin/marketplace.json`. It selects only the `project` plugin at `plugins/project`. Copilot's supported Claude-compatible plugin manifest loads the same `commands/` and `skills/` directories without instruction copies. Installation is personal to the active Copilot CLI configuration, not a shared project requirement.
 
-Use `copilot plugin marketplace update container-superposition` and `copilot plugin update container-superposition` to refresh; use `copilot plugin uninstall container-superposition` to remove the plugin. Remove the marketplace afterward with `copilot plugin marketplace remove container-superposition`. A marketplace Git ref can be selected with `veggerby/container-superposition#<ref>`.
+Use `copilot plugin marketplace update container-superposition` and `copilot plugin update project` to refresh; use `copilot plugin uninstall project` to remove the plugin. Remove the marketplace afterward with `copilot plugin marketplace remove container-superposition`. A marketplace Git ref can be selected with `veggerby/container-superposition#<ref>`.
 
 ## Codex plugin marketplace
 
 ```bash
 codex plugin marketplace add veggerby/container-superposition
-codex plugin add container-superposition@container-superposition
+codex plugin add project@container-superposition
 ```
 
 In the target project:
@@ -102,7 +102,7 @@ $project-config-authoring create a Node.js devcontainer with Postgres
 
 This is a native plugin installation, not `$skill-installer` or `gh skill`. The `.agents/plugins/marketplace.json` catalog points to the same plugin directory used by Claude Code and Copilot. The supported `.codex-plugin/plugin.json` compatibility manifest selects `skills/project-config-authoring/SKILL.md`; the separate `commands/` prompt is not a Codex command.
 
-Use `codex plugin list --json` to inspect availability and enabled state. Use `codex plugin marketplace upgrade container-superposition`, then `codex plugin add container-superposition@container-superposition` to refresh the installed package. Use `codex plugin remove container-superposition@container-superposition` to uninstall, then `codex plugin marketplace remove container-superposition` if no longer needed. Check `codex plugin --help` on older clients: some surfaces expose installation through their Plugins UI instead.
+Use `codex plugin list --json` to inspect availability and enabled state. Use `codex plugin marketplace upgrade container-superposition`, then `codex plugin add project@container-superposition` to refresh the installed package. Use `codex plugin remove project@container-superposition` to uninstall, then `codex plugin marketplace remove container-superposition` if no longer needed. Check `codex plugin --help` on older clients: some surfaces expose installation through their Plugins UI instead.
 
 Marketplace registration and installation use the active `CODEX_HOME` or personal Codex configuration. Pin the marketplace with `codex plugin marketplace add veggerby/container-superposition --ref <tag-or-commit>` when needed. Project enablement is separate and subject to repository trust; do not silently edit a team's `.codex/config.toml`.
 
@@ -137,6 +137,10 @@ Check `opencode debug config` for `command.project-config` and `opencode debug s
 
 To pin, use `https://github.com/veggerby/container-superposition/archive/<commit-sha>.tar.gz` instead of the branch archive. To update, use the installer with the reviewed new ref; it prompts for replacement or supports `--force` after review. To remove, delete only this package's entry from the applicable OpenCode config and restart. The adapter does not leave skill or command files in the target project. OpenCode 2 uses a different plugin API and is not claimed compatible with this adapter.
 
+## Existing installations after the rename
+
+The earlier plugin ID was `container-superposition@container-superposition`. Remove that old plugin using the harness's plugin UI or uninstall command, retain the `container-superposition` marketplace, and install `project@container-superposition`. Claude's command changes from `/container-superposition:project-config` to `/project:project-config`. Pi, Copilot, OpenCode command names and the authoring skill name are unchanged. Do not leave both plugin identities enabled, which can duplicate the skill.
+
 ## Optional skill-only installation
 
 Use this only when the standalone authoring skill is wanted, not a native prompt/command package. A recent [GitHub CLI](https://cli.github.com/manual/gh_skill_install) provides this public-preview installer; commands were checked with 2.103.0.
@@ -144,17 +148,17 @@ Use this only when the standalone authoring skill is wanted, not a native prompt
 Preview before installation:
 
 ```bash
-gh skill preview veggerby/container-superposition plugins/project-config/skills/project-config-authoring@main
+gh skill preview veggerby/container-superposition plugins/project/skills/project-config-authoring@main
 ```
 
 Choose one host:
 
 ```bash
-gh skill install veggerby/container-superposition plugins/project-config/skills/project-config-authoring@main --agent pi --scope project
-gh skill install veggerby/container-superposition plugins/project-config/skills/project-config-authoring@main --agent claude-code --scope project
-gh skill install veggerby/container-superposition plugins/project-config/skills/project-config-authoring@main --agent codex --scope project
-gh skill install veggerby/container-superposition plugins/project-config/skills/project-config-authoring@main --agent opencode --scope project
-gh skill install veggerby/container-superposition plugins/project-config/skills/project-config-authoring@main --agent github-copilot --scope project
+gh skill install veggerby/container-superposition plugins/project/skills/project-config-authoring@main --agent pi --scope project
+gh skill install veggerby/container-superposition plugins/project/skills/project-config-authoring@main --agent claude-code --scope project
+gh skill install veggerby/container-superposition plugins/project/skills/project-config-authoring@main --agent codex --scope project
+gh skill install veggerby/container-superposition plugins/project/skills/project-config-authoring@main --agent opencode --scope project
+gh skill install veggerby/container-superposition plugins/project/skills/project-config-authoring@main --agent github-copilot --scope project
 ```
 
 The exact source path selects only the end-user skill. Do not use `--all`. `@main` avoids an older release tag without the skill; replace it with a reviewed SHA to pin. Use `--scope user` for personal installation. Codex, OpenCode, and Copilot share `.agents/skills` at project scope, so install once rather than creating duplicate entries.
@@ -164,7 +168,7 @@ Invoke the skill explicitly using your harness's skill selector or ask it to use
 Codex's built-in standalone installer also accepts:
 
 ```text
-$skill-installer install the skill at https://github.com/veggerby/container-superposition/tree/main/plugins/project-config/skills/project-config-authoring
+$skill-installer install the skill at https://github.com/veggerby/container-superposition/tree/main/plugins/project/skills/project-config-authoring
 ```
 
 ## Maintainer sources and validation
@@ -172,7 +176,7 @@ $skill-installer install the skill at https://github.com/veggerby/container-supe
 All public resources live in the plugin itself:
 
 ```text
-plugins/project-config/
+plugins/project/
   .claude-plugin/plugin.json
   .codex-plugin/plugin.json
   commands/project-config.md

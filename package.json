@@ -6,7 +6,7 @@
     "main": "dist/scripts/init.js",
     "exports": {
         ".": "./dist/scripts/init.js",
-        "./server": "./plugins/project-config/opencode.js",
+        "./server": "./plugins/project/opencode.js",
         "./*": "./*"
     },
     "bin": {
@@ -48,17 +48,17 @@
     },
     "pi": {
         "skills": [
-            "./plugins/project-config/skills/project-config-authoring"
+            "./plugins/project/skills/project-config-authoring"
         ],
         "prompts": [
-            "./plugins/project-config/commands/project-config.md"
+            "./plugins/project/commands/project-config.md"
         ]
     },
     "files": [
         "dist/",
         "templates/",
         "features/",
-        "plugins/project-config/",
+        "plugins/project/",
         "overlays/",
         "tool/**/*.json",
         "tool/**/*.yml",

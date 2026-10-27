@@ -3,8 +3,8 @@
     "interface": { "displayName": "Container Superposition" },
     "plugins": [
         {
-            "name": "container-superposition",
-            "source": { "source": "local", "path": "./plugins/project-config" },
+            "name": "project",
+            "source": { "source": "local", "path": "./plugins/project" },
             "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
             "category": "Productivity"
         }

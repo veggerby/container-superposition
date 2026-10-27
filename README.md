@@ -56,7 +56,7 @@ non-adopting repository with an existing team-owned devcontainer.
 
 ## AI-assisted project-config authoring
 
-The project-config workflow has native **Pi Git packaging**, **Claude Code, Codex, and GitHub Copilot CLI marketplaces**, and an **OpenCode 1 package plugin from a GitHub source archive**, all sourced from this GitHub repository. See [native installation and invocation instructions](docs/agent-installation.md).
+The project-config workflow has native **Pi Git packaging**, **Claude Code, Codex, and GitHub Copilot CLI marketplaces**, and an **OpenCode 1 package plugin from a GitHub source archive**, all sourced from this GitHub repository. The marketplace is `container-superposition`; the domain-scoped plugin is `project` (`project@container-superposition`). See [native installation and invocation instructions](docs/agent-installation.md).
 
 The command-capable packages include `/project-config` (namespaced in Claude Code) and the authoring skill. Codex uses native `$project-config-authoring` invocation rather than a separate prompt command. `gh skill` remains an optional skill-only download, not a marketplace or full prompt-package installation.
 

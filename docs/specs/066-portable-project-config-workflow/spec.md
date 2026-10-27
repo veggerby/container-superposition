@@ -25,11 +25,13 @@ The user confirmed support for a Claude Code marketplace plugin and a Codex-inst
 
 ## Acceptance Criteria
 
-- [x] AC-066-01: This Git repository supplies a Claude Code marketplace with one plugin exposing the project-config command and project-config-authoring skill, not the repository's maintainer prompts, skills, or agents.
+- [x] AC-066-01: This Git repository supplies the `container-superposition` marketplace with one `project` plugin exposing the project-config command and project-config-authoring skill, not the repository's maintainer prompts, skills, or agents.
 - [x] AC-066-02: All five harnesses have documented native installation from this GitHub repository without a user-managed clone/copy: Pi Git package, Claude Code marketplace, Copilot CLI marketplace, Codex plugin marketplace, and OpenCode package plugin. Native command-capable packages include the project-config prompt as a command and the authoring skill. Where a host uses skills rather than separate prompt commands, documentation states the native invocation and limitation explicitly.
 - [x] AC-066-03: The installable prompt and authoring skill live canonically under the marketplace plugin directory's standard `commands/` and `skills/` paths. Native manifests select those same files without generated copies or symlinks. Pi installation and invocation remain compatible, and `.pi/settings.json` loads the root Pi package from the local repository rather than retaining duplicated project-config assets under `.pi/`.
 - [x] AC-066-04: All installations preserve project-file-first authority, local-only boundaries, plain-first selection, live CLI discovery, and read-only post-write verification from spec 057 without assuming harness-specific tools or source-repository files.
 - [x] AC-066-05: Documentation explains native installation, invocation, prerequisites, trust, update/removal, and scope. `gh skill` is an optional skill-only fallback, never described as a marketplace or full prompt-package install. Automated checks detect broken manifest paths, duplicate instruction assets, command/skill registration defects, and accidental maintainer-resource exports. The existing Unreleased workflow entry is consolidated rather than duplicated.
+
+- [x] AC-066-06: The current plugin is named `project`, lives under `plugins/project/`, and installs as `project@container-superposition`. The marketplace and CLI package remain named `container-superposition`. Command and skill names stay unchanged; Claude uses `/project:project-config`. All native catalogs, package paths, local Pi loading, docs, and checks reflect that distinction, leaving room for future separate plugins such as overlay authoring.
 
 ## Non-goals
 
@@ -42,7 +44,7 @@ The user confirmed support for a Claude Code marketplace plugin and a Codex-inst
 
 ## Ambiguities / Open Questions
 
-None. Native package/marketplace support is primary. The user's latest direction requires the marketplace plugin directory to own the installable resources and Pi project settings to load the local repository package. Native compatibility manifests are acceptable when they let all harnesses share standard command/skill directories without copies. Skill-only installation remains optional. Supported versions and native test gaps must be stated.
+None. Native package/marketplace support is primary. The user confirmed `project` as the domain-scoped plugin name, with `container-superposition` remaining the marketplace name. The plugin directory owns the installable resources and Pi project settings load the local repository package. Native compatibility manifests are acceptable when they let all harnesses share standard command/skill directories without copies. Skill-only installation remains optional. Supported versions and native test gaps must be stated.
 
 ## Evidence / References
 

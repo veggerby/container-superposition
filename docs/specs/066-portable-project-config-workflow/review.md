@@ -1,41 +1,34 @@
 # Review Gate
 
 - Mode: INDEPENDENT
-- Source: requirements commit `d41d0b813eb6` plus the canonical-plugin working tree.
-- Reviewed tree identity: tracked diff `05699fb…9442`; untracked payload `dca80355…e1db`.
+- Source: baseline `d66e3c06952d169b0577529b3de88e162ba66000` plus the project-plugin rename working tree.
+- Tracked diff fingerprint: `a002070e3e829b4a97a5f4890e668233062f1626e167eb6944bff3be2203a741`.
+- Plugin-tree fingerprint: `f2108e68f883ec5d0a8ce5d8600ad9787985b18ef80f1029c27f7019747a35c5`.
 - Verdict: PASS
 - Execution: ACTIVE
-- Findings: no substantive open findings. This record persists the final independent reviewer verdict; no implementer-only independence claim.
-
-## Findings and corrections
-
-| ID       | Severity | Finding                                                                                   | Disposition                                                                                                                                     |
-| -------- | -------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| F066-001 | High     | Earlier generated-payload fixtures did not match the candidate shape.                     | Resolved: current Codex cache byte-comparison, Copilot discovery, and OpenCode npm/Git-built source archive checks match the canonical tree.    |
-| F066-002 | Medium   | Trailing whitespace in root package.json.                                                 | Resolved: formatting and git diff --check passed.                                                                                               |
-| F066-003 | Medium   | Prior review record described superseded layouts and evidence.                            | Resolved: this record persists the independent PASS for the canonical layout.                                                                   |
-| F066-004 | High     | The adapter was ignored by the root \*.js rule and would be omitted from GitHub archives. | Resolved: narrow ignore exception, Git-ignore regression, and independently byte-checked Git-built archive with successful native installation. |
+- Findings: no material findings. Prior F066-001 through F066-004 remain resolved. This record persists the independent reviewer verdict.
 
 ## Acceptance evidence
 
-| Criterion | Classification | Evidence                                                                                                                                        |
-| --------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| AC-066-01 | MET            | Single Claude marketplace plugin exposes only the canonical command and skill.                                                                  |
-| AC-066-02 | MET            | Native package/marketplace contracts and source-matched local host checks cover all five harnesses.                                             |
-| AC-066-03 | MET            | Sole instruction ownership under plugins/project-config/{commands,skills}; Pi RPC confirms local package source `..` loads both resources once. |
-| AC-066-04 | MET            | Relocated instruction bodies are byte-identical to prior assets; safety boundaries retained.                                                    |
-| AC-066-05 | MET            | Native installation documentation, consolidated changelog, manifests, and packaging regressions are aligned.                                    |
+| Criterion | Classification | Evidence                                                                                                                                                                      |
+| --------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-066-01 | MET            | Marketplace remains container-superposition; project plugin exports only the current command and authoring skill.                                                             |
+| AC-066-02 | MET            | Source-matched native Claude, Codex, Copilot, Pi, and OpenCode package/discovery evidence passed.                                                                             |
+| AC-066-03 | MET            | Canonical assets under plugins/project/; Pi's local root package selects those files without duplicates.                                                                      |
+| AC-066-04 | MET            | Command, skill, and adapter bodies byte-match baseline; safety and authoring behavior unchanged.                                                                              |
+| AC-066-05 | MET            | Installation, trust, scope, updates/removal, limitations, fallback, and rename migration are aligned; consolidated changelog and packaging regressions present.               |
+| AC-066-06 | MET            | Manifests identify project version 1.2.0; marketplace/CLI names remain container-superposition; paths, project@container-superposition selectors, and Claude namespace agree. |
 
 ## Validation and Definition of Done
 
-- `VITEST_MAX_WORKERS=2 task validate`: PASS, formatting/type checks and 830 tests passed, with 20 existing opt-in integration skips. No skips or relaxed timeouts were introduced.
+- Independent targeted rerun: 12/12 packaging tests passed; git diff --check passed.
+- `VITEST_MAX_WORKERS=2 task validate`: PASS, formatting/type checks and 830 tests passed, with 20 existing opt-in integration skips. No new skips or timeout changes.
 - `npm run build`: PASS.
-- `npm run init -- doctor`: PASS, Healthy, 21 healthy checks, no reproducibility errors or file changes.
-- Independent targeted packaging suite: PASS, 12 tests; git diff --check passed; adapter is not ignored.
-- Native Pi RPC, Claude validation, Codex installation, Copilot installation/discovery, and OpenCode installed-package command/skill discovery passed. Paths and host versions are in plan.md.
-- Independent reviewer byte-checked archived root metadata and all five plugin files against current sources. Git-built archive SHA-256: `943418dda41a570b9cbe1f443ec51695b169c8c9a71687948e2e7be7348cabfc`.
-- BDD applicability, source ownership, rollback, spec-first provenance, and no generated-devcontainer trigger are recorded in plan.md. Repository Definition of Done is satisfied.
+- `npm run init -- doctor`: PASS, Healthy with 21 healthy checks, no reproducibility errors or file changes.
+- Independent cache comparison: Claude and Codex match all five current plugin files. OpenCode Git source-archive fixture matches package.json, .gitignore, and all plugin files. Copilot confirms project version 1.2.0 and both resources. Pi RPC confirms both resources once from local package source `..`.
+- Native versions, commands, and evidence directories are recorded in plan.md. BDD applicability is justified there; no generated-devcontainer trigger applies.
+- No material architecture, compatibility, ownership, or source-authority conflict; no ADR required. Repository Definition of Done is satisfied.
 
 ## Residual risk
 
-Local source-matched native checks are accepted by the delivery lead as pre-publication evidence. Direct GitHub installation awaits publication of this candidate. Model-driven authoring quality, OpenCode 2 compatibility, and official directory approval are not claimed. These documented limits are not blockers for the scoped packaging change.
+The revision remains unpublished; the release/integration owner must verify remote installation from the eventual published revision before making revision-specific remote claims. Local source-matched native evidence is accepted as pre-publication packaging validation. Model-driven authoring quality and OpenCode 2 compatibility are not claimed. No in-scope blocker or additional decision remains.

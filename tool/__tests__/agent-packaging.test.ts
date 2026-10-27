@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { load } from 'js-yaml';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const pluginPath = './plugins/project-config';
+const pluginPath = './plugins/project';
 const skillPath = `${pluginPath}/skills/project-config-authoring`;
 const promptPath = `${pluginPath}/commands/project-config.md`;
 const json = (path: string) => JSON.parse(readFileSync(join(root, path), 'utf8'));
@@ -20,7 +20,7 @@ describe('project-config harness packaging', () => {
         const codex = json('.agents/plugins/marketplace.json');
         const manifest = json(`${pluginPath}/.claude-plugin/plugin.json`);
         const codexManifest = json(`${pluginPath}/.codex-plugin/plugin.json`);
-        expect(manifest.name).toBe('container-superposition');
+        expect(manifest.name).toBe('project');
         expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/);
         expect(codexManifest).toMatchObject({
             name: manifest.name,
@@ -30,7 +30,8 @@ describe('project-config harness packaging', () => {
         expect(manifest.commands).toEqual(['./commands']);
         expect(manifest.skills).toEqual(['./skills']);
         for (const catalog of [claude, copilot, codex]) {
-            expect(catalog.name).toBe(manifest.name);
+            expect(catalog.name).toBe('container-superposition');
+            expect(catalog.name).not.toBe(manifest.name);
             expect(catalog.plugins).toHaveLength(1);
             expect(catalog.plugins[0].name).toBe(manifest.name);
         }
@@ -72,10 +73,12 @@ describe('project-config harness packaging', () => {
         expect(readdirSync(join(root, pluginPath, 'commands'))).toEqual(['project-config.md']);
         expect(existsSync(join(root, '.claude-plugin/plugin.json'))).toBe(false);
         const pkg = json('package.json');
+        expect(pkg.name).toBe('container-superposition');
         expect(pkg.exports['./server']).toBe(`${pluginPath}/opencode.js`);
         expect(pkg.exports['.']).toBe(`./${pkg.main}`);
         expect(pkg.exports['./*']).toBe('./*');
-        expect(pkg.files).toContain('plugins/project-config/');
+        expect(pkg.files).toContain('plugins/project/');
+        expect(existsSync(join(root, 'plugins/project-config'))).toBe(false);
         expect(pkg.scripts['agents:generate']).toBeUndefined();
         for (const manifest of [
             json(`${pluginPath}/.claude-plugin/plugin.json`),
@@ -90,7 +93,7 @@ describe('project-config harness packaging', () => {
     it('keeps the OpenCode server entry eligible for Git-backed source archives', () => {
         const result = spawnSync(
             'git',
-            ['check-ignore', '--no-index', '--quiet', 'plugins/project-config/opencode.js'],
+            ['check-ignore', '--no-index', '--quiet', 'plugins/project/opencode.js'],
             {
                 cwd: root,
                 encoding: 'utf8',
@@ -165,7 +168,7 @@ describe('project-config harness packaging', () => {
         (agent) => {
             const guide = readFileSync(join(root, 'docs/agent-installation.md'), 'utf8');
             expect(guide).toContain(
-                `gh skill install veggerby/container-superposition plugins/project-config/skills/project-config-authoring@main --agent ${agent} --scope project`
+                `gh skill install veggerby/container-superposition plugins/project/skills/project-config-authoring@main --agent ${agent} --scope project`
             );
         }
     );
@@ -173,10 +176,10 @@ describe('project-config harness packaging', () => {
     it('documents native distribution and the local Pi package separately from skill-only installation', () => {
         const guide = readFileSync(join(root, 'docs/agent-installation.md'), 'utf8');
         for (const contract of [
-            '/plugin install container-superposition@container-superposition',
-            '/container-superposition:project-config',
-            'copilot plugin install container-superposition@container-superposition',
-            'codex plugin add container-superposition@container-superposition',
+            '/plugin install project@container-superposition',
+            '/project:project-config',
+            'copilot plugin install project@container-superposition',
+            'codex plugin add project@container-superposition',
             "opencode plugin 'https://github.com/veggerby/container-superposition/archive/refs/heads/main.tar.gz'",
             'pi install git:github.com/veggerby/container-superposition',
             '"packages": [".."]',
