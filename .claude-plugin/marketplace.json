@@ -4,7 +4,7 @@
     "plugins": [
         {
             "name": "container-superposition",
-            "source": "./",
+            "source": "./plugins/project-config",
             "description": "Project-file-first devcontainer configuration authoring."
         }
     ]

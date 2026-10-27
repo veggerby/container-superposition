@@ -4,6 +4,11 @@
     "description": "Solution-ready devcontainer templates and features with guided initialization",
     "type": "module",
     "main": "dist/scripts/init.js",
+    "exports": {
+        ".": "./dist/scripts/init.js",
+        "./server": "./plugins/project-config/opencode.js",
+        "./*": "./*"
+    },
     "bin": {
         "container-superposition": "./dist/scripts/init.js",
         "cs": "./dist/scripts/init.js"
@@ -43,16 +48,17 @@
     },
     "pi": {
         "skills": [
-            "./.pi/skills/project-config-authoring"
+            "./plugins/project-config/skills/project-config-authoring"
         ],
         "prompts": [
-            "./.pi/prompts/project-config.md"
+            "./plugins/project-config/commands/project-config.md"
         ]
     },
     "files": [
         "dist/",
         "templates/",
         "features/",
+        "plugins/project-config/",
         "overlays/",
         "tool/**/*.json",
         "tool/**/*.yml",
