@@ -54,9 +54,11 @@ Use `defaults --json` to inspect personal init defaults and `defaults
 refresh-local` to explicitly create local enrichment. Use `amend` for a
 non-adopting repository with an existing team-owned devcontainer.
 
-## Pi project-config authoring
+## AI-assisted project-config authoring
 
-Install the project-config prompt and skill in Pi from this Git repository:
+The project-config workflow supports **Pi, Claude Code, and Codex**. See [installation and invocation instructions](docs/agent-installation.md) for the Claude Code marketplace plugin and Codex skill.
+
+For Pi, install the project-config prompt and skill from this Git repository:
 
 ```bash
 pi install git:github.com/veggerby/container-superposition

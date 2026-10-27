@@ -15,4 +15,6 @@ Pi auto-discovers this directory when started from the repository root. From ano
     - `/skill:project-config-authoring`
     - `/skill:workflow-sync`
 
+The exported project-config prompt and skill are also the shared instruction sources for Claude Code and Codex. See [coding harness installation](../docs/agent-installation.md) for their packaging and invocation. Other resources listed above are not exported by the Claude Code plugin.
+
 After editing these files in a running Pi session, use `/reload`.

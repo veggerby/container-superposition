@@ -1,0 +1,11 @@
+{
+    "name": "container-superposition",
+    "owner": { "name": "veggerby" },
+    "plugins": [
+        {
+            "name": "container-superposition",
+            "source": "./",
+            "description": "Project-file-first devcontainer configuration authoring."
+        }
+    ]
+}

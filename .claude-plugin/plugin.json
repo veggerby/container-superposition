@@ -1,0 +1,10 @@
+{
+    "name": "container-superposition",
+    "version": "1.0.0",
+    "description": "Author Container Superposition project config from natural-language setup requests.",
+    "author": { "name": "veggerby" },
+    "repository": "https://github.com/veggerby/container-superposition",
+    "license": "MIT",
+    "commands": ["./.pi/prompts/project-config.md"],
+    "skills": ["./.pi/skills/project-config-authoring"]
+}

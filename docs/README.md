@@ -30,6 +30,8 @@ Feature work is governed by specs committed under `docs/specs/`. Implementation 
 
 ### Additional guides
 
+- [Coding Harness Installation](agent-installation.md) - project-config authoring in Pi, Claude Code, and Codex
+
 - [Filesystem Contract](filesystem-contract.md) — what the tool writes and what to edit
 - [Local Devcontainer Amendment](local-devcontainer-amendment.md) — local-only amendment lifecycle and Git-safety model
 - [Hash Command](hash.md) — semantic fingerprinting
