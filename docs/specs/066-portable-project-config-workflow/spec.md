@@ -21,26 +21,28 @@ The project-config prompt and authoring skill are installable through Pi only. U
 
 ## Why now
 
-The user confirmed support for a Claude Code marketplace plugin and a Codex-installable skill while preserving Pi installation, then required direct installation from `https://github.com/veggerby/container-superposition` for all five harnesses, including OpenCode and GitHub Copilot.
+The user confirmed support for a Claude Code marketplace plugin and a Codex-installable skill while preserving Pi installation, then required direct installation from `https://github.com/veggerby/container-superposition` for all five harnesses, including OpenCode and GitHub Copilot. The final clarification requires native marketplaces or packages wherever supported, not skill-only installation presented as equivalent.
 
 ## Acceptance Criteria
 
 - [ ] AC-066-01: This Git repository supplies a Claude Code marketplace with one plugin exposing the project-config command and project-config-authoring skill, not the repository's maintainer prompts, skills, or agents.
-- [ ] AC-066-02: Pi, Claude Code, Codex, OpenCode, and GitHub Copilot users can install the self-contained project-config-authoring skill directly from this GitHub repository with documented host-specific commands, without a manual clone or copy. Documentation distinguishes skill installation from prompt/marketplace installation and explains invocation.
-- [ ] AC-066-03: Pi installation and invocation remain compatible. Harnesses reuse the existing prompt/skill source without copied or generated instruction bodies.
+- [ ] AC-066-02: All five harnesses have documented native installation from this GitHub repository without a user-managed clone/copy: Pi Git package, Claude Code marketplace, Copilot CLI marketplace, Codex plugin marketplace, and OpenCode package plugin. Native command-capable packages include the project-config prompt as a command and the authoring skill. Where a host uses skills rather than separate prompt commands, documentation states the native invocation and limitation explicitly.
+- [ ] AC-066-03: Pi installation and invocation remain compatible. Existing prompt/skill files remain canonical. Host formats that require fixed package paths use deterministically generated instruction payloads, with drift checks; no hand-maintained instruction forks are introduced.
 - [ ] AC-066-04: All installations preserve project-file-first authority, local-only boundaries, plain-first selection, live CLI discovery, and read-only post-write verification from spec 057 without assuming harness-specific tools or source-repository files.
-- [ ] AC-066-05: Documentation explains installation, invocation, prerequisites, trust, update/removal, and installation scope. Automated checks detect broken manifest paths or accidental maintainer-resource exports. The existing Unreleased workflow entry is consolidated rather than duplicated.
+- [ ] AC-066-05: Documentation explains native installation, invocation, prerequisites, trust, update/removal, and scope. `gh skill` is an optional skill-only fallback, never described as a marketplace or full prompt-package install. Automated checks detect broken manifest paths, generated payload drift, command/skill registration defects, and accidental maintainer-resource exports. The existing Unreleased workflow entry is consolidated rather than duplicated.
 
 ## Non-goals
 
 - Publishing to an official third-party directory or claiming marketplace approval.
 - Exporting overlay development or other contributor workflows.
 - Changing CLI behavior, schemas, generation, or global-default semantics.
-- Adding a separate npm package, custom installer, runtime dependency, or Codex plugin marketplace.
+- Publishing a new npm package, introducing a custom installer or runtime dependency, or changing the CLI package's public entry points.
+- Claiming a Copilot CLI plugin is also a native plugin for all other Copilot surfaces.
+- Requiring identical slash-command syntax where a harness's native API differs.
 
 ## Ambiguities / Open Questions
 
-None. All five harnesses use GitHub CLI's existing direct skill installation surface. Pi's prompt package, Claude Code's repository-hosted marketplace, and Codex's built-in skill installer remain available as alternatives.
+None. Native package/marketplace support is primary. A generated, self-contained Git subdirectory package is allowed when required for portable plugin paths and OpenCode loading. Skill-only installation remains optional. Supported versions and native test gaps must be stated.
 
 ## Evidence / References
 
@@ -49,6 +51,10 @@ None. All five harnesses use GitHub CLI's existing direct skill installation sur
 - https://code.claude.com/docs/en/plugin-marketplaces
 - https://developers.openai.com/codex/skills/
 - https://cli.github.com/manual/gh_skill_install
+- https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference
+- https://developers.openai.com/plugins/build/plugins
+- https://opencode.ai/docs/plugins/
+- https://opencode.ai/v2/docs/plugins/
 - https://opencode.ai/docs/skills/
 - https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-skills
 
@@ -59,4 +65,4 @@ None. All five harnesses use GitHub CLI's existing direct skill installation sur
 
 ## Notes
 
-Requirements self-check: scope and compatibility are explicit, criteria are testable, and no CLI or architecture boundary changes are required. SELF_CHECK is proportionate for metadata and documentation packaging of existing instructions. Execution and validation evidence belong in `plan.md`. The direct-install extension was self-reviewed against the installed GitHub CLI help and successful remote installs for all five hosts before changing implementation; it requires no custom installer or new dependency.
+Requirements self-check: scope and compatibility are explicit, criteria are testable, and no CLI or architecture boundary changes are required. SELF_CHECK is proportionate for metadata and documentation packaging of existing instructions. Execution and validation evidence belong in `plan.md`. The direct-install extension was self-reviewed against the installed GitHub CLI help and successful remote installs for all five hosts before changing implementation; it requires no custom installer or new dependency. The native-package revision supersedes that skill-only completion claim. Fixed-path portable packaging and a small dependency-free OpenCode adapter are proportionate; generated payload drift checks preserve a single instruction authority.
