@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-10-29
+
 ### Added
 
 - **In-container `cs regen` command** — generated devcontainers now install the exact `container-superposition` version recorded as manifest `generatedBy` by default or a selected npm version/dist-tag via `installCsCommand`, including stacks without the Node.js overlay, resolve lifecycle setup from the configured output path, and let the mounted canonical project file be replayed with `cs regen`; set `installCsCommand: false` in `superposition.yml` to opt out.
@@ -808,7 +810,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.13...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.14...HEAD
+[0.1.14]: https://github.com/veggerby/container-superposition/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/veggerby/container-superposition/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/veggerby/container-superposition/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/veggerby/container-superposition/compare/v0.1.10...v0.1.11
