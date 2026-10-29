@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Installable Container Superposition Dev Container Feature** — existing devcontainers can install the real `cs` command from `ghcr.io/veggerby/container-superposition/container-superposition:1` using a safe exact-version or dist-tag selection; the Feature deliberately only installs and verifies the command, while documented managed `cs regen` and personal `cs amend refresh` routes remain explicit and require rebuilds for structural changes.
+
 - **In-container `cs regen` command** — generated devcontainers now install the exact `container-superposition` version recorded as manifest `generatedBy` by default or a selected npm version/dist-tag via `installCsCommand`, including stacks without the Node.js overlay, resolve lifecycle setup from the configured output path, and let the mounted canonical project file be replayed with `cs regen`; set `installCsCommand: false` in `superposition.yml` to opt out.
 
 - **GitHub Copilot code review guidance** — repository-wide Copilot reviews now route through the existing contributor, architecture, validation, spec, and path-specific instruction authorities
