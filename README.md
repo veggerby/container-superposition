@@ -54,6 +54,20 @@ Use `defaults --json` to inspect personal init defaults and `defaults
 refresh-local` to explicitly create local enrichment. Use `amend` for a
 non-adopting repository with an existing team-owned devcontainer.
 
+## AI-assisted project-config authoring
+
+The project-config workflow has native **Pi Git packaging**, **Claude Code, Codex, and GitHub Copilot CLI marketplaces**, and an **OpenCode 1 package plugin from a GitHub source archive**, all sourced from this GitHub repository. The marketplace is `container-superposition`; the domain-scoped plugin is `project` (`project@container-superposition`). See [native installation and invocation instructions](docs/agent-installation.md).
+
+The command-capable packages include `/project-config` (namespaced in Claude Code) and the authoring skill. Codex uses native `$project-config-authoring` invocation rather than a separate prompt command. `gh skill` remains an optional skill-only download, not a marketplace or full prompt-package installation.
+
+For Pi, install the project-config prompt and skill from this Git repository:
+
+```bash
+pi install git:github.com/veggerby/container-superposition
+```
+
+In any project, start Pi and enter `/project-config create a Node.js devcontainer with Postgres` (or invoke `/skill:project-config-authoring` directly). The prompt edits the target repository's `superposition.yml` or `.superposition.yml`, not this package's files. Review the Git source before installing; pin a tag or commit for reproducible installs. This Git install is not a Pi package gallery listing or a separate npm package.
+
 ## What It Does
 
 - Base templates: `plain` (single image) and `compose` (multi-service).

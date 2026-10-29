@@ -1,18 +1,27 @@
 # Project Pi Resources
 
-Pi auto-discovers this directory when started from the repository root.
+After project trust is granted, `.pi/settings.json` loads the local repository root as a Pi package with `"packages": [".."]`. Its root `package.json` exports `/project-config` and `/skill:project-config-authoring` from the `project` plugin's canonical `plugins/project/commands/` and `plugins/project/skills/` directories. They are not duplicated under `.pi/`.
 
-- `settings.json` enables project skill commands.
+From another project, `pi install git:github.com/veggerby/container-superposition` installs the same two resources. The package does not export the repository-maintainer resources listed below and is not a Pi gallery listing.
+
+## Repository-maintainer resources
+
+Pi auto-discovers these local resources when started from the repository root:
+
+- `settings.json` enables skill commands and declares the local root package.
 - `agents/*.md` defines project-local role subagents (`overlay-writer`, `overlay-reviewer`, `overlay-consistency`, `overlay-architect`).
-- `prompts/*.md` provides workflow slash-command prompt templates such as `/overlay-review`, `/overlay-audit`, `/overlay-spec`, `/overlay-discover`, `/overlay-write-loop`, and `/project-config`.
-- `skills/*/SKILL.md` provides on-demand domain guidance. Current skills:
+- `prompts/*.md` provides `/overlay-review`, `/overlay-audit`, `/overlay-spec`, `/overlay-discover`, and `/overlay-write-loop`.
+- `skills/*/SKILL.md` provides:
     - `/skill:canonical-docs-alignment`
     - `/skill:cli-command-delivery`
     - `/skill:dogfooding-safety`
     - `/skill:overlay-development`
     - `/skill:overlay-requirements-capture`
     - `/skill:overlay-solution-discovery`
-    - `/skill:project-config-authoring`
     - `/skill:workflow-sync`
 
-After editing these files in a running Pi session, use `/reload`.
+## Shared native plugin
+
+The `project` plugin at `plugins/project/` owns the installable command and skill for Pi, Claude Code, Codex, Copilot CLI, and OpenCode 1. Native manifests reference these resources directly, without generated instruction copies or symlinks. See [coding harness installation](../docs/agent-installation.md). `gh skill` remains a standalone-skill fallback, not a full prompt-package installation.
+
+After editing resources or package settings in a running Pi session, use `/reload`.

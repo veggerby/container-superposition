@@ -4,6 +4,11 @@
     "description": "Solution-ready devcontainer templates and features with guided initialization",
     "type": "module",
     "main": "dist/scripts/init.js",
+    "exports": {
+        ".": "./dist/scripts/init.js",
+        "./server": "./plugins/project/opencode.js",
+        "./*": "./*"
+    },
     "bin": {
         "container-superposition": "./dist/scripts/init.js",
         "cs": "./dist/scripts/init.js"
@@ -41,10 +46,19 @@
         "type": "git",
         "url": "https://github.com/veggerby/container-superposition.git"
     },
+    "pi": {
+        "skills": [
+            "./plugins/project/skills/project-config-authoring"
+        ],
+        "prompts": [
+            "./plugins/project/commands/project-config.md"
+        ]
+    },
     "files": [
         "dist/",
         "templates/",
         "features/",
+        "plugins/project/",
         "overlays/",
         "tool/**/*.json",
         "tool/**/*.yml",

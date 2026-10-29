@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-10-29
+
 ### Added
 
 - **Installable Container Superposition Dev Container Feature** — existing devcontainers can install the real `cs` command from `ghcr.io/veggerby/container-superposition/container-superposition:1` using a safe exact-version or dist-tag selection; the Feature deliberately only installs and verifies the command, while documented managed `cs regen` and personal `cs amend refresh` routes remain explicit and require rebuilds for structural changes.
@@ -21,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **HermIT ontology reasoner overlay** — the built-in overlay catalog now includes `hermit`, a plain-stack OWL reasoning CLI capability that requires the existing Java overlay, installs the pinned Maven Central coordinate `net.sourceforge.owlapi:org.semanticweb.hermit:1.4.5.519`, documents ontology consistency/classification workflows, and links Apache Jena Fuseki as a complementary SPARQL/triplestore overlay.
 
-- **Natural-language project-config Pi workflow and defaults inspection** — the repo now includes `/project-config` and `/skill:project-config-authoring` so contributors and agents can translate project setup requests into canonical `superposition.yml` plus optional `superposition.local.yml` changes with live `npx container-superposition` discovery, plain-stack-first guidance, bootstrap-only global-default handling, and post-write preview validation. A new read-only `defaults [--json]` command reports the selected effective home defaults file (`~/.container-superposition.yml` wins over `~/.superposition.yml`), any ignored lower-precedence source, and the normalized document without writing files or making home defaults replay/remediation authority. `defaults refresh-local` explicitly materializes the selected template into repository local config, guards replacement with confirmation or `--force`, and preserves replaced content in collision-safe timestamped sibling backups.
+- **Natural-language project-config workflow and defaults inspection** — the repo now includes `/project-config` and `/skill:project-config-authoring`, installable from the Git repository as a Pi package, the domain-scoped `project` plugin from the `container-superposition` marketplace for Claude Code (with `/project:project-config`), Copilot CLI, and Codex, or an OpenCode 1 package plugin installed from a GitHub source archive; command-capable packages include the prompt and skill, while Codex uses native `$project-config-authoring` invocation. The canonical skill and command now live in the standard `plugins/project/skills/` and `commands/` directories, shared directly by native manifests without generated copies; `.pi/settings.json` loads the local root Pi package, while maintainer workflows remain repository-local. GitHub CLI remains an optional skill-only installer. Contributors and agents can translate project setup requests into canonical `superposition.yml` plus optional `superposition.local.yml` changes with self-contained schema guidance, installed `cs` discovery (falling back to `npx container-superposition`), plain-stack-first guidance, bootstrap-only global-default handling, and post-write preview validation. A new read-only `defaults [--json]` command reports the selected effective home defaults file (`~/.container-superposition.yml` wins over `~/.superposition.yml`), any ignored lower-precedence source, and the normalized document without writing files or making home defaults replay/remediation authority. `defaults refresh-local` explicitly materializes the selected template into repository local config, guards replacement with confirmation or `--force`, and preserves replaced content in collision-safe timestamped sibling backups.
 
 - **First-class VS Code extension IDs** — `superposition.yml`, `superposition.local.yml`, and eligible global defaults now support `vscodeExtensions` lists that append additional VS Code extension IDs to generated `devcontainer.json` without requiring raw `customizations.devcontainerPatch` snippets.
 
@@ -810,7 +812,8 @@ This version was recalled due to a packaging issue (included `.tgz` tarball). Us
 
 <!-- Links -->
 
-[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.13...HEAD
+[Unreleased]: https://github.com/veggerby/container-superposition/compare/v0.1.14...HEAD
+[0.1.14]: https://github.com/veggerby/container-superposition/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/veggerby/container-superposition/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/veggerby/container-superposition/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/veggerby/container-superposition/compare/v0.1.10...v0.1.11

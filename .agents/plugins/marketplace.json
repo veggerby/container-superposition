@@ -1,0 +1,12 @@
+{
+    "name": "container-superposition",
+    "interface": { "displayName": "Container Superposition" },
+    "plugins": [
+        {
+            "name": "project",
+            "source": { "source": "local", "path": "./plugins/project" },
+            "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+            "category": "Productivity"
+        }
+    ]
+}

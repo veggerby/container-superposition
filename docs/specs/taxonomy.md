@@ -211,6 +211,8 @@ _No specs yet._
 | [057-natural-language-project-config-workflow](057-natural-language-project-config-workflow/spec.md)                     | Natural-Language Project Config Authoring Workflow                                         | Final       |
 | [062-github-copilot-code-review-instructions](062-github-copilot-code-review-instructions/spec.md)                       | GitHub Copilot Repository-Wide Code Review Instructions                                    | Implemented |
 
+| [066-portable-project-config-workflow](066-portable-project-config-workflow/spec.md) | Portable Project Config Workflow | Final |
+
 ### DOCS-API
 
 _No specs yet._
