@@ -16,7 +16,7 @@ The command-capable packages include both the project-config prompt and the auth
 
 ## Prerequisites and trust
 
-- Node.js 20+ and a shell with installed `cs` or `npx`. Authoring uses `cs` when present, otherwise `npx container-superposition`; the latter may download and execute the CLI.
+- Node.js 22+ and a shell with installed `cs` or `npx`. Authoring uses `cs` when present, otherwise `npx container-superposition`; the latter may download and execute the CLI.
 - A harness version supporting the mechanisms below. Native checks used Claude Code 2.1.311, Codex 0.164.0, Copilot CLI 1.0.104, and OpenCode 1.19.4. The OpenCode adapter targets the OpenCode 1 config-hook API, not the different OpenCode 2 plugin API.
 - Review this repository and normal harness permission prompts. Plugins can execute code. The OpenCode adapter registers a command and a packaged skill path in memory; it does not write project files or run shell commands at startup.
 - Remote commands below use the default branch or explicit `main`. They become available after this packaging change reaches the selected revision on GitHub. Pin a reviewed tag or commit using the host's supported Git-ref mechanism for reproducibility.
