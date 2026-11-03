@@ -1,0 +1,19 @@
+{
+    "id": "container-superposition",
+    "version": "1.0.0",
+    "name": "Container Superposition",
+    "description": "Install the real Container Superposition cs command in an existing devcontainer",
+    "documentationURL": "https://github.com/veggerby/container-superposition/tree/main/features/container-superposition",
+    "dependsOn": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        }
+    },
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "latest",
+            "description": "Exact container-superposition npm version or simple dist-tag to install"
+        }
+    }
+}

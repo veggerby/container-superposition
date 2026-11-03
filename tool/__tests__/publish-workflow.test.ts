@@ -60,6 +60,7 @@ interface PublishWorkflow {
         'publish-main-prerelease': WorkflowJob;
         'prepare-pr-prerelease': WorkflowJob;
         'publish-pr-prerelease': WorkflowJob;
+        'publish-container-superposition-feature': WorkflowJob;
     };
 }
 
@@ -198,6 +199,34 @@ describe('publish workflow release channels', () => {
         expect(findStep(releaseJob, 'Publish to npm').run).toBe(
             'npm publish --provenance --access public'
         );
+        const featureJob = workflow.jobs['publish-container-superposition-feature'];
+        expect(featureJob.needs).toBe('publish');
+        expect(featureJob.permissions).toEqual({ contents: 'read', packages: 'write' });
+        const featurePublish = findStep(
+            featureJob,
+            'Publish Container Superposition Dev Container Feature'
+        ).run;
+        expect(featurePublish).toContain(
+            'devcontainer features publish features/container-superposition'
+        );
+        expect(featurePublish).toContain('--namespace "${{ github.repository }}"');
+        expect(findStep(featureJob, 'Wait for the exact npm package version').run).toContain(
+            'exit 1'
+        );
+        const smoke = findStep(
+            featureJob,
+            'Pull immutable Feature digest and smoke-install exact package'
+        ).run;
+        expect(smoke).toContain('docker logout ghcr.io');
+        expect(smoke).not.toContain('docker login ghcr.io');
+        expect(smoke).toContain('docker buildx imagetools inspect');
+        expect(smoke).toContain('container-superposition@${DIGEST}');
+        expect(smoke).toContain('cs --version');
+        for (const job of [releaseJob, featureJob]) {
+            for (const step of job.steps ?? []) {
+                if (step.uses) expect(step.uses).toMatch(/@[0-9a-f]{40}$/);
+            }
+        }
         expect(findStep(releaseJob, 'Add release commands to workflow summary').run).toContain(
             'container-superposition@$VERSION'
         );

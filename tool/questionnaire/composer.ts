@@ -69,6 +69,7 @@ import {
     portsToPortInfo,
 } from '../utils/summary.js';
 import { resolveRepoPath } from '../utils/paths.js';
+import { inventoryOverlayEffects, type OverlayEffectInventory } from './overlay-effects.js';
 import {
     assertComposeNetworkNameSupported,
     resolveComposeNetworkName,
@@ -1199,29 +1200,34 @@ export function applyOverlay(
     baseConfig: DevContainer,
     overlayName: string,
     overlaysDir: string,
-    options: { silent?: boolean; tokenMap?: Record<string, string> } = {}
+    options: {
+        silent?: boolean;
+        tokenMap?: Record<string, string>;
+        effect?: OverlayEffectInventory;
+    } = {}
 ): DevContainer {
     const { silent = false, tokenMap = {} } = options;
-    const overlayPath = path.join(overlaysDir, overlayName, 'devcontainer.patch.json');
+    // Both managed and amendment paths resolve semantic effects from the same
+    // effective catalog root. Amendment supplies its already-validated graph.
+    const effect = options.effect ?? inventoryOverlayEffects(overlaysDir, [overlayName])[0];
+    const importedPatches = effect.nodes.filter((node) => node.kind === 'imported-patch');
+    const patch = effect.nodes.find((node) => node.kind === 'patch');
 
-    if (!fs.existsSync(overlayPath)) {
+    if (!patch) {
         if (!silent) console.warn(chalk.yellow(`⚠️  Overlay not found: ${overlayName}`));
         return baseConfig;
     }
 
-    // First, load and apply any imports
-    const importedConfig = loadImportsForOverlay(overlayName, overlaysDir, silent);
-    if (Object.keys(importedConfig).length > 0) {
+    for (const imported of importedPatches) {
+        if (!silent)
+            console.log(chalk.dim(`   📎 Applying shared import: ${imported.declaredPath}`));
         baseConfig = deepMerge(
             baseConfig,
-            substituteObjectKeysAndValues(importedConfig, tokenMap) as DevContainer
+            substituteObjectKeysAndValues(imported.patch, tokenMap) as DevContainer
         );
     }
 
-    const overlay = substituteObjectKeysAndValues(
-        loadJson<DevContainer>(overlayPath),
-        tokenMap
-    ) as DevContainer;
+    const overlay = substituteObjectKeysAndValues(patch.patch, tokenMap) as DevContainer;
 
     // Special handling for apt-get packages (legacy)
     if (overlay.features?.['ghcr.io/devcontainers-extra/features/apt-get-packages:1']?.packages) {
@@ -1402,13 +1408,9 @@ function copyOverlayFiles(
     overlaysDir: string
 ): void {
     const overlayName = application.overlayId;
-    const overlayPath = path.join(overlaysDir, overlayName);
-
-    if (!fs.existsSync(overlayPath)) {
-        return;
-    }
-
-    const entries = fs.readdirSync(overlayPath);
+    const effect = inventoryOverlayEffects(overlaysDir, [overlayName])[0];
+    const overlayPath = effect.overlayDir;
+    const entries = [...new Set(effect.additionalFiles.map((file) => file.split('/')[0]))];
     let copiedFiles = 0;
 
     for (const entry of entries) {
@@ -2180,62 +2182,31 @@ function mergeEnvExamples(
     presetName?: string
 ): boolean {
     const envSections: string[] = [];
+    const effects = inventoryOverlayEffects(overlaysDir, [...new Set(overlays)]);
 
-    for (const overlay of overlays) {
-        // First, check for imports in the overlay and add any .env files from imports
-        const overlayDir = path.join(overlaysDir, overlay);
-        const manifestPath = path.join(overlayDir, 'overlay.yml');
-
-        if (fs.existsSync(manifestPath)) {
-            try {
-                const manifestContent = fs.readFileSync(manifestPath, 'utf8');
-                const manifest = yaml.load(manifestContent) as any;
-
-                if (manifest.imports && Array.isArray(manifest.imports)) {
-                    for (const importPath of manifest.imports) {
-                        // FR-006: Reject path traversal
-                        const traversalError = validateImportPath(importPath, overlaysDir);
-                        if (traversalError) {
-                            throw new Error(
-                                `Path traversal rejected in overlay '${overlay}': ${traversalError}`
-                            );
-                        }
-
-                        const ext = path.extname(importPath).toLowerCase();
-                        if (ext === '.env') {
-                            const fullImportPath = path.join(overlaysDir, importPath);
-                            if (fs.existsSync(fullImportPath)) {
-                                console.log(
-                                    chalk.dim(`   📎 Merging shared .env import: ${importPath}`)
-                                );
-                                const content = fs.readFileSync(fullImportPath, 'utf-8').trim();
-                                if (content) {
-                                    envSections.push(`# from ${importPath}\n${content}`);
-                                }
-                            } else {
-                                throw new Error(
-                                    `Import not found: '${importPath}' (referenced by overlay: ${overlay})`
-                                );
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                if (error instanceof Error) {
-                    // Fail fast on import errors so .env import violations are not silently ignored
-                    throw error;
-                }
+    for (const effect of effects) {
+        for (const importPath of effect.imports) {
+            const traversalError = validateImportPath(importPath, overlaysDir);
+            if (traversalError) {
+                throw new Error(
+                    `Path traversal rejected in overlay '${effect.overlayId}': ${traversalError}`
+                );
             }
+            if (path.extname(importPath).toLowerCase() !== '.env') continue;
+            const fullImportPath = path.join(overlaysDir, importPath);
+            if (!fs.existsSync(fullImportPath)) {
+                throw new Error(
+                    `Import not found: '${importPath}' (referenced by overlay: ${effect.overlayId})`
+                );
+            }
+            console.log(chalk.dim(`   📎 Merging shared .env import: ${importPath}`));
+            const content = fs.readFileSync(fullImportPath, 'utf-8').trim();
+            if (content) envSections.push(`# from ${importPath}\n${content}`);
         }
 
-        // Then add the overlay's own .env.example
-        const envPath = path.join(overlaysDir, overlay, '.env.example');
-
-        if (fs.existsSync(envPath)) {
-            const content = fs.readFileSync(envPath, 'utf-8').trim();
-            if (content) {
-                envSections.push(content);
-            }
+        if (effect.envExamplePath) {
+            const content = fs.readFileSync(effect.envExamplePath, 'utf-8').trim();
+            if (content) envSections.push(content);
         }
     }
 
@@ -2645,55 +2616,38 @@ function mergeDockerComposeFiles(
         composeFiles.push({ path: baseComposePath, tokenMap: {} });
     }
 
+    const effectsById = new Map(
+        inventoryOverlayEffects(overlaysDir, [
+            ...new Set(applications.map((application) => application.overlayId)),
+        ]).map((effect) => [effect.overlayId, effect])
+    );
     for (const application of applications) {
         const overlay = application.overlayId;
-        const manifestPath = path.join(overlaysDir, overlay, 'overlay.yml');
-        if (fs.existsSync(manifestPath)) {
-            try {
-                const manifestContent = fs.readFileSync(manifestPath, 'utf8');
-                const manifest = yaml.load(manifestContent) as any;
-                if (manifest.compose_imports && Array.isArray(manifest.compose_imports)) {
-                    for (const importPath of manifest.compose_imports as string[]) {
-                        const traversalError = validateImportPath(importPath, overlaysDir);
-                        if (traversalError) {
-                            throw new Error(
-                                `compose_import path traversal rejected in overlay '${overlay}': ${traversalError}`
-                            );
-                        }
-                        const fullImportPath = path.join(overlaysDir, importPath);
-                        if (!fs.existsSync(fullImportPath)) {
-                            throw new Error(
-                                `compose_import not found: '${importPath}' (referenced by overlay: ${overlay})`
-                            );
-                        }
-                        const ext = path.extname(importPath).toLowerCase();
-                        if (ext !== '.yml' && ext !== '.yaml') {
-                            throw new Error(
-                                `compose_import must be a .yml or .yaml file: '${importPath}' (overlay: ${overlay})`
-                            );
-                        }
-                        console.log(
-                            chalk.dim(`   📎 Applying shared compose fragment: ${importPath}`)
-                        );
-                        composeFiles.push({
-                            path: fullImportPath,
-                            tokenMap: application.parameters,
-                        });
-                    }
-                }
-            } catch (error) {
-                if (error instanceof Error) {
-                    throw error;
-                }
+        const effect = effectsById.get(overlay)!;
+        for (const importPath of effect.composeImports) {
+            const traversalError = validateImportPath(importPath, overlaysDir);
+            if (traversalError) {
                 throw new Error(
-                    `Unexpected error loading compose_imports for overlay '${overlay}': ${String(error)}`
+                    `compose_import path traversal rejected in overlay '${overlay}': ${traversalError}`
                 );
             }
+            const fullImportPath = path.join(overlaysDir, importPath);
+            if (!fs.existsSync(fullImportPath)) {
+                throw new Error(
+                    `compose_import not found: '${importPath}' (referenced by overlay: ${overlay})`
+                );
+            }
+            const ext = path.extname(importPath).toLowerCase();
+            if (ext !== '.yml' && ext !== '.yaml') {
+                throw new Error(
+                    `compose_import must be a .yml or .yaml file: '${importPath}' (overlay: ${overlay})`
+                );
+            }
+            console.log(chalk.dim(`   📎 Applying shared compose fragment: ${importPath}`));
+            composeFiles.push({ path: fullImportPath, tokenMap: application.parameters });
         }
-
-        const overlayComposePath = path.join(overlaysDir, overlay, 'docker-compose.yml');
-        if (fs.existsSync(overlayComposePath)) {
-            composeFiles.push({ path: overlayComposePath, tokenMap: application.parameters });
+        if (effect.composePath) {
+            composeFiles.push({ path: effect.composePath, tokenMap: application.parameters });
         }
     }
 
@@ -4023,11 +3977,15 @@ function mergeSetupScripts(
     const scriptsDir = path.join(outputPath, 'scripts');
 
     // Only create the scripts directory (and register it) if at least one overlay needs it
-    const hasScripts = applications.some(
-        (application) =>
-            fs.existsSync(path.join(overlaysDir, application.overlayId, 'setup.sh')) ||
-            fs.existsSync(path.join(overlaysDir, application.overlayId, 'verify.sh'))
+    const effectsById = new Map(
+        inventoryOverlayEffects(overlaysDir, [
+            ...new Set(applications.map((application) => application.overlayId)),
+        ]).map((effect) => [effect.overlayId, effect])
     );
+    const hasScripts = applications.some((application) => {
+        const effect = effectsById.get(application.overlayId)!;
+        return effect.setupPath || effect.verifyPath;
+    });
     if (hasScripts) {
         if (!fs.existsSync(scriptsDir)) {
             fs.mkdirSync(scriptsDir, { recursive: true });
@@ -4050,9 +4008,10 @@ function mergeSetupScripts(
                 ? `-${application.instanceName}`
                 : '';
 
+        const effect = effectsById.get(overlay)!;
         // Handle setup scripts
-        const setupPath = path.join(overlaysDir, overlay, 'setup.sh');
-        if (fs.existsSync(setupPath)) {
+        const setupPath = effect.setupPath;
+        if (setupPath) {
             const fileName = `setup-${overlay}${instanceSuffix}.sh`;
             const destPath = path.join(scriptsDir, fileName);
             const content = substituteStringTokens(
@@ -4071,8 +4030,8 @@ function mergeSetupScripts(
         }
 
         // Handle verify scripts
-        const verifyPath = path.join(overlaysDir, overlay, 'verify.sh');
-        if (fs.existsSync(verifyPath)) {
+        const verifyPath = effect.verifyPath;
+        if (verifyPath) {
             const fileName = `verify-${overlay}${instanceSuffix}.sh`;
             const destPath = path.join(scriptsDir, fileName);
             const content = substituteStringTokens(

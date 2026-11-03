@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import yaml from 'js-yaml';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..', '..');
@@ -631,6 +632,33 @@ describe('amend command', () => {
         }
     }, 30_000);
 
+    it('restores input, receipt artifacts, exact exclude bytes, and index on a failed first init', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            const excludeRel = git(root, ['rev-parse', '--git-path', 'info/exclude']).stdout.trim();
+            const excludePath = path.join(root, excludeRel);
+            const excludeBefore = fs.readFileSync(excludePath, 'utf8');
+            const indexBefore = git(root, ['ls-files', '--stage']).stdout;
+            const failed = runCli(root, ['amend', 'init'], {
+                CS_AMEND_INJECT_REFRESH_FAILURE_AFTER_WRITES: '1',
+            });
+            expect(failed.status).not.toBe(0);
+            expect(
+                fs.existsSync(path.join(root, '.container-superposition', 'amendment.yml'))
+            ).toBe(false);
+            expect(
+                fs.existsSync(path.join(root, '.container-superposition', 'amendment-state.json'))
+            ).toBe(false);
+            expect(fs.existsSync(defaultAlternatePath(root))).toBe(false);
+            expect(fs.readFileSync(excludePath, 'utf8')).toBe(excludeBefore);
+            expect(git(root, ['ls-files', '--stage']).stdout).toBe(indexBefore);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
     it('rolls back the complete amendment set when refresh fails after artifact writes', () => {
         const root = workspace();
         try {
@@ -972,6 +1000,412 @@ describe('amend command', () => {
             expect(fs.readFileSync(lockPath, 'utf8')).toBe('{"lock":true}\n');
             expect(git(root, ['check-ignore', '-v', '--', lockRel]).status).toBe(0);
             expect(git(root, ['ls-files', '--stage']).stdout).toBe(indexBefore);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('materializes every compatible patch-only overlay effect and records the resolved selection', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                'overlays:\n  - aws-cli\n'
+            );
+            expect(runCli(root, ['amend', 'refresh']).status).toBe(0);
+            const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
+            expect(alternate.features['ghcr.io/devcontainers/features/aws-cli:1']).toEqual({
+                version: 'latest',
+            });
+            expect(alternate.customizations.vscode.extensions).toContain(
+                'amazonwebservices.aws-toolkit-vscode'
+            );
+            const state = JSON.parse(
+                fs.readFileSync(
+                    path.join(root, '.container-superposition', 'amendment-state.json'),
+                    'utf8'
+                )
+            );
+            expect(state.requestedOverlays).toEqual(['aws-cli']);
+            expect(state.resolvedOverlays).toEqual(['aws-cli']);
+            expect(state.compatibility).toEqual({ status: 'compatible', baseShape: 'plain' });
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('resolves an immutable external git catalog and records its identity in the local receipt', () => {
+        const root = workspace();
+        const catalog = namedWorkspace('cs-amend-catalog');
+        try {
+            fs.mkdirSync(path.join(catalog, 'personal-tools'), { recursive: true });
+            fs.writeFileSync(
+                path.join(catalog, 'personal-tools', 'devcontainer.patch.json'),
+                `${JSON.stringify(
+                    {
+                        features: {
+                            'ghcr.io/devcontainers/features/github-cli:1': {},
+                        },
+                    },
+                    null,
+                    4
+                )}\n`
+            );
+            fs.mkdirSync(path.join(catalog, '.shared', 'compose'), { recursive: true });
+            fs.mkdirSync(path.join(catalog, '.shared', 'patches'), { recursive: true });
+            fs.writeFileSync(
+                path.join(catalog, '.shared', 'patches', 'remote-feature.json'),
+                JSON.stringify({
+                    features: { 'ghcr.io/devcontainers/features/common-utils:2': {} },
+                })
+            );
+            fs.writeFileSync(
+                path.join(catalog, '.shared', 'compose', 'personal-gpu.yml'),
+                'services:\n  app:\n    deploy:\n      resources:\n        reservations:\n          devices:\n            - capabilities: [gpu]\n'
+            );
+            fs.writeFileSync(
+                path.join(catalog, 'personal-tools', 'overlay.yml'),
+                [
+                    'id: personal-tools',
+                    'name: Personal tools',
+                    'description: Immutable catalog fixture',
+                    'category: dev-tools',
+                    'supports: [compose]',
+                    'imports:',
+                    '  - .shared/patches/remote-feature.json',
+                    'compose_imports:',
+                    '  - .shared/compose/personal-gpu.yml',
+                    '',
+                ].join('\n')
+            );
+            fs.writeFileSync(
+                path.join(catalog, 'personal-tools', 'docker-compose.yml'),
+                'services:\n  personal-tools:\n    image: alpine:3.20\n'
+            );
+            git(catalog, ['init']);
+            git(catalog, ['config', 'user.email', 'tests@example.invalid']);
+            git(catalog, ['config', 'user.name', 'Test']);
+            git(catalog, ['add', '.']);
+            expect(git(catalog, ['commit', '-m', 'catalog fixture']).status).toBe(0);
+            const commit = git(catalog, ['rev-parse', 'HEAD']).stdout.trim();
+
+            fs.mkdirSync(path.join(root, '.devcontainer'), { recursive: true });
+            fs.writeFileSync(
+                path.join(root, 'docker-compose.yml'),
+                'services:\n  app:\n    image: alpine:3.20\n'
+            );
+            writeBase(root, { dockerComposeFile: '../docker-compose.yml', service: 'app' });
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                yaml.dump({
+                    catalogs: [
+                        {
+                            id: 'personal',
+                            namespace: 'acme',
+                            source: { type: 'git', url: catalog, commit },
+                        },
+                    ],
+                    overlays: ['acme/personal-tools'],
+                })
+            );
+
+            const refresh = runCli(root, ['amend', 'refresh']);
+            expect(refresh.status, refresh.stderr).toBe(0);
+            const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
+            expect(alternate.features['ghcr.io/devcontainers/features/github-cli:1']).toEqual({});
+            expect(alternate.features['ghcr.io/devcontainers/features/common-utils:2']).toEqual({});
+            const override = yaml.load(
+                fs.readFileSync(
+                    path.join(
+                        root,
+                        '.container-superposition',
+                        'amendment',
+                        'docker-compose.override.yml'
+                    ),
+                    'utf8'
+                )
+            ) as Record<string, any>;
+            expect(override.services['personal-tools'].image).toBe('alpine:3.20');
+            expect(
+                override.services.app.deploy.resources.reservations.devices[0].capabilities
+            ).toEqual(['gpu']);
+            const state = JSON.parse(
+                fs.readFileSync(
+                    path.join(root, '.container-superposition', 'amendment-state.json'),
+                    'utf8'
+                )
+            );
+            expect(state.resolvedOverlays).toEqual(['acme/personal-tools']);
+            expect(state.catalogs).toEqual([
+                {
+                    id: 'personal',
+                    namespace: 'acme',
+                    sourceType: 'git',
+                    resolvedIdentity: commit,
+                },
+            ]);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+            fs.rmSync(catalog, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rejects a namespace-qualified imported patch with local references before changing amendment output', () => {
+        const root = workspace();
+        const catalog = namedWorkspace('cs-amend-import-reference');
+        try {
+            fs.mkdirSync(path.join(catalog, 'tools'), { recursive: true });
+            fs.mkdirSync(path.join(catalog, '.shared', 'patches'), { recursive: true });
+            fs.mkdirSync(path.join(catalog, '.shared', 'features', 'demo'), { recursive: true });
+            fs.writeFileSync(
+                path.join(catalog, 'tools', 'overlay.yml'),
+                'id: tools\nname: Tools\ndescription: imported reference fixture\ncategory: dev\nimports:\n  - .shared/patches/local-feature.json\n'
+            );
+            fs.writeFileSync(
+                path.join(catalog, '.shared', 'patches', 'local-feature.json'),
+                JSON.stringify({ features: { './features/demo': {} } })
+            );
+            fs.writeFileSync(
+                path.join(catalog, '.shared', 'features', 'demo', 'devcontainer-feature.json'),
+                '{}\n'
+            );
+            git(catalog, ['init']);
+            git(catalog, ['config', 'user.email', 'tests@example.invalid']);
+            git(catalog, ['config', 'user.name', 'Test']);
+            git(catalog, ['add', '.']);
+            expect(git(catalog, ['commit', '-m', 'catalog fixture']).status).toBe(0);
+            const commit = git(catalog, ['rev-parse', 'HEAD']).stdout.trim();
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            const alternatePath = defaultAlternatePath(root);
+            const statePath = path.join(root, '.container-superposition', 'amendment-state.json');
+            const alternateBefore = fs.readFileSync(alternatePath, 'utf8');
+            const stateBefore = fs.readFileSync(statePath, 'utf8');
+            const indexBefore = git(root, ['ls-files', '--stage']).stdout;
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                yaml.dump({
+                    catalogs: [
+                        {
+                            id: 'external',
+                            namespace: 'acme',
+                            source: { type: 'git', url: catalog, commit },
+                        },
+                    ],
+                    overlays: ['acme/tools'],
+                })
+            );
+            const refresh = runCli(root, ['amend', 'refresh']);
+            expect(refresh.status).not.toBe(0);
+            expect(refresh.stderr).toContain(".shared/acme/patches/local-feature.json'");
+            expect(refresh.stderr).toContain('./features/demo');
+            expect(fs.readFileSync(alternatePath, 'utf8')).toBe(alternateBefore);
+            expect(fs.readFileSync(statePath, 'utf8')).toBe(stateBefore);
+            expect(
+                fs.existsSync(
+                    path.join(
+                        root,
+                        '.container-superposition',
+                        'amendment',
+                        'overlays',
+                        'acme',
+                        'tools'
+                    )
+                )
+            ).toBe(false);
+            expect(git(root, ['ls-files', '--stage']).stdout).toBe(indexBefore);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+            fs.rmSync(catalog, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('rejects a compose-only overlay before changing a prior complete amendment', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            const input = path.join(root, '.container-superposition', 'amendment.yml');
+            fs.writeFileSync(input, 'overlays:\n  - aws-cli\n');
+            expect(runCli(root, ['amend', 'refresh']).status).toBe(0);
+            const alternateBefore = fs.readFileSync(defaultAlternatePath(root), 'utf8');
+            const stateBefore = fs.readFileSync(
+                path.join(root, '.container-superposition', 'amendment-state.json'),
+                'utf8'
+            );
+            fs.writeFileSync(input, 'overlays:\n  - postgres\n');
+            const refresh = runCli(root, ['amend', 'refresh']);
+            expect(refresh.status).not.toBe(0);
+            expect(refresh.stderr).toContain("Overlay 'postgres' requires compose");
+            expect(fs.readFileSync(defaultAlternatePath(root), 'utf8')).toBe(alternateBefore);
+            expect(
+                fs.readFileSync(
+                    path.join(root, '.container-superposition', 'amendment-state.json'),
+                    'utf8'
+                )
+            ).toBe(stateBefore);
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('materializes compatible overlay scripts inside the receipt-owned subtree', () => {
+        const root = workspace();
+        try {
+            writeBase(root);
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                'overlays:\n  - argocd\n'
+            );
+            expect(runCli(root, ['amend', 'refresh']).status).toBe(0);
+            const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
+            expect(alternate.postCreateCommand['setup-argocd']).toBe(
+                'bash .container-superposition/amendment/scripts/argocd/setup.sh'
+            );
+            expect(
+                fs.readFileSync(
+                    path.join(
+                        root,
+                        '.container-superposition',
+                        'amendment',
+                        'scripts',
+                        'argocd',
+                        'setup.sh'
+                    ),
+                    'utf8'
+                )
+            ).toContain('Argo CD');
+            expect(
+                fs.existsSync(
+                    path.join(
+                        root,
+                        '.container-superposition',
+                        'amendment',
+                        'scripts',
+                        'argocd',
+                        'setup-utils.sh'
+                    )
+                )
+            ).toBe(true);
+            const state = JSON.parse(
+                fs.readFileSync(
+                    path.join(root, '.container-superposition', 'amendment-state.json'),
+                    'utf8'
+                )
+            );
+            expect(state.generatedArtifacts).toContain(
+                '.container-superposition/amendment/scripts/argocd/setup.sh'
+            );
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('materializes compatible compose overlay services in the local override without changing team compose files', () => {
+        const root = workspace();
+        try {
+            fs.mkdirSync(path.join(root, '.devcontainer'), { recursive: true });
+            fs.writeFileSync(
+                path.join(root, 'docker-compose.yml'),
+                'services:\n  app:\n    image: node:20\n'
+            );
+            writeBase(root, {
+                dockerComposeFile: '../docker-compose.yml',
+                service: 'app',
+                workspaceFolder: '/workspace',
+            });
+            git(root, ['init']);
+            const teamComposeBefore = fs.readFileSync(
+                path.join(root, 'docker-compose.yml'),
+                'utf8'
+            );
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                'overlays:\n  - postgres\n'
+            );
+            expect(runCli(root, ['amend', 'refresh']).status).toBe(0);
+            const override = yaml.load(
+                fs.readFileSync(
+                    path.join(
+                        root,
+                        '.container-superposition',
+                        'amendment',
+                        'docker-compose.override.yml'
+                    ),
+                    'utf8'
+                )
+            ) as Record<string, any>;
+            expect(override.services.postgres.image).toContain('${POSTGRES_VERSION:-16}-alpine');
+            expect(override.volumes['postgres-data']).toBeNull();
+            expect(
+                fs.readFileSync(
+                    path.join(
+                        root,
+                        '.container-superposition',
+                        'amendment',
+                        'overlays',
+                        'postgres',
+                        '.env.example'
+                    ),
+                    'utf8'
+                )
+            ).toContain('POSTGRES_PASSWORD');
+            expect(fs.readFileSync(path.join(root, 'docker-compose.yml'), 'utf8')).toBe(
+                teamComposeBefore
+            );
+            const alternate = JSON.parse(fs.readFileSync(defaultAlternatePath(root), 'utf8'));
+            expect(alternate.dockerComposeFile).toContain(
+                '../../.container-superposition/amendment/docker-compose.override.yml'
+            );
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
+    }, 30_000);
+
+    it('materializes built-in compose imports with the overlay compose fragment', () => {
+        const root = workspace();
+        try {
+            fs.writeFileSync(
+                path.join(root, 'docker-compose.yml'),
+                'services:\n  devcontainer:\n    image: node:20\n'
+            );
+            writeBase(root, {
+                dockerComposeFile: '../docker-compose.yml',
+                service: 'devcontainer',
+            });
+            git(root, ['init']);
+            expect(runCli(root, ['amend', 'init']).status).toBe(0);
+            fs.writeFileSync(
+                path.join(root, '.container-superposition', 'amendment.yml'),
+                'overlays:\n  - ollama\n'
+            );
+            const refresh = runCli(root, ['amend', 'refresh']);
+            expect(refresh.status, refresh.stderr).toBe(0);
+            const override = yaml.load(
+                fs.readFileSync(
+                    path.join(
+                        root,
+                        '.container-superposition',
+                        'amendment',
+                        'docker-compose.override.yml'
+                    ),
+                    'utf8'
+                )
+            ) as Record<string, any>;
+            expect(override.services.ollama.image).toContain('ollama/ollama');
+            expect(
+                override.services.devcontainer.deploy.resources.reservations.devices[0].capabilities
+            ).toEqual(['gpu']);
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
         }

@@ -113,6 +113,209 @@ Feature: Local devcontainer amendment without adoption
     And the file "superposition.json" should not exist
     And the Git index should be unchanged
 
+  Scenario: Compatible personal overlay enrichment is complete and compose-only overlays reject before writes
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/devcontainer.json:
+          json:
+            image: mcr.microsoft.com/devcontainers/base:bookworm
+      """
+    And the workspace is a Git repository
+    When I run the CLI command
+      """
+      amend init
+      """
+    And I write file ".container-superposition/amendment.yml"
+      """
+      overlays:
+        - aws-cli
+      """
+    And I run the CLI command
+      """
+      amend refresh
+      """
+    Then the command exits successfully
+    And the file ".devcontainer/superposition-local/devcontainer.json" should contain "ghcr.io/devcontainers/features/aws-cli:1"
+    And the file ".container-superposition/amendment-state.json" should contain "aws-cli"
+    When I write file ".container-superposition/amendment.yml"
+      """
+      overlays:
+        - postgres
+      """
+    And I run the CLI command
+      """
+      amend refresh
+      """
+    Then the command exits with status 1
+    And the command stderr should contain "Overlay 'postgres' requires compose"
+    And the file ".devcontainer/superposition-local/devcontainer.json" should contain "ghcr.io/devcontainers/features/aws-cli:1"
+
+  Scenario: Immutable catalog selection is available to a personal amendment
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/devcontainer.json:
+          json:
+            image: mcr.microsoft.com/devcontainers/base:bookworm
+        catalogs/personal-tools/overlay.yml:
+          text: |
+            id: personal-tools
+            name: Personal tools
+            description: Personal catalog fixture
+            category: dev-tools
+            supports: [plain]
+        catalogs/personal-tools/devcontainer.patch.json:
+          json:
+            features:
+              ghcr.io/devcontainers/features/github-cli:1: {}
+      """
+    And the workspace is a Git repository
+    When I run the CLI command
+      """
+      amend init
+      """
+    And I write file ".container-superposition/amendment.yml"
+      """
+      catalogs:
+        - id: personal
+          namespace: acme
+          source:
+            type: path
+            path: catalogs
+      overlays:
+        - acme/personal-tools
+      """
+    And I run the CLI command
+      """
+      amend refresh
+      """
+    Then the command exits successfully
+    And the file ".devcontainer/superposition-local/devcontainer.json" should contain "ghcr.io/devcontainers/features/github-cli:1"
+    And the file ".container-superposition/amendment-state.json" should contain "acme/personal-tools"
+    And the file ".devcontainer/devcontainer.json" should contain "mcr.microsoft.com/devcontainers/base:bookworm"
+    And the Git index should be unchanged
+
+  Scenario: Imported local Feature references reject before changing a personal amendment
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/devcontainer.json:
+          json:
+            image: mcr.microsoft.com/devcontainers/base:bookworm
+        catalogs/tools/overlay.yml:
+          text: |
+            id: tools
+            name: Tools
+            description: Imported local Feature fixture
+            category: dev-tools
+            imports:
+              - .shared/patches/local-feature.json
+        catalogs/.shared/patches/local-feature.json:
+          json:
+            features:
+              ./features/demo: {}
+        catalogs/.shared/features/demo/devcontainer-feature.json:
+          json:
+            id: demo
+            version: 1.0.0
+      """
+    And the workspace is a Git repository
+    When I run the CLI command
+      """
+      amend init
+      """
+    Then the command exits successfully
+    When I write file ".container-superposition/amendment.yml"
+      """
+      catalogs:
+        - id: personal
+          namespace: acme
+          source:
+            type: path
+            path: catalogs
+      overlays:
+        - acme/tools
+      """
+    And I run the CLI command
+      """
+      amend refresh
+      """
+    Then the command exits with status 1
+    And the command stderr should contain "local feature reference"
+    And the file ".devcontainer/superposition-local/devcontainer.json" should contain "mcr.microsoft.com/devcontainers/base:bookworm"
+    And the file ".container-superposition/amendment/overlays/acme/tools/features/demo/devcontainer-feature.json" should not exist
+    And the Git index should be unchanged
+
+  Scenario: Compatible compose overlay effects remain personal to a compose base
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/devcontainer.json:
+          json:
+            dockerComposeFile: ../docker-compose.yml
+            service: app
+            workspaceFolder: /workspace
+        docker-compose.yml:
+          text: |
+            services:
+              app:
+                image: node:20
+      """
+    And the workspace is a Git repository
+    When I run the CLI command
+      """
+      amend init
+      """
+    And I write file ".container-superposition/amendment.yml"
+      """
+      overlays:
+        - postgres
+      """
+    And I run the CLI command
+      """
+      amend refresh
+      """
+    Then the command exits successfully
+    And the file ".container-superposition/amendment/docker-compose.override.yml" should contain "POSTGRES_VERSION:-16"
+    And the file ".container-superposition/amendment-state.json" should contain ".container-superposition/amendment/docker-compose.override.yml"
+    And the file "docker-compose.yml" should contain "image: node:20"
+    And the Git index should be unchanged
+
+  Scenario: Built-in compose imports remain complete in a personal amendment
+    Given an inline workspace fixture:
+      """
+      files:
+        .devcontainer/devcontainer.json:
+          json:
+            dockerComposeFile: ../docker-compose.yml
+            service: devcontainer
+        docker-compose.yml:
+          text: |
+            services:
+              devcontainer:
+                image: node:20
+      """
+    And the workspace is a Git repository
+    When I run the CLI command
+      """
+      amend init
+      """
+    And I write file ".container-superposition/amendment.yml"
+      """
+      overlays:
+        - ollama
+      """
+    And I run the CLI command
+      """
+      amend refresh
+      """
+    Then the command exits successfully
+    And the file ".container-superposition/amendment/docker-compose.override.yml" should contain "ollama/ollama"
+    And the file ".container-superposition/amendment/docker-compose.override.yml" should contain "driver: nvidia"
+    And the file "docker-compose.yml" should contain "image: node:20"
+    And the Git index should be unchanged
+
   Scenario: Inspect reports drift and remove restores default devcontainer discovery
     Given an inline workspace fixture:
       """

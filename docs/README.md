@@ -18,7 +18,8 @@ Feature work is governed by specs committed under `docs/specs/`. Implementation 
 5. [Examples](examples.md) — worked examples and patterns
 6. [Adopt Command](adopt.md) — convert an existing handwritten `.devcontainer/`
 7. [Local Devcontainer Amendment](local-devcontainer-amendment.md) — personal local layer for a non-adopting repo with an existing team devcontainer
-8. [Presets Guide](presets.md) — optional shortcuts for common setups
+8. [Container Superposition Dev Container Feature](../features/container-superposition/README.md) — install `cs` in an existing devcontainer, then choose shared intent or a personal amendment
+9. [Presets Guide](presets.md) — optional shortcuts for common setups
 
 ### Architecture and repository authority
 
