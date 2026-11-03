@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Node.js Brotli decoder RCE (CVE-2026-111497)** — the minimum supported runtime is now Node.js 22 (earlier lines receive no security fixes); CI builds and the example validation workflow run on Node.js 24, and the `otel-demo-nodejs` demo image uses `node:24-alpine`. Use Node.js 22.23.4, 24.22.1, 26.12.1 or later.
+
 ## [0.1.14] - 2026-10-29
 
 ### Added

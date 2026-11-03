@@ -25,7 +25,7 @@ Explicit non-scope: the generated `.devcontainer/` output remains standard devco
 
 ## System context
 
-The published package runs as a local Node.js 20+ CLI through `container-superposition` or `cs`. It uses Commander and Inquirer for command routing and prompts, reads YAML/JSON/Markdown project inputs, and writes project configuration plus `.devcontainer/` artifacts.
+The published package runs as a local Node.js 22+ CLI through `container-superposition` or `cs`. It uses Commander and Inquirer for command routing and prompts, reads YAML/JSON/Markdown project inputs, and writes project configuration plus `.devcontainer/` artifacts.
 
 Runtime environments include local development shells, VS Code Dev Containers, GitHub Codespaces-compatible generated output, and CI jobs that validate overlays, generated docs, schemas, and release packaging. External integrations are intentionally narrow: npm publishing, GitHub Actions, Docker/devcontainer-compatible output, and optional user-declared private catalogs fetched from git/archive/path sources.
 
@@ -91,7 +91,7 @@ The repository is organized around a small CLI and a composition engine:
 | Concern                  | Choice               | Notes                                                                  |
 | ------------------------ | -------------------- | ---------------------------------------------------------------------- |
 | Language                 | TypeScript 5.3.3     | Source of truth for CLI and tool logic                                 |
-| Runtime                  | Node.js 20+          | Declared in `package.json` and `AGENTS.md`                             |
+| Runtime                  | Node.js 22+          | Declared in `package.json` and `AGENTS.md`                             |
 | Module system            | ESM                  | Imports must use `.js` extensions even from `.ts` sources              |
 | CLI framework            | Commander + Inquirer | Commander for argument parsing; Inquirer prompts for interactive flows |
 | Test runner              | Vitest               | `npm test` runs the unit and command-level suites                      |
