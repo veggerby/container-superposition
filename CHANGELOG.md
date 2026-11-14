@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserved CLI argument forwarding in `/project-config` across prompt-template expansion, avoiding wrapper-repair interruptions
+
 ## [0.1.14] - 2026-10-29
 
 ### Added

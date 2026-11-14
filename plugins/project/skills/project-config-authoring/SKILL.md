@@ -34,14 +34,14 @@ Run CLI calls through this shell function. Define it in each shell session that 
 ```bash
 cs_cli() {
   if command -v cs >/dev/null 2>&1; then
-    cs "$@"
+    cs "${@}"
   else
-    npx container-superposition "$@"
+    npx container-superposition "${@}"
   fi
 }
 ```
 
-Use the installed `cs` if it is on `PATH`; otherwise fall back to `npx container-superposition`. If the selected command fails, report the error rather than silently switching to another version. Do not run `init` or `regen` merely to validate YAML.
+Keep the braced `"${@}"` forwarding syntax so the command and skill remain compatible with prompt-template expansion. Use the installed `cs` if it is on `PATH`; otherwise fall back to `npx container-superposition`. If the selected command fails, report the error rather than silently switching to another version. Do not run `init` or `regen` merely to validate YAML.
 
 ## Project-file shape and schema authority
 

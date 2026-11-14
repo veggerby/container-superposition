@@ -61,6 +61,37 @@ describe('project-config harness packaging', () => {
         expect(existsSync(join(root, '.pi/skills/project-config-authoring'))).toBe(false);
     });
 
+    it.each([promptPath, `${skillPath}/SKILL.md`])(
+        'preserves shell argument forwarding after prompt expansion in %s',
+        (path) => {
+            const content = readFileSync(join(root, path), 'utf8');
+            // Pi expands these tokens even inside fenced shell examples.
+            const expanded = content.replace(/\$(ARGUMENTS|@|\d+)/g, 'configure nodejs');
+            const wrapper = content.match(/```bash\n(cs_cli\(\) \{[\s\S]*?\n\})\n```/)![1];
+            expect(expanded).toContain(wrapper);
+            const args = ['plan', '--json', 'value with spaces', '', '*.yml', '$HOME'];
+            for (const installed of [true, false]) {
+                const stub = installed ? 'cs' : 'npx';
+                const result = spawnSync(
+                    '/bin/bash',
+                    [
+                        '-c',
+                        `${stub}() { printf '%s\\0' "\${@}"; }\n${wrapper}\ncs_cli "\${@}"`,
+                        '--',
+                        ...args,
+                    ],
+                    { encoding: 'utf8', env: { ...process.env, PATH: '' } }
+                );
+                expect(result.error).toBeUndefined();
+                expect(result.stderr).toBe('');
+                expect(result.status).toBe(0);
+                expect(result.stdout.split('\0').slice(0, -1)).toEqual(
+                    installed ? args : ['container-superposition', ...args]
+                );
+            }
+        }
+    );
+
     it('contains only the native metadata, adapter, and one copy of each instruction resource', () => {
         expect(readdirSync(join(root, pluginPath)).sort()).toEqual([
             '.claude-plugin',

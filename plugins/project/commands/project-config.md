@@ -16,14 +16,14 @@ Use the installed `cs` if available; otherwise use `npx container-superposition`
 ```bash
 cs_cli() {
   if command -v cs >/dev/null 2>&1; then
-    cs "$@"
+    cs "${@}"
   else
-    npx container-superposition "$@"
+    npx container-superposition "${@}"
   fi
 }
 ```
 
-Do not silently switch versions if the selected command fails. Start with read-only `cs_cli defaults --json`; if unavailable, inspect `~/.container-superposition.yml` then `~/.superposition.yml` read-only (the first wins). Treat home defaults as bootstrap suggestions, never replay authority. Do not expose suspected secrets.
+Keep the braced `"${@}"` forwarding syntax so prompt-template expansion leaves shell arguments intact. Do not silently switch versions if the selected command fails. Start with read-only `cs_cli defaults --json`; if unavailable, inspect `~/.container-superposition.yml` then `~/.superposition.yml` read-only (the first wins). Treat home defaults as bootstrap suggestions, never replay authority. Do not expose suspected secrets.
 
 ## File and schema contract
 
